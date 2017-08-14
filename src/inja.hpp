@@ -204,6 +204,7 @@ public:
 				const std::regex regex_condition_close("endif");
 				
 				std::smatch inner_statement_match;
+				// Loop
 				if (std::regex_match(statement_match.inner, inner_statement_match, regex_loop_open)) {
 					SearchClosedMatch loop_match = search_close(input, regex_statement, regex_loop_open, regex_loop_close, statement_match);
 					
@@ -211,11 +212,13 @@ public:
 					string loop_command = inner_statement_match[0].str();
 					result.push_back({{"type", "loop"}, {"command", loop_command}, {"inner", loop_match.inner}});
 				}
+				// Include
 				else if (std::regex_match(statement_match.inner, inner_statement_match, regex_include)) {
 					string include_command = inner_statement_match[0].str();
 					string filename = inner_statement_match[1].str();
 					result.push_back({{"type", "include"}, {"filename", filename}});
 				}
+				// Condition
 				else if (std::regex_match(statement_match.inner, inner_statement_match, regex_condition_open)) {
 					string if_command = inner_statement_match[0].str();
 					json condition_result = {{"type", "condition"}, {"children", json::array()}};
@@ -413,14 +416,15 @@ public:
 		}
 		return result;
 	} 
-	
-	string render(string input, json data) {
-		return render(input, data, "./");
-	}
 		
 	string render(string input, json data, string path) {
 		json parsed = parse(input);
 		return render_tree(parsed, data, path);
+	}
+	
+	
+	string render(string input, json data) {
+		return render(input, data, "./");
 	}
 	
 	string render_template(string filename, json data) {
