@@ -8,7 +8,7 @@ using json = nlohmann::json;
 using Type = inja::Parser::Type;
 
 
-TEST_CASE("parser") {
+TEST_CASE("parse structure") {
 	Environment env = Environment();
 	
 	SECTION("basic") {
@@ -97,7 +97,10 @@ TEST_CASE("parser") {
 		CHECK( env.parse(test) == result );
 		CHECK( env.parse(test2) == result2 );
 	}
+}
 	
+TEST_CASE("parse json") {
+	Environment env = Environment();
 	
 	json data;
 	data["name"] = "Peter";
@@ -121,5 +124,35 @@ TEST_CASE("parser") {
 		CHECK( env.parse_variable("brother/name", data) == "Chris" );
 		CHECK( env.parse_variable("brother/daughters/0", data) == "Maria" );
 		CHECK_THROWS_WITH( env.parse_variable("noelement", data), "JSON pointer found no element." );
+	}
+}
+
+TEST_CASE("parse conditions") {
+	Environment env = Environment();
+	
+	json data;
+	data["age"] = 29;
+	data["brother"] = "Peter";
+	data["father"] = "Peter";
+	
+	SECTION("elements") {
+		// CHECK( env.parse_condition("age", data) );
+		CHECK_FALSE( env.parse_condition("size", data) );
+	}
+	
+	SECTION("numbers") {
+		CHECK( env.parse_condition("age == 29", data) );
+		CHECK( env.parse_condition("age >= 29", data) );
+		CHECK( env.parse_condition("age <= 29", data) );
+		CHECK( env.parse_condition("age < 100", data) );
+		CHECK_FALSE( env.parse_condition("age > 29", data) );
+		CHECK_FALSE( env.parse_condition("age != 29", data) );
+		CHECK_FALSE( env.parse_condition("age < 28", data) );
+		CHECK_FALSE( env.parse_condition("age < -100.0", data) );
+	}
+	
+	SECTION("strings") {
+		CHECK( env.parse_condition("brother == father", data) );
+		CHECK( env.parse_condition("brother == \"Peter\"", data) );
 	}
 }

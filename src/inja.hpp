@@ -100,6 +100,7 @@ inline SearchMatchVector search(string input, std::vector<string> regex_patterns
 		}
 	}
 	
+	// TODO use search(...)
 	string regex_pattern = "(" + join_strings(regex_patterns, ")|(") + ")";
 	std::regex regex(regex_pattern);
 	
@@ -383,56 +384,67 @@ public:
 	string render_tree(json input, json data, string path) {		
 		string result = "";		
 		for (auto element: input) {
-			if (element["type"] == Parser::Type::String) {
-				result += element["text"];
-			}
-			else if (element["type"] == Parser::Type::Variable) {
-				json variable = parse_variable(element["command"], data);
-				result += render_json(variable);
-			}
-			else if (element["type"] == Parser::Type::Include) {
-				result += render_template(path + element["filename"].get<string>(), data);
-			}
-			else if (element["type"] == Parser::Type::Loop) {				
-				const std::regex regex_loop_list("for (\\w+) in (.+)");
-				
-				string command = element["command"].get<string>();
-				std::smatch match_command;
-				if (std::regex_match(command, match_command, regex_loop_list)) {
-					string item_name = match_command.str(1);
-					string list_name = match_command.str(2);
-					
-					json list = parse_variable(list_name, data);
-					for (int i = 0; i < list.size(); i++) {
-						json data_loop = data;
-						data_loop[item_name] = list[i];
-						data_loop["index"] = i;
-						data_loop["index1"] = i + 1;
-						data_loop["is_first"] = (i == 0);
-						data_loop["is_last"] = (i == list.size() - 1);
-						result += render_tree(element["children"], data_loop, path);
-					}
+			switch ( (Parser::Type) element["type"] ) {
+    			case Parser::Type::String: {
+					result += element["text"];
+             		break;
 				}
-			}
-			else if (element["type"] == Parser::Type::Condition) {				
-				const std::regex regex_condition("(if|else if|else) ?(.*)");
-				
-				json branches = element["children"];
-				for (auto branch: branches) {
+    			case Parser::Type::Variable: {
+					json variable = parse_variable(element["command"], data);
+					result += render_json(variable);
+             		break;
+				}
+				case Parser::Type::Include: {
+					result += render_template(path + element["filename"].get<string>(), data);
+					break;
+				}	
+				case Parser::Type::Loop: {
+					const std::regex regex_loop_list("for (\\w+) in (.+)");
 					
-					string command = branch["command"].get<string>();
+					string command = element["command"].get<string>();
 					std::smatch match_command;
-					if (std::regex_match(command, match_command, regex_condition)) {
-						string condition_type = match_command.str(1);
-						string condition = match_command.str(2);
-																		
-						if (parse_condition(condition, data) || condition_type == "else") {
-							result += render_tree(branch["children"], data, path);
-							break;
+					if (std::regex_match(command, match_command, regex_loop_list)) {
+						string item_name = match_command.str(1);
+						string list_name = match_command.str(2);
+						
+						json list = parse_variable(list_name, data);
+						for (int i = 0; i < list.size(); i++) {
+							json data_loop = data;
+							data_loop[item_name] = list[i];
+							data_loop["index"] = i;
+							data_loop["index1"] = i + 1;
+							data_loop["is_first"] = (i == 0);
+							data_loop["is_last"] = (i == list.size() - 1);
+							result += render_tree(element["children"], data_loop, path);
 						}
 					}
+					break;
 				}
-			}
+				case Parser::Type::Condition: {
+					const std::regex regex_condition("(if|else if|else) ?(.*)");
+					
+					for (auto branch: element["children"]) {
+						string command = branch["command"].get<string>();
+						std::smatch match_command;
+						if (std::regex_match(command, match_command, regex_condition)) {
+							string condition_type = match_command.str(1);
+							string condition = match_command.str(2);
+																			
+							if (parse_condition(condition, data) || condition_type == "else") {
+								result += render_tree(branch["children"], data, path);
+								break;
+							}
+						}
+					}
+					break;
+				}
+				case Parser::Type::Comment: {
+					break;
+				}
+				default: {
+					throw std::runtime_error("Unknown type in renderer.");
+				}	
+		 	}
 		}
 		return result;
 	} 

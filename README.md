@@ -23,6 +23,10 @@ Inja is headers only. Just one dependency: json by nlohmann.
 ```c++
 #include "json.hpp"
 #include "inja.hpp"
+
+// For convenience
+using namespace inja;
+using json = nlohmann::json;
 ```
     
 
@@ -34,10 +38,10 @@ Inja is headers only. Just one dependency: json by nlohmann.
 json data;
 data["name"] = "world";
 
-inja::render("Hello {{ name }}!", data); // "Hello World!"
+render("Hello {{ name }}!", data); // "Hello World!"
 
 // For more advanced usage, an environment is recommended
-inja::Environment env = inja::Environment();
+Environment env = Environment();
 
 // Render a string with json data
 std::string result = env.render("Hello {{ name }}!", data);
@@ -52,15 +56,31 @@ std::string result_template_2 = env.render_temlate_with_json_file("template.txt"
 The environment class can be configured.
 ```c++
 // With default settings
-inja::Environment env_default = inja::Environment();
+Environment env_default = Environment();
 
 // With global path to template files
-inja::Environment env_default = inja::Environment("../path/templates/"); 
+Environment env_default = Environment("../path/templates/"); 
 ```
 
 ### Variables
 
 Variables can be rendered with the `{{ ... }}` syntax.
+
+```c++
+json data;
+data["name"] = "world";
+data["guests"] = {"Jeff", "Pierre", "Tom"};
+data["time"]["start"]["hour"] = 16;
+data["time"]["end"]["hour"] = 21;
+
+string template = """
+    {{ guests/0 }}
+    
+    {{ time/start/hour }} to {{ time/end/hour }} or {{ 24 }}
+""";
+```
+
+Valid Json -> Printed. Json Pointer.
 
 
 ### Statements
@@ -106,11 +126,16 @@ Guests:
 </table>
 
 In the loop, some special variables are available:
-- int index
-- bool is_first
-- bool is_last
+- `int index, index1`
+- `bool is_first`
+- `bool is_last`
 
 #### Conditions
+
+If, else if, else. Nested. conditions:
+- `not`
+- `==`, `>`, `<`, `>=`, `<=`, `!=`
+- `in`
 
 #### Includes
 
@@ -121,7 +146,7 @@ Include other files like `(% include "footer.html" %)`. Relative from file.
 Comments can be rendered with the `{# ... #}` syntax.
 
 ```c++
-inja::render("Hello{# Todo #}!", data); // "Hello!"
+render("Hello{# Todo #}!", data); // "Hello!"
 ```
 
 ## Supported compilers
@@ -129,7 +154,7 @@ inja::render("Hello{# Todo #}!", data); // "Hello!"
 Currently, the following compilers are tested:
 
 - GCC 4.9 - 7.1 (and possibly later)
-- Clang 3.6 - 3.7 (and possibly later)
+- Clang 3.6 - 3.8 (and possibly later)
 
 
 ## License
