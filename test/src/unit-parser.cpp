@@ -5,6 +5,7 @@
 
 using Environment = inja::Environment;
 using json = nlohmann::json;
+using Type = inja::Parser::Type;
 
 
 TEST_CASE("parser") {
@@ -12,89 +13,89 @@ TEST_CASE("parser") {
 	
 	SECTION("basic") {
 		std::string test = "asdf";
-		json result = {{{"type", "string"}, {"text", "asdf"}}};
+		json result = {{{"type", Type::String}, {"text", "asdf"}}};
 				
-		REQUIRE( env.parse(test) == result );
+		CHECK( env.parse(test) == result );
 	}
 	
 	SECTION("variables") {
 		std::string test = "{{ name }}";
-		json result = {{{"type", "variable"}, {"command", "name"}}};
-		REQUIRE( env.parse(test) == result );
+		json result = {{{"type", Type::Variable}, {"command", "name"}}};
+		CHECK( env.parse(test) == result );
 		
 		std::string test_combined = "Hello {{ name }}!";
 		json result_combined = {
-			{{"type", "string"}, {"text", "Hello "}},
-			{{"type", "variable"}, {"command", "name"}},
-			{{"type", "string"}, {"text", "!"}}
+			{{"type", Type::String}, {"text", "Hello "}},
+			{{"type", Type::Variable}, {"command", "name"}},
+			{{"type", Type::String}, {"text", "!"}}
 		};
-		REQUIRE( env.parse(test_combined) == result_combined );
+		CHECK( env.parse(test_combined) == result_combined );
 		
 		std::string test_multiple = "Hello {{ name }}! I come from {{ city }}.";
 		json result_multiple = {
-			{{"type", "string"}, {"text", "Hello "}},
-			{{"type", "variable"}, {"command", "name"}},
-			{{"type", "string"}, {"text", "! I come from "}},
-			{{"type", "variable"}, {"command", "city"}},
-			{{"type", "string"}, {"text", "."}}
+			{{"type", Type::String}, {"text", "Hello "}},
+			{{"type", Type::Variable}, {"command", "name"}},
+			{{"type", Type::String}, {"text", "! I come from "}},
+			{{"type", Type::Variable}, {"command", "city"}},
+			{{"type", Type::String}, {"text", "."}}
 		};
-		REQUIRE( env.parse(test_multiple) == result_multiple );
+		CHECK( env.parse(test_multiple) == result_multiple );
 	}
 	
 	SECTION("loops") {
 		std::string test = "open (% for e in list %)lorem(% endfor %) closing";
 		json result = {
-			{{"type", "string"}, {"text", "open "}},
-			{{"type", "loop"}, {"command", "for e in list"}, {"children", {
-				{{"type", "string"}, {"text", "lorem"}}
+			{{"type", Type::String}, {"text", "open "}},
+			{{"type", Type::Loop}, {"command", "for e in list"}, {"children", {
+				{{"type", Type::String}, {"text", "lorem"}}
 			}}},
-			{{"type", "string"}, {"text", " closing"}}
+			{{"type", Type::String}, {"text", " closing"}}
 		};
 		
 		std::string test_nested = "(% for e in list %)(% for b in list2 %)lorem(% endfor %)(% endfor %)";
 		json result_nested = {
-			{{"type", "loop"}, {"command", "for e in list"}, {"children", {
-				{{"type", "loop"}, {"command", "for b in list2"}, {"children", {
-					{{"type", "string"}, {"text", "lorem"}}
+			{{"type", Type::Loop}, {"command", "for e in list"}, {"children", {
+				{{"type", Type::Loop}, {"command", "for b in list2"}, {"children", {
+					{{"type", Type::String}, {"text", "lorem"}}
 				}}}
 			}}}
 		};
 			
-		REQUIRE( env.parse(test) == result );
-		REQUIRE( env.parse(test_nested) == result_nested );
+		CHECK( env.parse(test) == result );
+		CHECK( env.parse(test_nested) == result_nested );
 	}
 	
 	SECTION("conditionals") {
 		std::string test = "(% if true %)dfgh(% endif %)";
 		json result = {
-			{{"type", "condition"}, {"children", {
-				{{"type", "condition_branch"}, {"command", "if true"}, {"children", {
-					{{"type", "string"}, {"text", "dfgh"}}
+			{{"type", Type::Condition}, {"children", {
+				{{"type", Type::ConditionBranch}, {"command", "if true"}, {"children", {
+					{{"type", Type::String}, {"text", "dfgh"}}
 				}}}
 			}}}
 		};
 		
 		std::string test2 = "if: (% if maybe %)first if(% else if perhaps %)first else if(% else if sometimes %)second else if(% else %)test else(% endif %)";
 		json result2 = {
-			{{"type", "string"}, {"text", "if: "}},
-			{{"type", "condition"}, {"children", {
-				{{"type", "condition_branch"}, {"command", "if maybe"}, {"children", {
-					{{"type", "string"}, {"text", "first if"}}
+			{{"type", Type::String}, {"text", "if: "}},
+			{{"type", Type::Condition}, {"children", {
+				{{"type", Type::ConditionBranch}, {"command", "if maybe"}, {"children", {
+					{{"type", Type::String}, {"text", "first if"}}
 				}}},
-				{{"type", "condition_branch"}, {"command", "else if perhaps"}, {"children", {
-					{{"type", "string"}, {"text", "first else if"}}
+				{{"type", Type::ConditionBranch}, {"command", "else if perhaps"}, {"children", {
+					{{"type", Type::String}, {"text", "first else if"}}
 				}}},
-				{{"type", "condition_branch"}, {"command", "else if sometimes"}, {"children", {
-					{{"type", "string"}, {"text", "second else if"}}
+				{{"type", Type::ConditionBranch}, {"command", "else if sometimes"}, {"children", {
+					{{"type", Type::String}, {"text", "second else if"}}
 				}}}, 
-				{{"type", "condition_branch"}, {"command", "else"}, {"children", {
-					{{"type", "string"}, {"text", "test else"}}
+				{{"type", Type::ConditionBranch}, {"command", "else"}, {"children", {
+					{{"type", Type::String}, {"text", "test else"}}
 				}}}, 
 			}}}
 		};
 				
-		REQUIRE( env.parse(test) == result );
-		REQUIRE( env.parse(test2) == result2 );
+		CHECK( env.parse(test) == result );
+		CHECK( env.parse(test2) == result2 );
 	}
 	
 	
@@ -108,17 +109,17 @@ TEST_CASE("parser") {
 	data["brother"]["daughter0"] = { { "name", "Maria" } };
 		
 	SECTION("variables from values") {
-		REQUIRE( env.parse_variable("42", data) == 42 );
-		REQUIRE( env.parse_variable("3.1415", data) == 3.1415 );
-		REQUIRE( env.parse_variable("\"hello\"", data) == "hello" );
+		CHECK( env.parse_variable("42", data) == 42 );
+		CHECK( env.parse_variable("3.1415", data) == 3.1415 );
+		CHECK( env.parse_variable("\"hello\"", data) == "hello" );
 	}
 		
 	SECTION("variables from JSON data") {
-		REQUIRE( env.parse_variable("name", data) == "Peter" );
-		REQUIRE( env.parse_variable("age", data) == 29 );
-		REQUIRE( env.parse_variable("names/1", data) == "Seb" );
-		REQUIRE( env.parse_variable("brother/name", data) == "Chris" );
-		REQUIRE( env.parse_variable("brother/daughters/0", data) == "Maria" );
-		REQUIRE_THROWS_WITH( env.parse_variable("noelement", data), "JSON pointer found no element." );
+		CHECK( env.parse_variable("name", data) == "Peter" );
+		CHECK( env.parse_variable("age", data) == 29 );
+		CHECK( env.parse_variable("names/1", data) == "Seb" );
+		CHECK( env.parse_variable("brother/name", data) == "Chris" );
+		CHECK( env.parse_variable("brother/daughters/0", data) == "Maria" );
+		CHECK_THROWS_WITH( env.parse_variable("noelement", data), "JSON pointer found no element." );
 	}
 }

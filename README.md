@@ -69,19 +69,39 @@ Statements can be written with the `(% ... %)` syntax. The most important statem
 
 #### Loops
 
-```c++
-json data;
-data["guests"] = { "Jeff", "Pierre", "Tom" };
-
-render("""Guests:
+<table>
+	<tbody>
+		<tr>
+      		<th>Template</th>
+      		<th>Json</th>
+      		<th>Result</th>
+    	</tr>
+		<tr>
+			<td>
+                <pre lang="txt">
+Guests:
 (% for guest in guests %)- {{ guest }}
-(% endfor %)""", data);
-/* Guests:
+(% endfor %)
+                </pre>
+			</td>
+			<td>
+  				<pre lang="json">
+{
+    "guests:  ["Jeff", "Pierre", "Tom"];
+}
+  				</pre>
+			</td>
+			<td>
+                <pre lang="txt">
+Guests:
 - Jeff
 - Pierre
 - Tom
-*/
-```
+                </pre>
+			</td>
+		</tr>
+	</tbody>
+</table>
 
 In the loop, some special variables are available:
 - int index
@@ -113,3 +133,6 @@ Currently, the following compilers are tested:
 ## License
 
 The class is licensed under the [MIT License](https://raw.githubusercontent.com/pantor/inja/master/LICENSE).
+
+
+

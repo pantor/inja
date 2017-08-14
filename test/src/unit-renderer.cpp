@@ -20,43 +20,43 @@ TEST_CASE("Renderer") {
 	data["is_happy"] = true;
 		
 	SECTION("Basic") {
-		REQUIRE( env.render("Hello World!", data) == "Hello World!" );
-		REQUIRE( env.render("", data, "../") == "" );
+		CHECK( env.render("Hello World!", data) == "Hello World!" );
+		CHECK( env.render("", data, "../") == "" );
 	}
 	
 	SECTION("Variables") {
-		REQUIRE( env.render("Hello {{ name }}!", data) == "Hello Peter!" );
-		REQUIRE( env.render("{{ name }}", data) == "Peter" );
-		REQUIRE( env.render("{{name}}", data) == "Peter" );
-		REQUIRE( env.render("{{ name }} is {{ age }} years old.", data) == "Peter is 29 years old." );
-		REQUIRE( env.render("Hello {{ name }}! I come from {{ city }}.", data) == "Hello Peter! I come from Brunswick." );
-		REQUIRE( env.render("Hello {{ names/1 }}!", data) == "Hello Seb!" );
-		REQUIRE( env.render("Hello {{ brother/name }}!", data) == "Hello Chris!" );
-		REQUIRE( env.render("Hello {{ brother/daughter0/name }}!", data) == "Hello Maria!" );
+		CHECK( env.render("Hello {{ name }}!", data) == "Hello Peter!" );
+		CHECK( env.render("{{ name }}", data) == "Peter" );
+		CHECK( env.render("{{name}}", data) == "Peter" );
+		CHECK( env.render("{{ name }} is {{ age }} years old.", data) == "Peter is 29 years old." );
+		CHECK( env.render("Hello {{ name }}! I come from {{ city }}.", data) == "Hello Peter! I come from Brunswick." );
+		CHECK( env.render("Hello {{ names/1 }}!", data) == "Hello Seb!" );
+		CHECK( env.render("Hello {{ brother/name }}!", data) == "Hello Chris!" );
+		CHECK( env.render("Hello {{ brother/daughter0/name }}!", data) == "Hello Maria!" );
 	}
 	
 	SECTION("Comments") {
-		REQUIRE( env.render("Hello{# This is a comment #}!", data) == "Hello!" );
-		REQUIRE( env.render("{# --- #Todo --- #}", data) == "" );
+		CHECK( env.render("Hello{# This is a comment #}!", data) == "Hello!" );
+		CHECK( env.render("{# --- #Todo --- #}", data) == "" );
 	}
 	
 	SECTION("Loops") {
-		REQUIRE( env.render("Hello (% for name in names %){{ name }} (% endfor %)!", data) == "Hello Jeff Seb !" );
-		REQUIRE( env.render("Hello (% for name in names %){{ index }}: {{ name }}, (% endfor %)!", data) == "Hello 0: Jeff, 1: Seb, !" );
+		CHECK( env.render("Hello (% for name in names %){{ name }} (% endfor %)!", data) == "Hello Jeff Seb !" );
+		CHECK( env.render("Hello (% for name in names %){{ index }}: {{ name }}, (% endfor %)!", data) == "Hello 0: Jeff, 1: Seb, !" );
 	}
 	
 	SECTION("Conditionals") {
-		REQUIRE( env.render("(% if is_happy %)Yeah!(% endif %)", data) == "Yeah!" );
-		REQUIRE( env.render("(% if is_sad %)Yeah!(% endif %)", data) == "" );
-		REQUIRE( env.render("(% if is_sad %)Yeah!(% else %)Nooo...(% endif %)", data) == "Nooo..." );
-		REQUIRE( env.render("(% if age == 29 %)Right(% else %)Wrong(% endif %)", data) == "Right" );
-		REQUIRE( env.render("(% if age > 29 %)Right(% else %)Wrong(% endif %)", data) == "Wrong" );
-		REQUIRE( env.render("(% if age <= 29 %)Right(% else %)Wrong(% endif %)", data) == "Right" );
-		REQUIRE( env.render("(% if age != 28 %)Right(% else %)Wrong(% endif %)", data) == "Right" );
-		REQUIRE( env.render("(% if age >= 30 %)Right(% else %)Wrong(% endif %)", data) == "Wrong" );
-		REQUIRE( env.render("(% if age in [28, 29, 30] %)True(% endif %)", data) == "True" );
+		CHECK( env.render("(% if is_happy %)Yeah!(% endif %)", data) == "Yeah!" );
+		CHECK( env.render("(% if is_sad %)Yeah!(% endif %)", data) == "" );
+		CHECK( env.render("(% if is_sad %)Yeah!(% else %)Nooo...(% endif %)", data) == "Nooo..." );
+		CHECK( env.render("(% if age == 29 %)Right(% else %)Wrong(% endif %)", data) == "Right" );
+		CHECK( env.render("(% if age > 29 %)Right(% else %)Wrong(% endif %)", data) == "Wrong" );
+		CHECK( env.render("(% if age <= 29 %)Right(% else %)Wrong(% endif %)", data) == "Right" );
+		CHECK( env.render("(% if age != 28 %)Right(% else %)Wrong(% endif %)", data) == "Right" );
+		CHECK( env.render("(% if age >= 30 %)Right(% else %)Wrong(% endif %)", data) == "Wrong" );
+		CHECK( env.render("(% if age in [28, 29, 30] %)True(% endif %)", data) == "True" );
 		
 		// Only works with gcc-5
-		// REQUIRE( env.render("(% if name in [\"Simon\", \"Tom\"] %)Test1(% else if name in [\"Peter\"] %)Test2(% else %)Test3(% endif %)", data) == "Test2" );
+		// CHECK( env.render("(% if name in [\"Simon\", \"Tom\"] %)Test1(% else if name in [\"Peter\"] %)Test2(% else %)Test3(% endif %)", data) == "Test2" );
 	}
 }
