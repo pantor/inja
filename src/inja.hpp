@@ -1,10 +1,19 @@
+/* 
+	Inja - A Template Engine for Modern C++
+*/
+
+#ifndef PANTOR_INJA_HPP
+#define PANTOR_INJA_HPP
+
 #include <iostream>
 #include <fstream>
 #include <string>
 #include <regex>
 
-#include "json/json.hpp"
 
+#ifndef NLOHMANN_JSON_HPP
+	static_assert(false, "nlohmann/json not found.");
+#endif
 
 namespace inja {
 	
@@ -428,4 +437,11 @@ public:
 	}
 };
 
+string render(string input, json data) {
+	Environment env = Environment();
+	return env.render(input, data);
+}
+
 } // namespace inja
+
+#endif // PANTOR_INJA_HPP

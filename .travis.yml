@@ -7,57 +7,64 @@ language: cpp
 dist: trusty
 sudo: required
 
-#addons:
-#  apt:
-#    sources:
-#    # add PPAs with more up-to-date toolchains
-#    - ubuntu-toolchain-r-test
-#    - llvm-toolchain-precise-3.6
-#    packages:
-#    # install toolchains
-#    - gcc-5
-#    - g++-5
-#    - clang-3.6
-
 matrix:
   include:
+    ### Coveralls ###
     - compiler: gcc
       addons:
         apt:
-          sources:
-            - ubuntu-toolchain-r-test
-          packages:
-            - g++-4.9
-      env: COMPILER=g++-4.9
-    - compiler: gcc
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-          packages:
-            - g++-5
+          sources: ['ubuntu-toolchain-r-test']
+          packages: g++-5
       env: COMPILER=g++-5
+      before_install:
+        - pip install --user cpp-coveralls
+      after_success:
+        - make clean
+        # - coveralls --exclude lib --exclude tests --gcov-options '\-lp'
+      
+    - compiler: gcc
+      addons:
+        apt:
+          sources: ['ubuntu-toolchain-r-test']
+          packages: g++-4.9
+      env: COMPILER=g++-4.9
+      
+    - compiler: gcc
+      addons:
+        apt:
+          sources: ['ubuntu-toolchain-r-test']
+          packages: g++-5
+      env: COMPILER=g++-5
+      
+    - compiler: gcc
+      addons:
+        apt:
+          sources: ['ubuntu-toolchain-r-test']
+          packages: g++-6
+      env: COMPILER=g++-6
+      
+    - compiler: gcc
+      addons:
+        apt:
+          sources: ['ubuntu-toolchain-r-test']
+          packages: g++-7
+      env: COMPILER=g++-7
+      
     - compiler: clang
       addons:
         apt:
-          sources:
-            - ubuntu-toolchain-r-test
-            - llvm-toolchain-precise-3.6
-          packages:
-            - clang-3.6
+          sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-precise-3.6']
+          packages: clang-3.6
       env: COMPILER=clang++-3.6
+      
     - compiler: clang
       addons:
         apt:
-          sources:
-            - ubuntu-toolchain-r-test
-            - llvm-toolchain-precise-3.7
-          packages:
-            - clang-3.7
+          sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-precise-3.7']
+          packages: clang-3.7
       env: COMPILER=clang++-3.7
 
-before_install:
-  - pip install --user cpp-coveralls
+
 script:
   - if [[ "${COMPILER}" != "" ]]; then export CXX=${COMPILER}; fi
   - uname -a
@@ -67,5 +74,3 @@ script:
   - cmake .. && cmake --build . --config Release -- -j4
   - ctest -C Release -V
   - cd ..
-#after_success:
-#  - coveralls --exclude lib --exclude tests --gcov-options '\-lp'
