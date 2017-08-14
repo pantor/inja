@@ -7,17 +7,17 @@ language: cpp
 dist: trusty
 sudo: required
 
-addons:
-  apt:
-    sources:
-    # add PPAs with more up-to-date toolchains
-    - ubuntu-toolchain-r-test
-    - llvm-toolchain-precise-3.6
-    packages:
-    # install toolchains
-    - gcc-5
-    - g++-5
-    - clang-3.6
+#addons:
+#  apt:
+#    sources:
+#    # add PPAs with more up-to-date toolchains
+#    - ubuntu-toolchain-r-test
+#    - llvm-toolchain-precise-3.6
+#    packages:
+#    # install toolchains
+#    - gcc-5
+#    - g++-5
+#    - clang-3.6
 
 matrix:
   include:
@@ -58,9 +58,14 @@ matrix:
 
 #compiler:
 #  - gcc
-before_install:
-  - pip install --user cpp-coveralls
+#before_install:
+#  - pip install --user cpp-coveralls
 script:
+  - uname -a
+  - $CXX --version
+  - if [[ "${COMPILER}" != "" ]]; then export CXX=${COMPILER}; fi
+  - $CXX --version
+
   - mkdir -p build && cd build
   - cmake .. && cmake --build . --config Release -- -j4
   - ctest -C Release -V
