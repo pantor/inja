@@ -56,10 +56,8 @@ matrix:
             - clang-3.7
       env: COMPILER=clang++-3.7
 
-#compiler:
-#  - gcc
-#before_install:
-#  - pip install --user cpp-coveralls
+before_install:
+  - pip install --user cpp-coveralls
 script:
   - if [[ "${COMPILER}" != "" ]]; then export CXX=${COMPILER}; fi
   - uname -a
@@ -69,6 +67,5 @@ script:
   - cmake .. && cmake --build . --config Release -- -j4
   - ctest -C Release -V
   - cd ..
-#  - ./configure --enable-gcov && make && make check
 #after_success:
 #  - coveralls --exclude lib --exclude tests --gcov-options '\-lp'
