@@ -1,0 +1,20 @@
+#########################
+# project configuration #
+#########################
+
+language: cpp
+
+# dist: trusty
+
+compiler:
+  - gcc
+before_install:
+  - pip install --user cpp-coveralls
+script:
+  - mkdir -p build && cd build
+  - cmake .. && cmake --build . --config Release -- -j4
+  - ctest -C Release -V
+  - cd ..
+#  - ./configure --enable-gcov && make && make check
+#after_success:
+#  - coveralls --exclude lib --exclude tests --gcov-options '\-lp'
