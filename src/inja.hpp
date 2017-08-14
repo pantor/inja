@@ -407,6 +407,7 @@ public:
 						json data_loop = data;
 						data_loop[item_name] = list[i];
 						data_loop["index"] = i;
+						data_loop["index1"] = i + 1;
 						data_loop["is_first"] = (i == 0);
 						data_loop["is_last"] = (i == list.size() - 1);
 						result += render_tree(element["children"], data_loop, path);
