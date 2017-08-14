@@ -61,9 +61,8 @@ matrix:
 #before_install:
 #  - pip install --user cpp-coveralls
 script:
-  - uname -a
-  - $CXX --version
   - if [[ "${COMPILER}" != "" ]]; then export CXX=${COMPILER}; fi
+  - uname -a
   - $CXX --version
 
   - mkdir -p build && cd build

@@ -222,14 +222,14 @@ TEST_CASE("Files") {
 	data["name"] = "Jeff";
 	
 	SECTION("Files should be loaded") {
-		REQUIRE( env.load_template("../test/data/simple.txt") == "Hello {{ name }}." );
+		REQUIRE( env.load_template("data/simple.txt") == "Hello {{ name }}." );
 	}
 	
 	SECTION("Files should be rendered") {
-		REQUIRE( env.render_template("../test/data/simple.txt", data) == "Hello Jeff." );
+		REQUIRE( env.render_template("data/simple.txt", data) == "Hello Jeff." );
 	}
 	
 	SECTION("File includes should be rendered") {
-		REQUIRE( env.render_template("../test/data/include.txt", data) == "Answer: Hello Jeff." );
+		REQUIRE( env.render_template("data/include.txt", data) == "Answer: Hello Jeff." );
 	}
 }
