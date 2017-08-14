@@ -78,30 +78,28 @@ Statements can be written with the `(% ... %)` syntax. The most important statem
     	</tr>
 		<tr>
 			<td>
-                <pre lang="txt">
+<pre lang="txt">
 Guests:
 (% for guest in guests %){{ index1 }}: {{ guest }}
-(% endfor %)
-                </pre>
+(% endfor %)</pre>
 			</td>
 			<td>
-  				<pre lang="json">
+<pre lang="json">
 {
-  "guests:  [
+  "guests":  [
     "Jeff",
     "Pierre",
     "Tom"
-  ];
-}
-  				</pre>
+  ]
+}</pre>
 			</td>
 			<td>
-                <pre lang="txt">
+<pre lang="txt">
 Guests:
 1. Jeff
 2. Pierre
 3. Tom
-                </pre>
+</pre>
 			</td>
 		</tr>
 	</tbody>
