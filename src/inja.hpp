@@ -5,6 +5,7 @@
 #ifndef PANTOR_INJA_HPP
 #define PANTOR_INJA_HPP
 
+
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -15,13 +16,14 @@
 	static_assert(false, "nlohmann/json not found.");
 #endif
 
+
 namespace inja {
 	
 using json = nlohmann::json;
 using string = std::string;
 
 
-string join_strings(std::vector<string> vector, string delimiter) {
+inline string join_strings(std::vector<string> vector, string delimiter) {
 	std::stringstream ss;
 	for (size_t i = 0; i < vector.size(); ++i)
 	{
@@ -77,7 +79,7 @@ struct SearchClosedMatch {
 	SearchMatch open_match, close_match;
 };
 
-SearchMatch search(string input, std::regex regex, size_t position) {
+inline SearchMatch search(string input, std::regex regex, size_t position) {
 	auto first = input.cbegin();
 	auto last = input.cend();
 	
@@ -90,7 +92,7 @@ SearchMatch search(string input, std::regex regex, size_t position) {
 	return SearchMatch(match, position);
 }
 
-SearchMatch search(string input, std::vector<string> regex_patterns, size_t position) {
+inline SearchMatch search(string input, std::vector<string> regex_patterns, size_t position) {
 	auto first = input.cbegin();
 	auto last = input.cend();
 	
@@ -125,7 +127,7 @@ SearchMatch search(string input, std::vector<string> regex_patterns, size_t posi
 	return SearchMatch(match, position, number_inner, number_regex);
 }
 
-SearchClosedMatch search_on_level(string input, std::regex regex_statement, std::regex regex_level_up, std::regex regex_level_down, std::regex regex_search, SearchMatch open_match) {
+inline SearchClosedMatch search_on_level(string input, std::regex regex_statement, std::regex regex_level_up, std::regex regex_level_down, std::regex regex_search, SearchMatch open_match) {
 		
 	int level = 0;
 	size_t current_position = open_match.end_position;
@@ -143,7 +145,7 @@ SearchClosedMatch search_on_level(string input, std::regex regex_statement, std:
 	return SearchClosedMatch(input, open_match, statement_match);
 }
 
-SearchClosedMatch search_close(string input, std::regex regex_statement, std::regex regex_open, std::regex regex_close, SearchMatch open_match) {
+inline SearchClosedMatch search_close(string input, std::regex regex_statement, std::regex regex_open, std::regex regex_close, SearchMatch open_match) {
 	return search_on_level(input, regex_statement, regex_open, regex_close, regex_close, open_match);
 }
 	
@@ -158,9 +160,13 @@ class Environment {
 	std::regex regex_comment;
 	std::vector<string> regex_pattern_delimiters;
 	
+	string global_path;
+	
 		
 public:
-	Environment() {
+	Environment(): Environment("./") { }
+	
+	Environment(string global_path): global_path(global_path) {
 		const string regex_pattern_statement = "\\(\\%\\s*(.+?)\\s*\\%\\)";
 		// const string regex_pattern_line_statement = "^## (.*)$";
 		const string regex_pattern_expression = "\\{\\{\\s*(.+?)\\s*\\}\\}";
@@ -418,26 +424,31 @@ public:
 	}
 	
 	string render_template(string filename, json data) {
-		string text = load_template(filename);
+		string text = load_file(filename);
 		string path = filename.substr(0, filename.find_last_of("/\\") + 1); // Include / itself
 		return render(text, data, path);
 	}
 	
-	string load_template(string filename) {
-		std::ifstream file(filename);
+	string render_template_with_json_file(string filename, string filename_data) {
+		json data = load_json(filename_data);
+		return render_template(filename, data);
+	}
+	
+	string load_file(string filename) {
+		std::ifstream file(global_path + filename);
 		string text((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 		return text;
 	}
 	
 	json load_json(string filename) {
-		std::ifstream file(filename);
+		std::ifstream file(global_path + filename);
 		json j;
 		file >> j;
 		return j;
 	}
 };
 
-string render(string input, json data) {
+inline string render(string input, json data) {
 	Environment env = Environment();
 	return env.render(input, data);
 }

@@ -7,19 +7,20 @@ A Template Engine for Modern C++
 [![Github Issues](https://img.shields.io/github/issues/pantor/inja.svg)](http://github.com/pantor/inja/issues)
 [![GitHub License](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/pantor/inja/master/LICENSE)
 
-
-    json data = {{"name", "world"}};
-    string result = inja::render("Hello {{ world }}!", data);
-    // "Hello World!"
-
+```c++
+json data = {{"name", "world"}};
+string result = inja::render("Hello {{ world }}!", data);
+// "Hello World!"
+```
 
 ## Integration
 
 Inja is headers only. Just one dependency: json by nlohmann. 
 
-    #include "json.hpp"
-    #include "inja.hpp"
-
+```c++
+#include "json.hpp"
+#include "inja.hpp"
+```
     
 
 ## Examples
