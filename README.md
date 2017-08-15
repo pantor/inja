@@ -1,4 +1,4 @@
-[<p align="center"><img width="500" src="http://www.fillmurray.com/460/300"></p>](https://github.com/pantor/inja/releases)
+[<p align="center"><img width="500" src="https://raw.githubusercontent.com/pantor/inja/master/doc/logo.jpg"></p>](https://github.com/pantor/inja/releases)
 
 
 
