@@ -22,7 +22,7 @@ inline string join_strings(std::vector<string> vector, string delimiter) {
 	std::stringstream ss;
 	for (size_t i = 0; i < vector.size(); ++i)
 	{
-		if (i != 0) ss << delimiter;
+		if (i != 0) { ss << delimiter; }
 		ss << vector[i];
 	}
 	return ss.str();
@@ -51,7 +51,7 @@ struct SearchMatch {
 		position = offset + match.position();
 		length = match.length();
 		end_position = position + length;
-		found = !match.empty();
+		found = not match.empty();
 		outer = match.str(0);
 		inner = match.str(1);
 		prefix = match.prefix();
@@ -102,9 +102,7 @@ inline SearchMatch search(string input, std::regex regex, size_t position) {
 	auto first = input.cbegin();
 	auto last = input.cend();
 
-	if (position >= input.length()) {
-		return SearchMatch();
-	}
+	if (position >= input.length()) { return SearchMatch(); }
 
 	std::smatch match;
 	std::regex_search(first + position, last, match, regex);
@@ -126,9 +124,7 @@ inline SearchMatchVector search(string input, std::vector<string> regex_patterns
 	auto first = input.cbegin();
 	auto last = input.cend();
 
-	if (position >= input.length()) {
-		return SearchMatchVector();
-	}
+	if (position >= input.length()) { return SearchMatchVector(); }
 
 	std::smatch match;
 	std::regex_search(first + position, last, match, regex);
@@ -154,9 +150,9 @@ inline SearchClosedMatch search_closed_match_on_level(string input, std::regex r
 	while (statement_match.found) {
 		current_position = statement_match.end_position;
 
-		if (level == 0 && std::regex_match(statement_match.inner, regex_search)) break;
-		if (std::regex_match(statement_match.inner, regex_level_up)) level += 1;
-		else if (std::regex_match(statement_match.inner, regex_level_down)) level -= 1;
+		if (level == 0 && std::regex_match(statement_match.inner, regex_search)) { break; }
+		if (std::regex_match(statement_match.inner, regex_level_up)) { level += 1; }
+		else if (std::regex_match(statement_match.inner, regex_level_down)) { level -= 1; }
 
 		statement_match = search(input, regex_statement, current_position);
 	}
@@ -229,7 +225,7 @@ public:
 		SearchMatchVector statement_match = search(input, regex_pattern_delimiters, current_position);
 		while (statement_match.found) {
 			current_position = statement_match.end_position;
-			if (!statement_match.prefix.empty()) {
+			if (not statement_match.prefix.empty()) {
 				result += {{"type", Parser::Type::String}, {"text", statement_match.prefix}};
 			}
 
@@ -342,13 +338,11 @@ public:
 
 	json parse_variable(string input, json data, bool throw_error) {
 		// Json Raw Data
-		if ( json::accept(input) ) {
-			return json::parse(input);
-		}
+		if ( json::accept(input) ) { return json::parse(input); }
 
 		// TODO Implement filter and functions
 
-		if (input[0] != '/') input.insert(0, "/");
+		if (input[0] != '/') { input.insert(0, "/"); }
 
 		json::json_pointer ptr(input);
 		json result = data[ptr];
@@ -369,7 +363,7 @@ public:
 
 		std::smatch match_condition;
 		if (std::regex_match(condition, match_condition, regex_condition_not)) {
-			return !parse_condition(match_condition.str(1), data);
+			return not parse_condition(match_condition.str(1), data);
 		}
 		else if (std::regex_match(condition, match_condition, regex_condition_equal)) {
 			json comp1 = parse_variable(match_condition.str(1), data);
@@ -408,22 +402,19 @@ public:
 		}
 
 		json var = parse_variable(condition, data, false);
-		if (var.empty()) return false;
-		else if (var.is_boolean()) return var;
-		else if (var.is_number()) return (var != 0);
-		else if (var.is_string()) return (var != "");
+		if (var.empty()) { return false; }
+		else if (var.is_boolean()) { return var; }
+		else if (var.is_number()) { return (var != 0); }
+		else if (var.is_string()) { return (var != ""); }
 		return false;
 	}
 
 	string render_json(json data) {
-		if (data.is_string()) {
-			return data;
-		}
-		else {
-			std::stringstream ss;
-			ss << data;
-			return ss.str();
-		}
+		if (data.is_string()) { return data; }
+
+		std::stringstream ss;
+		ss << data;
+		return ss.str();
 	}
 
 	string render_tree(json input, json data, string path) {
