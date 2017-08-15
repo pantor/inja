@@ -1,4 +1,5 @@
-[![Inja](https://raw.githubusercontent.com/pantor/inja/master/doc/logo.jpg)](https://github.com/pantor/inja/releases)
+[<p align="center"><img width="500" src="http://www.fillmurray.com/460/300"></p>](https://github.com/pantor/inja/releases)
+
 
 
 [![Build Status](https://travis-ci.org/pantor/inja.svg?branch=master)](https://travis-ci.org/pantor/inja)
