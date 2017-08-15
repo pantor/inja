@@ -1,4 +1,5 @@
-# Inja
+[![Inja](https://raw.githubusercontent.com/pantor/inja/master/doc/logo.jpg)](https://github.com/pantor/inja/releases)
+
 
 [![Build Status](https://travis-ci.org/pantor/inja.svg?branch=master)](https://travis-ci.org/pantor/inja)
 [![Coverage Status](https://img.shields.io/coveralls/pantor/inja.svg)](https://coveralls.io/r/pantor/inja)
@@ -18,7 +19,7 @@ inja::render("Hello {{ name }}!", data); // "Hello World!"
 
 ## Integration
 
-Inja is headers only. Just one dependency: json by nlohmann. 
+Inja is headers only. Just one dependency: json by nlohmann.
 
 ```c++
 #include "json.hpp"
@@ -28,7 +29,7 @@ Inja is headers only. Just one dependency: json by nlohmann.
 using namespace inja;
 using json = nlohmann::json;
 ```
-    
+
 
 ## Tutorial
 
@@ -59,7 +60,7 @@ The environment class can be configured.
 Environment env_default = Environment();
 
 // With global path to template files
-Environment env_default = Environment("../path/templates/"); 
+Environment env_default = Environment("../path/templates/");
 ```
 
 ### Variables
@@ -75,7 +76,7 @@ data["time"]["end"]["hour"] = 21;
 
 string template = """
     {{ guests/0 }}
-    
+
     {{ time/start/hour }} to {{ time/end/hour }} or {{ 24 }}
 """;
 ```
@@ -160,6 +161,3 @@ Currently, the following compilers are tested:
 ## License
 
 The class is licensed under the [MIT License](https://raw.githubusercontent.com/pantor/inja/master/LICENSE).
-
-
-
