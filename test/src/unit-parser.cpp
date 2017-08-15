@@ -169,7 +169,14 @@ TEST_CASE("Parse conditions") {
 	SECTION("Elements") {
 		CHECK( env.parse_condition("age", data) );
 		CHECK_FALSE( env.parse_condition("size", data) );
+	}
+
+	SECTION("Operators") {
 		CHECK( env.parse_condition("not size", data) );
+		CHECK_FALSE( env.parse_condition("not true", data) );
+		CHECK( env.parse_condition("true and true", data) );
+		CHECK( env.parse_condition("true or false", data) );
+		CHECK_FALSE( env.parse_condition("true and not true", data) );
 	}
 
 	SECTION("Numbers") {

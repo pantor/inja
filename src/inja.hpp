@@ -29,7 +29,7 @@ inline string join_strings(std::vector<string> vector, string delimiter) {
 }
 
 
-class smatch: public std::smatch {
+/* class smatch: public std::smatch {
 	size_t offset;
 
 	smatch() {}
@@ -38,10 +38,10 @@ class smatch: public std::smatch {
 public:
 	size_t pos() { return offset + position(); }
 	size_t end_pos() { return pos() + length(); }
-	size_t found() { return !empty(); }
+	size_t found() { return not empty(); }
 	string outer() { return str(0); }
 	string inner() { return str(1); }
-};
+}; */
 
 
 struct SearchMatch {
@@ -301,7 +301,6 @@ public:
 				}
 				default: {
 					throw std::runtime_error("Parser error: Unknown delimiter.");
-					break;
 				}
 			}
 
@@ -347,12 +346,14 @@ public:
 		json::json_pointer ptr(input);
 		json result = data[ptr];
 
-		if (throw_error && result.is_null()) throw std::runtime_error("JSON pointer found no element.");
+		if (throw_error && result.is_null()) { throw std::runtime_error("JSON pointer found no element."); }
 		return result;
 	}
 
 	bool parse_condition(string condition, json data) {
 		const std::regex regex_condition_not("not (.+)");
+		const std::regex regex_condition_and("(.+) and (.+)");
+		const std::regex regex_condition_or("(.+) or (.+)");
 		const std::regex regex_condition_equal("(.+) == (.+)");
 		const std::regex regex_condition_greater("(.+) > (.+)");
 		const std::regex regex_condition_less("(.+) < (.+)");
@@ -364,6 +365,12 @@ public:
 		std::smatch match_condition;
 		if (std::regex_match(condition, match_condition, regex_condition_not)) {
 			return not parse_condition(match_condition.str(1), data);
+		}
+		else if (std::regex_match(condition, match_condition, regex_condition_and)) {
+			return (parse_condition(match_condition.str(1), data) and parse_condition(match_condition.str(2), data));
+		}
+		else if (std::regex_match(condition, match_condition, regex_condition_or)) {
+			return (parse_condition(match_condition.str(1), data) or parse_condition(match_condition.str(2), data));
 		}
 		else if (std::regex_match(condition, match_condition, regex_condition_equal)) {
 			json comp1 = parse_variable(match_condition.str(1), data);

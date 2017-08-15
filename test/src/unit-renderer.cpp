@@ -18,12 +18,12 @@ TEST_CASE("Renderer") {
 	data["brother"]["daughters"] = {"Maria", "Helen"};
 	data["brother"]["daughter0"] = { { "name", "Maria" } };
 	data["is_happy"] = true;
-		
+
 	SECTION("Basic") {
 		CHECK( env.render("Hello World!", data) == "Hello World!" );
 		CHECK( env.render("", data, "../") == "" );
 	}
-	
+
 	SECTION("Variables") {
 		CHECK( env.render("Hello {{ name }}!", data) == "Hello Peter!" );
 		CHECK( env.render("{{ name }}", data) == "Peter" );
@@ -34,17 +34,17 @@ TEST_CASE("Renderer") {
 		CHECK( env.render("Hello {{ brother/name }}!", data) == "Hello Chris!" );
 		CHECK( env.render("Hello {{ brother/daughter0/name }}!", data) == "Hello Maria!" );
 	}
-	
+
 	SECTION("Comments") {
 		CHECK( env.render("Hello{# This is a comment #}!", data) == "Hello!" );
 		CHECK( env.render("{# --- #Todo --- #}", data) == "" );
 	}
-	
+
 	SECTION("Loops") {
 		CHECK( env.render("Hello (% for name in names %){{ name }} (% endfor %)!", data) == "Hello Jeff Seb !" );
 		CHECK( env.render("Hello (% for name in names %){{ index }}: {{ name }}, (% endfor %)!", data) == "Hello 0: Jeff, 1: Seb, !" );
 	}
-	
+
 	SECTION("Conditionals") {
 		CHECK( env.render("(% if is_happy %)Yeah!(% endif %)", data) == "Yeah!" );
 		CHECK( env.render("(% if is_sad %)Yeah!(% endif %)", data) == "" );
@@ -55,8 +55,6 @@ TEST_CASE("Renderer") {
 		CHECK( env.render("(% if age != 28 %)Right(% else %)Wrong(% endif %)", data) == "Right" );
 		CHECK( env.render("(% if age >= 30 %)Right(% else %)Wrong(% endif %)", data) == "Wrong" );
 		CHECK( env.render("(% if age in [28, 29, 30] %)True(% endif %)", data) == "True" );
-		
-		// Only works with gcc-5
-		// CHECK( env.render("(% if name in [\"Simon\", \"Tom\"] %)Test1(% else if name in [\"Peter\"] %)Test2(% else %)Test3(% endif %)", data) == "Test2" );
+		CHECK( env.render(R"((% if name in ["Simon", "Tom"] %)Test1(% else if name in ["Peter"] %)Test2(% else %)Test3(% endif %))", data) == "Test2" );
 	}
 }
