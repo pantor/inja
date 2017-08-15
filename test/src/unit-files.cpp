@@ -28,7 +28,7 @@ TEST_CASE("Files handling") {
 TEST_CASE("Complete files") {
 	Environment env = Environment("../test/data/");
 
-	for (std::string test_name : {"simple-file", "nested"}) {
+	for (std::string test_name : {"simple-file", "nested", "nested-line"}) {
 		SECTION(test_name) {
 			CHECK( env.render_template_with_json_file(test_name + "/template.txt", test_name + "/data.json") == env.load_file(test_name + "/result.txt") );
 		}

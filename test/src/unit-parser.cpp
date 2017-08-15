@@ -114,6 +114,20 @@ TEST_CASE("Parse structure") {
 		json result = {{{"type", Type::Comment}, {"text", "lorem ipsum"}}};
 		CHECK( env.parse(test) == result );
 	}
+
+	SECTION("Line Statements") {
+		std::string test = R"(## if true
+lorem ipsum
+## endif)";
+		json result = {
+			{{"type", Type::Condition}, {"children", {
+				{{"type", Type::ConditionBranch}, {"command", "if true"}, {"children", {
+					{{"type", Type::String}, {"text", "lorem ipsum"}}
+				}}}
+			}}}
+		};
+		CHECK( env.parse(test) == result );
+	}
 }
 
 TEST_CASE("Parse json") {

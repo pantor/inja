@@ -28,6 +28,22 @@ inline string join_strings(std::vector<string> vector, string delimiter) {
 	return ss.str();
 }
 
+
+class smatch: public std::smatch {
+	size_t offset;
+
+	smatch() {}
+	smatch(std::smatch match, size_t offset): std::smatch(match), offset(offset) { }
+
+public:
+	size_t pos() { return offset + position(); }
+	size_t end_pos() { return pos() + length(); }
+	size_t found() { return !empty(); }
+	string outer() { return str(0); }
+	string inner() { return str(1); }
+};
+
+
 struct SearchMatch {
 	SearchMatch() { }
 
@@ -54,11 +70,15 @@ struct SearchMatch {
 struct SearchMatchVector: public SearchMatch {
 	SearchMatchVector(): SearchMatch() { }
 
-	SearchMatchVector(std::smatch match, size_t offset, int inner_group, int regex_number): SearchMatch(match, offset), regex_number(regex_number) {
+	SearchMatchVector(std::smatch match, size_t offset, int inner_group, int regex_number, std::vector<string> regex_patterns): SearchMatch(match, offset), regex_number(regex_number) {
 		inner = match.str(inner_group);
+		if (regex_number >= 0) {
+			regex_delimiter = std::regex( regex_patterns.at(regex_number) );
+		}
 	}
 
 	int regex_number = -1;
+	std::regex regex_delimiter;
 };
 
 struct SearchClosedMatch: public SearchMatch {
@@ -123,7 +143,7 @@ inline SearchMatchVector search(string input, std::vector<string> regex_patterns
 		}
 	}
 
-	return SearchMatchVector(match, position, number_inner, number_regex);
+	return SearchMatchVector(match, position, number_inner, number_regex, regex_patterns);
 }
 
 inline SearchClosedMatch search_closed_match_on_level(string input, std::regex regex_statement, std::regex regex_level_up, std::regex regex_level_down, std::regex regex_search, SearchMatch open_match) {
@@ -151,7 +171,16 @@ inline SearchClosedMatch search_closed_match(string input, std::regex regex_stat
 
 class Parser {
 public:
-	enum Type {
+	enum class Delimiter {
+		Statement,
+		LineStatement,
+		Expression,
+		Comment
+	};
+
+	// std::map<Delimiter, string> regex_pattern_map;
+
+	enum class Type {
 		String,
 		Loop,
 		Condition,
@@ -178,15 +207,18 @@ public:
 
 	Environment(string global_path): global_path(global_path) {
 		const string regex_pattern_statement = "\\(\\%\\s*(.+?)\\s*\\%\\)";
-		const string regex_pattern_line_statement = "^##\\s*(.+)\\s*$";
+		const string regex_pattern_line_statement = "(?:^|\\n)##\\s*(.+)\\s*";
 		const string regex_pattern_expression = "\\{\\{\\s*(.+?)\\s*\\}\\}";
 		const string regex_pattern_comment = "\\{#\\s*(.*?)\\s*#\\}";
+
+		// Parser parser;
+		// parser.regex_pattern_map[Parser::Delimiter::Statement] = "\\(\\%\\s*(.+?)\\s*\\%\\)";
 
 		regex_statement = std::regex(regex_pattern_statement);
 		regex_line_statement = std::regex(regex_pattern_line_statement);
 		regex_expression = std::regex(regex_pattern_expression);
 		regex_comment = std::regex(regex_pattern_comment);
-		regex_pattern_delimiters = { regex_pattern_statement, regex_pattern_expression, regex_pattern_comment };
+		regex_pattern_delimiters = { regex_pattern_statement, regex_pattern_line_statement, regex_pattern_expression, regex_pattern_comment }; // Order of Parser::Delimiter enum
 	}
 
 
@@ -201,72 +233,80 @@ public:
 				result += {{"type", Parser::Type::String}, {"text", statement_match.prefix}};
 			}
 
-			// Regex matched a statement "(% ... %)"
-			if (statement_match.regex_number == 0) {
-				const std::regex regex_loop_open("for (.*)");
-				const std::regex regex_loop_close("endfor");
+			switch ( static_cast<Parser::Delimiter>(statement_match.regex_number) ) {
+				case Parser::Delimiter::Statement:
+				case Parser::Delimiter::LineStatement: {
+					const std::regex regex_loop_open("for (.*)");
+					const std::regex regex_loop_close("endfor");
 
-				const std::regex regex_include("include \"(.*)\"");
+					const std::regex regex_include("include \"(.*)\"");
 
-				const std::regex regex_condition_open("if (.*)");
-				const std::regex regex_condition_else_if("else if (.*)");
-				const std::regex regex_condition_else("else");
-				const std::regex regex_condition_close("endif");
+					const std::regex regex_condition_open("if (.*)");
+					const std::regex regex_condition_else_if("else if (.*)");
+					const std::regex regex_condition_else("else");
+					const std::regex regex_condition_close("endif");
 
-				std::smatch inner_statement_match;
-				// Loop
-				if (std::regex_match(statement_match.inner, inner_statement_match, regex_loop_open)) {
-					SearchClosedMatch loop_match = search_closed_match(input, regex_statement, regex_loop_open, regex_loop_close, statement_match);
+					std::smatch inner_statement_match;
+					// Loop
+					if (std::regex_match(statement_match.inner, inner_statement_match, regex_loop_open)) {
+						SearchClosedMatch loop_match = search_closed_match(input, statement_match.regex_delimiter, regex_loop_open, regex_loop_close, statement_match);
 
-					current_position = loop_match.end_position;
-					string loop_command = inner_statement_match.str(0);
-					result += {{"type", Parser::Type::Loop}, {"command", loop_command}, {"inner", loop_match.inner}};
-				}
-				// Include
-				else if (std::regex_match(statement_match.inner, inner_statement_match, regex_include)) {
-					string include_command = inner_statement_match.str(0);
-					string filename = inner_statement_match.str(1);
-					result += {{"type", Parser::Type::Include}, {"filename", filename}};
-				}
-				// Condition
-				else if (std::regex_match(statement_match.inner, inner_statement_match, regex_condition_open)) {
-					string if_command = inner_statement_match.str(0);
-					json condition_result = {{"type", Parser::Type::Condition}, {"children", json::array()}};
+						current_position = loop_match.end_position;
+						string loop_command = inner_statement_match.str(0);
+						result += {{"type", Parser::Type::Loop}, {"command", loop_command}, {"inner", loop_match.inner}};
+					}
+					// Include
+					else if (std::regex_match(statement_match.inner, inner_statement_match, regex_include)) {
+						string include_command = inner_statement_match.str(0);
+						string filename = inner_statement_match.str(1);
+						result += {{"type", Parser::Type::Include}, {"filename", filename}};
+					}
+					// Condition
+					else if (std::regex_match(statement_match.inner, inner_statement_match, regex_condition_open)) {
+						string if_command = inner_statement_match.str(0);
+						json condition_result = {{"type", Parser::Type::Condition}, {"children", json::array()}};
 
 
-					SearchMatch condition_match = statement_match;
+						SearchMatch condition_match = statement_match;
 
-					SearchClosedMatch else_if_match = search_closed_match_on_level(input, regex_statement, regex_condition_open, regex_condition_close, regex_condition_else_if, condition_match);
-					while (else_if_match.found) {
-						condition_match = else_if_match.close_match;
+						SearchClosedMatch else_if_match = search_closed_match_on_level(input, statement_match.regex_delimiter, regex_condition_open, regex_condition_close, regex_condition_else_if, condition_match);
+						while (else_if_match.found) {
+							condition_match = else_if_match.close_match;
 
-						condition_result["children"] += {{"type", Parser::Type::ConditionBranch}, {"command", else_if_match.open_match.inner}, {"inner", else_if_match.inner}};
+							condition_result["children"] += {{"type", Parser::Type::ConditionBranch}, {"command", else_if_match.open_match.inner}, {"inner", else_if_match.inner}};
 
-						else_if_match = search_closed_match_on_level(input, regex_statement, regex_condition_open, regex_condition_close, regex_condition_else_if, condition_match);
+							else_if_match = search_closed_match_on_level(input, regex_statement, regex_condition_open, regex_condition_close, regex_condition_else_if, condition_match);
+						}
+
+						SearchClosedMatch else_match = search_closed_match_on_level(input, statement_match.regex_delimiter, regex_condition_open, regex_condition_close, regex_condition_else, condition_match);
+						if (else_match.found) {
+							condition_match = else_match.close_match;
+
+							condition_result["children"] += {{"type", Parser::Type::ConditionBranch}, {"command", else_match.open_match.inner}, {"inner", else_match.inner}};
+						}
+
+						SearchClosedMatch last_if_match = search_closed_match(input, statement_match.regex_delimiter, regex_condition_open, regex_condition_close, condition_match);
+
+						condition_result["children"] += {{"type", Parser::Type::ConditionBranch}, {"command", last_if_match.open_match.inner}, {"inner", last_if_match.inner}};
+
+						current_position = last_if_match.end_position;
+						result += condition_result;
 					}
 
-					SearchClosedMatch else_match = search_closed_match_on_level(input, regex_statement, regex_condition_open, regex_condition_close, regex_condition_else, condition_match);
-					if (else_match.found) {
-						condition_match = else_match.close_match;
-
-						condition_result["children"] += {{"type", Parser::Type::ConditionBranch}, {"command", else_match.open_match.inner}, {"inner", else_match.inner}};
-					}
-
-					SearchClosedMatch last_if_match = search_closed_match(input, regex_statement, regex_condition_open, regex_condition_close, condition_match);
-
-					condition_result["children"] += {{"type", Parser::Type::ConditionBranch}, {"command", last_if_match.open_match.inner}, {"inner", last_if_match.inner}};
-
-					current_position = last_if_match.end_position;
-					result += condition_result;
+					break;
 				}
-			}
-			// Regex matched an expression "{{ ... }}"
-			else if (statement_match.regex_number == 1) {
-				result += {{"type", Parser::Type::Variable}, {"command", statement_match.inner}};
-			}
-			// Regex matched an comment "{# ... #}"
-			else if (statement_match.regex_number == 2) {
-				result += {{"type", Parser::Type::Comment}, {"text", statement_match.inner}};
+				case Parser::Delimiter::Expression: {
+					result += {{"type", Parser::Type::Variable}, {"command", statement_match.inner}};
+					break;
+				}
+				case Parser::Delimiter::Comment: {
+					result += {{"type", Parser::Type::Comment}, {"text", statement_match.inner}};
+					break;
+				}
+				default: {
+					throw std::runtime_error("Parser error: Unknown delimiter.");
+					break;
+				}
 			}
 
 			statement_match = search(input, regex_pattern_delimiters, current_position);
@@ -390,11 +430,11 @@ public:
 		string result = "";
 		for (auto element: input) {
 			switch ( (Parser::Type) element["type"] ) {
-    			case Parser::Type::String: {
+    		case Parser::Type::String: {
 					result += element["text"];
           break;
 				}
-    			case Parser::Type::Variable: {
+    		case Parser::Type::Variable: {
 					json variable = parse_variable(element["command"], data);
 					result += render_json(variable);
           break;

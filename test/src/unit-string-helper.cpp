@@ -49,6 +49,14 @@ TEST_CASE("Search in string with multiple possible regexes") {
 		CHECK( match.outer == "ipsum" );
 		CHECK( match.inner == "s" );
 	}
+
+	SECTION("Basic 3") {
+		std::vector<std::string> regex_patterns = { "asdf", "qwer", "ip(\\w*)um", "ip(\\w*)um", "es(\\w*)as" };
+		inja::SearchMatchVector match = inja::search(input, regex_patterns, 0);
+		CHECK( match.regex_number == 2 );
+		CHECK( match.outer == "ipsum" );
+		CHECK( match.inner == "s" );
+	}
 }
 
 TEST_CASE("Search on level") {
