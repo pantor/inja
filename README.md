@@ -9,7 +9,7 @@
 [![GitHub License](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/pantor/inja/master/LICENSE)
 
 
-## Design
+Inja is a template engine for modern C++, loosely inspired by [jinja](http://jinja.pocoo.org).
 
 ```c++
 json data;
