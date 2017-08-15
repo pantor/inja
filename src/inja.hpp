@@ -29,19 +29,56 @@ inline string join_strings(std::vector<string> vector, string delimiter) {
 }
 
 
-/* class smatch: public std::smatch {
+/* class Match: public std::smatch {
 	size_t offset;
 
-	smatch() {}
-	smatch(std::smatch match, size_t offset): std::smatch(match), offset(offset) { }
-
 public:
-	size_t pos() { return offset + position(); }
-	size_t end_pos() { return pos() + length(); }
+	Match() {}
+	Match(std::smatch match, size_t offset): std::smatch(match), offset(offset) { }
+
+	size_t position() { return offset + std::smatch::position(); }
+	size_t end_position() { return position() + length(); }
 	size_t found() { return not empty(); }
 	string outer() { return str(0); }
 	string inner() { return str(1); }
+};
+
+class MatchVector: public Match {
+	unsigned int matched_regex_position, matched_inner_group_position;
+	std::vector<string> regex_patterns;
+
+public:
+	MatchVector(): Match() { }
+	MatchVector(std::smatch match, size_t offset, unsigned int matched_regex_position, unsigned int matched_inner_group_position, std::vector<string> regex_patterns): Match(match, offset), matched_regex_position(matched_regex_position), matched_inner_group_position(matched_inner_group_position), regex_patterns(regex_patterns) { }
+
+	string inner() { return str(matched_inner_group_position); }
+	std::regex matched_regex() { return std::regex(regex_patterns[matched_regex_position]); }
+};
+
+class MatchClosed: public Match {
+	string _outer, _inner;
+
+public:
+	Match open_match, close_match;
+
+	MatchClosed(): Match() { }
+	MatchClosed(string input, Match open_match, Match close_match): Match(), open_match(open_match), close_match(close_match) {
+		_outer = input.substr(open_match.position(), close_match.end_position() - open_match.position());
+		_inner = input.substr(open_match.end_position(), close_match.position() - open_match.end_position());
+	}
+
+	size_t position() { return open_match.position(); }
+	size_t length() { return close_match.end_position() - open_match.position(); }
+	size_t end_position() { return close_match.end_position(); }
+	bool found() { return open_match.found() and close_match.found(); }
+	string outer() { return _outer; }
+	string inner() { return _inner; }
+	string prefix() { return open_match.prefix(); }
+	string suffix() { return open_match.suffix(); }
 }; */
+
+
+
 
 
 struct SearchMatch {
@@ -99,17 +136,24 @@ struct SearchClosedMatch: public SearchMatch {
 };
 
 inline SearchMatch search(string input, std::regex regex, size_t position) {
-	auto first = input.cbegin();
-	auto last = input.cend();
-
 	if (position >= input.length()) { return SearchMatch(); }
 
 	std::smatch match;
-	std::regex_search(first + position, last, match, regex);
+	std::regex_search(input.cbegin() + position, input.cend(), match, regex);
 	return SearchMatch(match, position);
 }
 
 inline SearchMatchVector search(string input, std::vector<string> regex_patterns, size_t position) {
+	string regex_pattern = "(" + join_strings(regex_patterns, ")|(") + ")";
+
+	if (position >= input.length()) { return SearchMatchVector(); }
+
+	std::smatch match;
+	std::regex_search(input.cbegin() + position, input.cend(), match, std::regex(regex_pattern));
+	SearchMatch search_match = SearchMatch(match, position);
+	// SearchMatch search_match = search(input, std::regex(regex_pattern), position);
+	if (not search_match.found) { return SearchMatchVector(); }
+
 	// Vector of id vs groups
 	std::vector<int> regex_mark_counts;
 	for (int i = 0; i < regex_patterns.size(); i++) {
@@ -118,28 +162,16 @@ inline SearchMatchVector search(string input, std::vector<string> regex_patterns
 		}
 	}
 
-	string regex_pattern = "(" + join_strings(regex_patterns, ")|(") + ")";
-	std::regex regex(regex_pattern);
-
-	auto first = input.cbegin();
-	auto last = input.cend();
-
-	if (position >= input.length()) { return SearchMatchVector(); }
-
-	std::smatch match;
-	std::regex_search(first + position, last, match, regex);
-
-	int number_regex = -1;
-	int number_inner = 1;
-	for (int i = 1; i < match.size(); i++) {
-		if (match.length(i) > 0) {
+	int number_regex = 0, number_inner = 1;
+	for (int i = 1; i < search_match.match.size(); i++) {
+		if (search_match.match.length(i) > 0) {
 			number_inner = i + 1;
 			number_regex = regex_mark_counts[i];
 			break;
 		}
 	}
 
-	return SearchMatchVector(match, position, number_inner, number_regex, regex_patterns);
+	return SearchMatchVector(search_match.match, position, number_inner, number_regex, regex_patterns);
 }
 
 inline SearchClosedMatch search_closed_match_on_level(string input, std::regex regex_statement, std::regex regex_level_up, std::regex regex_level_down, std::regex regex_search, SearchMatch open_match) {
@@ -427,7 +459,7 @@ public:
 	string render_tree(json input, json data, string path) {
 		string result = "";
 		for (auto element: input) {
-			switch ( (Parser::Type) element["type"] ) {
+			switch ( static_cast<Parser::Type>(element["type"]) ) {
     		case Parser::Type::String: {
 					result += element["text"];
           break;

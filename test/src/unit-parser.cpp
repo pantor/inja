@@ -165,6 +165,7 @@ TEST_CASE("Parse conditions") {
 	data["age"] = 29;
 	data["brother"] = "Peter";
 	data["father"] = "Peter";
+	data["guests"] = {"Jeff", "Seb"};
 
 	SECTION("Elements") {
 		CHECK( env.parse_condition("age", data) );
@@ -194,5 +195,10 @@ TEST_CASE("Parse conditions") {
 		CHECK( env.parse_condition("brother == father", data) );
 		CHECK( env.parse_condition("brother == \"Peter\"", data) );
 		CHECK_FALSE( env.parse_condition("not brother == father", data) );
+	}
+
+	SECTION("Lists") {
+		// CHECK( env.parse_condition("\"Jeff\" in guests", data) );
+		CHECK_FALSE( env.parse_condition("brother in guests", data) );
 	}
 }
