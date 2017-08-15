@@ -21,48 +21,48 @@ matrix:
       after_success:
         - make clean
         # - coveralls --exclude lib --exclude tests --gcov-options '\-lp'
-      
+
     - compiler: gcc
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test']
           packages: g++-4.9
       env: COMPILER=g++-4.9
-      
+
     - compiler: gcc
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test']
           packages: g++-5
       env: COMPILER=g++-5
-      
+
     - compiler: gcc
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test']
           packages: g++-6
       env: COMPILER=g++-6
-      
+
     - compiler: gcc
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test']
           packages: g++-7
       env: COMPILER=g++-7
-      
+
     - compiler: clang
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-precise-3.6']
           packages: clang-3.6
       env: COMPILER=clang++-3.6
-      
+
     - compiler: clang
       addons:
         apt:
-          sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-precise-3.8']
-          packages: clang-3.8
-      env: COMPILER=clang++-3.8
+          sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-precise-3.7']
+          packages: clang-3.7
+      env: COMPILER=clang++-3.7
 
 
 script:

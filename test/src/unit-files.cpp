@@ -7,27 +7,27 @@ using Environment = inja::Environment;
 using json = nlohmann::json;
 
 
-TEST_CASE("files handling") {
+TEST_CASE("Files handling") {
 	Environment env = Environment();
 	json data;
 	data["name"] = "Jeff";
-	
-	SECTION("files should be loaded") {
+
+	SECTION("Files should be loaded") {
 		CHECK( env.load_file("../test/data/simple.txt") == "Hello {{ name }}." );
 	}
-	
-	SECTION("files should be rendered") {
+
+	SECTION("Files should be rendered") {
 		CHECK( env.render_template("../test/data/simple.txt", data) == "Hello Jeff." );
 	}
-	
-	SECTION("file includes should be rendered") {
+
+	SECTION("File includes should be rendered") {
 		CHECK( env.render_template("../test/data/include.txt", data) == "Answer: Hello Jeff." );
 	}
 }
 
-TEST_CASE("complete files") {
+TEST_CASE("Complete files") {
 	Environment env = Environment("../test/data/");
-	
+
 	for (std::string test_name : {"simple-file", "nested"}) {
 		SECTION(test_name) {
 			CHECK( env.render_template_with_json_file(test_name + "/template.txt", test_name + "/data.json") == env.load_file(test_name + "/result.txt") );
