@@ -461,7 +461,7 @@ public:
 		for (auto element: input) {
 			switch ( static_cast<Parser::Type>(element["type"]) ) {
     		case Parser::Type::String: {
-					result += element["text"];
+					result += render_json(element["text"]);
           break;
 				}
     		case Parser::Type::Variable: {
