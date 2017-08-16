@@ -3,6 +3,7 @@
 
 
 [![Build Status](https://travis-ci.org/pantor/inja.svg?branch=master)](https://travis-ci.org/pantor/inja)
+[![Build status](https://ci.appveyor.com/api/projects/status/qtgniyyg6fn8ich8?svg=true)](https://ci.appveyor.com/project/pantor/inja)
 [![Coverage Status](https://img.shields.io/coveralls/pantor/inja.svg)](https://coveralls.io/r/pantor/inja)
 [![Codacy Status](https://api.codacy.com/project/badge/Grade/aa2041f1e6e648ae83945d29cfa0da17)](https://www.codacy.com/app/pantor/inja?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=pantor/inja&amp;utm_campaign=Badge_Grade)
 [![Github Issues](https://img.shields.io/github/issues/pantor/inja.svg)](http://github.com/pantor/inja/issues)
@@ -156,7 +157,9 @@ render("Hello{# Todo #}!", data); // "Hello!"
 Currently, the following compilers are tested:
 
 - GCC 4.9 - 7.1 (and possibly later)
-- Clang 3.6 - 3.8 (and possibly later)
+- Clang 3.6 - 3.7 (and possibly later)
+- Microsoft Visual C++ 2015 / Build Tools 14.0.25123.0 (and possibly later)
+- Microsoft Visual C++ 2017 / Build Tools 15.1.548.43366 (and possibly later)
 
 
 ## License
