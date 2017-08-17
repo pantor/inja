@@ -10,7 +10,7 @@
 [![GitHub License](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/pantor/inja/master/LICENSE)
 
 
-Inja is a template engine for modern C++, loosely inspired by [jinja](http://jinja.pocoo.org).
+Inja is a template engine for modern C++, loosely inspired by [jinja](http://jinja.pocoo.org) for python. It has an easy and yet powerful template syntax with all variables, loops, conditions, includes, blocks, comments you need, nested and combined as you like. The rendering syntax is works like magic and uses the wonderful [json](https://github.com/nlohmann/json) library by nlohmann for data input. Most importantly, *inja* needs only two header files, which is (nearly) as trivial as integration in C++ can get. Of course, everything is tested on all relevant compilers. Have a look what it looks like:
 
 ```c++
 json data;
@@ -19,9 +19,10 @@ data["name"] = "world";
 inja::render("Hello {{ name }}!", data); // "Hello World!"
 ```
 
+
 ## Integration
 
-Inja is headers only. Just one dependency: json by nlohmann.
+Inja is a headers only library, which can be downloaded in the releases or directly from the `src/` folder. Inja uses json by nlohmann as its single dependency, so make sure that it is included before inja. json can be downloaded.
 
 ```c++
 #include "json.hpp"
@@ -50,10 +51,14 @@ Environment env = Environment();
 std::string result = env.render("Hello {{ name }}!", data);
 
 // Or directly read a template file
-std::string result_template = env.render_temlate("template.txt", data);
+result = env.render_template("./template.txt", data);
 
 // And read a json file for data
-std::string result_template_2 = env.render_temlate_with_json_file("template.txt", "data.json");
+result = env.render_template("./template.txt", "./data.json");
+
+// Or write a rendered template file
+env.write("./template.txt", "./result.txt")
+env.write("./template.txt", "./data.json", "./result.txt")
 ```
 
 The environment class can be configured.
@@ -62,28 +67,37 @@ The environment class can be configured.
 Environment env_default = Environment();
 
 // With global path to template files
-Environment env_default = Environment("../path/templates/");
+Environment env = Environment("../path/templates/");
+
+// With global path where to save rendered files
+Environment env = Environment("../path/templates/", "../path/results/");
+
+// With other opening and closing strings (here the defaults)
+env.setVariables("{{", "}}"); // Variables
+env.setComments("{#", "#}"); // Comments
+env.setStatements("{%", "%}"); // Statements for many things, see below
+env.setLineStatements("##"); // Line statement (just an opener)
 ```
 
 ### Variables
 
-Variables can be rendered with the `{{ ... }}` syntax.
+Variables can be rendered using expressions within the `{{ ... }}` syntax.
 
 ```c++
 json data;
-data["name"] = "world";
+data["neighbour"] = "Peter";
 data["guests"] = {"Jeff", "Pierre", "Tom"};
-data["time"]["start"]["hour"] = 16;
-data["time"]["end"]["hour"] = 21;
+data["time"]["start"] = 16;
+data["time"]["end"] = 22;
 
-string template = """
-    {{ guests/0 }}
+// Indexing in array
+render("{{ guests/1 }}", data); // "Pierre"
 
-    {{ time/start/hour }} to {{ time/end/hour }} or {{ 24 }}
-""";
+// Objects
+render("{{ time/start }} to {{ time/end }}pm"); // "16 to 22pm"
 ```
 
-Valid Json -> Printed. Json Pointer.
+In general, the variables can be fetched using the [JSON Pointer](https://tools.ietf.org/html/rfc6901) syntax. For convenience, the leading `/` can be ommited. If no variable is found, valid JSON is printed directly, otherwise an error is thrown.
 
 
 ### Statements
@@ -92,61 +106,45 @@ Statements can be written with the `(% ... %)` syntax. The most important statem
 
 #### Loops
 
-<table>
-	<tbody>
-		<tr>
-      		<th>Template</th>
-      		<th>Json</th>
-      		<th>Result</th>
-    	</tr>
-		<tr>
-			<td>
-<pre lang="txt">
-Guests:
-(% for guest in guests %){{ index1 }}: {{ guest }}
-(% endfor %)</pre>
-			</td>
-			<td>
-<pre lang="json">
-{
-  "guests":  [
-    "Jeff",
-    "Pierre",
-    "Tom"
-  ]
-}</pre>
-			</td>
-			<td>
-<pre lang="txt">
-Guests:
-1. Jeff
-2. Pierre
-3. Tom
-</pre>
-			</td>
-		</tr>
-	</tbody>
-</table>
+```c++
+// Combining loops and line statements
+render(R"(Guest List:
+## for guest in guests
+	{{ index1 }}: {{ guest }}
+## endfor )", data)
 
-In the loop, some special variables are available:
-- `int index, index1`
-- `bool is_first`
-- `bool is_last`
+/* Guest List:
+	1: Jeff
+	2: Pierre
+	3: Tom */
+```
+
+In a loop, the special variables `number index`, `number index1`, `bool is_first` and `bool is_last` are available.
 
 #### Conditions
 
-If, else if, else. Nested. conditions:
-- `not`
-- `==`, `>`, `<`, `>=`, `<=`, `!=`
-- `in`
+Conditions support if, else if and else statements, they can be nested. Following conditions for example:
+```
+// Standard comparisons with variable
+{% if time/hour >= 18 %}…{% endif %}
+
+// Variable in list
+{% if neighbour in guests %}…{% endif %}
+
+// Logical operations
+{% if guest_count < 5 and all_tired %}That looks like the end.{% endif %}
+
+// And finally
+{% if not guest_count %}Jep, that's it.{% endif %}
+```
 
 #### Includes
 
-Include other files like `(% include "footer.html" %)`. Relative from file.
+Include other files like `{% include "footer.html" %}`. Relative from file.
 
 ### Comments
 
-Comments can be rendered with the `{# ... #}` syntax.
+Comments can be written with the `{# ... #}` syntax.
 
 ```c++
 render("Hello{# Todo #}!", data); // "Hello!"
