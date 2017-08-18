@@ -223,13 +223,14 @@ public:
 				result += element(Type::String, {{"text", string_prefix}});
 			}
 
+			std::string delimiter_inner = match_delimiter.str(1);
 			switch ( static_cast<Delimiter>(match_delimiter.regex_number()) ) {
 				case Delimiter::Statement:
 				case Delimiter::LineStatement: {
 
 					Match inner_match_delimiter;
 					// Loop
-					if (std::regex_match(match_delimiter.str(1), inner_match_delimiter, regex_loop_open)) {
+					if (std::regex_match(delimiter_inner, inner_match_delimiter, regex_loop_open)) {
 						MatchClosed loop_match = search_closed_match(input, match_delimiter.regex(), regex_loop_open, regex_loop_close, match_delimiter);
 
 						current_position = loop_match.end_position();
@@ -237,12 +238,12 @@ public:
 						result += element(Type::Loop, {{"command", loop_command}, {"inner", loop_match.inner}});
 					}
 					// Include
-					else if (std::regex_match(match_delimiter.str(1), inner_match_delimiter, regex_include)) {
+					else if (std::regex_match(delimiter_inner, inner_match_delimiter, regex_include)) {
 						std::string filename = inner_match_delimiter.str(1);
 						result += element(Type::Include, {{"filename", filename}});
 					}
 					// Condition
-					else if (std::regex_match(match_delimiter.str(1), inner_match_delimiter, regex_condition_open)) {
+					else if (std::regex_match(delimiter_inner, inner_match_delimiter, regex_condition_open)) {
 						json condition_result = element(Parser::Type::Condition, {{"children", json::array()}});
 
 						Match condition_match = match_delimiter;
@@ -274,11 +275,11 @@ public:
 					break;
 				}
 				case Delimiter::Expression: {
-					result += element(Type::Variable, {{"command", match_delimiter.str(1)}});
+					result += element(Type::Variable, {{"command", delimiter_inner}});
 					break;
 				}
 				case Delimiter::Comment: {
-					result += element(Type::Comment, {{"text", match_delimiter.str(1)}});
+					result += element(Type::Comment, {{"text", delimiter_inner}});
 					break;
 				}
 				default: {
