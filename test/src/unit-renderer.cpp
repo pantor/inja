@@ -41,20 +41,20 @@ TEST_CASE("Renderer") {
 	}
 
 	SECTION("Loops") {
-		CHECK( env.render("Hello (% for name in names %){{ name }} (% endfor %)!", data) == "Hello Jeff Seb !" );
-		CHECK( env.render("Hello (% for name in names %){{ index }}: {{ name }}, (% endfor %)!", data) == "Hello 0: Jeff, 1: Seb, !" );
+		CHECK( env.render("Hello {% for name in names %}{{ name }} {% endfor %}!", data) == "Hello Jeff Seb !" );
+		CHECK( env.render("Hello {% for name in names %}{{ index }}: {{ name }}, {% endfor %}!", data) == "Hello 0: Jeff, 1: Seb, !" );
 	}
 
 	SECTION("Conditionals") {
-		CHECK( env.render("(% if is_happy %)Yeah!(% endif %)", data) == "Yeah!" );
-		CHECK( env.render("(% if is_sad %)Yeah!(% endif %)", data) == "" );
-		CHECK( env.render("(% if is_sad %)Yeah!(% else %)Nooo...(% endif %)", data) == "Nooo..." );
-		CHECK( env.render("(% if age == 29 %)Right(% else %)Wrong(% endif %)", data) == "Right" );
-		CHECK( env.render("(% if age > 29 %)Right(% else %)Wrong(% endif %)", data) == "Wrong" );
-		CHECK( env.render("(% if age <= 29 %)Right(% else %)Wrong(% endif %)", data) == "Right" );
-		CHECK( env.render("(% if age != 28 %)Right(% else %)Wrong(% endif %)", data) == "Right" );
-		CHECK( env.render("(% if age >= 30 %)Right(% else %)Wrong(% endif %)", data) == "Wrong" );
-		CHECK( env.render("(% if age in [28, 29, 30] %)True(% endif %)", data) == "True" );
-		// CHECK( env.render(R"((% if name in ["Simon", "Tom"] %)Test1(% else if name in ["Peter"] %)Test2(% else %)Test3(% endif %))", data) == "Test2" );
+		CHECK( env.render("{% if is_happy %}Yeah!{% endif %}", data) == "Yeah!" );
+		CHECK( env.render("{% if is_sad %}Yeah!{% endif %}", data) == "" );
+		CHECK( env.render("{% if is_sad %}Yeah!{% else %}Nooo...{% endif %}", data) == "Nooo..." );
+		CHECK( env.render("{% if age == 29 %}Right{% else %}Wrong{% endif %}", data) == "Right" );
+		CHECK( env.render("{% if age > 29 %}Right{% else %}Wrong{% endif %}", data) == "Wrong" );
+		CHECK( env.render("{% if age <= 29 %}Right{% else %}Wrong{% endif %}", data) == "Right" );
+		CHECK( env.render("{% if age != 28 %}Right{% else %}Wrong{% endif %}", data) == "Right" );
+		CHECK( env.render("{% if age >= 30 %}Right{% else %}Wrong{% endif %}", data) == "Wrong" );
+		CHECK( env.render("{% if age in [28, 29, 30] %}True{% endif %}", data) == "True" );
+		// CHECK( env.render(R"({% if name in ["Simon", "Tom"] %}Test1{% else if name in ["Peter"] %}Test2{% else %}Test3{% endif %})", data) == "Test2" );
 	}
 }

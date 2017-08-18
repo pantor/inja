@@ -81,8 +81,7 @@ env.setLineStatements("##"); // Line statement (just an opener)
 
 ### Variables
 
-Variables can be rendered using expressions within the `{{ ... }}` syntax.
-
+Variables can be rendered within the `{{ ... }}` expressions.
 ```c++
 json data;
 data["neighbour"] = "Peter";
@@ -96,13 +95,12 @@ render("{{ guests/1 }}", data); // "Pierre"
 // Objects
 render("{{ time/start }} to {{ time/end }}pm"); // "16 to 22pm"
 ```
-
 In general, the variables can be fetched using the [JSON Pointer](https://tools.ietf.org/html/rfc6901) syntax. For convenience, the leading `/` can be ommited. If no variable is found, valid JSON is printed directly, otherwise an error is thrown.
 
 
 ### Statements
 
-Statements can be written with the `(% ... %)` syntax. The most important statements are loops, conditions and file includes.All statements can be nested.
+Statements can be written with the `{% ... %}` syntax. The most important statements are loops, conditions and file includes. All statements can be nested.
 
 #### Loops
 
@@ -118,34 +116,35 @@ render(R"(Guest List:
 	2: Pierre
 	3: Tom */
 ```
-
 In a loop, the special variables `number index`, `number index1`, `bool is_first` and `bool is_last` are available.
 
 #### Conditions
 
-Conditions support if, else if and else statements, they can be nested. Following conditions for example:
-```
+Conditions support if, else if and else statements. Following conditions for example:
+```c++
 // Standard comparisons with variable
-{% if time/hour >= 18 %}…{% endif %}
+render("{% if time/hour >= 18 %}…{% endif %}", data); // True
 
 // Variable in list
-{% if neighbour in guests %}…{% endif %}
+render("{% if neighbour in guests %}…{% endif %}", data); // True
 
 // Logical operations
-{% if guest_count < 5 and all_tired %}That looks like the end.{% endif %}
+render("{% if guest_count < 5 and all_tired %}…{% endif %}", data); // True
 
-// And finally
-{% if not guest_count %}Jep, that's it.{% endif %}
+// Negations
+render("{% if not guest_count %}…{% endif %}", data); // True
 ```
 
 #### Includes
 
-Include other files like `{% include "footer.html" %}`. Relative from file.
+Include other files, relative from the current file location.
+```
+{% include "footer.html" %}
+```
 
 ### Comments
 
 Comments can be written with the `{# ... #}` syntax.
-
 ```c++
 render("Hello{# Todo #}!", data); // "Hello!"
 ```

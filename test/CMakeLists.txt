@@ -9,7 +9,6 @@ set(UNITTEST_TARGET_NAME "inja_unit")
 file(GLOB TEST_SOURCES "src/*.cpp")
 add_executable(${UNITTEST_TARGET_NAME} ${TEST_SOURCES})
 
-
 target_link_libraries(${UNITTEST_TARGET_NAME} Catch)
 target_include_directories(${UNITTEST_TARGET_NAME} PRIVATE "../src" "thirdparty/json")
 

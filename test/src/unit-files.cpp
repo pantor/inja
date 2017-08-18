@@ -3,12 +3,11 @@
 #include "inja.hpp"
 
 
-using Environment = inja::Environment;
 using json = nlohmann::json;
 
 
 TEST_CASE("Files handling") {
-	Environment env = Environment();
+	inja::Environment env = inja::Environment();
 	json data;
 	data["name"] = "Jeff";
 
@@ -26,7 +25,7 @@ TEST_CASE("Files handling") {
 }
 
 TEST_CASE("Complete files") {
-	Environment env = Environment("../test/data/");
+	inja::Environment env = inja::Environment("../test/data/");
 
 	for (std::string test_name : {"simple-file", "nested", "nested-line"}) {
 		SECTION(test_name) {

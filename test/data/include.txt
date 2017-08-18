@@ -1,1 +1,1 @@
-Answer: (% include "simple.txt" %)
+Answer: {% include "simple.txt" %}

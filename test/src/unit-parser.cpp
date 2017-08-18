@@ -3,30 +3,29 @@
 #include "inja.hpp"
 
 
-using Environment = inja::Environment;
 using json = nlohmann::json;
 using Type = inja::Parser::Type;
 
 
 TEST_CASE("Parse structure") {
-	Environment env = Environment();
+	inja::Parser parser = inja::Parser();
 
 	SECTION("Basic string") {
 		std::string test = "lorem ipsum";
 		json result = {{{"type", Type::String}, {"text", "lorem ipsum"}}};
-		CHECK( env.parse(test) == result );
+		CHECK( parser.parse(test) == result );
 	}
 
 	SECTION("Empty string") {
 		std::string test = "";
 		json result = {};
-		CHECK( env.parse(test) == result );
+		CHECK( parser.parse(test) == result );
 	}
 
 	SECTION("Variable") {
 		std::string test = "{{ name }}";
 		json result = {{{"type", Type::Variable}, {"command", "name"}}};
-		CHECK( env.parse(test) == result );
+		CHECK( parser.parse(test) == result );
 	}
 
 	SECTION("Combined string and variables") {
@@ -36,7 +35,7 @@ TEST_CASE("Parse structure") {
 			{{"type", Type::Variable}, {"command", "name"}},
 			{{"type", Type::String}, {"text", "!"}}
 		};
-		CHECK( env.parse(test) == result );
+		CHECK( parser.parse(test) == result );
 	}
 
 	SECTION("Multiple variables") {
@@ -48,11 +47,11 @@ TEST_CASE("Parse structure") {
 			{{"type", Type::Variable}, {"command", "city"}},
 			{{"type", Type::String}, {"text", "."}}
 		};
-		CHECK( env.parse(test) == result );
+		CHECK( parser.parse(test) == result );
 	}
 
 	SECTION("Loops") {
-		std::string test = "open (% for e in list %)lorem(% endfor %) closing";
+		std::string test = "open {% for e in list %}lorem{% endfor %} closing";
 		json result = {
 			{{"type", Type::String}, {"text", "open "}},
 			{{"type", Type::Loop}, {"command", "for e in list"}, {"children", {
@@ -60,11 +59,11 @@ TEST_CASE("Parse structure") {
 			}}},
 			{{"type", Type::String}, {"text", " closing"}}
 		};
-		CHECK( env.parse(test) == result );
+		CHECK( parser.parse(test) == result );
 	}
 
 	SECTION("Nested loops") {
-		std::string test = "(% for e in list %)(% for b in list2 %)lorem(% endfor %)(% endfor %)";
+		std::string test = "{% for e in list %}{% for b in list2 %}lorem{% endfor %}{% endfor %}";
 		json result = {
 			{{"type", Type::Loop}, {"command", "for e in list"}, {"children", {
 				{{"type", Type::Loop}, {"command", "for b in list2"}, {"children", {
@@ -72,11 +71,11 @@ TEST_CASE("Parse structure") {
 				}}}
 			}}}
 		};
-		CHECK( env.parse(test) == result );
+		CHECK( parser.parse(test) == result );
 	}
 
 	SECTION("Basic conditional") {
-		std::string test = "(% if true %)dfgh(% endif %)";
+		std::string test = "{% if true %}dfgh{% endif %}";
 		json result = {
 			{{"type", Type::Condition}, {"children", {
 				{{"type", Type::ConditionBranch}, {"command", "if true"}, {"children", {
@@ -84,11 +83,11 @@ TEST_CASE("Parse structure") {
 				}}}
 			}}}
 		};
-		CHECK( env.parse(test) == result );
+		CHECK( parser.parse(test) == result );
 	}
 
 	SECTION("If/else if/else conditional") {
-		std::string test = "if: (% if maybe %)first if(% else if perhaps %)first else if(% else if sometimes %)second else if(% else %)test else(% endif %)";
+		std::string test = "if: {% if maybe %}first if{% else if perhaps %}first else if{% else if sometimes %}second else if{% else %}test else{% endif %}";
 		json result = {
 			{{"type", Type::String}, {"text", "if: "}},
 			{{"type", Type::Condition}, {"children", {
@@ -106,13 +105,13 @@ TEST_CASE("Parse structure") {
 				}}},
 			}}}
 		};
-		CHECK( env.parse(test) == result );
+		CHECK( parser.parse(test) == result );
 	}
 
 	SECTION("Comments") {
 		std::string test = "{# lorem ipsum #}";
 		json result = {{{"type", Type::Comment}, {"text", "lorem ipsum"}}};
-		CHECK( env.parse(test) == result );
+		CHECK( parser.parse(test) == result );
 	}
 
 	SECTION("Line Statements") {
@@ -126,12 +125,12 @@ lorem ipsum
 				}}}
 			}}}
 		};
-		CHECK( env.parse(test) == result );
+		CHECK( parser.parse(test) == result );
 	}
 }
 
 TEST_CASE("Parse json") {
-	Environment env = Environment();
+	inja::Environment env = inja::Environment();
 
 	json data;
 	data["name"] = "Peter";
@@ -159,7 +158,7 @@ TEST_CASE("Parse json") {
 }
 
 TEST_CASE("Parse conditions") {
-	Environment env = Environment();
+	inja::Environment env = inja::Environment();
 
 	json data;
 	data["age"] = 29;
