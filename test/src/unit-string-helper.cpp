@@ -79,7 +79,7 @@ TEST_CASE("Search on level") {
 		CHECK( match.close_match.end_position() == 28 );
 		CHECK( match.position() == 8 );
 		CHECK( match.end_position() == 28 );
-		CHECK( match.outer == "(% up %)Test(% N1 %)" );
-		CHECK( match.inner == "Test" );
+		CHECK( match.outer() == "(% up %)Test(% N1 %)" );
+		CHECK( match.inner() == "Test" );
 	}
 }

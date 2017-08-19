@@ -36,7 +36,6 @@ using json = nlohmann::json;
 
 ## Tutorial
 
-
 ### Template Rendering
 ```c++
 json data;
@@ -85,12 +84,12 @@ Variables can be rendered within the `{{ ... }}` expressions.
 ```c++
 json data;
 data["neighbour"] = "Peter";
-data["guests"] = {"Jeff", "Pierre", "Tom"};
+data["guests"] = {"Jeff", "Patrick", "Tom"};
 data["time"]["start"] = 16;
 data["time"]["end"] = 22;
 
 // Indexing in array
-render("{{ guests/1 }}", data); // "Pierre"
+render("{{ guests/1 }}", data); // "Patrick"
 
 // Objects
 render("{{ time/start }} to {{ time/end }}pm"); // "16 to 22pm"
@@ -142,12 +141,29 @@ Include other files, relative from the current file location.
 {% include "footer.html" %}
 ```
 
+### Functions
+
+A few functions are implemented within the inja template syntax. They can be called with
+```c++
+// upper(<string>)
+render("Hello {{ upper(neighbour) }}!", data); // "Hello PETER!"
+render("Hello {{ lower(neighbour) }}!", data); // "Hello peter!"
+
+// Range function, useful for loops
+render("{% for i in range(4) %}{{ index1 }}{% endfor %}", data); // "1234"
+
+// Length function (but please don't combine with range, use list directly...)
+render("I count {{ length(guests) }} guests.", data); // "I count 3 guests."
+```
+
 ### Comments
 
 Comments can be written with the `{# ... #}` syntax.
 ```c++
 render("Hello{# Todo #}!", data); // "Hello!"
 ```
+
+
 
 ## Supported compilers
 
@@ -157,6 +173,7 @@ Currently, the following compilers are tested:
 - Clang 3.6 - 3.7 (and possibly later)
 - Microsoft Visual C++ 2015 / Build Tools 14.0.25123.0 (and possibly later)
 - Microsoft Visual C++ 2017 / Build Tools 15.1.548.43366 (and possibly later)
+
 
 
 ## License

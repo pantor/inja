@@ -129,7 +129,7 @@ lorem ipsum
 	}
 }
 
-TEST_CASE("Parse json") {
+TEST_CASE("Parse variables") {
 	inja::Environment env = inja::Environment();
 
 	json data;
@@ -142,18 +142,23 @@ TEST_CASE("Parse json") {
 	data["brother"]["daughter0"] = { { "name", "Maria" } };
 
 	SECTION("Variables from values") {
-		CHECK( env.parse_variable("42", data) == 42 );
-		CHECK( env.parse_variable("3.1415", data) == 3.1415 );
-		CHECK( env.parse_variable("\"hello\"", data) == "hello" );
+		CHECK( env.eval_variable("42", data) == 42 );
+		CHECK( env.eval_variable("3.1415", data) == 3.1415 );
+		CHECK( env.eval_variable("\"hello\"", data) == "hello" );
+		CHECK( env.eval_variable("true", data) == true );
+		CHECK( env.eval_variable("[5, 6, 8]", data) == std::vector<int>({5, 6, 8}) );
 	}
 
 	SECTION("Variables from JSON data") {
-		CHECK( env.parse_variable("name", data) == "Peter" );
-		CHECK( env.parse_variable("age", data) == 29 );
-		CHECK( env.parse_variable("names/1", data) == "Seb" );
-		CHECK( env.parse_variable("brother/name", data) == "Chris" );
-		CHECK( env.parse_variable("brother/daughters/0", data) == "Maria" );
-		CHECK_THROWS_WITH( env.parse_variable("noelement", data), "JSON pointer found no element." );
+		CHECK( env.eval_variable("name", data) == "Peter" );
+		CHECK( env.eval_variable("age", data) == 29 );
+		CHECK( env.eval_variable("names/1", data) == "Seb" );
+		CHECK( env.eval_variable("brother/name", data) == "Chris" );
+		CHECK( env.eval_variable("brother/daughters/0", data) == "Maria" );
+		CHECK( env.eval_variable("/age", data) == 29 );
+
+		CHECK_THROWS_WITH( env.eval_variable("noelement", data), "JSON pointer found no element." );
+		CHECK_THROWS_WITH( env.eval_variable("&4s-", data), "JSON pointer found no element." );
 	}
 }
 
@@ -167,37 +172,70 @@ TEST_CASE("Parse conditions") {
 	data["guests"] = {"Jeff", "Seb"};
 
 	SECTION("Elements") {
-		CHECK( env.parse_condition("age", data) );
-		CHECK_FALSE( env.parse_condition("size", data) );
+		CHECK( env.eval_condition("age", data) );
+		CHECK( env.eval_condition("guests", data) );
+		CHECK_FALSE( env.eval_condition("size", data) );
+		CHECK_FALSE( env.eval_condition("false", data) );
 	}
 
 	SECTION("Operators") {
-		CHECK( env.parse_condition("not size", data) );
-		CHECK_FALSE( env.parse_condition("not true", data) );
-		CHECK( env.parse_condition("true and true", data) );
-		CHECK( env.parse_condition("true or false", data) );
-		CHECK_FALSE( env.parse_condition("true and not true", data) );
+		CHECK( env.eval_condition("not size", data) );
+		CHECK_FALSE( env.eval_condition("not true", data) );
+		CHECK( env.eval_condition("true and true", data) );
+		CHECK( env.eval_condition("true or false", data) );
+		CHECK_FALSE( env.eval_condition("true and not true", data) );
 	}
 
 	SECTION("Numbers") {
-		CHECK( env.parse_condition("age == 29", data) );
-		CHECK( env.parse_condition("age >= 29", data) );
-		CHECK( env.parse_condition("age <= 29", data) );
-		CHECK( env.parse_condition("age < 100", data) );
-		CHECK_FALSE( env.parse_condition("age > 29", data) );
-		CHECK_FALSE( env.parse_condition("age != 29", data) );
-		CHECK_FALSE( env.parse_condition("age < 28", data) );
-		CHECK_FALSE( env.parse_condition("age < -100.0", data) );
+		CHECK( env.eval_condition("age == 29", data) );
+		CHECK( env.eval_condition("age >= 29", data) );
+		CHECK( env.eval_condition("age <= 29", data) );
+		CHECK( env.eval_condition("age < 100", data) );
+		CHECK_FALSE( env.eval_condition("age > 29", data) );
+		CHECK_FALSE( env.eval_condition("age != 29", data) );
+		CHECK_FALSE( env.eval_condition("age < 28", data) );
+		CHECK_FALSE( env.eval_condition("age < -100.0", data) );
 	}
 
 	SECTION("Strings") {
-		CHECK( env.parse_condition("brother == father", data) );
-		CHECK( env.parse_condition("brother == \"Peter\"", data) );
-		CHECK_FALSE( env.parse_condition("not brother == father", data) );
+		CHECK( env.eval_condition("brother == father", data) );
+		CHECK( env.eval_condition("brother == \"Peter\"", data) );
+		CHECK_FALSE( env.eval_condition("not brother == father", data) );
 	}
 
 	SECTION("Lists") {
-		// CHECK( env.parse_condition("\"Jeff\" in guests", data) );
-		CHECK_FALSE( env.parse_condition("brother in guests", data) );
+		CHECK( env.eval_condition("\"Jeff\" in guests", data) );
+		CHECK_FALSE( env.eval_condition("brother in guests", data) );
+	}
+}
+
+TEST_CASE("Parse functions") {
+	inja::Environment env = inja::Environment();
+
+	json data;
+	data["name"] = "Peter";
+	data["city"] = "New York";
+	data["names"] = {"Jeff", "Seb", "Peter", "Tom"};
+
+	SECTION("Upper") {
+		CHECK( env.eval_variable("upper(name)", data) == "PETER" );
+		CHECK( env.eval_variable("upper(city)", data) == "NEW YORK" );
+		CHECK_THROWS_WITH( env.eval_variable("upper(5)", data), "Argument in upper function is not a string." );
+	}
+
+	SECTION("Lower") {
+		CHECK( env.eval_variable("lower(name)", data) == "peter" );
+		CHECK( env.eval_variable("lower(city)", data) == "new york" );
+		CHECK_THROWS_WITH( env.eval_variable("lower(5)", data), "Argument in lower function is not a string." );
+	}
+
+	SECTION("Range") {
+		CHECK( env.eval_variable("range(4)", data) == std::vector<int>({0, 1, 2, 3}) );
+		CHECK_THROWS_WITH( env.eval_variable("range(true)", data), "Argument in range function is not a number." );
+	}
+
+	SECTION("Length") {
+		CHECK( env.eval_variable("length(names)", data) == 4 );
+		CHECK_THROWS_WITH( env.eval_variable("length(5)", data), "Argument in length function is not a list." );
 	}
 }
