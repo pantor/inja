@@ -75,11 +75,11 @@ TEST_CASE("Parse structure") {
 	}
 
 	SECTION("Basic conditional") {
-		std::string test = "{% if true %}dfgh{% endif %}";
+		std::string test = "{% if true %}Hello{% endif %}";
 		json result = {
 			{{"type", Type::Condition}, {"children", {
 				{{"type", Type::ConditionBranch}, {"command", "if true"}, {"children", {
-					{{"type", Type::String}, {"text", "dfgh"}}
+					{{"type", Type::String}, {"text", "Hello"}}
 				}}}
 			}}}
 		};

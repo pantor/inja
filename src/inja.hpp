@@ -111,7 +111,7 @@ inline Match search(const std::string& input, std::vector<Regex> regexes, size_t
 		}
 	}
 
-	int number_regex = 0, number_inner = 1;
+	int number_regex = -1, number_inner = 1;
 	for (int i = 1; i < search_match.size(); i++) {
 		if (search_match.length(i) > 0) {
 			number_inner = i;
@@ -122,11 +122,11 @@ inline Match search(const std::string& input, std::vector<Regex> regexes, size_t
 
 	search_match.setGroupOffset(number_inner);
 	search_match.setRegexNumber(number_regex);
-	search_match.setRegex(regexes[number_regex]);
+	if (number_regex >= 0) { search_match.setRegex(regexes[number_regex]); }
 	return search_match;
 }
 
-inline MatchClosed search_closed_match_on_level(const std::string& input, Regex regex_statement, Regex regex_level_up, Regex regex_level_down, Regex regex_search, Match open_match) {
+inline MatchClosed search_closed_on_level(const std::string& input, Regex regex_statement, Regex regex_level_up, Regex regex_level_down, Regex regex_search, Match open_match) {
 
 	int level = 0;
 	size_t current_position = open_match.end_position();
@@ -145,8 +145,21 @@ inline MatchClosed search_closed_match_on_level(const std::string& input, Regex 
 	return MatchClosed(open_match, match_delimiter);
 }
 
-inline MatchClosed search_closed_match(std::string input, Regex regex_statement, Regex regex_open, Regex regex_close, Match open_match) {
-	return search_closed_match_on_level(input, regex_statement, regex_open, regex_close, regex_close, open_match);
+inline MatchClosed search_closed(std::string input, Regex regex_statement, Regex regex_open, Regex regex_close, Match open_match) {
+	return search_closed_on_level(input, regex_statement, regex_open, regex_close, regex_close, open_match);
+}
+
+inline Match match(std::string input, std::vector<Regex> regexes) {
+	Match match;
+	match.setRegexNumber(-1);
+	for (int i = 0; i < regexes.size(); i++) {
+		if (std::regex_match(input, match, regexes[i])) {
+			match.setRegexNumber(i);
+			match.setRegex(regexes[i]);
+			break;
+		}
+	}
+	return match;
 }
 
 
@@ -176,32 +189,66 @@ public:
 		{Delimiter::Comment, Regex{"\\{#\\s*(.*?)\\s*#\\}"}}
 	};
 
-	const Regex regex_loop_open{"for (.*)"};
+	enum class Statement {
+		Loop,
+		Condition,
+		Include
+	};
+
+	const std::map<Statement, Regex> regex_map_statement_openers = {
+		{Statement::Loop, Regex{"for (.*)"}},
+		{Statement::Condition, Regex{"if (.*)"}},
+		{Statement::Include, Regex{"include \"(.*)\""}}
+	};
+
+	const Regex regex_loop_open = regex_map_statement_openers.at(Statement::Loop);
 	const Regex regex_loop_in_list{"for (\\w+) in (.+)"};
 	const Regex regex_loop_close{"endfor"};
 
-	const Regex regex_include{"include \"(.*)\""};
-
-	const Regex regex_condition_open{"if (.*)"};
+	const Regex regex_condition_open = regex_map_statement_openers.at(Statement::Condition);
 	const Regex regex_condition_else_if{"else if (.*)"};
 	const Regex regex_condition_else{"else"};
 	const Regex regex_condition_close{"endif"};
 
-	const Regex regex_condition_not{"not (.+)"};
-	const Regex regex_condition_and{"(.+) and (.+)"};
-	const Regex regex_condition_or{"(.+) or (.+)"};
-	const Regex regex_condition_in{"(.+) in (.+)"};
-	const Regex regex_condition_equal{"(.+) == (.+)"};
-	const Regex regex_condition_greater{"(.+) > (.+)"};
-	const Regex regex_condition_less{"(.+) < (.+)"};
-	const Regex regex_condition_greater_equal{"(.+) >= (.+)"};
-	const Regex regex_condition_less_equal{"(.+) <= (.+)"};
-	const Regex regex_condition_different{"(.+) != (.+)"};
+	enum class ConditionOperators {
+		Not,
+		And,
+		Or,
+		In,
+		Equal,
+		Greater,
+		Less,
+		GreaterEqual,
+		LessEqual,
+		Different
+	};
 
-	const Regex regex_function_upper{"upper\\(\\s*(.*?)\\s*\\)"};
-	const Regex regex_function_lower{"lower\\(\\s*(.*?)\\s*\\)"};
-	const Regex regex_function_range{"range\\(\\s*(.*?)\\s*\\)"};
-	const Regex regex_function_length{"length\\(\\s*(.*?)\\s*\\)"};
+	const std::map<ConditionOperators, Regex> regex_map_condition_operators = {
+		{ConditionOperators::Not, Regex{"not (.+)"}},
+		{ConditionOperators::And, Regex{"(.+) and (.+)"}},
+		{ConditionOperators::Or, Regex{"(.+) or (.+)"}},
+		{ConditionOperators::In, Regex{"(.+) in (.+)"}},
+		{ConditionOperators::Equal, Regex{"(.+) == (.+)"}},
+		{ConditionOperators::Greater, Regex{"(.+) > (.+)"}},
+		{ConditionOperators::Less, Regex{"(.+) < (.+)"}},
+		{ConditionOperators::GreaterEqual, Regex{"(.+) >= (.+)"}},
+		{ConditionOperators::LessEqual, Regex{"(.+) <= (.+)"}},
+		{ConditionOperators::Different, Regex{"(.+) != (.+)"}}
+	};
+
+	enum class Function {
+		Upper,
+		Lower,
+		Range,
+		Length
+	};
+
+	const std::map<Function, Regex> regex_map_functions = {
+		{Function::Upper, Regex{"upper\\(\\s*(.*?)\\s*\\)"}},
+		{Function::Lower, Regex{"lower\\(\\s*(.*?)\\s*\\)"}},
+		{Function::Range, Regex{"range\\(\\s*(.*?)\\s*\\)"}},
+		{Function::Length, Regex{"length\\(\\s*(.*?)\\s*\\)"}},
+	};
 
 	Parser() { }
 
@@ -229,48 +276,51 @@ public:
 				case Delimiter::Statement:
 				case Delimiter::LineStatement: {
 
-					Match inner_match_delimiter;
-					// Loop
-					if (std::regex_match(delimiter_inner, inner_match_delimiter, regex_loop_open)) {
-						MatchClosed loop_match = search_closed_match(input, match_delimiter.regex(), regex_loop_open, regex_loop_close, match_delimiter);
+					Match match_statement = match(delimiter_inner, get_values(regex_map_statement_openers));
+					switch ( static_cast<Statement>(match_statement.regex_number()) ) {
+						case Statement::Loop: {
+							MatchClosed loop_match = search_closed(input, match_delimiter.regex(), regex_loop_open, regex_loop_close, match_delimiter);
 
-						current_position = loop_match.end_position();
-						std::string loop_command = inner_match_delimiter.str(0);
-						result += element(Type::Loop, {{"command", loop_command}, {"inner", loop_match.inner()}});
-					}
-					// Include
-					else if (std::regex_match(delimiter_inner, inner_match_delimiter, regex_include)) {
-						std::string filename = inner_match_delimiter.str(1);
-						result += element(Type::Include, {{"filename", filename}});
-					}
-					// Condition
-					else if (std::regex_match(delimiter_inner, inner_match_delimiter, regex_condition_open)) {
-						json condition_result = element(Parser::Type::Condition, {{"children", json::array()}});
-
-						Match condition_match = match_delimiter;
-
-						MatchClosed else_if_match = search_closed_match_on_level(input, match_delimiter.regex(), regex_condition_open, regex_condition_close, regex_condition_else_if, condition_match);
-						while (else_if_match.found()) {
-							condition_match = else_if_match.close_match;
-
-							condition_result["children"] += element(Type::ConditionBranch, {{"command", else_if_match.open_match.str(1)}, {"inner", else_if_match.inner()}});
-
-							else_if_match = search_closed_match_on_level(input, match_delimiter.regex(), regex_condition_open, regex_condition_close, regex_condition_else_if, condition_match);
+							current_position = loop_match.end_position();
+							std::string loop_command = match_statement.str(0);
+							result += element(Type::Loop, {{"command", loop_command}, {"inner", loop_match.inner()}});
+							break;
 						}
+						case Statement::Condition: {
+							json condition_result = element(Parser::Type::Condition, {{"children", json::array()}});
 
-						MatchClosed else_match = search_closed_match_on_level(input, match_delimiter.regex(), regex_condition_open, regex_condition_close, regex_condition_else, condition_match);
-						if (else_match.found()) {
-							condition_match = else_match.close_match;
+							Match condition_match = match_delimiter;
 
-							condition_result["children"] += element(Type::ConditionBranch, {{"command", else_match.open_match.str(1)}, {"inner", else_match.inner()}});
+							MatchClosed else_if_match = search_closed_on_level(input, match_delimiter.regex(), regex_condition_open, regex_condition_close, regex_condition_else_if, condition_match);
+							while (else_if_match.found()) {
+								condition_match = else_if_match.close_match;
+
+								condition_result["children"] += element(Type::ConditionBranch, {{"command", else_if_match.open_match.str(1)}, {"inner", else_if_match.inner()}});
+
+								else_if_match = search_closed_on_level(input, match_delimiter.regex(), regex_condition_open, regex_condition_close, regex_condition_else_if, condition_match);
+							}
+
+							MatchClosed else_match = search_closed_on_level(input, match_delimiter.regex(), regex_condition_open, regex_condition_close, regex_condition_else, condition_match);
+							if (else_match.found()) {
+								condition_match = else_match.close_match;
+
+								condition_result["children"] += element(Type::ConditionBranch, {{"command", else_match.open_match.str(1)}, {"inner", else_match.inner()}});
+							}
+
+							MatchClosed last_if_match = search_closed(input, match_delimiter.regex(), regex_condition_open, regex_condition_close, condition_match);
+
+							condition_result["children"] += element(Type::ConditionBranch, {{"command", last_if_match.open_match.str(1)}, {"inner", last_if_match.inner()}});
+
+							current_position = last_if_match.end_position();
+							result += condition_result;
+							break;
 						}
-
-						MatchClosed last_if_match = search_closed_match(input, match_delimiter.regex(), regex_condition_open, regex_condition_close, condition_match);
-
-						condition_result["children"] += element(Type::ConditionBranch, {{"command", last_if_match.open_match.str(1)}, {"inner", last_if_match.inner()}});
-
-						current_position = last_if_match.end_position();
-						result += condition_result;
+						case Statement::Include: {
+							std::string filename = match_statement.str(1);
+							result += element(Type::Include, {{"filename", filename}});
+							break;
+						}
+						default: { throw std::runtime_error("Parser error: Unknown statement."); }
 					}
 
 					break;
@@ -335,32 +385,34 @@ public:
 		// Json Raw Data
 		if ( json::accept(input) ) { return json::parse(input); }
 
-		Match match_function;
-		if (std::regex_match(input, match_function, parser.regex_function_upper)) {
-			json str = eval_variable(match_function.str(1), data);
-			if (not str.is_string()) { throw std::runtime_error("Argument in upper function is not a string."); }
-			std::string data = str.get<std::string>();
-			std::transform(data.begin(), data.end(), data.begin(), toupper);
-			return data;
-		}
-		else if (std::regex_match(input, match_function, parser.regex_function_lower)) {
-			json str = eval_variable(match_function.str(1), data);
-			if (not str.is_string()) { throw std::runtime_error("Argument in lower function is not a string."); }
-			std::string data = str.get<std::string>();
-			std::transform(data.begin(), data.end(), data.begin(), tolower);
-			return data;
-		}
-		else if (std::regex_match(input, match_function, parser.regex_function_range)) {
-			json number = eval_variable(match_function.str(1), data);
-			if (not number.is_number()) { throw std::runtime_error("Argument in range function is not a number."); }
-			std::vector<int> result(number.get<int>());
-			std::iota(std::begin(result), std::end(result), 0);
-			return result;
-		}
-		else if (std::regex_match(input, match_function, parser.regex_function_length)) {
-			json list = eval_variable(match_function.str(1), data);
-			if (not list.is_array()) { throw std::runtime_error("Argument in length function is not a list."); }
-			return list.size();
+		Match match_function = match(input, get_values(parser.regex_map_functions));
+		switch ( static_cast<Parser::Function>(match_function.regex_number()) ) {
+			case Parser::Function::Upper: {
+				json str = eval_variable(match_function.str(1), data);
+				if (not str.is_string()) { throw std::runtime_error("Argument in upper function is not a string."); }
+				std::string data = str.get<std::string>();
+				std::transform(data.begin(), data.end(), data.begin(), toupper);
+				return data;
+			}
+			case Parser::Function::Lower: {
+				json str = eval_variable(match_function.str(1), data);
+				if (not str.is_string()) { throw std::runtime_error("Argument in lower function is not a string."); }
+				std::string data = str.get<std::string>();
+				std::transform(data.begin(), data.end(), data.begin(), tolower);
+				return data;
+			}
+			case Parser::Function::Range: {
+				json number = eval_variable(match_function.str(1), data);
+				if (not number.is_number()) { throw std::runtime_error("Argument in range function is not a number."); }
+				std::vector<int> result(number.get<int>());
+				std::iota(std::begin(result), std::end(result), 0);
+				return result;
+			}
+			case Parser::Function::Length: {
+				json list = eval_variable(match_function.str(1), data);
+				if (not list.is_array()) { throw std::runtime_error("Argument in length function is not a list."); }
+				return list.size();
+			}
 		}
 
 		if (input[0] != '/') { input.insert(0, "/"); }
@@ -372,50 +424,52 @@ public:
 	}
 
 	bool eval_condition(std::string condition, json data) {
-		Match match_condition;
-		if (std::regex_match(condition, match_condition, parser.regex_condition_not)) {
-			return not eval_condition(match_condition.str(1), data);
-		}
-		else if (std::regex_match(condition, match_condition, parser.regex_condition_and)) {
-			return (eval_condition(match_condition.str(1), data) and eval_condition(match_condition.str(2), data));
-		}
-		else if (std::regex_match(condition, match_condition, parser.regex_condition_or)) {
-			return (eval_condition(match_condition.str(1), data) or eval_condition(match_condition.str(2), data));
-		}
-		else if (std::regex_match(condition, match_condition, parser.regex_condition_in)) {
-			json item = eval_variable(match_condition.str(1), data);
-			json list = eval_variable(match_condition.str(2), data);
-			return (std::find(list.begin(), list.end(), item) != list.end());
-		}
-		else if (std::regex_match(condition, match_condition, parser.regex_condition_equal)) {
-			json comp1 = eval_variable(match_condition.str(1), data);
-			json comp2 = eval_variable(match_condition.str(2), data);
-			return comp1 == comp2;
-		}
-		else if (std::regex_match(condition, match_condition, parser.regex_condition_greater)) {
-			json comp1 = eval_variable(match_condition.str(1), data);
-			json comp2 = eval_variable(match_condition.str(2), data);
-			return comp1 > comp2;
-		}
-		else if (std::regex_match(condition, match_condition, parser.regex_condition_less)) {
-			json comp1 = eval_variable(match_condition.str(1), data);
-			json comp2 = eval_variable(match_condition.str(2), data);
-			return comp1 < comp2;
-		}
-		else if (std::regex_match(condition, match_condition, parser.regex_condition_greater_equal)) {
-			json comp1 = eval_variable(match_condition.str(1), data);
-			json comp2 = eval_variable(match_condition.str(2), data);
-			return comp1 >= comp2;
-		}
-		else if (std::regex_match(condition, match_condition, parser.regex_condition_less_equal)) {
-			json comp1 = eval_variable(match_condition.str(1), data);
-			json comp2 = eval_variable(match_condition.str(2), data);
-			return comp1 <= comp2;
-		}
-		else if (std::regex_match(condition, match_condition, parser.regex_condition_different)) {
-			json comp1 = eval_variable(match_condition.str(1), data);
-			json comp2 = eval_variable(match_condition.str(2), data);
-			return comp1 != comp2;
+		Match match_condition = match(condition, get_values(parser.regex_map_condition_operators));
+		switch ( static_cast<Parser::ConditionOperators>(match_condition.regex_number()) ) {
+			case Parser::ConditionOperators::Not: {
+				return not eval_condition(match_condition.str(1), data);
+			}
+			case Parser::ConditionOperators::And: {
+				return (eval_condition(match_condition.str(1), data) and eval_condition(match_condition.str(2), data));
+			}
+			case Parser::ConditionOperators::Or: {
+				return (eval_condition(match_condition.str(1), data) or eval_condition(match_condition.str(2), data));
+			}
+			case Parser::ConditionOperators::In: {
+				json item = eval_variable(match_condition.str(1), data);
+				json list = eval_variable(match_condition.str(2), data);
+				return (std::find(list.begin(), list.end(), item) != list.end());
+			}
+			case Parser::ConditionOperators::Equal: {
+				json comp1 = eval_variable(match_condition.str(1), data);
+				json comp2 = eval_variable(match_condition.str(2), data);
+				return comp1 == comp2;
+			}
+			case Parser::ConditionOperators::Greater: {
+				json comp1 = eval_variable(match_condition.str(1), data);
+				json comp2 = eval_variable(match_condition.str(2), data);
+				return comp1 > comp2;
+			}
+			case Parser::ConditionOperators::Less: {
+				json comp1 = eval_variable(match_condition.str(1), data);
+				json comp2 = eval_variable(match_condition.str(2), data);
+				return comp1 < comp2;
+			}
+			case Parser::ConditionOperators::GreaterEqual: {
+				json comp1 = eval_variable(match_condition.str(1), data);
+				json comp2 = eval_variable(match_condition.str(2), data);
+				return comp1 >= comp2;
+			}
+			case Parser::ConditionOperators::LessEqual: {
+				json comp1 = eval_variable(match_condition.str(1), data);
+				json comp2 = eval_variable(match_condition.str(2), data);
+				return comp1 <= comp2;
+			}
+			case Parser::ConditionOperators::Different: {
+				json comp1 = eval_variable(match_condition.str(1), data);
+				json comp2 = eval_variable(match_condition.str(2), data);
+				return comp1 != comp2;
+			}
 		}
 
 		json var = eval_variable(condition, data, false);

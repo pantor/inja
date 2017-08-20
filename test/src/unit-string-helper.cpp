@@ -59,7 +59,7 @@ TEST_CASE("Search on level") {
 		CHECK( open_match.end_position() == 8 );
 		CHECK( open_match.str(1) == "up" );
 
-		inja::MatchClosed match = inja::search_closed_match_on_level(input, regex_statement, regex_level_up, regex_level_down, regex_search, open_match);
+		inja::MatchClosed match = inja::search_closed_on_level(input, regex_statement, regex_level_up, regex_level_down, regex_search, open_match);
 		CHECK( match.position() == 0 );
 		CHECK( match.end_position() == 109 );
 	}
@@ -71,7 +71,7 @@ TEST_CASE("Search on level") {
 		CHECK( open_match.end_position() == 16 );
 		CHECK( open_match.str(1) == "up" );
 
-		inja::MatchClosed match = inja::search_closed_match_on_level(input, regex_statement, regex_level_up, regex_level_down, regex_search, open_match);
+		inja::MatchClosed match = inja::search_closed_on_level(input, regex_statement, regex_level_up, regex_level_down, regex_search, open_match);
 
 		CHECK( match.open_match.position() == 8 );
 		CHECK( match.open_match.end_position() == 16 );

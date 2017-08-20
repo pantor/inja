@@ -3,12 +3,11 @@
 #include "inja.hpp"
 
 
-using Environment = inja::Environment;
 using json = nlohmann::json;
 
 
 TEST_CASE("Renderer") {
-	Environment env = Environment();
+	inja::Environment env = inja::Environment();
 	json data;
 	data["name"] = "Peter";
 	data["city"] = "Brunswick";
