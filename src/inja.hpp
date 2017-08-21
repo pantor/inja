@@ -358,7 +358,7 @@ public:
 		return current_element;
 	}
 
-	json parse(std::string input) {
+	json parse(const std::string& input) {
 		return parse_tree({{"inner", input}})["children"];
 	}
 };
@@ -396,6 +396,9 @@ public:
 	}
 
 	json eval_variable(std::string input, json data, bool throw_error) {
+		
+		std::cout << "input eval variable: " << input << std::endl;
+		
 		// Json Raw Data
 		if ( json::accept(input) ) { return json::parse(input); }
 
