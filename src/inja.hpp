@@ -55,8 +55,8 @@ public:
 	size_t position() const { return offset_ + std::smatch::position(); }
 	size_t end_position() const { return position() + length(); }
 	bool found() const { return not empty(); }
-	std::string str() const { return str(0); }
-	std::string str(int i) const { return std::smatch::str(i + group_offset_); }
+	const std::string str() const { return str(0); }
+	const std::string str(int i) const { return std::smatch::str(i + group_offset_); }
 	Regex regex() const { return regex_; }
 	unsigned int regex_number() const { return regex_number_; }
 };
@@ -403,7 +403,7 @@ public:
 		switch ( static_cast<Parser::Function>(match_function.regex_number()) ) {
 			case Parser::Function::Upper: {
 				std::string asdf = match_function.str(1);
-				std::cout << "input eval variable: " << match_function.str(1) << " " << asdf << std::endl;
+				std::cout << "input eval variable: " << match_function.std::smatch::str(1) << " " << asdf << std::endl;
 				json str = eval_variable(match_function.str(1), data);
 				if (not str.is_string()) { throw std::runtime_error("Argument in upper function is not a string."); }
 				std::string data = str.get<std::string>();
