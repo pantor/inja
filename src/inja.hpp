@@ -397,7 +397,7 @@ public:
 
 	json eval_variable(const std::string& input, json data, bool throw_error) {
 		// Json Raw Data
-		if ( json::accept(input) ) { return json::parse(input); }
+		// if ( json::accept(input) ) { return json::parse(input); }
 
 		Match match_function = match(input, get_values(parser.regex_map_functions));
 		switch ( static_cast<Parser::Function>(match_function.regex_number()) ) {
