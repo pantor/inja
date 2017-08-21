@@ -1,7 +1,6 @@
 [<div align="center"><img width="500" src="https://raw.githubusercontent.com/pantor/inja/master/doc/logo.jpg"></div>](https://github.com/pantor/inja/releases)
 
 
-
 [![Build Status](https://travis-ci.org/pantor/inja.svg?branch=master)](https://travis-ci.org/pantor/inja)
 [![Build status](https://ci.appveyor.com/api/projects/status/qtgniyyg6fn8ich8?svg=true)](https://ci.appveyor.com/project/pantor/inja)
 [![Coverage Status](https://img.shields.io/coveralls/pantor/inja.svg)](https://coveralls.io/r/pantor/inja)
@@ -10,7 +9,7 @@
 [![GitHub License](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/pantor/inja/master/LICENSE)
 
 
-Inja is a template engine for modern C++, loosely inspired by [jinja](http://jinja.pocoo.org) for python. It has an easy and yet powerful template syntax with all variables, loops, conditions, includes, blocks, comments you need, nested and combined as you like. The rendering syntax is works like magic and uses the wonderful [json](https://github.com/nlohmann/json) library by nlohmann for data input. Most importantly, *inja* needs only two header files, which is (nearly) as trivial as integration in C++ can get. Of course, everything is tested on all relevant compilers. Have a look what it looks like:
+Inja is a template engine for modern C++, loosely inspired by [jinja](http://jinja.pocoo.org) for python. It has an easy and yet powerful template syntax with all variables, loops, conditions, includes, blocks, comments you need, nested and combined as you like. Inja uses the wonderful [json](https://github.com/nlohmann/json) library by nlohmann for data input and handling. Most importantly, *inja* needs only two header files, which is (nearly) as trivial as integration in C++ can get. Of course, everything is tested on all relevant compilers. Have a look what it looks like:
 
 ```c++
 json data;
@@ -36,7 +35,12 @@ using json = nlohmann::json;
 
 ## Tutorial
 
+This tutorial will give you an idea how to use inja. It will explain the most important concepts and give practical advices using examples and exectuable code. Beside this tutorial, you can check the [documentation]() for further information.
+
 ### Template Rendering
+
+The basic template rendering takes a template as a `std::string` and a `json` object for all data. It returns the rendered template as an `std::string`.
+
 ```c++
 json data;
 data["name"] = "world";
@@ -56,11 +60,11 @@ result = env.render_template("./template.txt", data);
 result = env.render_template("./template.txt", "./data.json");
 
 // Or write a rendered template file
-env.write("./template.txt", "./result.txt")
+env.write("./template.txt", data, "./result.txt")
 env.write("./template.txt", "./data.json", "./result.txt")
 ```
 
-The environment class can be configured.
+The environment class can be configured to your needs.
 ```c++
 // With default settings
 Environment env_default = Environment();
@@ -80,7 +84,7 @@ env.setLineStatements("##"); // Line statement (just an opener)
 
 ### Variables
 
-Variables can be rendered within the `{{ ... }}` expressions.
+Variables are rendered within the `{{ ... }}` expressions.
 ```c++
 json data;
 data["neighbour"] = "Peter";
@@ -115,11 +119,11 @@ render(R"(Guest List:
 	2: Pierre
 	3: Tom */
 ```
-In a loop, the special variables `number index`, `number index1`, `bool is_first` and `bool is_last` are available.
+In a loop, the special variables `index (number)`, `index1 (number)`, `is_first (boolean)` and `is_last (boolean)` are available.
 
 #### Conditions
 
-Conditions support if, else if and else statements. Following conditions for example:
+Conditions support the typical if, else if and else statements. Following conditions are for example possible:
 ```c++
 // Standard comparisons with variable
 render("{% if time/hour >= 18 %}…{% endif %}", data); // True
@@ -136,7 +140,7 @@ render("{% if not guest_count %}…{% endif %}", data); // True
 
 #### Includes
 
-Include other files, relative from the current file location.
+This include other files, relative from the current file location.
 ```
 {% include "footer.html" %}
 ```
@@ -145,7 +149,7 @@ Include other files, relative from the current file location.
 
 A few functions are implemented within the inja template syntax. They can be called with
 ```c++
-// upper(<string>)
+// Upper and lower function, for string cases
 render("Hello {{ upper(neighbour) }}!", data); // "Hello PETER!"
 render("Hello {{ lower(neighbour) }}!", data); // "Hello peter!"
 
@@ -154,6 +158,10 @@ render("{% for i in range(4) %}{{ index1 }}{% endfor %}", data); // "1234"
 
 // Length function (but please don't combine with range, use list directly...)
 render("I count {{ length(guests) }} guests.", data); // "I count 3 guests."
+
+// Round numbers to a given precision
+render({{ round(3.1415, 0) }}, data) // 3
+render({{ round(3.1415, 3) }}, data) // 3.142
 ```
 
 ### Comments

@@ -102,8 +102,6 @@ inline Match search(const std::string& input, std::vector<Regex> regexes, size_t
 	if (not search_match.found()) { return Match(); }
 
 	// Vector of id vs groups
-	// 0: 1, 1: 2, 2: 3, 3: 2
-	// 0 1 1 2 2 2 3 3
 	std::vector<int> regex_mark_counts;
 	for (int i = 0; i < regexes.size(); i++) {
 		for (int j = 0; j < regexes[i].mark_count() + 1; j++) {
@@ -240,7 +238,8 @@ public:
 		Upper,
 		Lower,
 		Range,
-		Length
+		Length,
+		Round
 	};
 
 	const std::map<Function, Regex> regex_map_functions = {
@@ -248,6 +247,7 @@ public:
 		{Function::Lower, Regex{"lower\\(\\s*(.*?)\\s*\\)"}},
 		{Function::Range, Regex{"range\\(\\s*(.*?)\\s*\\)"}},
 		{Function::Length, Regex{"length\\(\\s*(.*?)\\s*\\)"}},
+		{Function::Round, Regex{"length\\(\\s*(.*?)\\s*,\\s*(.*?)\\s*\\)"}},
 	};
 
 	Parser() { }
@@ -373,9 +373,23 @@ public:
 	Environment(): Environment("./") { }
 	Environment(std::string global_path): global_path(global_path), parser() { }
 
-	void setExpression(std::string open, std::string close) {
-		parser.regex_map_delimiters[Parser::Delimiter::Expression] = Regex{open + close};
+	void setStatement(std::string open, std::string close) {
+		parser.regex_map_delimiters[Parser::Delimiter::Statement] = Regex{open + "\\s*(.+?)\\s*" + close};
 	}
+
+	void setLineStatement(std::string open) {
+		parser.regex_map_delimiters[Parser::Delimiter::LineStatement] = Regex{"(?:^|\\n)" + open + "\\s*(.+)\\s*"};
+	}
+
+	void setExpression(std::string open, std::string close) {
+		parser.regex_map_delimiters[Parser::Delimiter::Expression] = Regex{open + "\\s*(.+?)\\s*" + close};
+	}
+
+	void setComment(std::string open, std::string close) {
+		parser.regex_map_delimiters[Parser::Delimiter::Comment] = Regex{open + "\\s*(.+?)\\s*" + close};
+	}
+
+
 
 	json eval_variable(std::string input, json data) {
 		return eval_variable(input, data, true);
@@ -413,6 +427,13 @@ public:
 				if (not list.is_array()) { throw std::runtime_error("Argument in length function is not a list."); }
 				return list.size();
 			}
+			case Parser::Function::Round: {
+				json number = eval_variable(match_function.str(1), data);
+				json precision = eval_variable(match_function.str(2), data);
+				if (not number.is_number()) { throw std::runtime_error("Argument in length function is not a number."); }
+				if (not precision.is_number()) { throw std::runtime_error("Argument in length function is not a number."); }
+				return std::round(number.get<double>() * std::pow(10.0, precision.get<int>())) / std::pow(10.0, precision.get<int>());
+			}
 		}
 
 		if (input[0] != '/') { input.insert(0, "/"); }
@@ -441,34 +462,22 @@ public:
 				return (std::find(list.begin(), list.end(), item) != list.end());
 			}
 			case Parser::ConditionOperators::Equal: {
-				json comp1 = eval_variable(match_condition.str(1), data);
-				json comp2 = eval_variable(match_condition.str(2), data);
-				return comp1 == comp2;
+				return eval_variable(match_condition.str(1), data) == eval_variable(match_condition.str(2), data);
 			}
 			case Parser::ConditionOperators::Greater: {
-				json comp1 = eval_variable(match_condition.str(1), data);
-				json comp2 = eval_variable(match_condition.str(2), data);
-				return comp1 > comp2;
+				return eval_variable(match_condition.str(1), data) > eval_variable(match_condition.str(2), data);
 			}
 			case Parser::ConditionOperators::Less: {
-				json comp1 = eval_variable(match_condition.str(1), data);
-				json comp2 = eval_variable(match_condition.str(2), data);
-				return comp1 < comp2;
+				return eval_variable(match_condition.str(1), data) < eval_variable(match_condition.str(2), data);
 			}
 			case Parser::ConditionOperators::GreaterEqual: {
-				json comp1 = eval_variable(match_condition.str(1), data);
-				json comp2 = eval_variable(match_condition.str(2), data);
-				return comp1 >= comp2;
+				return eval_variable(match_condition.str(1), data) >= eval_variable(match_condition.str(2), data);
 			}
 			case Parser::ConditionOperators::LessEqual: {
-				json comp1 = eval_variable(match_condition.str(1), data);
-				json comp2 = eval_variable(match_condition.str(2), data);
-				return comp1 <= comp2;
+				return eval_variable(match_condition.str(1), data) <= eval_variable(match_condition.str(2), data);
 			}
 			case Parser::ConditionOperators::Different: {
-				json comp1 = eval_variable(match_condition.str(1), data);
-				json comp2 = eval_variable(match_condition.str(2), data);
-				return comp1 != comp2;
+				return eval_variable(match_condition.str(1), data) != eval_variable(match_condition.str(2), data);
 			}
 		}
 
@@ -557,7 +566,6 @@ public:
 		return render_tree(parsed, data, path);
 	}
 
-
 	std::string render(std::string input, json data) {
 		return render(input, data, "./");
 	}
@@ -571,6 +579,14 @@ public:
 	std::string render_template_with_json_file(std::string filename, std::string filename_data) {
 		json data = load_json(filename_data);
 		return render_template(filename, data);
+	}
+	
+	void write(std::string filename, json data, std::string filename_out) {
+		
+	}
+	
+	void write(std::string filename, std::string filename_data, std::string filename_out) {
+		
 	}
 
 	std::string load_file(std::string filename) {
