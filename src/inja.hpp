@@ -405,34 +405,34 @@ public:
 		Match match_function = match(input, get_values(parser.regex_map_functions));
 		switch ( static_cast<Parser::Function>(match_function.regex_number()) ) {
 			case Parser::Function::Upper: {
-				json str = eval_variable(match_function.str(1), data);
+				json str = eval_variable(std::string(match_function.str(1)), data);
 				if (not str.is_string()) { throw std::runtime_error("Argument in upper function is not a string."); }
 				std::string data = str.get<std::string>();
 				std::transform(data.begin(), data.end(), data.begin(), toupper);
 				return data;
 			}
 			case Parser::Function::Lower: {
-				json str = eval_variable(match_function.str(1), data);
+				json str = eval_variable(std::string(match_function.str(1)), data);
 				if (not str.is_string()) { throw std::runtime_error("Argument in lower function is not a string."); }
 				std::string data = str.get<std::string>();
 				std::transform(data.begin(), data.end(), data.begin(), tolower);
 				return data;
 			}
 			case Parser::Function::Range: {
-				json number = eval_variable(match_function.str(1), data);
+				json number = eval_variable(std::string(match_function.str(1)), data);
 				if (not number.is_number()) { throw std::runtime_error("Argument in range function is not a number."); }
 				std::vector<int> result(number.get<int>());
 				std::iota(std::begin(result), std::end(result), 0);
 				return result;
 			}
 			case Parser::Function::Length: {
-				json list = eval_variable(match_function.str(1), data);
+				json list = eval_variable(std::string(match_function.str(1)), data);
 				if (not list.is_array()) { throw std::runtime_error("Argument in length function is not a list."); }
 				return list.size();
 			}
 			case Parser::Function::Round: {
-				json number = eval_variable(match_function.str(1), data);
-				json precision = eval_variable(match_function.str(2), data);
+				json number = eval_variable(std::string(match_function.str(1)), data);
+				json precision = eval_variable(std::string(match_function.str(2)), data);
 				if (not number.is_number()) { throw std::runtime_error("Argument in length function is not a number."); }
 				if (not precision.is_number()) { throw std::runtime_error("Argument in length function is not a number."); }
 				return std::round(number.get<double>() * std::pow(10.0, precision.get<int>())) / std::pow(10.0, precision.get<int>());
