@@ -147,7 +147,7 @@ inline MatchClosed search_closed(const std::string& input, Regex regex_statement
 	return search_closed_on_level(input, regex_statement, regex_open, regex_close, regex_close, open_match);
 }
 
-inline Match match(std::string input, std::vector<Regex> regexes) {
+inline Match match(const std::string& input, std::vector<Regex> regexes) {
 	Match match;
 	match.setRegexNumber(-1);
 	for (int i = 0; i < regexes.size(); i++) {
@@ -397,7 +397,7 @@ public:
 
 	json eval_variable(const std::string& input, json data, bool throw_error) {
 		// Json Raw Data
-		// if ( json::accept(input) ) { return json::parse(input); }
+		if ( json::accept(input) ) { return json::parse(input); }
 
 		Match match_function = match(input, get_values(parser.regex_map_functions));
 		switch ( static_cast<Parser::Function>(match_function.regex_number()) ) {
