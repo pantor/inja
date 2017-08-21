@@ -52,13 +52,13 @@ public:
 	void setRegex(Regex regex) { regex_ = regex; }
 	void setRegexNumber(unsigned int regex_number) { regex_number_ = regex_number; }
 
-	size_t position() { return offset_ + std::smatch::position(); }
-	size_t end_position() { return position() + length(); }
-	bool found() { return not empty(); }
-	std::string str() { return str(0); }
-	std::string str(int i) { return std::smatch::str(i + group_offset_); }
-	Regex regex() { return regex_; }
-	unsigned int regex_number() { return regex_number_; }
+	size_t position() const { return offset_ + std::smatch::position(); }
+	size_t end_position() const { return position() + length(); }
+	bool found() const { return not empty(); }
+	std::string str() const { return str(0); }
+	std::string str(int i) const { return std::smatch::str(i + group_offset_); }
+	Regex regex() const { return regex_; }
+	unsigned int regex_number() const { return regex_number_; }
 };
 
 
@@ -69,14 +69,14 @@ public:
 	MatchClosed() { }
 	MatchClosed(Match& open_match, Match& close_match): open_match(open_match), close_match(close_match) { }
 
-	size_t position() { return open_match.position(); }
-	size_t end_position() { return close_match.end_position(); }
-	int length() { return close_match.end_position() - open_match.position(); }
-	bool found() { return open_match.found() and close_match.found(); }
-	std::string prefix() { return open_match.prefix(); }
-	std::string suffix() { return close_match.suffix(); }
-	std::string outer() { return open_match.str() + static_cast<std::string>(open_match.suffix()).substr(0, close_match.end_position() - open_match.end_position()); }
-	std::string inner() { return static_cast<std::string>(open_match.suffix()).substr(0, close_match.position() - open_match.end_position()); }
+	size_t position() const { return open_match.position(); }
+	size_t end_position() const { return close_match.end_position(); }
+	int length() const { return close_match.end_position() - open_match.position(); }
+	bool found() const { return open_match.found() and close_match.found(); }
+	std::string prefix() const { return open_match.prefix(); }
+	std::string suffix() const { return close_match.suffix(); }
+	std::string outer() const { return open_match.str() + static_cast<std::string>(open_match.suffix()).substr(0, close_match.end_position() - open_match.end_position()); }
+	std::string inner() const { return static_cast<std::string>(open_match.suffix()).substr(0, close_match.position() - open_match.end_position()); }
 };
 
 
@@ -391,11 +391,11 @@ public:
 
 
 
-	json eval_variable(std::string input, json data) {
+	json eval_variable(const std::string& input, json data) {
 		return eval_variable(input, data, true);
 	}
 
-	json eval_variable(std::string input, json data, bool throw_error) {
+	json eval_variable(const std::string& input, json data, bool throw_error) {
 		
 		std::cout << "input eval variable: " << input << std::endl;
 		
@@ -438,9 +438,10 @@ public:
 				return std::round(number.get<double>() * std::pow(10.0, precision.get<int>())) / std::pow(10.0, precision.get<int>());
 			}
 		}
-
-		if (input[0] != '/') { input.insert(0, "/"); }
-		json::json_pointer ptr(input);
+		
+		std::string input_copy = input;
+		if (input_copy[0] != '/') { input_copy.insert(0, "/"); }
+		json::json_pointer ptr(input_copy);
 		json result = data[ptr];
 
 		if (throw_error && result.is_null()) { throw std::runtime_error("JSON pointer found no element."); }
