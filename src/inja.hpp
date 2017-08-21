@@ -124,7 +124,7 @@ inline Match search(const std::string& input, std::vector<Regex> regexes, size_t
 	return search_match;
 }
 
-inline MatchClosed search_closed_on_level(const std::string& input, Regex regex_statement, Regex regex_level_up, Regex regex_level_down, Regex regex_search, Match open_match) {
+inline MatchClosed search_closed_on_level(const std::string& input, const Regex regex_statement, const Regex regex_level_up, const Regex regex_level_down, const Regex regex_search, Match open_match) {
 
 	int level = 0;
 	size_t current_position = open_match.end_position();
@@ -132,7 +132,7 @@ inline MatchClosed search_closed_on_level(const std::string& input, Regex regex_
 	while (match_delimiter.found()) {
 		current_position = match_delimiter.end_position();
 
-		std::string inner = match_delimiter.str(1);
+		const std::string inner = match_delimiter.str(1);
 		if (std::regex_match(inner, regex_search) and level == 0) { break; }
 		if (std::regex_match(inner, regex_level_up)) { level += 1; }
 		else if (std::regex_match(inner, regex_level_down)) { level -= 1; }
@@ -143,7 +143,7 @@ inline MatchClosed search_closed_on_level(const std::string& input, Regex regex_
 	return MatchClosed(open_match, match_delimiter);
 }
 
-inline MatchClosed search_closed(const std::string& input, Regex regex_statement, Regex regex_open, Regex regex_close, Match open_match) {
+inline MatchClosed search_closed(const std::string& input, const Regex regex_statement, const Regex regex_open, const Regex regex_close, Match open_match) {
 	return search_closed_on_level(input, regex_statement, regex_open, regex_close, regex_close, open_match);
 }
 
@@ -257,7 +257,7 @@ public:
 		return element_data;
 	}
 
-	json parse_level(std::string input) {
+	json parse_level(const std::string& input) {
 		json result;
 
 		std::vector<Regex> regex_delimiters = get_values(regex_map_delimiters);
@@ -365,7 +365,7 @@ public:
 
 
 class Environment {
-	std::string global_path;
+	const std::string global_path;
 
 	Parser parser;
 
@@ -402,36 +402,34 @@ public:
 		Match match_function = match(input, get_values(parser.regex_map_functions));
 		switch ( static_cast<Parser::Function>(match_function.regex_number()) ) {
 			case Parser::Function::Upper: {
-				std::string asdf = match_function.str(1);
-				std::cout << "input eval variable: " << match_function.std::smatch::str(1) << " " << asdf << std::endl;
-				json str = eval_variable(match_function.str(1), data);
+				const json str = eval_variable(match_function.str(1), data);
 				if (not str.is_string()) { throw std::runtime_error("Argument in upper function is not a string."); }
 				std::string data = str.get<std::string>();
 				std::transform(data.begin(), data.end(), data.begin(), toupper);
 				return data;
 			}
 			case Parser::Function::Lower: {
-				json str = eval_variable(match_function.str(1), data);
+				const json str = eval_variable(match_function.str(1), data);
 				if (not str.is_string()) { throw std::runtime_error("Argument in lower function is not a string."); }
 				std::string data = str.get<std::string>();
 				std::transform(data.begin(), data.end(), data.begin(), tolower);
 				return data;
 			}
 			case Parser::Function::Range: {
-				json number = eval_variable(match_function.str(1), data);
+				const json number = eval_variable(match_function.str(1), data);
 				if (not number.is_number()) { throw std::runtime_error("Argument in range function is not a number."); }
 				std::vector<int> result(number.get<int>());
 				std::iota(std::begin(result), std::end(result), 0);
 				return result;
 			}
 			case Parser::Function::Length: {
-				json list = eval_variable(match_function.str(1), data);
+				const json list = eval_variable(match_function.str(1), data);
 				if (not list.is_array()) { throw std::runtime_error("Argument in length function is not a list."); }
 				return list.size();
 			}
 			case Parser::Function::Round: {
-				json number = eval_variable(match_function.str(1), data);
-				json precision = eval_variable(match_function.str(2), data);
+				const json number = eval_variable(match_function.str(1), data);
+				const json precision = eval_variable(match_function.str(2), data);
 				if (not number.is_number()) { throw std::runtime_error("Argument in length function is not a number."); }
 				if (not precision.is_number()) { throw std::runtime_error("Argument in length function is not a number."); }
 				return std::round(number.get<double>() * std::pow(10.0, precision.get<int>())) / std::pow(10.0, precision.get<int>());
@@ -460,8 +458,8 @@ public:
 				return (eval_condition(match_condition.str(1), data) or eval_condition(match_condition.str(2), data));
 			}
 			case Parser::ConditionOperators::In: {
-				json item = eval_variable(match_condition.str(1), data);
-				json list = eval_variable(match_condition.str(2), data);
+				const json item = eval_variable(match_condition.str(1), data);
+				const json list = eval_variable(match_condition.str(2), data);
 				return (std::find(list.begin(), list.end(), item) != list.end());
 			}
 			case Parser::ConditionOperators::Equal: {
@@ -484,7 +482,7 @@ public:
 			}
 		}
 
-		json var = eval_variable(condition, data, false);
+		const json var = eval_variable(condition, data, false);
 		if (var.empty()) { return false; }
 		else if (var.is_boolean()) { return var; }
 		else if (var.is_number()) { return (var != 0); }
