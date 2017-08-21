@@ -31,7 +31,7 @@ class Regex: public std::regex {
 
 public:
 	Regex(): std::regex() {}
-	Regex(std::string pattern): std::regex(pattern), pattern_(pattern) { }
+	explicit Regex(const std::string& pattern): std::regex(pattern), pattern_(pattern) { }
 
 	std::string pattern() { return pattern_; }
 };
@@ -45,8 +45,8 @@ class Match: public std::smatch {
 
 public:
 	Match(): std::smatch() { }
-	Match(size_t offset): std::smatch(), offset_(offset) { }
-	Match(size_t offset, Regex regex): std::smatch(), offset_(offset), regex_(regex) { }
+	explicit Match(size_t offset): std::smatch(), offset_(offset) { }
+	Match(size_t offset, Regex& regex): std::smatch(), offset_(offset), regex_(regex) { }
 
 	void setGroupOffset(int group_offset) { group_offset_ = group_offset; }
 	void setRegex(Regex regex) { regex_ = regex; }
@@ -67,7 +67,7 @@ public:
 	Match open_match, close_match;
 
 	MatchClosed() { }
-	MatchClosed(Match open_match, Match close_match): open_match(open_match), close_match(close_match) { }
+	MatchClosed(Match& open_match, Match& close_match): open_match(open_match), close_match(close_match) { }
 
 	size_t position() { return open_match.position(); }
 	size_t end_position() { return close_match.end_position(); }
@@ -143,7 +143,7 @@ inline MatchClosed search_closed_on_level(const std::string& input, Regex regex_
 	return MatchClosed(open_match, match_delimiter);
 }
 
-inline MatchClosed search_closed(std::string input, Regex regex_statement, Regex regex_open, Regex regex_close, Match open_match) {
+inline MatchClosed search_closed(const std::string& input, Regex regex_statement, Regex regex_open, Regex regex_close, Match open_match) {
 	return search_closed_on_level(input, regex_statement, regex_open, regex_close, regex_close, open_match);
 }
 
@@ -371,7 +371,7 @@ class Environment {
 
 public:
 	Environment(): Environment("./") { }
-	Environment(const std::string& global_path): global_path(global_path), parser() { }
+	explicit Environment(const std::string& global_path): global_path(global_path), parser() { }
 
 	void setStatement(const std::string& open, const std::string& close) {
 		parser.regex_map_delimiters[Parser::Delimiter::Statement] = Regex{open + "\\s*(.+?)\\s*" + close};
@@ -561,7 +561,7 @@ public:
 		return result;
 	}
 
-	std::string render(const std::string& input, json data, std::string path) {
+	std::string render(const std::string& input, json data, const std::string& path) {
 		json parsed = parser.parse(input);
 		return render_tree(parsed, data, path);
 	}
