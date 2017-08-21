@@ -371,21 +371,21 @@ class Environment {
 
 public:
 	Environment(): Environment("./") { }
-	Environment(std::string global_path): global_path(global_path), parser() { }
+	Environment(const std::string& global_path): global_path(global_path), parser() { }
 
-	void setStatement(std::string open, std::string close) {
+	void setStatement(const std::string& open, const std::string& close) {
 		parser.regex_map_delimiters[Parser::Delimiter::Statement] = Regex{open + "\\s*(.+?)\\s*" + close};
 	}
 
-	void setLineStatement(std::string open) {
+	void setLineStatement(const std::string& open) {
 		parser.regex_map_delimiters[Parser::Delimiter::LineStatement] = Regex{"(?:^|\\n)" + open + "\\s*(.+)\\s*"};
 	}
 
-	void setExpression(std::string open, std::string close) {
+	void setExpression(const std::string& open, const std::string& close) {
 		parser.regex_map_delimiters[Parser::Delimiter::Expression] = Regex{open + "\\s*(.+?)\\s*" + close};
 	}
 
-	void setComment(std::string open, std::string close) {
+	void setComment(const std::string& open, const std::string& close) {
 		parser.regex_map_delimiters[Parser::Delimiter::Comment] = Regex{open + "\\s*(.+?)\\s*" + close};
 	}
 
@@ -444,7 +444,7 @@ public:
 		return result;
 	}
 
-	bool eval_condition(std::string condition, json data) {
+	bool eval_condition(const std::string& condition, json data) {
 		Match match_condition = match(condition, get_values(parser.regex_map_condition_operators));
 		switch ( static_cast<Parser::ConditionOperators>(match_condition.regex_number()) ) {
 			case Parser::ConditionOperators::Not: {
@@ -497,7 +497,7 @@ public:
 		return ss.str();
 	}
 
-	std::string render_tree(json input, json data, std::string path) {
+	std::string render_tree(json input, json data, const std::string& path) {
 		std::string result = "";
 		for (auto element: input) {
 			switch ( static_cast<Parser::Type>(element["type"]) ) {
@@ -515,11 +515,11 @@ public:
 					break;
 				}
 				case Parser::Type::Loop: {
-					std::string command = element["command"].get<std::string>();
+					const std::string command = element["command"].get<std::string>();
 					Match match_command;
 					if (std::regex_match(command, match_command, parser.regex_loop_in_list)) {
-						std::string item_name = match_command.str(1);
-						std::string list_name = match_command.str(2);
+						const std::string item_name = match_command.str(1);
+						const std::string list_name = match_command.str(2);
 
 						json list = eval_variable(list_name, data);
 						for (int i = 0; i < list.size(); i++) {
@@ -539,7 +539,7 @@ public:
 					const Regex regex_condition{"(if|else if|else) ?(.*)"};
 
 					for (auto branch: element["children"]) {
-						std::string command = branch["command"].get<std::string>();
+						const std::string command = branch["command"].get<std::string>();
 						Match match_command;
 						if (std::regex_match(command, match_command, regex_condition)) {
 							std::string condition_type = match_command.str(1);
@@ -561,41 +561,41 @@ public:
 		return result;
 	}
 
-	std::string render(std::string input, json data, std::string path) {
+	std::string render(const std::string& input, json data, std::string path) {
 		json parsed = parser.parse(input);
 		return render_tree(parsed, data, path);
 	}
 
-	std::string render(std::string input, json data) {
+	std::string render(const std::string& input, json data) {
 		return render(input, data, "./");
 	}
 
-	std::string render_template(std::string filename, json data) {
+	std::string render_template(const std::string& filename, json data) {
 		std::string text = load_file(filename);
 		std::string path = filename.substr(0, filename.find_last_of("/\\") + 1);
 		return render(text, data, path);
 	}
 
-	std::string render_template_with_json_file(std::string filename, std::string filename_data) {
+	std::string render_template_with_json_file(const std::string& filename, const std::string& filename_data) {
 		json data = load_json(filename_data);
 		return render_template(filename, data);
 	}
 	
-	void write(std::string filename, json data, std::string filename_out) {
+	void write(const std::string& filename, json data, const std::string& filename_out) {
 		
 	}
 	
-	void write(std::string filename, std::string filename_data, std::string filename_out) {
+	void write(const std::string& filename, const std::string& filename_data, const std::string& filename_out) {
 		
 	}
 
-	std::string load_file(std::string filename) {
+	std::string load_file(const std::string& filename) {
 		std::ifstream file(global_path + filename);
 		std::string text((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 		return text;
 	}
 
-	json load_json(std::string filename) {
+	json load_json(const std::string& filename) {
 		std::ifstream file(global_path + filename);
 		json j;
 		file >> j;
@@ -603,7 +603,7 @@ public:
 	}
 };
 
-inline std::string render(std::string input, json data) {
+inline std::string render(const std::string& input, json data) {
 	return Environment().render(input, data);
 }
 
