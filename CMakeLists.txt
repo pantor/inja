@@ -15,11 +15,9 @@ option(BUILD_UNIT_TESTS "Build the unit tests" ON)
 ## CONFIGURATION
 ##
 set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall --coverage")
 set(INJA_SOURCE_DIR src/)
 set(INJA_HEADER_INSTALL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/dist)
-
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0") # debug, no optimisation
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage") # enabling coverage
 
 ##
 ## TESTS
