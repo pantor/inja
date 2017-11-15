@@ -12,20 +12,20 @@ TEST_CASE("Files handling") {
 	data["name"] = "Jeff";
 
 	SECTION("Files should be loaded") {
-		CHECK( env.load_file("../test/data/simple.txt") == "Hello {{ name }}." );
+		CHECK( env.load_file("data/simple.txt") == "Hello {{ name }}." );
 	}
 
 	SECTION("Files should be rendered") {
-		CHECK( env.render_template("../test/data/simple.txt", data) == "Hello Jeff." );
+		CHECK( env.render_template("data/simple.txt", data) == "Hello Jeff." );
 	}
 
 	SECTION("File includes should be rendered") {
-		CHECK( env.render_template("../test/data/include.txt", data) == "Answer: Hello Jeff." );
+		CHECK( env.render_template("data/include.txt", data) == "Answer: Hello Jeff." );
 	}
 }
 
 TEST_CASE("Complete files") {
-	inja::Environment env = inja::Environment("../test/data/");
+	inja::Environment env = inja::Environment("data/");
 
 	for (std::string test_name : {"simple-file", "nested", "nested-line"}) {
 		SECTION(test_name) {
