@@ -1,23 +1,34 @@
 cmake_minimum_required(VERSION 3.1)
 
 ##
-## PROJECT
-## name and version
-##
-project(inja)
-
-##
 ## OPTIONS
 ##
 option(BUILD_UNIT_TESTS "Build the unit tests" ON)
+
+##
+## HUNTER
+##
+option(HUNTER_ENABLED "Use hunter to manage dependencies" OFF)
+include("cmake/HunterGate.cmake")
+HunterGate(
+    URL "https://github.com/ruslo/hunter/archive/v0.19.156.tar.gz"
+    SHA1 "8d5e4635b137365e0d1ade4d60accf4e2bb41f0d"
+)
+
+##
+## PROJECT
+## name and version
+##
+project(inja LANGUAGES CXX VERSION 0.1.1)
+set(INJA_VERSION ${PROJECT_VERSION})
 
 ##
 ## CONFIGURATION
 ##
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall --coverage")
-set(INJA_SOURCE_DIR src/)
-set(INJA_HEADER_INSTALL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/dist)
+set(INJA_SOURCE_DIR src)
+set(INJA_HEADER_INSTALL_DIR include)
 
 ##
 ## TESTS
@@ -29,10 +40,76 @@ if(BUILD_UNIT_TESTS)
 endif()
 
 ##
+## TARGETS
+## Build targets for the interface library
+##
+add_library(inja INTERFACE)
+target_include_directories(inja INTERFACE  
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/${INJA_SOURCE_DIR}>
+    $<INSTALL_INTERFACE:${INJA_HEADER_INSTALL_DIR}>
+)
+if(HUNTER_ENABLED) # Use Hunter to manage dependencies
+    # Add JSON package
+    hunter_add_package(nlohmann_json)
+    find_package(nlohmann_json CONFIG REQUIRED)
+    # Add dependencies to target
+    target_link_libraries(inja INTERFACE nlohmann_json)
+else()
+    #target_include_directories(inja INTERFACE  
+    #    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test/thirdparty/json>
+    #    $<INSTALL_INTERFACE:${INJA_HEADER_INSTALL_DIR}>
+    #)
+endif()
+
+##
 ## INSTALL
 ## install header files, generate and install cmake config files for find_package()
 ##
+set(include_install_dir ${INJA_HEADER_INSTALL_DIR})
+set(config_install_dir "lib/cmake/${PROJECT_NAME}")
+set(generated_dir "${CMAKE_CURRENT_BINARY_DIR}/generated")
+set(version_config "${generated_dir}/${PROJECT_NAME}ConfigVersion.cmake")
+set(project_config "${generated_dir}/${PROJECT_NAME}Config.cmake")
+set(TARGETS_EXPORT_NAME "${PROJECT_NAME}Targets")
+set(namespace "${PROJECT_NAME}::")
+include(CMakePackageConfigHelpers)
+
+# Use:
+#   * PROJECT_VERSION
+write_basic_package_version_file(
+    "${version_config}" COMPATIBILITY SameMajorVersion
+)
+
+# Use:
+#   * TARGETS_EXPORT_NAME
+#   * PROJECT_NAME
+configure_package_config_file(
+    "cmake/Config.cmake.in"
+    "${project_config}"
+    INSTALL_DESTINATION "${config_install_dir}"
+)
+
 install(
-  DIRECTORY ${INJA_SOURCE_DIR}
-  DESTINATION ${INJA_HEADER_INSTALL_DIR}
+    TARGETS inja
+    EXPORT "${TARGETS_EXPORT_NAME}"
+    LIBRARY DESTINATION "lib"
+    ARCHIVE DESTINATION "lib"
+    RUNTIME DESTINATION "bin"
+    INCLUDES DESTINATION "${include_install_dir}"
+)
+
+install(
+    FILES ${INJA_SOURCE_DIR}/inja.hpp
+    DESTINATION "${include_install_dir}"
+)
+
+install(
+    FILES "${project_config}" "${version_config}"
+    DESTINATION "${config_install_dir}"
+)
+
+install(
+    EXPORT "${TARGETS_EXPORT_NAME}"
+    NAMESPACE "${namespace}"
+    DESTINATION "${config_install_dir}"
 )
