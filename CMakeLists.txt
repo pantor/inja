@@ -21,7 +21,7 @@ endif()
 ## PROJECT
 ## name and version
 ##
-project(inja LANGUAGES CXX VERSION 0.1-hunter)
+project(inja LANGUAGES CXX VERSION 0.1)
 set(INJA_VERSION ${PROJECT_VERSION})
 
 ##
