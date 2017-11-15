@@ -4,11 +4,13 @@ cmake_minimum_required(VERSION 3.1)
 ## HUNTER
 ##
 option(HUNTER_ENABLED "Use hunter to manage dependencies" OFF)
-include("../cmake/HunterGate.cmake")
-HunterGate(
-    URL "https://github.com/ruslo/hunter/archive/v0.19.156.tar.gz"
-    SHA1 "8d5e4635b137365e0d1ade4d60accf4e2bb41f0d"
-)
+if(HUNTER_ENABLED)
+    include("../cmake/HunterGate.cmake")
+    HunterGate(
+        URL "https://github.com/ruslo/hunter/archive/v0.19.156.tar.gz"
+        SHA1 "8d5e4635b137365e0d1ade4d60accf4e2bb41f0d"
+    )
+endif()
 
 ##
 ## PROJECT
