@@ -16,6 +16,6 @@ target_include_directories(${UNITTEST_TARGET_NAME} PRIVATE "../src" "thirdparty/
 ## Add tests to make
 ##
 add_test(NAME "${UNITTEST_TARGET_NAME}_default"
-	COMMAND ${UNITTEST_TARGET_NAME}
-	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/build
+    COMMAND ${UNITTEST_TARGET_NAME}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )
