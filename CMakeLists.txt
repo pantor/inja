@@ -32,6 +32,10 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall --coverage")
 set(INJA_SOURCE_DIR src)
 set(INJA_HEADER_INSTALL_DIR include)
 
+if(WIN32 AND MSVC AND MSVC_VERSION LESS 1900)
+    message(FATAL_ERROR "[${PROJECT_NAME}] Visual Studio versions prior to 2015 do not support the noexcept keyword, which is used in the JSON library.")
+endif()
+
 ##
 ## TESTS
 ## create and configure the unit test target
