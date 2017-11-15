@@ -46,7 +46,7 @@ endif()
 ## Build targets for the interface library
 ##
 add_library(inja INTERFACE)
-target_include_directories(inja INTERFACE  
+target_include_directories(inja INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/${INJA_SOURCE_DIR}>
     $<INSTALL_INTERFACE:${INJA_HEADER_INSTALL_DIR}>
 )
@@ -55,9 +55,9 @@ if(HUNTER_ENABLED) # Use Hunter to manage dependencies
     hunter_add_package(nlohmann_json)
     find_package(nlohmann_json CONFIG REQUIRED)
     # Add dependencies to target
-    target_link_libraries(inja INTERFACE nlohmann_json)
+    target_link_libraries(inja nlohmann_json)
 else()
-    target_include_directories(inja INTERFACE  
+    target_include_directories(inja INTERFACE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test/thirdparty/json>
         $<INSTALL_INTERFACE:${INJA_HEADER_INSTALL_DIR}>
     )
