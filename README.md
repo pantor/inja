@@ -75,11 +75,11 @@ Environment env = Environment("../path/templates/");
 // With global path where to save rendered files
 Environment env = Environment("../path/templates/", "../path/results/");
 
-// With other opening and closing strings (here the defaults)
-env.setVariables("{{", "}}"); // Variables
-env.setComments("{#", "#}"); // Comments
-env.setStatements("{%", "%}"); // Statements for many things, see below
-env.setLineStatements("##"); // Line statement (just an opener)
+// With other opening and closing strings (here the defaults, as regex)
+env.setVariables("\\{\\{", "\\}\\}"); // Variables {{ }}
+env.setComments("\\{#", "#\\}"); // Comments {# #}
+env.setStatements("\\{\\%", "\\%\\}"); // Statements {% %} for many things, see below
+env.setLineStatements("##"); // Line statement ## (just an opener)
 ```
 
 ### Variables
@@ -103,7 +103,7 @@ In general, the variables can be fetched using the [JSON Pointer](https://tools.
 
 ### Statements
 
-Statements can be written with the `{% ... %}` syntax. The most important statements are loops, conditions and file includes. All statements can be nested.
+Statements can be written either with the `{% ... %}` syntax or the `##` syntax for entire lines. The most important statements are loops, conditions and file includes. All statements can be nested.
 
 #### Loops
 
@@ -186,4 +186,4 @@ Currently, the following compilers are tested:
 
 ## License
 
-The class is licensed under the [MIT License](https://raw.githubusercontent.com/pantor/inja/master/LICENSE).
+Inja is licensed under the [MIT License](https://raw.githubusercontent.com/pantor/inja/master/LICENSE).
