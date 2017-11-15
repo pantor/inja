@@ -1,5 +1,5 @@
 #include "catch.hpp"
-#include "json.hpp"
+#include "nlohmann/json.hpp"
 #include "inja.hpp"
 
 
