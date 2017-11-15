@@ -55,7 +55,7 @@ if(HUNTER_ENABLED) # Use Hunter to manage dependencies
     hunter_add_package(nlohmann_json)
     find_package(nlohmann_json CONFIG REQUIRED)
     # Add dependencies to target
-    target_link_libraries(inja nlohmann_json)
+    target_link_libraries(inja INTERFACE nlohmann_json)
 else()
     target_include_directories(inja INTERFACE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test/thirdparty/json>
