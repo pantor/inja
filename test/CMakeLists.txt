@@ -38,14 +38,18 @@ if(HUNTER_ENABLED) # Use Hunter to manage dependencies
     # Add dependencies to target
     target_link_libraries(${UNITTEST_TARGET_NAME} Catch::Catch)
     target_link_libraries(${UNITTEST_TARGET_NAME} nlohmann_json)
+    target_link_libraries(${UNITTEST_TARGET_NAME} inja)
 else() # Manage dependencies manually
     # Prepare "Catch" library for other executables
-    set(CATCH_INCLUDE_DIR "thirdparty/catch")
     add_library(Catch INTERFACE)
-    target_include_directories(Catch INTERFACE ${CATCH_INCLUDE_DIR})
+    target_include_directories(Catch INTERFACE "thirdparty/catch")
+    # Prepare "JSON" library for other executables
+    add_library(JSON INTERFACE)
+    target_include_directories(JSON INTERFACE "thirdparty")
     # Add dependencies to target
     target_link_libraries(${UNITTEST_TARGET_NAME} Catch)
-    target_include_directories(${UNITTEST_TARGET_NAME} PRIVATE "../src" "thirdparty/json")
+    target_link_libraries(${UNITTEST_TARGET_NAME} JSON)
+    target_link_libraries(${UNITTEST_TARGET_NAME} inja)
 endif()
 
 ##

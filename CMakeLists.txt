@@ -58,7 +58,7 @@ if(HUNTER_ENABLED) # Use Hunter to manage dependencies
     target_link_libraries(inja INTERFACE nlohmann_json)
 else()
     target_include_directories(inja INTERFACE
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test/thirdparty/json>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test/thirdparty>
         $<INSTALL_INTERFACE:${INJA_HEADER_INSTALL_DIR}>
     )
 endif()
