@@ -247,7 +247,7 @@ public:
 		{Function::Lower, Regex{"lower\\(\\s*(.*?)\\s*\\)"}},
 		{Function::Range, Regex{"range\\(\\s*(.*?)\\s*\\)"}},
 		{Function::Length, Regex{"length\\(\\s*(.*?)\\s*\\)"}},
-		{Function::Round, Regex{"length\\(\\s*(.*?)\\s*,\\s*(.*?)\\s*\\)"}},
+		{Function::Round, Regex{"round\\(\\s*(.*?)\\s*,\\s*(.*?)\\s*\\)"}},
 	};
 
 	Parser() { }
@@ -430,12 +430,12 @@ public:
 			case Parser::Function::Round: {
 				const json number = eval_variable(match_function.str(1), data);
 				const json precision = eval_variable(match_function.str(2), data);
-				if (not number.is_number()) { throw std::runtime_error("Argument in length function is not a number."); }
-				if (not precision.is_number()) { throw std::runtime_error("Argument in length function is not a number."); }
+				if (not number.is_number()) { throw std::runtime_error("Argument in round function is not a number."); }
+				if (not precision.is_number()) { throw std::runtime_error("Argument in round function is not a number."); }
 				return std::round(number.get<double>() * std::pow(10.0, precision.get<int>())) / std::pow(10.0, precision.get<int>());
 			}
 		}
-		
+
 		std::string input_copy = input;
 		if (input_copy[0] != '/') { input_copy.insert(0, "/"); }
 		json::json_pointer ptr(input_copy);
@@ -581,13 +581,13 @@ public:
 		json data = load_json(filename_data);
 		return render_template(filename, data);
 	}
-	
+
 	void write(const std::string& filename, json data, const std::string& filename_out) {
-		
+
 	}
-	
+
 	void write(const std::string& filename, const std::string& filename_data, const std::string& filename_out) {
-		
+
 	}
 
 	std::string load_file(const std::string& filename) {

@@ -52,10 +52,17 @@ else() # Manage dependencies manually
     target_link_libraries(${UNITTEST_TARGET_NAME} inja)
 endif()
 
+# Copy test files to build directory
+add_custom_command(
+  TARGET ${UNITTEST_TARGET_NAME} POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+  ${CMAKE_SOURCE_DIR}/test/data
+  ${CMAKE_CURRENT_BINARY_DIR}/data)
+
 ##
 ## Add tests to make
 ##
 add_test(NAME "${UNITTEST_TARGET_NAME}_default"
-    COMMAND ${UNITTEST_TARGET_NAME}
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+  COMMAND ${UNITTEST_TARGET_NAME}
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )

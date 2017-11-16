@@ -216,6 +216,7 @@ TEST_CASE("Parse functions") {
 	data["name"] = "Peter";
 	data["city"] = "New York";
 	data["names"] = {"Jeff", "Seb", "Peter", "Tom"};
+	data["temperature"] = 25.6789;
 
 	SECTION("Upper") {
 		CHECK( env.eval_variable("upper(name)", data) == "PETER" );
@@ -237,5 +238,11 @@ TEST_CASE("Parse functions") {
 	SECTION("Length") {
 		CHECK( env.eval_variable("length(names)", data) == 4 );
 		CHECK_THROWS_WITH( env.eval_variable("length(5)", data), "Argument in length function is not a list." );
+	}
+
+	SECTION("Round") {
+		CHECK( env.eval_variable("round(4, 0)", data) == 4 );
+		CHECK( env.eval_variable("round(temperature, 2)", data) == 25.68 );
+		CHECK_THROWS_WITH( env.eval_variable("round(name, 2)", data), "Argument in round function is not a number." );
 	}
 }

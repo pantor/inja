@@ -54,6 +54,30 @@ TEST_CASE("Renderer") {
 		CHECK( env.render("{% if age != 28 %}Right{% else %}Wrong{% endif %}", data) == "Right" );
 		CHECK( env.render("{% if age >= 30 %}Right{% else %}Wrong{% endif %}", data) == "Wrong" );
 		CHECK( env.render("{% if age in [28, 29, 30] %}True{% endif %}", data) == "True" );
-		// CHECK( env.render(R"({% if name in ["Simon", "Tom"] %}Test1{% else if name in ["Peter"] %}Test2{% else %}Test3{% endif %})", data) == "Test2" );
+	}
+}
+
+TEST_CASE("Renderer other syntax") {
+	json data;
+	data["name"] = "Peter";
+	data["names"] = {"Jeff", "Seb"};
+
+	SECTION("Other expression syntax") {
+		inja::Environment env = inja::Environment();
+
+		CHECK( env.render("Hello {{ name }}!", data) == "Hello Peter!" );
+
+		env.setExpression("\\(&", "&\\)");
+
+		CHECK( env.render("Hello {{ name }}!", data) == "Hello {{ name }}!" );
+		CHECK( env.render("Hello (& name &)!", data) == "Hello Peter!" );
+	}
+
+	SECTION("Other comment syntax") {
+		inja::Environment env = inja::Environment();
+		env.setComment("\\(&", "&\\)");
+
+		CHECK( env.render("Hello {# Test #}", data) == "Hello {# Test #}" );
+		CHECK( env.render("Hello (& Test &)", data) == "Hello " );
 	}
 }
