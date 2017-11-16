@@ -75,6 +75,10 @@ Environment env = Environment("../path/templates/");
 // With global path where to save rendered files
 Environment env = Environment("../path/templates/", "../path/results/");
 
+// Choose between JSON pointer or dot notation to access elements
+env.setElementNotation(inja::ElementNotation::Pointer); // (default) e.g. time/start
+env.setElementNotation(inja::ElementNotation::Dot); // e.g. time.start
+
 // With other opening and closing strings (here the defaults, as regex)
 env.setVariables("\\{\\{", "\\}\\}"); // Variables {{ }}
 env.setComments("\\{#", "#\\}"); // Comments {# #}
@@ -162,6 +166,11 @@ render("I count {{ length(guests) }} guests.", data); // "I count 3 guests."
 // Round numbers to a given precision
 render({{ round(3.1415, 0) }}, data) // 3
 render({{ round(3.1415, 3) }}, data) // 3.142
+
+// Check if a value is odd, even or divisible by a number
+render({{ odd(42) }}, data) // false
+render({{ even(42) }}, data) // true
+render({{ divisibleBy(42, 7) }}, data) // true
 ```
 
 ### Comments

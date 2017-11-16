@@ -132,6 +132,7 @@ lorem ipsum
 TEST_CASE("Parse variables") {
 	inja::Environment env = inja::Environment();
 
+
 	json data;
 	data["name"] = "Peter";
 	data["city"] = "Washington D.C.";
@@ -149,16 +150,26 @@ TEST_CASE("Parse variables") {
 		CHECK( env.eval_variable("[5, 6, 8]", data) == std::vector<int>({5, 6, 8}) );
 	}
 
-	SECTION("Variables from JSON data") {
+	SECTION("Variables from JSON data, dot notation") {
+		env.setElementNotation(inja::ElementNotation::Dot);
+
 		CHECK( env.eval_variable("name", data) == "Peter" );
 		CHECK( env.eval_variable("age", data) == 29 );
+		CHECK( env.eval_variable("names.1", data) == "Seb" );
+		CHECK( env.eval_variable("brother.name", data) == "Chris" );
+		CHECK( env.eval_variable("brother.daughters.0", data) == "Maria" );
+
+		CHECK_THROWS_WITH( env.eval_variable("noelement", data), "JSON pointer found no element." );
+		CHECK_THROWS_WITH( env.eval_variable("&4s-", data), "JSON pointer found no element." );
+	}
+
+	SECTION("Variables from JSON data, pointer notation") {
+		env.setElementNotation(inja::ElementNotation::Pointer);
+
 		CHECK( env.eval_variable("names/1", data) == "Seb" );
 		CHECK( env.eval_variable("brother/name", data) == "Chris" );
 		CHECK( env.eval_variable("brother/daughters/0", data) == "Maria" );
 		CHECK( env.eval_variable("/age", data) == 29 );
-
-		CHECK_THROWS_WITH( env.eval_variable("noelement", data), "JSON pointer found no element." );
-		CHECK_THROWS_WITH( env.eval_variable("&4s-", data), "JSON pointer found no element." );
 	}
 }
 
@@ -244,5 +255,24 @@ TEST_CASE("Parse functions") {
 		CHECK( env.eval_variable("round(4, 0)", data) == 4 );
 		CHECK( env.eval_variable("round(temperature, 2)", data) == 25.68 );
 		CHECK_THROWS_WITH( env.eval_variable("round(name, 2)", data), "Argument in round function is not a number." );
+	}
+
+	SECTION("DivisibleBy") {
+		CHECK( env.eval_variable("divisibleBy(50, 5)", data) == true );
+		CHECK( env.eval_variable("divisibleBy(12, 3)", data) == true );
+		CHECK( env.eval_variable("divisibleBy(11, 3)", data) == false );
+		CHECK_THROWS_WITH( env.eval_variable("divisibleBy(name, 2)", data), "Argument in divisibleBy function is not a number." );
+	}
+
+	SECTION("Odd") {
+		CHECK( env.eval_variable("odd(11)", data) == true );
+		CHECK( env.eval_variable("odd(12)", data) == false );
+		CHECK_THROWS_WITH( env.eval_variable("odd(name)", data), "Argument in odd function is not a number." );
+	}
+
+	SECTION("Even") {
+		CHECK( env.eval_variable("even(11)", data) == false );
+		CHECK( env.eval_variable("even(12)", data) == true );
+		CHECK_THROWS_WITH( env.eval_variable("even(name)", data), "Argument in even function is not a number." );
 	}
 }

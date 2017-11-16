@@ -17,13 +17,34 @@ namespace inja {
 
 using json = nlohmann::json;
 
-
+/*!
+@brief returns the values of a std key-value-map
+*/
 template<typename S, typename T>
 inline std::vector<T> get_values(std::map<S, T> map) {
 	std::vector<T> result;
 	for (auto const element: map) { result.push_back(element.second); }
   return result;
 }
+
+
+/*!
+@brief dot notation to json pointer notiation
+*/
+inline std::string dot_to_json_pointer_notation(std::string dot) {
+	std::string result = dot;
+	while (result.find(".") != std::string::npos) {
+		result.replace(result.find("."), 1, "/");
+	}
+	result.insert(0, "/");
+	return result;
+}
+
+
+enum class ElementNotation {
+	Pointer,
+	Dot
+};
 
 
 class Regex: public std::regex {
@@ -239,7 +260,10 @@ public:
 		Lower,
 		Range,
 		Length,
-		Round
+		Round,
+		DivisibleBy,
+		Odd,
+		Even
 	};
 
 	const std::map<Function, Regex> regex_map_functions = {
@@ -248,6 +272,9 @@ public:
 		{Function::Range, Regex{"range\\(\\s*(.*?)\\s*\\)"}},
 		{Function::Length, Regex{"length\\(\\s*(.*?)\\s*\\)"}},
 		{Function::Round, Regex{"round\\(\\s*(.*?)\\s*,\\s*(.*?)\\s*\\)"}},
+		{Function::DivisibleBy, Regex{"divisibleBy\\(\\s*(.*?)\\s*,\\s*(.*?)\\s*\\)"}},
+		{Function::Odd, Regex{"odd\\(\\s*(.*?)\\s*\\)"}},
+		{Function::Even, Regex{"even\\(\\s*(.*?)\\s*\\)"}}
 	};
 
 	Parser() { }
@@ -367,6 +394,8 @@ public:
 class Environment {
 	const std::string global_path;
 
+	ElementNotation elementNotation = ElementNotation::Pointer;
+
 	Parser parser;
 
 public:
@@ -387,6 +416,10 @@ public:
 
 	void setComment(const std::string& open, const std::string& close) {
 		parser.regex_map_delimiters[Parser::Delimiter::Comment] = Regex{open + "\\s*(.+?)\\s*" + close};
+	}
+
+	void setElementNotation(const ElementNotation elementNotation_) {
+		elementNotation = elementNotation_;
 	}
 
 
@@ -434,10 +467,37 @@ public:
 				if (not precision.is_number()) { throw std::runtime_error("Argument in round function is not a number."); }
 				return std::round(number.get<double>() * std::pow(10.0, precision.get<int>())) / std::pow(10.0, precision.get<int>());
 			}
+			case Parser::Function::DivisibleBy: {
+				const json number = eval_variable(match_function.str(1), data);
+				const json divisor = eval_variable(match_function.str(2), data);
+				if (not number.is_number()) { throw std::runtime_error("Argument in divisibleBy function is not a number."); }
+				if (not divisor.is_number()) { throw std::runtime_error("Argument in divisibleBy function is not a number."); }
+				return (number.get<int>() % divisor.get<int>() == 0);
+			}
+			case Parser::Function::Odd: {
+				const json number = eval_variable(match_function.str(1), data);
+				if (not number.is_number()) { throw std::runtime_error("Argument in odd function is not a number."); }
+				return (number.get<int>() % 2 != 0);
+			}
+			case Parser::Function::Even: {
+				const json number = eval_variable(match_function.str(1), data);
+				if (not number.is_number()) { throw std::runtime_error("Argument in even function is not a number."); }
+				return (number.get<int>() % 2 == 0);
+			}
 		}
 
 		std::string input_copy = input;
-		if (input_copy[0] != '/') { input_copy.insert(0, "/"); }
+		switch (elementNotation) {
+			case ElementNotation::Pointer: {
+				if (input_copy[0] != '/') { input_copy.insert(0, "/"); }
+				break;
+			}
+			case ElementNotation::Dot: {
+				input_copy = dot_to_json_pointer_notation(input_copy);
+				break;
+			}
+		}
+
 		json::json_pointer ptr(input_copy);
 		json result = data[ptr];
 
