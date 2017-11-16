@@ -11,6 +11,7 @@
 #include <string>
 #include <locale>
 #include <regex>
+#include <type_traits>
 
 
 namespace inja {
@@ -424,8 +425,14 @@ public:
 
 
 
-	json eval_variable(const std::string& input, json data) {
-		return eval_variable(input, data, true);
+	template<typename T = json>
+	T eval_variable(const std::string& input, json data) {
+		const json var = eval_variable(input, data, true);
+
+		if (std::is_same<T, json>::value) {
+			return var;
+		}
+		return var.get<T>();
 	}
 
 	json eval_variable(const std::string& input, json data, bool throw_error) {
@@ -435,54 +442,43 @@ public:
 		Match match_function = match(input, get_values(parser.regex_map_functions));
 		switch ( static_cast<Parser::Function>(match_function.regex_number()) ) {
 			case Parser::Function::Upper: {
-				const json str = eval_variable(match_function.str(1), data);
-				if (not str.is_string()) { throw std::runtime_error("Argument in upper function is not a string."); }
-				std::string data = str.get<std::string>();
-				std::transform(data.begin(), data.end(), data.begin(), toupper);
-				return data;
+				std::string str = eval_variable<std::string>(match_function.str(1), data);
+				std::transform(str.begin(), str.end(), str.begin(), toupper);
+				return str;
 			}
 			case Parser::Function::Lower: {
-				const json str = eval_variable(match_function.str(1), data);
-				if (not str.is_string()) { throw std::runtime_error("Argument in lower function is not a string."); }
-				std::string data = str.get<std::string>();
-				std::transform(data.begin(), data.end(), data.begin(), tolower);
-				return data;
+				std::string str = eval_variable<std::string>(match_function.str(1), data);
+				std::transform(str.begin(), str.end(), str.begin(), tolower);
+				return str;
 			}
 			case Parser::Function::Range: {
-				const json number = eval_variable(match_function.str(1), data);
-				if (not number.is_number()) { throw std::runtime_error("Argument in range function is not a number."); }
-				std::vector<int> result(number.get<int>());
+				const int number = eval_variable<int>(match_function.str(1), data);
+				std::vector<int> result(number);
 				std::iota(std::begin(result), std::end(result), 0);
 				return result;
 			}
 			case Parser::Function::Length: {
 				const json list = eval_variable(match_function.str(1), data);
-				if (not list.is_array()) { throw std::runtime_error("Argument in length function is not a list."); }
+				if (not list.is_array()) { throw std::runtime_error("[inja.exception.type_error.302] type must be array"); }
 				return list.size();
 			}
 			case Parser::Function::Round: {
-				const json number = eval_variable(match_function.str(1), data);
-				const json precision = eval_variable(match_function.str(2), data);
-				if (not number.is_number()) { throw std::runtime_error("Argument in round function is not a number."); }
-				if (not precision.is_number()) { throw std::runtime_error("Argument in round function is not a number."); }
-				return std::round(number.get<double>() * std::pow(10.0, precision.get<int>())) / std::pow(10.0, precision.get<int>());
+				const double number = eval_variable<double>(match_function.str(1), data);
+				const int precision = eval_variable<int>(match_function.str(2), data);
+				return std::round(number * std::pow(10.0, precision)) / std::pow(10.0, precision);
 			}
 			case Parser::Function::DivisibleBy: {
-				const json number = eval_variable(match_function.str(1), data);
-				const json divisor = eval_variable(match_function.str(2), data);
-				if (not number.is_number()) { throw std::runtime_error("Argument in divisibleBy function is not a number."); }
-				if (not divisor.is_number()) { throw std::runtime_error("Argument in divisibleBy function is not a number."); }
-				return (number.get<int>() % divisor.get<int>() == 0);
+				const int number = eval_variable<int>(match_function.str(1), data);
+				const int divisor = eval_variable<int>(match_function.str(2), data);
+				return (number % divisor == 0);
 			}
 			case Parser::Function::Odd: {
-				const json number = eval_variable(match_function.str(1), data);
-				if (not number.is_number()) { throw std::runtime_error("Argument in odd function is not a number."); }
-				return (number.get<int>() % 2 != 0);
+				const int number = eval_variable<int>(match_function.str(1), data);
+				return (number % 2 != 0);
 			}
 			case Parser::Function::Even: {
-				const json number = eval_variable(match_function.str(1), data);
-				if (not number.is_number()) { throw std::runtime_error("Argument in even function is not a number."); }
-				return (number.get<int>() % 2 == 0);
+				const int number = eval_variable<int>(match_function.str(1), data);
+				return (number % 2 == 0);
 			}
 		}
 
@@ -643,11 +639,14 @@ public:
 	}
 
 	void write(const std::string& filename, json data, const std::string& filename_out) {
-
+		std::ofstream file(global_path + filename_out);
+		file << render_template_with_json_file(filename, data);
+		file.close();
 	}
 
 	void write(const std::string& filename, const std::string& filename_data, const std::string& filename_out) {
-
+		json data = load_json(filename_data);
+		write(filename, data, filename_out);
 	}
 
 	std::string load_file(const std::string& filename) {
@@ -664,6 +663,9 @@ public:
 	}
 };
 
+/*!
+@brief render with default settings
+*/
 inline std::string render(const std::string& input, json data) {
 	return Environment().render(input, data);
 }

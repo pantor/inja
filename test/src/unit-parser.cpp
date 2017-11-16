@@ -232,47 +232,47 @@ TEST_CASE("Parse functions") {
 	SECTION("Upper") {
 		CHECK( env.eval_variable("upper(name)", data) == "PETER" );
 		CHECK( env.eval_variable("upper(city)", data) == "NEW YORK" );
-		CHECK_THROWS_WITH( env.eval_variable("upper(5)", data), "Argument in upper function is not a string." );
+		CHECK_THROWS_WITH( env.eval_variable("upper(5)", data), "[json.exception.type_error.302] type must be string, but is number" );
 	}
 
 	SECTION("Lower") {
 		CHECK( env.eval_variable("lower(name)", data) == "peter" );
 		CHECK( env.eval_variable("lower(city)", data) == "new york" );
-		CHECK_THROWS_WITH( env.eval_variable("lower(5)", data), "Argument in lower function is not a string." );
+		CHECK_THROWS_WITH( env.eval_variable("lower(5.45)", data), "[json.exception.type_error.302] type must be string, but is number" );
 	}
 
 	SECTION("Range") {
 		CHECK( env.eval_variable("range(4)", data) == std::vector<int>({0, 1, 2, 3}) );
-		CHECK_THROWS_WITH( env.eval_variable("range(true)", data), "Argument in range function is not a number." );
+		CHECK_THROWS_WITH( env.eval_variable("range(name)", data), "[json.exception.type_error.302] type must be number, but is string" );
 	}
 
 	SECTION("Length") {
 		CHECK( env.eval_variable("length(names)", data) == 4 );
-		CHECK_THROWS_WITH( env.eval_variable("length(5)", data), "Argument in length function is not a list." );
+		CHECK_THROWS_WITH( env.eval_variable("length(5)", data), "[inja.exception.type_error.302] type must be array" );
 	}
 
 	SECTION("Round") {
 		CHECK( env.eval_variable("round(4, 0)", data) == 4 );
 		CHECK( env.eval_variable("round(temperature, 2)", data) == 25.68 );
-		CHECK_THROWS_WITH( env.eval_variable("round(name, 2)", data), "Argument in round function is not a number." );
+		CHECK_THROWS_WITH( env.eval_variable("round(name, 2)", data), "[json.exception.type_error.302] type must be number, but is string" );
 	}
 
 	SECTION("DivisibleBy") {
 		CHECK( env.eval_variable("divisibleBy(50, 5)", data) == true );
 		CHECK( env.eval_variable("divisibleBy(12, 3)", data) == true );
 		CHECK( env.eval_variable("divisibleBy(11, 3)", data) == false );
-		CHECK_THROWS_WITH( env.eval_variable("divisibleBy(name, 2)", data), "Argument in divisibleBy function is not a number." );
+		CHECK_THROWS_WITH( env.eval_variable("divisibleBy(name, 2)", data), "[json.exception.type_error.302] type must be number, but is string" );
 	}
 
 	SECTION("Odd") {
 		CHECK( env.eval_variable("odd(11)", data) == true );
 		CHECK( env.eval_variable("odd(12)", data) == false );
-		CHECK_THROWS_WITH( env.eval_variable("odd(name)", data), "Argument in odd function is not a number." );
+		CHECK_THROWS_WITH( env.eval_variable("odd(name)", data), "[json.exception.type_error.302] type must be number, but is string" );
 	}
 
 	SECTION("Even") {
 		CHECK( env.eval_variable("even(11)", data) == false );
 		CHECK( env.eval_variable("even(12)", data) == true );
-		CHECK_THROWS_WITH( env.eval_variable("even(name)", data), "Argument in even function is not a number." );
+		CHECK_THROWS_WITH( env.eval_variable("even(name)", data), "[json.exception.type_error.302] type must be number, but is string" );
 	}
 }
