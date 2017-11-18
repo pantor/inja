@@ -428,10 +428,7 @@ public:
 	template<typename T = json>
 	T eval_variable(const std::string& input, json data) {
 		const json var = eval_variable(input, data, true);
-
-		if (std::is_same<T, json>::value) {
-			return var;
-		}
+		if (std::is_same<T, json>::value) { return var; }
 		return var.get<T>();
 	}
 
@@ -458,8 +455,7 @@ public:
 				return result;
 			}
 			case Parser::Function::Length: {
-				const json list = eval_variable(match_function.str(1), data);
-				if (not list.is_array()) { throw std::runtime_error("[inja.exception.type_error.302] type must be array"); }
+				const std::vector<json> list = eval_variable<std::vector<json>>(match_function.str(1), data);
 				return list.size();
 			}
 			case Parser::Function::Round: {
@@ -578,7 +574,7 @@ public:
 						const std::string item_name = match_command.str(1);
 						const std::string list_name = match_command.str(2);
 
-						json list = eval_variable(list_name, data);
+						std::vector<json> list = eval_variable<std::vector<json>>(list_name, data);
 						for (int i = 0; i < list.size(); i++) {
 							json data_loop = data;
 							data_loop[item_name] = list[i];

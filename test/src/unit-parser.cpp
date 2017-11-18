@@ -248,7 +248,7 @@ TEST_CASE("Parse functions") {
 
 	SECTION("Length") {
 		CHECK( env.eval_variable("length(names)", data) == 4 );
-		CHECK_THROWS_WITH( env.eval_variable("length(5)", data), "[inja.exception.type_error.302] type must be array" );
+		CHECK_THROWS_WITH( env.eval_variable("length(5)", data), "[json.exception.type_error.302] type must be array, but is number" );
 	}
 
 	SECTION("Round") {
