@@ -20,7 +20,7 @@ TEST_CASE("Renderer") {
 
 	SECTION("Basic") {
 		CHECK( env.render("Hello World!", data) == "Hello World!" );
-		CHECK( env.render("", data, "../") == "" );
+		CHECK( env.render("", data) == "" );
 	}
 
 	SECTION("Variables") {
@@ -54,6 +54,63 @@ TEST_CASE("Renderer") {
 		CHECK( env.render("{% if age != 28 %}Right{% else %}Wrong{% endif %}", data) == "Right" );
 		CHECK( env.render("{% if age >= 30 %}Right{% else %}Wrong{% endif %}", data) == "Wrong" );
 		CHECK( env.render("{% if age in [28, 29, 30] %}True{% endif %}", data) == "True" );
+	}
+}
+
+TEST_CASE("Render functions") {
+	inja::Environment env = inja::Environment();
+
+	json data;
+	data["name"] = "Peter";
+	data["city"] = "New York";
+	data["names"] = {"Jeff", "Seb", "Peter", "Tom"};
+	data["temperature"] = 25.6789;
+
+	SECTION("Upper") {
+		CHECK( env.render("{{ upper(name) }}", data) == "PETER" );
+		CHECK( env.render("{{ upper(city) }}", data) == "NEW YORK" );
+		CHECK_THROWS_WITH( env.render("{{ upper(5) }}", data), "[json.exception.type_error.302] type must be string, but is number" );
+	}
+
+	SECTION("Lower") {
+		CHECK( env.render("{{ lower(name) }}", data) == "peter" );
+		CHECK( env.render("{{ lower(city) }}", data) == "new york" );
+		CHECK_THROWS_WITH( env.render("{{ lower(5.45) }}", data), "[json.exception.type_error.302] type must be string, but is number" );
+	}
+
+	SECTION("Range") {
+		// CHECK( env.render("range(4)", data) == std::vector<int>({0, 1, 2, 3}) );
+		CHECK_THROWS_WITH( env.render("{{ range(name) }}", data), "[json.exception.type_error.302] type must be number, but is string" );
+	}
+
+	SECTION("Length") {
+		CHECK( env.render("{{ length(names) }}", data) == "4" );
+		CHECK_THROWS_WITH( env.render("{{ length(5) }}", data), "[json.exception.type_error.302] type must be array, but is number" );
+	}
+
+	SECTION("Round") {
+		CHECK( env.render("{{ round(4, 0) }}", data) == "4.0" );
+		CHECK( env.render("{{ round(temperature, 2) }}", data) == "25.68" );
+		CHECK_THROWS_WITH( env.render("{{ round(name, 2) }}", data), "[json.exception.type_error.302] type must be number, but is string" );
+	}
+
+	SECTION("DivisibleBy") {
+		CHECK( env.render("{{ divisibleBy(50, 5) }}", data) == "true" );
+		CHECK( env.render("{{ divisibleBy(12, 3) }}", data) == "true" );
+		CHECK( env.render("{{ divisibleBy(11, 3) }}", data) == "false" );
+		CHECK_THROWS_WITH( env.render("{{ divisibleBy(name, 2) }}", data), "[json.exception.type_error.302] type must be number, but is string" );
+	}
+
+	SECTION("Odd") {
+		CHECK( env.render("{{ odd(11) }}", data) == "true" );
+		CHECK( env.render("{{ odd(12) }}", data) == "false" );
+		CHECK_THROWS_WITH( env.render("{{ odd(name) }}", data), "[json.exception.type_error.302] type must be number, but is string" );
+	}
+
+	SECTION("Even") {
+		CHECK( env.render("{{ even(11) }}", data) == "false" );
+		CHECK( env.render("{{ even(12) }}", data) == "true" );
+		CHECK_THROWS_WITH( env.render("{{ even(name) }}", data), "[json.exception.type_error.302] type must be number, but is string" );
 	}
 }
 

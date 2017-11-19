@@ -12,7 +12,7 @@ TEST_CASE("Files handling") {
 	data["name"] = "Jeff";
 
 	SECTION("Files should be loaded") {
-		CHECK( env.load_file("data/simple.txt") == "Hello {{ name }}." );
+		CHECK( env.load_global_file("data/simple.txt") == "Hello {{ name }}." );
 	}
 
 	SECTION("Files should be rendered") {
@@ -29,7 +29,7 @@ TEST_CASE("Complete files") {
 
 	for (std::string test_name : {"simple-file", "nested", "nested-line"}) {
 		SECTION(test_name) {
-			CHECK( env.render_template_with_json_file(test_name + "/template.txt", test_name + "/data.json") == env.load_file(test_name + "/result.txt") );
+			CHECK( env.render_template_with_json_file(test_name + "/template.txt", test_name + "/data.json") == env.load_global_file(test_name + "/result.txt") );
 		}
 	}
 }
