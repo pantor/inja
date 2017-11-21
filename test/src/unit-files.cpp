@@ -6,7 +6,7 @@
 using json = nlohmann::json;
 
 
-TEST_CASE("Files handling") {
+TEST_CASE("loading") {
 	inja::Environment env = inja::Environment();
 	json data;
 	data["name"] = "Jeff";
@@ -24,7 +24,7 @@ TEST_CASE("Files handling") {
 	}
 }
 
-TEST_CASE("Complete files") {
+TEST_CASE("complete-files") {
 	inja::Environment env = inja::Environment("data/");
 
 	for (std::string test_name : {"simple-file", "nested", "nested-line"}) {

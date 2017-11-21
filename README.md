@@ -57,13 +57,17 @@ Environment env = Environment();
 std::string result = env.render("Hello {{ name }}!", data);
 
 // Or directly read a template file
-result = env.render_template("./template.txt", data);
+Template temp = env.parse_template("./template.txt");
+std::string result = temp.render(data); // "Hello World!"
 
-// And read a json file for data
+data["name"] = "Inja";
+std::string result = temp.render(data); // "Hello Inja!"
+
+// Or read a json file for data directly from the environment
 result = env.render_template("./template.txt", "./data.json");
 
 // Or write a rendered template file
-env.write("./template.txt", data, "./result.txt")
+temp.write(data, "./result.txt")
 env.write("./template.txt", "./data.json", "./result.txt")
 ```
 

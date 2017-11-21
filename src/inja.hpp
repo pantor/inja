@@ -42,12 +42,17 @@ inline std::string dot_to_json_pointer_notation(std::string dot) {
 }
 
 
+
 enum class ElementNotation {
 	Pointer,
 	Dot
 };
 
 
+
+/*!
+@brief inja regex class, saves string pattern in addition to std::regex
+*/
 class Regex: public std::regex {
 	std::string pattern_;
 
@@ -57,6 +62,7 @@ public:
 
 	std::string pattern() { return pattern_; }
 };
+
 
 
 class Match: public std::smatch {
@@ -82,6 +88,7 @@ public:
 	Regex regex() const { return regex_; }
 	unsigned int regex_number() const { return regex_number_; }
 };
+
 
 
 class MatchClosed {
@@ -186,12 +193,13 @@ inline Match match(const std::string& input, std::vector<Regex> regexes) {
 
 struct Parsed {
 	enum class Type {
+		Main,
 		String,
+		Comment,
+		Expression,
 		Loop,
 		Condition,
-		ConditionBranch,
-		Comment,
-		Expression
+		ConditionBranch
 	};
 
 	enum class Delimiter {
@@ -207,7 +215,7 @@ struct Parsed {
 		Include
 	};
 
-	enum class ConditionOperators {
+	enum class Function {
 		Not,
 		And,
 		Or,
@@ -217,10 +225,7 @@ struct Parsed {
 		Less,
 		GreaterEqual,
 		LessEqual,
-		Different
-	};
-
-	enum class Function {
+		Different,
 		Upper,
 		Lower,
 		Range,
@@ -228,7 +233,56 @@ struct Parsed {
 		Round,
 		DivisibleBy,
 		Odd,
-		Even
+		Even,
+		ReadJson
+	};
+
+	struct Element {
+		Parsed::Type type;
+		std::string inner;
+		std::vector<std::shared_ptr<Element>> children;
+
+		explicit Element(Parsed::Type type): Element(type, "") { }
+		explicit Element(Parsed::Type type, std::string inner): type(type), inner(inner), children({}) { }
+	};
+
+	struct ElementString: public Element {
+		std::string text;
+
+		explicit ElementString(std::string text): Element(Parsed::Type::String), text(text) { }
+	};
+
+	struct ElementComment: public Element {
+		std::string text;
+
+		explicit ElementComment(std::string text): Element(Parsed::Type::Comment), text(text) { }
+	};
+
+	struct ElementExpression: public Element {
+		Function function;
+		std::vector<ElementExpression> args;
+		std::string command;
+
+		explicit ElementExpression(): ElementExpression(Parsed::Function::ReadJson) { }
+		explicit ElementExpression(Parsed::Function function): Element(Parsed::Type::Expression), function(function), args({}), command("") { }
+	};
+
+	struct ElementLoop: public Element {
+		std::string item;
+		ElementExpression list;
+
+		explicit ElementLoop(std::string item, ElementExpression list, std::string inner): Element(Parsed::Type::Loop, inner), item(item), list(list) { }
+	};
+
+	struct ElementConditionContainer: public Element {
+		explicit ElementConditionContainer(): Element(Parsed::Type::Condition) { }
+	};
+
+	struct ElementConditionBranch: public Element {
+		std::string condition_type;
+		ElementExpression condition;
+
+		explicit ElementConditionBranch(std::string inner, std::string condition_type, ElementExpression condition): Element(Parsed::Type::ConditionBranch, inner), condition_type(condition_type), condition(condition) { }
 	};
 };
 
@@ -236,143 +290,136 @@ struct Parsed {
 
 class Template {
 public:
-	const json parsed_template;
+	const Parsed::Element parsed_template;
 	ElementNotation elementNotation;
 
-	explicit Template(const json parsed_template): parsed_template(parsed_template) { }
-	explicit Template(const json parsed_template, ElementNotation elementNotation): parsed_template(parsed_template), elementNotation(elementNotation) { }
+	explicit Template(const Parsed::Element parsed_template): Template(parsed_template, ElementNotation::Pointer) { }
+	explicit Template(const Parsed::Element parsed_template, ElementNotation elementNotation): parsed_template(parsed_template), elementNotation(elementNotation) { }
 
 	template<typename T = json>
-	T eval_variable(json element, json data) {
+	T eval_variable(Parsed::ElementExpression element, json data) {
 		const json var = eval_variable(element, data, true);
 		if (std::is_same<T, json>::value) { return var; }
 		return var.get<T>();
 	}
 
-	json eval_variable(json element, json data, bool throw_error) {
-		if (element.find("function") != element.end()) {
-			switch ( static_cast<Parsed::Function>(element["function"]) ) {
-				case Parsed::Function::Upper: {
-					std::string str = eval_variable<std::string>(element["arg1"], data);
-					std::transform(str.begin(), str.end(), str.begin(), toupper);
-					return str;
+	json eval_variable(Parsed::ElementExpression element, json data, bool throw_error) {
+		switch (element.function) {
+			case Parsed::Function::Upper: {
+				std::string str = eval_variable<std::string>(element.args[0], data);
+				std::transform(str.begin(), str.end(), str.begin(), toupper);
+				return str;
+			}
+			case Parsed::Function::Lower: {
+				std::string str = eval_variable<std::string>(element.args[0], data);
+				std::transform(str.begin(), str.end(), str.begin(), tolower);
+				return str;
+			}
+			case Parsed::Function::Range: {
+				const int number = eval_variable<int>(element.args[0], data);
+				std::vector<int> result(number);
+				std::iota(std::begin(result), std::end(result), 0);
+				return result;
+			}
+			case Parsed::Function::Length: {
+				const std::vector<json> list = eval_variable<std::vector<json>>(element.args[0], data);
+				return list.size();
+			}
+			case Parsed::Function::Round: {
+				const double number = eval_variable<double>(element.args[0], data);
+				const int precision = eval_variable<int>(element.args[1], data);
+				return std::round(number * std::pow(10.0, precision)) / std::pow(10.0, precision);
+			}
+			case Parsed::Function::DivisibleBy: {
+				const int number = eval_variable<int>(element.args[0], data);
+				const int divisor = eval_variable<int>(element.args[1], data);
+				return (number % divisor == 0);
+			}
+			case Parsed::Function::Odd: {
+				const int number = eval_variable<int>(element.args[0], data);
+				return (number % 2 != 0);
+			}
+			case Parsed::Function::Even: {
+				const int number = eval_variable<int>(element.args[0], data);
+				return (number % 2 == 0);
+			}
+			case Parsed::Function::Not: {
+				return not eval_condition(element.args[0], data);
+			}
+			case Parsed::Function::And: {
+				return (eval_condition(element.args[0], data) and eval_condition(element.args[1], data));
+			}
+			case Parsed::Function::Or: {
+				return (eval_condition(element.args[0], data) or eval_condition(element.args[1], data));
+			}
+			case Parsed::Function::In: {
+				const json item = eval_variable(element.args[0], data);
+				const json list = eval_variable(element.args[1], data);
+				return (std::find(list.begin(), list.end(), item) != list.end());
+			}
+			case Parsed::Function::Equal: {
+				return eval_variable(element.args[0], data) == eval_variable(element.args[1], data);
+			}
+			case Parsed::Function::Greater: {
+				return eval_variable(element.args[0], data) > eval_variable(element.args[1], data);
+			}
+			case Parsed::Function::Less: {
+				return eval_variable(element.args[0], data) < eval_variable(element.args[1], data);
+			}
+			case Parsed::Function::GreaterEqual: {
+				return eval_variable(element.args[0], data) >= eval_variable(element.args[1], data);
+			}
+			case Parsed::Function::LessEqual: {
+				return eval_variable(element.args[0], data) <= eval_variable(element.args[1], data);
+			}
+			case Parsed::Function::Different: {
+				return eval_variable(element.args[0], data) != eval_variable(element.args[1], data);
+			}
+			case Parsed::Function::ReadJson: {
+				// Json Raw Data
+				if ( json::accept(element.command) ) { return json::parse(element.command); }
+
+				std::string input = element.command;
+				switch (elementNotation) {
+					case ElementNotation::Pointer: {
+						if (input[0] != '/') { input.insert(0, "/"); }
+						break;
+					}
+					case ElementNotation::Dot: {
+						input = dot_to_json_pointer_notation(input);
+						break;
+					}
 				}
-				case Parsed::Function::Lower: {
-					std::string str = eval_variable<std::string>(element["arg1"], data);
-					std::transform(str.begin(), str.end(), str.begin(), tolower);
-					return str;
-				}
-				case Parsed::Function::Range: {
-					const int number = eval_variable<int>(element["arg1"], data);
-					std::vector<int> result(number);
-					std::iota(std::begin(result), std::end(result), 0);
-					return result;
-				}
-				case Parsed::Function::Length: {
-					const std::vector<json> list = eval_variable<std::vector<json>>(element["arg1"], data);
-					return list.size();
-				}
-				case Parsed::Function::Round: {
-					const double number = eval_variable<double>(element["arg1"], data);
-					const int precision = eval_variable<int>(element["arg2"], data);
-					return std::round(number * std::pow(10.0, precision)) / std::pow(10.0, precision);
-				}
-				case Parsed::Function::DivisibleBy: {
-					const int number = eval_variable<int>(element["arg1"], data);
-					const int divisor = eval_variable<int>(element["arg2"], data);
-					return (number % divisor == 0);
-				}
-				case Parsed::Function::Odd: {
-					const int number = eval_variable<int>(element["arg1"], data);
-					return (number % 2 != 0);
-				}
-				case Parsed::Function::Even: {
-					const int number = eval_variable<int>(element["arg1"], data);
-					return (number % 2 == 0);
-				}
+
+				const json::json_pointer ptr(input);
+				const json result = data[ptr];
+
+				if (throw_error && result.is_null()) { throw std::runtime_error("Did not found json element: " + element.command); }
+				return result;
 			}
 		}
-
-		const std::string input = element["command"];
-
-		// Json Raw Data
-		if ( json::accept(input) ) { return json::parse(input); }
-
-		std::string input_copy = input;
-		switch (elementNotation) {
-			case ElementNotation::Pointer: {
-				if (input_copy[0] != '/') { input_copy.insert(0, "/"); }
-				break;
-			}
-			case ElementNotation::Dot: {
-				input_copy = dot_to_json_pointer_notation(input_copy);
-				break;
-			}
-		}
-
-		json::json_pointer ptr(input_copy);
-		json result = data[ptr];
-
-		if (throw_error && result.is_null()) { throw std::runtime_error("JSON pointer found no element."); }
-		return result;
 	}
 
-	bool eval_condition(json element, json data) {
-		if (element.find("condition") != element.end()) {
-			switch ( static_cast<Parsed::ConditionOperators>(element["condition"]) ) {
-				case Parsed::ConditionOperators::Not: {
-					return not eval_condition(element["arg1"], data);
-				}
-				case Parsed::ConditionOperators::And: {
-					return (eval_condition(element["arg1"], data) and eval_condition(element["arg2"], data));
-				}
-				case Parsed::ConditionOperators::Or: {
-					return (eval_condition(element["arg1"], data) or eval_condition(element["arg2"], data));
-				}
-				case Parsed::ConditionOperators::In: {
-					const json item = eval_variable(element["arg1"], data);
-					const json list = eval_variable(element["arg2"], data);
-					return (std::find(list.begin(), list.end(), item) != list.end());
-				}
-				case Parsed::ConditionOperators::Equal: {
-					return eval_variable(element["arg1"], data) == eval_variable(element["arg2"], data);
-				}
-				case Parsed::ConditionOperators::Greater: {
-					return eval_variable(element["arg1"], data) > eval_variable(element["arg2"], data);
-				}
-				case Parsed::ConditionOperators::Less: {
-					return eval_variable(element["arg1"], data) < eval_variable(element["arg2"], data);
-				}
-				case Parsed::ConditionOperators::GreaterEqual: {
-					return eval_variable(element["arg1"], data) >= eval_variable(element["arg2"], data);
-				}
-				case Parsed::ConditionOperators::LessEqual: {
-					return eval_variable(element["arg1"], data) <= eval_variable(element["arg2"], data);
-				}
-				case Parsed::ConditionOperators::Different: {
-					return eval_variable(element["arg1"], data) != eval_variable(element["arg2"], data);
-				}
-			}
-		}
-
+	bool eval_condition(Parsed::ElementExpression element, json data) {
 		const json var = eval_variable(element, data, false);
 		if (var.empty()) { return false; }
-		else if (var.is_boolean()) { return var; }
 		else if (var.is_number()) { return (var != 0); }
 		else if (var.is_string()) { return not var.empty(); }
-		return true;
+		return var;
 	}
 
 	std::string render(json data) {
 		std::string result = "";
-		for (auto element: parsed_template) {
-			switch ( static_cast<Parsed::Type>(element["type"]) ) {
+		for (auto element: parsed_template.children) {
+			switch (element->type) {
     		case Parsed::Type::String: {
-					result += element["text"].get<std::string>();
+					auto elementString = std::static_pointer_cast<Parsed::ElementString>(element);
+					result += elementString->text;
           break;
 				}
     		case Parsed::Type::Expression: {
-					json variable = eval_variable(element, data);
+					auto elementExpression = std::static_pointer_cast<Parsed::ElementExpression>(element);
+					json variable = eval_variable(*elementExpression, data);
 					if (variable.is_string()) {
 						result += variable.get<std::string>();
 					} else {
@@ -383,9 +430,10 @@ public:
           break;
 				}
 				case Parsed::Type::Loop: {
-					const std::string item_name = element["item"].get<std::string>();
+					auto elementLoop = std::static_pointer_cast<Parsed::ElementLoop>(element);
+					const std::string item_name = elementLoop->item;
 
-					std::vector<json> list = eval_variable<std::vector<json>>(element["list"], data);
+					const std::vector<json> list = eval_variable<std::vector<json>>(elementLoop->list, data);
 					for (int i = 0; i < list.size(); i++) {
 						json data_loop = data;
 						data_loop[item_name] = list[i];
@@ -393,14 +441,16 @@ public:
 						data_loop["index1"] = i + 1;
 						data_loop["is_first"] = (i == 0);
 						data_loop["is_last"] = (i == list.size() - 1);
-						result += Template(element["children"], elementNotation).render(data_loop);
+						result += Template(*elementLoop, elementNotation).render(data_loop);
 					}
 					break;
 				}
 				case Parsed::Type::Condition: {
-					for (auto branch: element["children"]) {
-						if (eval_condition(branch["condition"], data) || branch["condition_type"] == "else") {
-							result += Template(branch["children"], elementNotation).render(data);
+					auto elementCondition = std::static_pointer_cast<Parsed::ElementConditionContainer>(element);
+					for (auto branch: elementCondition->children) {
+						auto elementBranch = std::static_pointer_cast<Parsed::ElementConditionBranch>(branch);
+						if (eval_condition(elementBranch->condition, data) || elementBranch->condition_type == "else") {
+							result += Template(*elementBranch, elementNotation).render(data);
 							break;
 						}
 					}
@@ -439,20 +489,18 @@ public:
 	const Regex regex_condition_else{"else"};
 	const Regex regex_condition_close{"endif"};
 
-	const std::map<Parsed::ConditionOperators, Regex> regex_map_condition_operators = {
-		{Parsed::ConditionOperators::Not, Regex{"not (.+)"}},
-		{Parsed::ConditionOperators::And, Regex{"(.+) and (.+)"}},
-		{Parsed::ConditionOperators::Or, Regex{"(.+) or (.+)"}},
-		{Parsed::ConditionOperators::In, Regex{"(.+) in (.+)"}},
-		{Parsed::ConditionOperators::Equal, Regex{"(.+) == (.+)"}},
-		{Parsed::ConditionOperators::Greater, Regex{"(.+) > (.+)"}},
-		{Parsed::ConditionOperators::Less, Regex{"(.+) < (.+)"}},
-		{Parsed::ConditionOperators::GreaterEqual, Regex{"(.+) >= (.+)"}},
-		{Parsed::ConditionOperators::LessEqual, Regex{"(.+) <= (.+)"}},
-		{Parsed::ConditionOperators::Different, Regex{"(.+) != (.+)"}}
-	};
 
 	const std::map<Parsed::Function, Regex> regex_map_functions = {
+		{Parsed::Function::Not, Regex{"not (.+)"}},
+		{Parsed::Function::And, Regex{"(.+) and (.+)"}},
+		{Parsed::Function::Or, Regex{"(.+) or (.+)"}},
+		{Parsed::Function::In, Regex{"(.+) in (.+)"}},
+		{Parsed::Function::Equal, Regex{"(.+) == (.+)"}},
+		{Parsed::Function::Greater, Regex{"(.+) > (.+)"}},
+		{Parsed::Function::Less, Regex{"(.+) < (.+)"}},
+		{Parsed::Function::GreaterEqual, Regex{"(.+) >= (.+)"}},
+		{Parsed::Function::LessEqual, Regex{"(.+) <= (.+)"}},
+		{Parsed::Function::Different, Regex{"(.+) != (.+)"}},
 		{Parsed::Function::Upper, Regex{"upper\\(\\s*(.*?)\\s*\\)"}},
 		{Parsed::Function::Lower, Regex{"lower\\(\\s*(.*?)\\s*\\)"}},
 		{Parsed::Function::Range, Regex{"range\\(\\s*(.*?)\\s*\\)"}},
@@ -460,33 +508,24 @@ public:
 		{Parsed::Function::Round, Regex{"round\\(\\s*(.*?)\\s*,\\s*(.*?)\\s*\\)"}},
 		{Parsed::Function::DivisibleBy, Regex{"divisibleBy\\(\\s*(.*?)\\s*,\\s*(.*?)\\s*\\)"}},
 		{Parsed::Function::Odd, Regex{"odd\\(\\s*(.*?)\\s*\\)"}},
-		{Parsed::Function::Even, Regex{"even\\(\\s*(.*?)\\s*\\)"}}
+		{Parsed::Function::Even, Regex{"even\\(\\s*(.*?)\\s*\\)"}},
+		{Parsed::Function::ReadJson, Regex{"\\s*(.*?)\\s*"}}
 	};
 
 	Parser() { }
 
-	json element(Parsed::Type type, json element_data) {
-		element_data["type"] = type;
-		return element_data;
-	}
-
-	json element_function(Parsed::Function func, int number_args, Match match) {
-		json result = element(Parsed::Type::Expression, {{"function", func}});
-		for (int i = 1; i < number_args + 1; i++) {
-			result["arg" + std::to_string(i)] = parse_expression(match.str(i));
+	Parsed::ElementExpression element_function(Parsed::Function func, int number_args, Match match) {
+		std::vector<Parsed::ElementExpression> args = {};
+		for (int i = 0; i < number_args; i++) {
+			args.push_back( parse_expression(match.str(i + 1)) );
 		}
+
+		Parsed::ElementExpression result = Parsed::ElementExpression(func);
+		result.args = args;
 		return result;
 	}
 
-	json element_condition(Parsed::ConditionOperators op, int number_args, Match match) {
-		json result = element(Parsed::Type::Expression, {{"condition", op}});
-		for (int i = 1; i < number_args + 1; i++) {
-			result["arg" + std::to_string(i)] = parse_expression(match.str(i));
-		}
-		return result;
-	}
-
-	json parse_expression(const std::string& input) {
+	Parsed::ElementExpression parse_expression(const std::string& input) {
 		Match match_function = match(input, get_values(regex_map_functions));
 		switch ( static_cast<Parsed::Function>(match_function.regex_number()) ) {
 			case Parsed::Function::Upper: {
@@ -513,52 +552,46 @@ public:
 			case Parsed::Function::Even: {
 				return element_function(Parsed::Function::Even, 1, match_function);
 			}
-		}
-
-		return element(Parsed::Type::Expression, {{"command", input}});
-	}
-
-	json parse_condition(const std::string& input) {
-		Match match_condition = match(input, get_values(regex_map_condition_operators));
-
-		switch ( static_cast<Parsed::ConditionOperators>(match_condition.regex_number()) ) {
-			case Parsed::ConditionOperators::Not: {
-				return element_condition(Parsed::ConditionOperators::Not, 1, match_condition);
+			case Parsed::Function::Not: {
+				return element_function(Parsed::Function::Not, 1, match_function);
 			}
-			case Parsed::ConditionOperators::And: {
-				return element_condition(Parsed::ConditionOperators::And, 2, match_condition);
+			case Parsed::Function::And: {
+				return element_function(Parsed::Function::And, 2, match_function);
 			}
-			case Parsed::ConditionOperators::Or: {
-				return element_condition(Parsed::ConditionOperators::Or, 2, match_condition);
+			case Parsed::Function::Or: {
+				return element_function(Parsed::Function::Or, 2, match_function);
 			}
-			case Parsed::ConditionOperators::In: {
-				return element_condition(Parsed::ConditionOperators::In, 2, match_condition);
+			case Parsed::Function::In: {
+				return element_function(Parsed::Function::In, 2, match_function);
 			}
-			case Parsed::ConditionOperators::Equal: {
-				return element_condition(Parsed::ConditionOperators::Equal, 2, match_condition);
+			case Parsed::Function::Equal: {
+				return element_function(Parsed::Function::Equal, 2, match_function);
 			}
-			case Parsed::ConditionOperators::Greater: {
-				return element_condition(Parsed::ConditionOperators::Greater, 2, match_condition);
+			case Parsed::Function::Greater: {
+				return element_function(Parsed::Function::Greater, 2, match_function);
 			}
-			case Parsed::ConditionOperators::Less: {
-				return element_condition(Parsed::ConditionOperators::Less, 2, match_condition);
+			case Parsed::Function::Less: {
+				return element_function(Parsed::Function::Less, 2, match_function);
 			}
-			case Parsed::ConditionOperators::GreaterEqual: {
-				return element_condition(Parsed::ConditionOperators::GreaterEqual, 2, match_condition);
+			case Parsed::Function::GreaterEqual: {
+				return element_function(Parsed::Function::GreaterEqual, 2, match_function);
 			}
-			case Parsed::ConditionOperators::LessEqual: {
-				return element_condition(Parsed::ConditionOperators::LessEqual, 2, match_condition);
+			case Parsed::Function::LessEqual: {
+				return element_function(Parsed::Function::LessEqual, 2, match_function);
 			}
-			case Parsed::ConditionOperators::Different: {
-				return element_condition(Parsed::ConditionOperators::Different, 2, match_condition);
+			case Parsed::Function::Different: {
+				return element_function(Parsed::Function::Different, 2, match_function);
+			}
+			case Parsed::Function::ReadJson: {
+				Parsed::ElementExpression result = Parsed::ElementExpression(Parsed::Function::ReadJson);
+				result.command = input;
+				return result;
 			}
 		}
-
-		return element(Parsed::Type::Expression, {{"command", input}});
 	}
 
-	json parse_level(const std::string& input, const std::string& path) {
-		json result;
+	std::vector<std::shared_ptr<Parsed::Element>> parse_level(const std::string& input, const std::string& path) {
+		std::vector<std::shared_ptr<Parsed::Element>> result;
 
 		std::vector<Regex> regex_delimiters = get_values(regex_map_delimiters);
 
@@ -568,7 +601,7 @@ public:
 			current_position = match_delimiter.end_position();
 			std::string string_prefix = match_delimiter.prefix();
 			if (not string_prefix.empty()) {
-				result += element(Parsed::Type::String, {{"text", string_prefix}});
+				result.emplace_back( std::make_shared<Parsed::ElementString>(string_prefix) );
 			}
 
 			std::string delimiter_inner = match_delimiter.str(1);
@@ -590,27 +623,24 @@ public:
 								const std::string item_name = match_command.str(1);
 								const std::string list_name = match_command.str(2);
 
-								result += element(Parsed::Type::Loop, {{"item", item_name}, {"list", parse_expression(list_name)}, {"inner", loop_match.inner()}});
+								result.emplace_back( std::make_shared<Parsed::ElementLoop>(item_name, parse_expression(list_name), loop_match.inner()));
 							} else {
 								throw std::runtime_error("Parser error: Unknown loop command.");
 							}
-
 							break;
 						}
 						case Parsed::Statement::Condition: {
-							json condition_result = element(Parsed::Type::Condition, {{"children", json::array()}});
+							auto condition_container = std::make_shared<Parsed::ElementConditionContainer>();
 
 							const Regex regex_condition{"(if|else if|else) ?(.*)"};
-
 							Match condition_match = match_delimiter;
-
 							MatchClosed else_if_match = search_closed_on_level(input, match_delimiter.regex(), regex_condition_open, regex_condition_close, regex_condition_else_if, condition_match);
 							while (else_if_match.found()) {
 								condition_match = else_if_match.close_match;
 
 								Match match_command;
 								if (std::regex_match(else_if_match.open_match.str(1), match_command, regex_condition)) {
-									condition_result["children"] += element(Parsed::Type::ConditionBranch, {{"inner", else_if_match.inner()}, {"condition_type", match_command.str(1)}, {"condition", parse_condition(match_command.str(2))}});
+									condition_container->children.push_back( std::make_shared<Parsed::ElementConditionBranch>(else_if_match.inner(), match_command.str(1), parse_expression(match_command.str(2))) );
 								}
 
 								else_if_match = search_closed_on_level(input, match_delimiter.regex(), regex_condition_open, regex_condition_close, regex_condition_else_if, condition_match);
@@ -622,7 +652,7 @@ public:
 
 								Match match_command;
 								if (std::regex_match(else_match.open_match.str(1), match_command, regex_condition)) {
-									condition_result["children"] += element(Parsed::Type::ConditionBranch, {{"inner", else_match.inner()}, {"condition_type", match_command.str(1)}, {"condition", parse_condition(match_command.str(2))}});
+									condition_container->children.push_back( std::make_shared<Parsed::ElementConditionBranch>(else_match.inner(), match_command.str(1), parse_expression(match_command.str(2))) );
 								}
 							}
 
@@ -630,18 +660,18 @@ public:
 
 							Match match_command;
 							if (std::regex_match(last_if_match.open_match.str(1), match_command, regex_condition)) {
-								condition_result["children"] += element(Parsed::Type::ConditionBranch, {{"inner", last_if_match.inner()}, {"condition_type", match_command.str(1)}, {"condition", parse_condition(match_command.str(2))}});
+								condition_container->children.push_back( std::make_shared<Parsed::ElementConditionBranch>(last_if_match.inner(), match_command.str(1), parse_expression(match_command.str(2))) );
 							}
 
 							current_position = last_if_match.end_position();
-							result += condition_result;
+							result.emplace_back(condition_container);
 							break;
 						}
 						case Parsed::Statement::Include: {
 							std::string included_filename = path + match_statement.str(1);
 							Template included_template = parse_template(included_filename);
-							for (json element : included_template.parsed_template) {
-								result += element;
+							for (auto element : included_template.parsed_template.children) {
+								result.emplace_back(element);
 							}
 							break;
 						}
@@ -651,11 +681,11 @@ public:
 					break;
 				}
 				case Parsed::Delimiter::Expression: {
-					result += parse_expression(delimiter_inner);
+					result.emplace_back( std::make_shared<Parsed::ElementExpression>(parse_expression(delimiter_inner)) );
 					break;
 				}
 				case Parsed::Delimiter::Comment: {
-					result += element(Parsed::Type::Comment, {{"text", delimiter_inner}});
+					result.emplace_back( std::make_shared<Parsed::ElementComment>(delimiter_inner) );
 					break;
 				}
 				default: { throw std::runtime_error("Parser error: Unknown delimiter."); }
@@ -664,19 +694,20 @@ public:
 			match_delimiter = search(input, regex_delimiters, current_position);
 		}
 		if (current_position < input.length()) {
-			result += element(Parsed::Type::String, {{"text", input.substr(current_position)}});
+			result.emplace_back( std::make_shared<Parsed::ElementString>(input.substr(current_position)) );
 		}
 
 		return result;
 	}
 
-	json parse_tree(json current_element, const std::string& path) {
-		if (current_element.find("inner") != current_element.end()) {
-			current_element["children"] = parse_level(current_element["inner"], path);
-			current_element.erase("inner");
+	std::shared_ptr<Parsed::Element> parse_tree(std::shared_ptr<Parsed::Element> current_element, const std::string& path) {
+		if (not current_element->inner.empty()) {
+			current_element->children = parse_level(current_element->inner, path);
+			current_element->inner.clear();
 		}
-		if (current_element.find("children") != current_element.end()) {
-			for (auto& child: current_element["children"]) {
+
+		if (not current_element->children.empty()) {
+			for (auto& child: current_element->children) {
 				child = parse_tree(child, path);
 			}
 		}
@@ -684,15 +715,15 @@ public:
 	}
 
 	Template parse(const std::string& input) {
-		json parsed = parse_tree({{"inner", input}}, "./")["children"];
-		return Template(parsed);
+		auto parsed = parse_tree(std::make_shared<Parsed::Element>(Parsed::Element(Parsed::Type::String, input)), "./");
+		return Template(*parsed);
 	}
 
 	Template parse_template(const std::string& filename) {
-		std::string text = load_file(filename);
+		std::string input = load_file(filename);
 		std::string path = filename.substr(0, filename.find_last_of("/\\") + 1);
-		json parsed = parse_tree({{"inner", text}}, path)["children"];
-		return Template(parsed);
+		auto parsed = parse_tree(std::make_shared<Parsed::Element>(Parsed::Element(Parsed::Type::String, input)), path);
+		return Template(*parsed);
 	}
 
 	std::string load_file(const std::string& filename) {
@@ -704,12 +735,15 @@ public:
 
 
 
+/*!
+@brief Environment class
+*/
 class Environment {
 	const std::string global_path;
 
 	ElementNotation elementNotation = ElementNotation::Pointer;
 
-	Parser parser;
+	Parser parser = Parser();
 
 public:
 	Environment(): Environment("./") { }
@@ -735,16 +769,25 @@ public:
 		elementNotation = elementNotation_;
 	}
 
-	std::string render(const std::string& input, json data) {
+
+	Template parse(const std::string& input) {
 		Template parsed = parser.parse(input);
 		parsed.elementNotation = elementNotation;
-		return parsed.render(data);
+		return parsed;
+	}
+
+	Template parse_template(const std::string& filename) {
+		Template parsed = parser.parse_template(global_path + filename);
+		parsed.elementNotation = elementNotation;
+		return parsed;
+	}
+
+	std::string render(const std::string& input, json data) {
+		return parse(input).render(data);
 	}
 
 	std::string render_template(const std::string& filename, json data) {
-		Template parsed = parser.parse_template(global_path + filename);
-		parsed.elementNotation = elementNotation;
-		return parsed.render(data);
+		return parse_template(filename).render(data);
 	}
 
 	std::string render_template_with_json_file(const std::string& filename, const std::string& filename_data) {
@@ -754,7 +797,7 @@ public:
 
 	void write(const std::string& filename, json data, const std::string& filename_out) {
 		std::ofstream file(global_path + filename_out);
-		file << render_template_with_json_file(filename, data);
+		file << render_template(filename, data);
 		file.close();
 	}
 
