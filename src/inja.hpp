@@ -243,7 +243,7 @@ struct Parsed {
 		std::vector<std::shared_ptr<Element>> children;
 
 		explicit Element(Type type): Element(type, "") { }
-		explicit Element(Type type, const std::string inner): type(type), inner(inner), children({}) { }
+		explicit Element(Type type, const std::string& inner): type(type), inner(inner), children({}) { }
 	};
 
 	struct ElementString: public Element {
@@ -264,14 +264,14 @@ struct Parsed {
 		std::string command;
 
 		explicit ElementExpression(): ElementExpression(Function::ReadJson) { }
-		explicit ElementExpression(const Function function): Element(Type::Expression), function(function), args({}), command("") { }
+		ElementExpression(const Function function): Element(Type::Expression), function(function), args({}), command("") { }
 	};
 
 	struct ElementLoop: public Element {
 		const std::string item;
 		const ElementExpression list;
 
-		explicit ElementLoop(const std::string& item, const ElementExpression list, const std::string& inner): Element(Type::Loop, inner), item(item), list(list) { }
+		explicit ElementLoop(const std::string& item, const ElementExpression& list, const std::string& inner): Element(Type::Loop, inner), item(item), list(list) { }
 	};
 
 	struct ElementConditionContainer: public Element {
@@ -282,7 +282,7 @@ struct Parsed {
 		const std::string condition_type;
 		const ElementExpression condition;
 
-		explicit ElementConditionBranch(const std::string& inner, const std::string& condition_type, ElementExpression condition): Element(Type::ConditionBranch, inner), condition_type(condition_type), condition(condition) { }
+		explicit ElementConditionBranch(const std::string& inner, const std::string& condition_type, const ElementExpression& condition): Element(Type::ConditionBranch, inner), condition_type(condition_type), condition(condition) { }
 	};
 };
 
@@ -514,7 +514,7 @@ public:
 
 	Parser() { }
 
-	Parsed::ElementExpression element_function(Parsed::Function func, int number_args, const Match& match) {
+	Parsed::ElementExpression element_function(Parsed::Function func, unsigned int number_args, const Match& match) {
 		std::vector<Parsed::ElementExpression> args = {};
 		for (unsigned int i = 0; i < number_args; i++) {
 			args.push_back( parse_expression(match.str(i + 1)) );
@@ -582,7 +582,8 @@ public:
 			case Parsed::Function::Different: {
 				return element_function(Parsed::Function::Different, 2, match_function);
 			}
-			case Parsed::Function::ReadJson: {
+			case Parsed::Function::ReadJson:
+			default: {
 				Parsed::ElementExpression result = Parsed::ElementExpression(Parsed::Function::ReadJson);
 				result.command = input;
 				return result;
@@ -639,7 +640,7 @@ public:
 								condition_match = else_if_match.close_match;
 
 								Match match_command;
-								const std::string else_if_open_str = else_if_match.open_match.str(1); // Regex match no r-value
+								std::string else_if_open_str = else_if_match.open_match.str(1); // Regex match no r-value
 								if (std::regex_match(else_if_open_str, match_command, regex_condition)) {
 									condition_container->children.push_back( std::make_shared<Parsed::ElementConditionBranch>(else_if_match.inner(), match_command.str(1), parse_expression(match_command.str(2))) );
 								}
@@ -652,7 +653,7 @@ public:
 								condition_match = else_match.close_match;
 
 								Match match_command;
-								const std::string else_open_str = else_match.open_match.str(1);
+								std::string else_open_str = else_match.open_match.str(1);
 								if (std::regex_match(else_open_str, match_command, regex_condition)) {
 									condition_container->children.push_back( std::make_shared<Parsed::ElementConditionBranch>(else_match.inner(), match_command.str(1), parse_expression(match_command.str(2))) );
 								}
@@ -661,7 +662,7 @@ public:
 							MatchClosed last_if_match = search_closed(input, match_delimiter.regex(), regex_condition_open, regex_condition_close, condition_match);
 
 							Match match_command;
-							const std::string last_if_open_str = last_if_match.open_match.str(1);
+							std::string last_if_open_str = last_if_match.open_match.str(1);
 							if (std::regex_match(last_if_open_str, match_command, regex_condition)) {
 								condition_container->children.push_back( std::make_shared<Parsed::ElementConditionBranch>(last_if_match.inner(), match_command.str(1), parse_expression(match_command.str(2))) );
 							}
