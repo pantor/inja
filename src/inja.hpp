@@ -633,7 +633,7 @@ public:
 						case Parsed::Statement::Condition: {
 							auto condition_container = std::make_shared<Parsed::ElementConditionContainer>();
 
-							const Regex regex_condition{"(if|else if|else) ?(.*)"};
+							const Regex regex_condition{"(if|else if|else(?! if)) ?(.*)"};
 							Match condition_match = match_delimiter;
 							MatchClosed else_if_match = search_closed_on_level(input, match_delimiter.regex(), regex_condition_open, regex_condition_close, regex_condition_else_if, condition_match);
 							while (else_if_match.found()) {
