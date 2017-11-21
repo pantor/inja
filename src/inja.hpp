@@ -132,14 +132,14 @@ inline Match search(const std::string& input, std::vector<Regex> regexes, size_t
 
 	// Vector of id vs groups
 	std::vector<int> regex_mark_counts;
-	for (int i = 0; i < regexes.size(); i++) {
-		for (int j = 0; j < regexes[i].mark_count() + 1; j++) {
+	for (unsigned int i = 0; i < regexes.size(); i++) {
+		for (unsigned int j = 0; j < regexes[i].mark_count() + 1; j++) {
 			regex_mark_counts.push_back(i);
 		}
 	}
 
 	int number_regex = -1, number_inner = 1;
-	for (int i = 1; i < search_match.size(); i++) {
+	for (unsigned int i = 1; i < search_match.size(); i++) {
 		if (search_match.length(i) > 0) {
 			number_inner = i;
 			number_regex = regex_mark_counts[i];
@@ -179,7 +179,7 @@ inline MatchClosed search_closed(const std::string& input, const Regex regex_sta
 inline Match match(const std::string& input, std::vector<Regex> regexes) {
 	Match match;
 	match.setRegexNumber(-1);
-	for (int i = 0; i < regexes.size(); i++) {
+	for (unsigned int i = 0; i < regexes.size(); i++) {
 		if (std::regex_match(input, match, regexes[i])) {
 			match.setRegexNumber(i);
 			match.setRegex(regexes[i]);
@@ -238,24 +238,24 @@ struct Parsed {
 	};
 
 	struct Element {
-		Parsed::Type type;
+		Type type;
 		std::string inner;
 		std::vector<std::shared_ptr<Element>> children;
 
-		explicit Element(Parsed::Type type): Element(type, "") { }
-		explicit Element(Parsed::Type type, std::string inner): type(type), inner(inner), children({}) { }
+		explicit Element(Type type): Element(type, "") { }
+		explicit Element(Type type, const std::string inner): type(type), inner(inner), children({}) { }
 	};
 
 	struct ElementString: public Element {
-		std::string text;
+		const std::string text;
 
-		explicit ElementString(std::string text): Element(Parsed::Type::String), text(text) { }
+		explicit ElementString(const std::string& text): Element(Type::String), text(text) { }
 	};
 
 	struct ElementComment: public Element {
-		std::string text;
+		const std::string text;
 
-		explicit ElementComment(std::string text): Element(Parsed::Type::Comment), text(text) { }
+		explicit ElementComment(const std::string& text): Element(Type::Comment), text(text) { }
 	};
 
 	struct ElementExpression: public Element {
@@ -263,26 +263,26 @@ struct Parsed {
 		std::vector<ElementExpression> args;
 		std::string command;
 
-		explicit ElementExpression(): ElementExpression(Parsed::Function::ReadJson) { }
-		explicit ElementExpression(Parsed::Function function): Element(Parsed::Type::Expression), function(function), args({}), command("") { }
+		explicit ElementExpression(): ElementExpression(Function::ReadJson) { }
+		explicit ElementExpression(const Function function): Element(Type::Expression), function(function), args({}), command("") { }
 	};
 
 	struct ElementLoop: public Element {
-		std::string item;
-		ElementExpression list;
+		const std::string item;
+		const ElementExpression list;
 
-		explicit ElementLoop(std::string item, ElementExpression list, std::string inner): Element(Parsed::Type::Loop, inner), item(item), list(list) { }
+		explicit ElementLoop(const std::string& item, const ElementExpression list, const std::string& inner): Element(Type::Loop, inner), item(item), list(list) { }
 	};
 
 	struct ElementConditionContainer: public Element {
-		explicit ElementConditionContainer(): Element(Parsed::Type::Condition) { }
+		explicit ElementConditionContainer(): Element(Type::Condition) { }
 	};
 
 	struct ElementConditionBranch: public Element {
-		std::string condition_type;
-		ElementExpression condition;
+		const std::string condition_type;
+		const ElementExpression condition;
 
-		explicit ElementConditionBranch(std::string inner, std::string condition_type, ElementExpression condition): Element(Parsed::Type::ConditionBranch, inner), condition_type(condition_type), condition(condition) { }
+		explicit ElementConditionBranch(const std::string& inner, const std::string& condition_type, ElementExpression condition): Element(Type::ConditionBranch, inner), condition_type(condition_type), condition(condition) { }
 	};
 };
 
@@ -293,17 +293,17 @@ public:
 	const Parsed::Element parsed_template;
 	ElementNotation elementNotation;
 
-	explicit Template(const Parsed::Element parsed_template): Template(parsed_template, ElementNotation::Pointer) { }
-	explicit Template(const Parsed::Element parsed_template, ElementNotation elementNotation): parsed_template(parsed_template), elementNotation(elementNotation) { }
+	explicit Template(const Parsed::Element& parsed_template): Template(parsed_template, ElementNotation::Pointer) { }
+	explicit Template(const Parsed::Element& parsed_template, ElementNotation elementNotation): parsed_template(parsed_template), elementNotation(elementNotation) { }
 
 	template<typename T = json>
-	T eval_variable(Parsed::ElementExpression element, json data) {
+	T eval_variable(const Parsed::ElementExpression& element, json data) {
 		const json var = eval_variable(element, data, true);
 		if (std::is_same<T, json>::value) { return var; }
 		return var.get<T>();
 	}
 
-	json eval_variable(Parsed::ElementExpression element, json data, bool throw_error) {
+	json eval_variable(const Parsed::ElementExpression& element, json data, bool throw_error) {
 		switch (element.function) {
 			case Parsed::Function::Upper: {
 				std::string str = eval_variable<std::string>(element.args[0], data);
@@ -400,7 +400,7 @@ public:
 		}
 	}
 
-	bool eval_condition(Parsed::ElementExpression element, json data) {
+	bool eval_condition(const Parsed::ElementExpression& element, json data) {
 		const json var = eval_variable(element, data, false);
 		if (var.empty()) { return false; }
 		else if (var.is_number()) { return (var != 0); }
@@ -434,7 +434,7 @@ public:
 					const std::string item_name = elementLoop->item;
 
 					const std::vector<json> list = eval_variable<std::vector<json>>(elementLoop->list, data);
-					for (int i = 0; i < list.size(); i++) {
+					for (unsigned int i = 0; i < list.size(); i++) {
 						json data_loop = data;
 						data_loop[item_name] = list[i];
 						data_loop["index"] = i;
@@ -514,9 +514,9 @@ public:
 
 	Parser() { }
 
-	Parsed::ElementExpression element_function(Parsed::Function func, int number_args, Match match) {
+	Parsed::ElementExpression element_function(Parsed::Function func, int number_args, const Match& match) {
 		std::vector<Parsed::ElementExpression> args = {};
-		for (int i = 0; i < number_args; i++) {
+		for (unsigned int i = 0; i < number_args; i++) {
 			args.push_back( parse_expression(match.str(i + 1)) );
 		}
 
@@ -639,7 +639,8 @@ public:
 								condition_match = else_if_match.close_match;
 
 								Match match_command;
-								if (std::regex_match(else_if_match.open_match.str(1), match_command, regex_condition)) {
+								const std::string else_if_open_str = else_if_match.open_match.str(1); // Regex match no r-value
+								if (std::regex_match(else_if_open_str, match_command, regex_condition)) {
 									condition_container->children.push_back( std::make_shared<Parsed::ElementConditionBranch>(else_if_match.inner(), match_command.str(1), parse_expression(match_command.str(2))) );
 								}
 
@@ -651,7 +652,8 @@ public:
 								condition_match = else_match.close_match;
 
 								Match match_command;
-								if (std::regex_match(else_match.open_match.str(1), match_command, regex_condition)) {
+								const std::string else_open_str = else_match.open_match.str(1);
+								if (std::regex_match(else_open_str, match_command, regex_condition)) {
 									condition_container->children.push_back( std::make_shared<Parsed::ElementConditionBranch>(else_match.inner(), match_command.str(1), parse_expression(match_command.str(2))) );
 								}
 							}
@@ -659,7 +661,8 @@ public:
 							MatchClosed last_if_match = search_closed(input, match_delimiter.regex(), regex_condition_open, regex_condition_close, condition_match);
 
 							Match match_command;
-							if (std::regex_match(last_if_match.open_match.str(1), match_command, regex_condition)) {
+							const std::string last_if_open_str = last_if_match.open_match.str(1);
+							if (std::regex_match(last_if_open_str, match_command, regex_condition)) {
 								condition_container->children.push_back( std::make_shared<Parsed::ElementConditionBranch>(last_if_match.inner(), match_command.str(1), parse_expression(match_command.str(2))) );
 							}
 
