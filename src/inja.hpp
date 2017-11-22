@@ -509,7 +509,7 @@ public:
 		{Parsed::Function::DivisibleBy, Regex{"divisibleBy\\(\\s*(.*?)\\s*,\\s*(.*?)\\s*\\)"}},
 		{Parsed::Function::Odd, Regex{"odd\\(\\s*(.*?)\\s*\\)"}},
 		{Parsed::Function::Even, Regex{"even\\(\\s*(.*?)\\s*\\)"}},
-		{Parsed::Function::ReadJson, Regex{"\\s*(.*?)\\s*"}}
+		{Parsed::Function::ReadJson, Regex{"\\s*(.*)\\s*"}}
 	};
 
 	Parser() { }
@@ -517,7 +517,7 @@ public:
 	Parsed::ElementExpression element_function(Parsed::Function func, unsigned int number_args, const Match& match) {
 		std::vector<Parsed::ElementExpression> args = {};
 		for (unsigned int i = 0; i < number_args; i++) {
-			args.push_back( parse_expression(match.str(i + 1)) );
+			args.push_back( parse_expression(match.str(i + 1)) ); // str(0) is whole group
 		}
 
 		Parsed::ElementExpression result = Parsed::ElementExpression(func);
@@ -583,10 +583,13 @@ public:
 				return element_function(Parsed::Function::Different, 2, match_function);
 			}
 			case Parsed::Function::ReadJson:
-			default: {
+			{
 				Parsed::ElementExpression result = Parsed::ElementExpression(Parsed::Function::ReadJson);
-				result.command = input;
+				result.command = match_function.str(1);
 				return result;
+			}
+			default: {
+				throw std::runtime_error("Parser error: Could not parse input: " + input);
 			}
 		}
 	}
