@@ -509,7 +509,7 @@ public:
 		{Parsed::Function::DivisibleBy, Regex{"divisibleBy\\(\\s*(.*?)\\s*,\\s*(.*?)\\s*\\)"}},
 		{Parsed::Function::Odd, Regex{"odd\\(\\s*(.*?)\\s*\\)"}},
 		{Parsed::Function::Even, Regex{"even\\(\\s*(.*?)\\s*\\)"}},
-		{Parsed::Function::ReadJson, Regex{"\\s*(.*)\\s*"}}
+		{Parsed::Function::ReadJson, Regex{"\\s*([^()]*)\\s*"}}
 	};
 
 	Parser() { }
