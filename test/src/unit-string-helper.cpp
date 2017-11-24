@@ -48,6 +48,13 @@ TEST_CASE("search-with-multiple-possible-regexes") {
 		CHECK( match.str() == "ipsum" );
 		CHECK( match.str(1) == "s" );
 	}
+
+	SECTION("basic 3") {
+		std::vector<inja::Regex> regex_patterns = { inja::Regex("upper\\((.*)\\)"), inja::Regex("lower\\((.*)\\)"), inja::Regex("[^()]*?") };
+		inja::Match match = inja::search("upper(lower(name))", regex_patterns, 0);
+		CHECK( match.regex_number() == 0 );
+		CHECK( match.str(1) == "lower(name)" );
+	}
 }
 
 TEST_CASE("search-on-level") {

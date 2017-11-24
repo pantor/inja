@@ -501,15 +501,15 @@ public:
 		{Parsed::Function::GreaterEqual, Regex{"(.+) >= (.+)"}},
 		{Parsed::Function::LessEqual, Regex{"(.+) <= (.+)"}},
 		{Parsed::Function::Different, Regex{"(.+) != (.+)"}},
-		{Parsed::Function::Upper, Regex{"upper\\(\\s*(.*?)\\s*\\)"}},
-		{Parsed::Function::Lower, Regex{"lower\\(\\s*(.*?)\\s*\\)"}},
-		{Parsed::Function::Range, Regex{"range\\(\\s*(.*?)\\s*\\)"}},
-		{Parsed::Function::Length, Regex{"length\\(\\s*(.*?)\\s*\\)"}},
-		{Parsed::Function::Round, Regex{"round\\(\\s*(.*?)\\s*,\\s*(.*?)\\s*\\)"}},
-		{Parsed::Function::DivisibleBy, Regex{"divisibleBy\\(\\s*(.*?)\\s*,\\s*(.*?)\\s*\\)"}},
-		{Parsed::Function::Odd, Regex{"odd\\(\\s*(.*?)\\s*\\)"}},
-		{Parsed::Function::Even, Regex{"even\\(\\s*(.*?)\\s*\\)"}},
-		{Parsed::Function::ReadJson, Regex{"\\s*([^()]*)\\s*"}}
+		{Parsed::Function::Upper, Regex{"upper\\(\\s*(.*)\\s*\\)"}},
+		{Parsed::Function::Lower, Regex{"lower\\(\\s*(.*)\\s*\\)"}},
+		{Parsed::Function::Range, Regex{"range\\(\\s*(.*)\\s*\\)"}},
+		{Parsed::Function::Length, Regex{"length\\(\\s*(.*)\\s*\\)"}},
+		{Parsed::Function::Round, Regex{"round\\(\\s*(.*)\\s*,\\s*(.*)\\s*\\)"}},
+		{Parsed::Function::DivisibleBy, Regex{"divisibleBy\\(\\s*(.*)\\s*,\\s*(.*)\\s*\\)"}},
+		{Parsed::Function::Odd, Regex{"odd\\(\\s*(.*)\\s*\\)"}},
+		{Parsed::Function::Even, Regex{"even\\(\\s*(.*)\\s*\\)"}},
+		{Parsed::Function::ReadJson, Regex{"\\s*([^()]*?)\\s*"}}
 	};
 
 	Parser() { }
