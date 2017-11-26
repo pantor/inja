@@ -509,7 +509,7 @@ public:
 		{Parsed::Function::DivisibleBy, Regex{"divisibleBy\\(\\s*(.*)\\s*,\\s*(.*)\\s*\\)"}},
 		{Parsed::Function::Odd, Regex{"odd\\(\\s*(.*)\\s*\\)"}},
 		{Parsed::Function::Even, Regex{"even\\(\\s*(.*)\\s*\\)"}},
-		{Parsed::Function::ReadJson, Regex{"\\s*([^()]*?)\\s*"}}
+		{Parsed::Function::ReadJson, Regex{"\\s*([^\\(\\)]*?)\\s*"}}
 	};
 
 	Parser() { }
@@ -589,7 +589,7 @@ public:
 				return result;
 			}
 			default: {
-				throw std::runtime_error("Parser error: Could not parse input: " + input);
+				throw std::runtime_error("Parser error: Could not parse expression: " + input);
 			}
 		}
 	}
