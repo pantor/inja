@@ -30,30 +30,61 @@ TEST_CASE("basic-search") {
 	}
 }
 
-TEST_CASE("search-with-multiple-possible-regexes") {
+TEST_CASE("search-multiple-regexes") {
 	std::string input = "lorem ipsum dolor amit estas tronum.";
 
 	SECTION("basic 1") {
-		std::vector<inja::Regex> regex_patterns = { inja::Regex("tras"), inja::Regex("do(\\w*)or"), inja::Regex("es(\\w*)as"), inja::Regex("ip(\\w*)um") };
-		inja::Match match = inja::search(input, regex_patterns, 0);
-		CHECK( match.regex_number() == 3 );
+		std::map<int, inja::Regex> regex_patterns = {
+			{0, inja::Regex("tras")},
+			{1, inja::Regex("do(\\w*)or")},
+			{2, inja::Regex("es(\\w*)as")},
+			{3, inja::Regex("ip(\\w*)um")}
+		};
+		inja::MatchType<int> match = inja::search(input, regex_patterns, 0);
+		CHECK( match.type() == 3 );
 		CHECK( match.str() == "ipsum" );
 		CHECK( match.str(1) == "s" );
 	}
 
 	SECTION("basic 2") {
-		std::vector<inja::Regex> regex_patterns = { inja::Regex("tras"), inja::Regex("ip(\\w*)um"), inja::Regex("do(\\w*)or"), inja::Regex("es(\\w*)as") };
-		inja::Match match = inja::search(input, regex_patterns, 0);
-		CHECK( match.regex_number() == 1 );
+		std::map<int, inja::Regex> regex_patterns = {
+			{11, inja::Regex("tras")},
+			{21, inja::Regex("ip(\\w*)um")},
+			{31, inja::Regex("do(\\w*)or")},
+			{41, inja::Regex("es(\\w*)as")}
+		};
+		inja::MatchType<int> match = inja::search(input, regex_patterns, 0);
+		CHECK( match.type() == 21 );
 		CHECK( match.str() == "ipsum" );
 		CHECK( match.str(1) == "s" );
 	}
 
 	SECTION("basic 3") {
-		std::vector<inja::Regex> regex_patterns = { inja::Regex("upper\\((.*)\\)"), inja::Regex("lower\\((.*)\\)"), inja::Regex("[^()]*?") };
-		inja::Match match = inja::search("upper(lower(name))", regex_patterns, 0);
-		CHECK( match.regex_number() == 0 );
+		std::map<int, inja::Regex> regex_patterns = {
+			{0, inja::Regex("upper\\((.*)\\)")},
+			{1, inja::Regex("lower\\((.*)\\)")},
+			{2, inja::Regex("[^()]*?")}
+		};
+		inja::MatchType<int> match = inja::search("upper(lower(name))", regex_patterns, 0);
+		CHECK( match.type() == 0 );
 		CHECK( match.str(1) == "lower(name)" );
+	}
+}
+
+TEST_CASE("match-multiple-regexes") {
+	std::string input = "ipsum";
+
+	SECTION("basic 1") {
+		std::map<int, inja::Regex> regex_patterns = {
+			{1, inja::Regex("tras")},
+			{2, inja::Regex("ip(\\w*)um")},
+			{3, inja::Regex("do(\\w*)or")},
+			{4, inja::Regex("es(\\w*)as")}
+		};
+		inja::MatchType<int> match = inja::match(input, regex_patterns);
+		CHECK( match.type() == 2 );
+		CHECK( match.str() == "ipsum" );
+		CHECK( match.str(1) == "s" );
 	}
 }
 

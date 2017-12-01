@@ -6,9 +6,10 @@
 #endif
 
 
-#include <iostream>
-#include <fstream>
 #include <string>
+#include <sstream>
+#include <fstream>
+#include <iostream>
 #include <locale>
 #include <regex>
 #include <type_traits>
@@ -18,15 +19,6 @@ namespace inja {
 
 using json = nlohmann::json;
 
-/*!
-@brief returns the values of a std key-value-map
-*/
-template<typename S, typename T>
-inline std::vector<T> get_values(std::map<S, T> map) {
-	std::vector<T> result;
-	for (auto const element: map) { result.push_back(element.second); }
-  return result;
-}
 
 
 /*!
@@ -43,13 +35,6 @@ inline std::string dot_to_json_pointer_notation(std::string dot) {
 
 
 
-enum class ElementNotation {
-	Pointer,
-	Dot
-};
-
-
-
 /*!
 @brief inja regex class, saves string pattern in addition to std::regex
 */
@@ -58,7 +43,7 @@ class Regex: public std::regex {
 
 public:
 	Regex(): std::regex() {}
-	explicit Regex(const std::string& pattern): std::regex(pattern), pattern_(pattern) { }
+	explicit Regex(const std::string& pattern): std::regex(pattern, std::regex_constants::ECMAScript), pattern_(pattern) { }
 
 	std::string pattern() { return pattern_; }
 };
@@ -69,7 +54,6 @@ class Match: public std::smatch {
 	size_t offset_ = 0;
 	int group_offset_ = 0;
 	Regex regex_;
-	unsigned int regex_number_ = 0;
 
 public:
 	Match(): std::smatch() { }
@@ -78,7 +62,6 @@ public:
 
 	void setGroupOffset(int group_offset) { group_offset_ = group_offset; }
 	void setRegex(Regex regex) { regex_ = regex; }
-	void setRegexNumber(unsigned int regex_number) { regex_number_ = regex_number; }
 
 	size_t position() const { return offset_ + std::smatch::position(); }
 	size_t end_position() const { return position() + length(); }
@@ -86,7 +69,22 @@ public:
 	const std::string str() const { return str(0); }
 	const std::string str(int i) const { return std::smatch::str(i + group_offset_); }
 	Regex regex() const { return regex_; }
-	unsigned int regex_number() const { return regex_number_; }
+};
+
+
+
+template<typename T>
+class MatchType: public Match {
+	T type_;
+
+public:
+	MatchType() : Match() { }
+	MatchType(Match const & obj) : Match(obj) { }
+	MatchType(Match && obj) : Match(std::move(obj)) { }
+
+	void setType(T type) { type_ = type; }
+
+	T type() const { return type_; }
 };
 
 
@@ -117,39 +115,48 @@ inline Match search(const std::string& input, Regex regex, size_t position) {
 	return match;
 }
 
-inline Match search(const std::string& input, std::vector<Regex> regexes, size_t position) {
+
+
+template<typename T>
+inline MatchType<T> search(const std::string& input, std::map<T, Regex> regexes, size_t position) {
+	// Map to vectors
+	std::vector<T> class_vector;
+	std::vector<Regex> regexes_vector;
+	for (auto const element: regexes) {
+		class_vector.push_back(element.first);
+		regexes_vector.push_back(element.second);
+	}
+
 	// Regex or join
 	std::stringstream ss;
-	for (size_t i = 0; i < regexes.size(); ++i)
+	for (size_t i = 0; i < regexes_vector.size(); ++i)
 	{
 		if (i != 0) { ss << ")|("; }
-		ss << regexes[i].pattern();
+		ss << regexes_vector[i].pattern();
 	}
 	Regex regex{"(" + ss.str() + ")"};
 
-	Match search_match = search(input, regex, position);
-	if (not search_match.found()) { return Match(); }
+	MatchType<T> search_match = search(input, regex, position);
+	if (not search_match.found()) { return MatchType<T>(); }
 
 	// Vector of id vs groups
-	std::vector<int> regex_mark_counts;
-	for (unsigned int i = 0; i < regexes.size(); i++) {
-		for (unsigned int j = 0; j < regexes[i].mark_count() + 1; j++) {
+	std::vector<unsigned int> regex_mark_counts;
+	for (unsigned int i = 0; i < regexes_vector.size(); i++) {
+		for (unsigned int j = 0; j < regexes_vector[i].mark_count() + 1; j++) {
 			regex_mark_counts.push_back(i);
 		}
 	}
 
-	int number_regex = -1, number_inner = 1;
 	for (unsigned int i = 1; i < search_match.size(); i++) {
 		if (search_match.length(i) > 0) {
-			number_inner = i;
-			number_regex = regex_mark_counts[i];
-			break;
+			search_match.setGroupOffset(i);
+			search_match.setType(class_vector[regex_mark_counts[i]]);
+			search_match.setRegex(regexes_vector[regex_mark_counts[i]]);
+			return search_match;
 		}
 	}
 
-	search_match.setGroupOffset(number_inner);
-	search_match.setRegexNumber(number_regex);
-	if (number_regex >= 0) { search_match.setRegex(regexes[number_regex]); }
+	throw std::runtime_error("Error while searching in input: " + input);
 	return search_match;
 }
 
@@ -176,20 +183,26 @@ inline MatchClosed search_closed(const std::string& input, const Regex regex_sta
 	return search_closed_on_level(input, regex_statement, regex_open, regex_close, regex_close, open_match);
 }
 
-inline Match match(const std::string& input, std::vector<Regex> regexes) {
-	Match match;
-	match.setRegexNumber(-1);
-	for (unsigned int i = 0; i < regexes.size(); i++) {
-		if (std::regex_match(input, match, regexes[i])) {
-			match.setRegexNumber(i);
-			match.setRegex(regexes[i]);
-			break;
+template<typename T>
+inline MatchType<T> match(const std::string& input, std::map<T, Regex> regexes) {
+	MatchType<T> match;
+	for (auto const& e : regexes) {
+		if (std::regex_match(input, match, e.second)) {
+			match.setType(e.first);
+			match.setRegex(e.second);
+			return match;
 		}
 	}
+	throw std::runtime_error("Could not match input: " + input);
 	return match;
 }
 
 
+
+enum class ElementNotation {
+	Pointer,
+	Dot
+};
 
 struct Parsed {
 	enum class Type {
@@ -299,8 +312,18 @@ public:
 	template<typename T = json>
 	T eval_variable(const Parsed::ElementExpression& element, json data) {
 		const json var = eval_variable(element, data, true);
-		if (std::is_same<T, json>::value) { return var; }
+		if (std::is_same<T, json>::value) {
+			return var;
+		}
 		return var.get<T>();
+	}
+
+	bool eval_condition(const Parsed::ElementExpression& element, json data) {
+		const json var = eval_variable(element, data, false);
+		if (var.empty()) { return false; }
+		else if (var.is_number()) { return (var != 0); }
+		else if (var.is_string()) { return not var.empty(); }
+		return var.get<bool>();
 	}
 
 	json eval_variable(const Parsed::ElementExpression& element, json data, bool throw_error) {
@@ -391,21 +414,11 @@ public:
 					}
 				}
 
-				const json::json_pointer ptr(input);
-				const json result = data[ptr];
-
+				const json result = data[json::json_pointer(input)];
 				if (throw_error && result.is_null()) { throw std::runtime_error("Did not found json element: " + element.command); }
 				return result;
 			}
 		}
-	}
-
-	bool eval_condition(const Parsed::ElementExpression& element, json data) {
-		const json var = eval_variable(element, data, false);
-		if (var.empty()) { return false; }
-		else if (var.is_number()) { return (var != 0); }
-		else if (var.is_string()) { return not var.empty(); }
-		return var;
 	}
 
 	std::string render(json data) {
@@ -457,7 +470,8 @@ public:
 					break;
 				}
 				case Parsed::Type::Comment: { break; }
-				default: { throw std::runtime_error("Unknown type in renderer."); }
+				case Parsed::Type::Main: { throw std::runtime_error("Main type in renderer."); }
+				case Parsed::Type::ConditionBranch: { throw std::runtime_error("ConditionBranch type in renderer."); }
 		 	}
 		}
 		return result;
@@ -526,70 +540,31 @@ public:
 	}
 
 	Parsed::ElementExpression parse_expression(const std::string& input) {
-		Match match_function = match(input, get_values(regex_map_functions));
-		switch ( static_cast<Parsed::Function>(match_function.regex_number()) ) {
-			case Parsed::Function::Upper: {
-				return element_function(Parsed::Function::Upper, 1, match_function);
-			}
-			case Parsed::Function::Lower: {
-				return element_function(Parsed::Function::Lower, 1, match_function);
-			}
-			case Parsed::Function::Range: {
-				return element_function(Parsed::Function::Range, 1, match_function);
-			}
-			case Parsed::Function::Length: {
-				return element_function(Parsed::Function::Length, 1, match_function);
-			}
-			case Parsed::Function::Round: {
-				return element_function(Parsed::Function::Round, 2, match_function);
-			}
-			case Parsed::Function::DivisibleBy: {
-				return element_function(Parsed::Function::DivisibleBy, 2, match_function);
-			}
-			case Parsed::Function::Odd: {
-				return element_function(Parsed::Function::Odd, 1, match_function);
-			}
-			case Parsed::Function::Even: {
-				return element_function(Parsed::Function::Even, 1, match_function);
-			}
-			case Parsed::Function::Not: {
-				return element_function(Parsed::Function::Not, 1, match_function);
-			}
-			case Parsed::Function::And: {
-				return element_function(Parsed::Function::And, 2, match_function);
-			}
-			case Parsed::Function::Or: {
-				return element_function(Parsed::Function::Or, 2, match_function);
-			}
-			case Parsed::Function::In: {
-				return element_function(Parsed::Function::In, 2, match_function);
-			}
-			case Parsed::Function::Equal: {
-				return element_function(Parsed::Function::Equal, 2, match_function);
-			}
-			case Parsed::Function::Greater: {
-				return element_function(Parsed::Function::Greater, 2, match_function);
-			}
-			case Parsed::Function::Less: {
-				return element_function(Parsed::Function::Less, 2, match_function);
-			}
-			case Parsed::Function::GreaterEqual: {
-				return element_function(Parsed::Function::GreaterEqual, 2, match_function);
-			}
-			case Parsed::Function::LessEqual: {
-				return element_function(Parsed::Function::LessEqual, 2, match_function);
-			}
-			case Parsed::Function::Different: {
-				return element_function(Parsed::Function::Different, 2, match_function);
-			}
-			case Parsed::Function::ReadJson:
-			{
-				Parsed::ElementExpression result = Parsed::ElementExpression(Parsed::Function::ReadJson);
+		MatchType<Parsed::Function> match_function = match(input, regex_map_functions);
+		switch ( match_function.type() ) {
+			using Func = Parsed::Function;
+			case Func::Upper: { return element_function(Func::Upper, 1, match_function); }
+			case Func::Lower: { return element_function(Func::Lower, 1, match_function); }
+			case Func::Range: { return element_function(Func::Range, 1, match_function); }
+			case Func::Length: { return element_function(Func::Length, 1, match_function); }
+			case Func::Round: { return element_function(Func::Round, 2, match_function); }
+			case Func::DivisibleBy: { return element_function(Func::DivisibleBy, 2, match_function); }
+			case Func::Odd: { return element_function(Func::Odd, 1, match_function); }
+			case Func::Even: { return element_function(Func::Even, 1, match_function); }
+			case Func::Not: { return element_function(Func::Not, 1, match_function); }
+			case Func::And: { return element_function(Func::And, 2, match_function); }
+			case Func::Or: { return element_function(Func::Or, 2, match_function); }
+			case Func::In: { return element_function(Func::In, 2, match_function); }
+			case Func::Equal: { return element_function(Func::Equal, 2, match_function); }
+			case Func::Greater: { return element_function(Func::Greater, 2, match_function); }
+			case Func::Less: { return element_function(Func::Less, 2, match_function); }
+			case Func::GreaterEqual: { return element_function(Func::GreaterEqual, 2, match_function); }
+			case Func::LessEqual: { return element_function(Func::LessEqual, 2, match_function); }
+			case Func::Different: { return element_function(Func::Different, 2, match_function); }
+			case Func::ReadJson: {
+				Parsed::ElementExpression result = Parsed::ElementExpression(Func::ReadJson);
 				result.command = match_function.str(1);
 				return result;
-			}
-			default: {
-				throw std::runtime_error("Parser error: Could not parse expression: " + input);
 			}
 		}
 	}
@@ -597,10 +572,8 @@ public:
 	std::vector<std::shared_ptr<Parsed::Element>> parse_level(const std::string& input, const std::string& path) {
 		std::vector<std::shared_ptr<Parsed::Element>> result;
 
-		std::vector<Regex> regex_delimiters = get_values(regex_map_delimiters);
-
 		size_t current_position = 0;
-		Match match_delimiter = search(input, regex_delimiters, current_position);
+		MatchType<Parsed::Delimiter> match_delimiter = search(input, regex_map_delimiters, current_position);
 		while (match_delimiter.found()) {
 			current_position = match_delimiter.end_position();
 			std::string string_prefix = match_delimiter.prefix();
@@ -610,12 +583,12 @@ public:
 
 			std::string delimiter_inner = match_delimiter.str(1);
 
-			switch ( static_cast<Parsed::Delimiter>(match_delimiter.regex_number()) ) {
+			switch ( match_delimiter.type() ) {
 				case Parsed::Delimiter::Statement:
 				case Parsed::Delimiter::LineStatement: {
 
-					Match match_statement = match(delimiter_inner, get_values(regex_map_statement_openers));
-					switch ( static_cast<Parsed::Statement>(match_statement.regex_number()) ) {
+					MatchType<Parsed::Statement> match_statement = match(delimiter_inner, regex_map_statement_openers);
+					switch ( match_statement.type() ) {
 						case Parsed::Statement::Loop: {
 							MatchClosed loop_match = search_closed(input, match_delimiter.regex(), regex_loop_open, regex_loop_close, match_delimiter);
 
@@ -682,9 +655,7 @@ public:
 							}
 							break;
 						}
-						default: { throw std::runtime_error("Parser error: Unknown statement."); }
 					}
-
 					break;
 				}
 				case Parsed::Delimiter::Expression: {
@@ -695,10 +666,9 @@ public:
 					result.emplace_back( std::make_shared<Parsed::ElementComment>(delimiter_inner) );
 					break;
 				}
-				default: { throw std::runtime_error("Parser error: Unknown delimiter."); }
 			}
 
-			match_delimiter = search(input, regex_delimiters, current_position);
+			match_delimiter = search(input, regex_map_delimiters, current_position);
 		}
 		if (current_position < input.length()) {
 			result.emplace_back( std::make_shared<Parsed::ElementString>(input.substr(current_position)) );

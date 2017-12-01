@@ -18,6 +18,7 @@ TEST_CASE("types") {
 	data["brother"]["daughters"] = {"Maria", "Helen"};
 	data["brother"]["daughter0"] = { { "name", "Maria" } };
 	data["is_happy"] = true;
+	data["is_sad"] = false;
 
 	SECTION("basic") {
 		CHECK( env.render("", data) == "" );
