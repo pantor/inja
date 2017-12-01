@@ -58,7 +58,7 @@ class Match: public std::smatch {
 public:
 	Match(): std::smatch() { }
 	explicit Match(size_t offset): std::smatch(), offset_(offset) { }
-	Match(size_t offset, Regex& regex): std::smatch(), offset_(offset), regex_(regex) { }
+	explicit Match(size_t offset, const Regex& regex): std::smatch(), offset_(offset), regex_(regex) { }
 
 	void setGroupOffset(int group_offset) { group_offset_ = group_offset; }
 	void setRegex(Regex regex) { regex_ = regex; }
@@ -79,8 +79,8 @@ class MatchType: public Match {
 
 public:
 	MatchType() : Match() { }
-	MatchType(Match const & obj) : Match(obj) { }
-	MatchType(Match && obj) : Match(std::move(obj)) { }
+	explicit MatchType(const Match& obj) : Match(obj) { }
+	MatchType(Match&& obj) : Match(std::move(obj)) { }
 
 	void setType(T type) { type_ = type; }
 
@@ -179,7 +179,7 @@ inline MatchClosed search_closed_on_level(const std::string& input, const Regex&
 	return MatchClosed(open_match, match_delimiter);
 }
 
-inline MatchClosed search_closed(const std::string& input, const Regex& regex_statement, const Regex& regex_open, const Regex& regex_close, Match open_match) {
+inline MatchClosed search_closed(const std::string& input, const Regex& regex_statement, const Regex& regex_open, const Regex& regex_close, Match& open_match) {
 	return search_closed_on_level(input, regex_statement, regex_open, regex_close, regex_close, open_match);
 }
 
