@@ -122,12 +122,12 @@ inline MatchType<T> search(const std::string& input, std::map<T, Regex> regexes,
 	// Map to vectors
 	std::vector<T> class_vector;
 	std::vector<Regex> regexes_vector;
-	for (auto const element: regexes) {
+	for (const auto element: regexes) {
 		class_vector.push_back(element.first);
 		regexes_vector.push_back(element.second);
 	}
 
-	// Regex or join
+	// Regex join
 	std::stringstream ss;
 	for (size_t i = 0; i < regexes_vector.size(); ++i)
 	{
@@ -250,13 +250,23 @@ struct Parsed {
 		ReadJson
 	};
 
+	enum class Condition {
+		If,
+		ElseIf,
+		Else
+	};
+
+	enum class Loop {
+		ForIn
+	};
+
 	struct Element {
 		Type type;
 		std::string inner;
 		std::vector<std::shared_ptr<Element>> children;
 
-		explicit Element(Type type): Element(type, "") { }
-		explicit Element(Type type, const std::string& inner): type(type), inner(inner), children({}) { }
+		explicit Element(const Type type): Element(type, "") { }
+		explicit Element(const Type type, const std::string& inner): type(type), inner(inner), children({}) { }
 	};
 
 	struct ElementString: public Element {
@@ -292,10 +302,11 @@ struct Parsed {
 	};
 
 	struct ElementConditionBranch: public Element {
-		const std::string condition_type;
+		const Condition condition_type;
 		const ElementExpression condition;
 
-		explicit ElementConditionBranch(const std::string& inner, const std::string& condition_type, const ElementExpression& condition): Element(Type::ConditionBranch, inner), condition_type(condition_type), condition(condition) { }
+		explicit ElementConditionBranch(const std::string& inner, const Condition condition_type): Element(Type::ConditionBranch, inner), condition_type(condition_type) { }
+		explicit ElementConditionBranch(const std::string& inner, const Condition condition_type, const ElementExpression& condition): Element(Type::ConditionBranch, inner), condition_type(condition_type), condition(condition) { }
 	};
 };
 
@@ -309,24 +320,21 @@ public:
 	explicit Template(const Parsed::Element& parsed_template): Template(parsed_template, ElementNotation::Pointer) { }
 	explicit Template(const Parsed::Element& parsed_template, ElementNotation elementNotation): parsed_template(parsed_template), elementNotation(elementNotation) { }
 
-	template<typename T = json>
-	T eval_expression(const Parsed::ElementExpression& element, json data) {
-		const json var = eval_expression(element, data, true);
-		if (std::is_same<T, json>::value) {
-			return var;
-		}
-		return var.get<T>();
-	}
-
-	bool eval_condition(const Parsed::ElementExpression& element, json data) {
-		const json var = eval_expression(element, data, false);
+	template<bool>
+	bool eval_expression(const Parsed::ElementExpression& element, json data) {
+		const json var = eval_function(element, data);
 		if (var.empty()) { return false; }
 		else if (var.is_number()) { return (var != 0); }
 		else if (var.is_string()) { return not var.empty(); }
 		return var.get<bool>();
 	}
 
-	json eval_expression(const Parsed::ElementExpression& element, json data, bool throw_error) {
+	template<typename T = json>
+	T eval_expression(const Parsed::ElementExpression& element, json data) {
+		return eval_function(element, data).get<T>();
+	}
+
+	json eval_function(const Parsed::ElementExpression& element, json data) {
 		switch (element.function) {
 			case Parsed::Function::Upper: {
 				std::string str = eval_expression<std::string>(element.args[0], data);
@@ -367,13 +375,13 @@ public:
 				return (number % 2 == 0);
 			}
 			case Parsed::Function::Not: {
-				return not eval_condition(element.args[0], data);
+				return not eval_expression<bool>(element.args[0], data);
 			}
 			case Parsed::Function::And: {
-				return (eval_condition(element.args[0], data) and eval_condition(element.args[1], data));
+				return (eval_expression<bool>(element.args[0], data) and eval_expression<bool>(element.args[1], data));
 			}
 			case Parsed::Function::Or: {
-				return (eval_condition(element.args[0], data) or eval_condition(element.args[1], data));
+				return (eval_expression<bool>(element.args[0], data) or eval_expression<bool>(element.args[1], data));
 			}
 			case Parsed::Function::In: {
 				const json item = eval_expression(element.args[0], data);
@@ -399,8 +407,7 @@ public:
 				return eval_expression(element.args[0], data) != eval_expression(element.args[1], data);
 			}
 			case Parsed::Function::ReadJson: {
-				// Json Raw Data
-				if ( json::accept(element.command) ) { return json::parse(element.command); }
+				if ( json::accept(element.command) ) { return json::parse(element.command); } // Json Raw Data
 
 				std::string input = element.command;
 				switch (elementNotation) {
@@ -415,7 +422,7 @@ public:
 				}
 
 				const json result = data[json::json_pointer(input)];
-				if (throw_error && result.is_null()) { throw std::runtime_error("Did not found json element: " + element.command); }
+				if (result.is_null()) { throw std::runtime_error("Did not found json element: " + element.command); }
 				return result;
 			}
 		}
@@ -463,7 +470,7 @@ public:
 					auto elementCondition = std::static_pointer_cast<Parsed::ElementConditionContainer>(element);
 					for (auto branch: elementCondition->children) {
 						auto elementBranch = std::static_pointer_cast<Parsed::ElementConditionBranch>(branch);
-						if (eval_condition(elementBranch->condition, data) || elementBranch->condition_type == "else") {
+						if (elementBranch->condition_type == Parsed::Condition::Else || eval_expression<bool>(elementBranch->condition, data)) {
 							result += Template(*elementBranch, elementNotation).render(data);
 							break;
 						}
@@ -494,15 +501,20 @@ public:
 		{Parsed::Statement::Include, Regex{"include \"(.+)\""}}
 	};
 
-	const Regex regex_loop_open = regex_map_statement_openers.at(Parsed::Statement::Loop);
-	const Regex regex_loop_in_list{"for (\\w+) in (.+)"};
-	const Regex regex_loop_close{"endfor"};
+	const std::map<Parsed::Statement, Regex> regex_map_statement_closers = {
+		{Parsed::Statement::Loop, Regex{"endfor"}},
+		{Parsed::Statement::Condition, Regex{"endif"}}
+	};
 
-	const Regex regex_condition_open = regex_map_statement_openers.at(Parsed::Statement::Condition);
-	const Regex regex_condition_else_if{"else if (.+)"};
-	const Regex regex_condition_else{"else"};
-	const Regex regex_condition_close{"endif"};
+	const std::map<Parsed::Loop, Regex> regex_map_loop = {
+		{Parsed::Loop::ForIn, Regex{"for (\\w+) in (.+)"}},
+	};
 
+	const std::map<Parsed::Condition, Regex> regex_map_condition = {
+		{Parsed::Condition::If, Regex{"if (.+)"}},
+		{Parsed::Condition::ElseIf, Regex{"else if (.+)"}},
+		{Parsed::Condition::Else, Regex{"else"}}
+	};
 
 	const std::map<Parsed::Function, Regex> regex_map_functions = {
 		{Parsed::Function::Not, Regex{"not (.+)"}},
@@ -523,47 +535,27 @@ public:
 		{Parsed::Function::DivisibleBy, Regex{"divisibleBy\\(\\s*(.*)\\s*,\\s*(.*)\\s*\\)"}},
 		{Parsed::Function::Odd, Regex{"odd\\(\\s*(.*)\\s*\\)"}},
 		{Parsed::Function::Even, Regex{"even\\(\\s*(.*)\\s*\\)"}},
-		{Parsed::Function::ReadJson, Regex{"\\s*([^\\(\\)]*?)\\s*"}}
+		{Parsed::Function::ReadJson, Regex{"\\s*([^\\(\\)]*\\S)\\s*"}}
 	};
 
 	Parser() { }
 
-	Parsed::ElementExpression element_function(Parsed::Function func, unsigned int number_args, const Match& match) {
-		std::vector<Parsed::ElementExpression> args = {};
-		for (unsigned int i = 0; i < number_args; i++) {
-			args.push_back( parse_expression(match.str(i + 1)) ); // str(0) is whole group
-		}
-
-		Parsed::ElementExpression result = Parsed::ElementExpression(func);
-		result.args = args;
-		return result;
-	}
-
 	Parsed::ElementExpression parse_expression(const std::string& input) {
 		MatchType<Parsed::Function> match_function = match(input, regex_map_functions);
 		switch ( match_function.type() ) {
-			using Func = Parsed::Function;
-			case Func::Upper: { return element_function(Func::Upper, 1, match_function); }
-			case Func::Lower: { return element_function(Func::Lower, 1, match_function); }
-			case Func::Range: { return element_function(Func::Range, 1, match_function); }
-			case Func::Length: { return element_function(Func::Length, 1, match_function); }
-			case Func::Round: { return element_function(Func::Round, 2, match_function); }
-			case Func::DivisibleBy: { return element_function(Func::DivisibleBy, 2, match_function); }
-			case Func::Odd: { return element_function(Func::Odd, 1, match_function); }
-			case Func::Even: { return element_function(Func::Even, 1, match_function); }
-			case Func::Not: { return element_function(Func::Not, 1, match_function); }
-			case Func::And: { return element_function(Func::And, 2, match_function); }
-			case Func::Or: { return element_function(Func::Or, 2, match_function); }
-			case Func::In: { return element_function(Func::In, 2, match_function); }
-			case Func::Equal: { return element_function(Func::Equal, 2, match_function); }
-			case Func::Greater: { return element_function(Func::Greater, 2, match_function); }
-			case Func::Less: { return element_function(Func::Less, 2, match_function); }
-			case Func::GreaterEqual: { return element_function(Func::GreaterEqual, 2, match_function); }
-			case Func::LessEqual: { return element_function(Func::LessEqual, 2, match_function); }
-			case Func::Different: { return element_function(Func::Different, 2, match_function); }
-			case Func::ReadJson: {
-				Parsed::ElementExpression result = Parsed::ElementExpression(Func::ReadJson);
+			case Parsed::Function::ReadJson: {
+				Parsed::ElementExpression result = Parsed::ElementExpression(Parsed::Function::ReadJson);
 				result.command = match_function.str(1);
+				return result;
+			}
+			default: {
+				std::vector<Parsed::ElementExpression> args = {};
+				for (unsigned int i = 1; i < match_function.size(); i++) { // str(0) is whole group
+					args.push_back( parse_expression(match_function.str(i)) );
+				}
+
+				Parsed::ElementExpression result = Parsed::ElementExpression(match_function.type());
+				result.args = args;
 				return result;
 			}
 		}
@@ -590,57 +582,45 @@ public:
 					MatchType<Parsed::Statement> match_statement = match(delimiter_inner, regex_map_statement_openers);
 					switch ( match_statement.type() ) {
 						case Parsed::Statement::Loop: {
-							MatchClosed loop_match = search_closed(input, match_delimiter.regex(), regex_loop_open, regex_loop_close, match_delimiter);
+							MatchClosed loop_match = search_closed(input, match_delimiter.regex(), regex_map_statement_openers.at(Parsed::Statement::Loop), regex_map_statement_closers.at(Parsed::Statement::Loop), match_delimiter);
 
 							current_position = loop_match.end_position();
-							const std::string loop_command = match_statement.str(0);
 
-							Match match_command;
-							if (std::regex_match(loop_command, match_command, regex_loop_in_list)) {
-								const std::string item_name = match_command.str(1);
-								const std::string list_name = match_command.str(2);
-
-								result.emplace_back( std::make_shared<Parsed::ElementLoop>(item_name, parse_expression(list_name), loop_match.inner()));
-							} else {
-								throw std::runtime_error("Parser error: Unknown loop command.");
-							}
+							MatchType<Parsed::Loop> match_command = match(match_statement.str(0), regex_map_loop);
+							const std::string item_name = match_command.str(1);
+							const std::string list_name = match_command.str(2);
+							result.emplace_back( std::make_shared<Parsed::ElementLoop>(item_name, parse_expression(list_name), loop_match.inner()));
 							break;
 						}
 						case Parsed::Statement::Condition: {
 							auto condition_container = std::make_shared<Parsed::ElementConditionContainer>();
 
-							const Regex regex_condition{"(if|else if|else(?! if)) ?(.*)"};
 							Match condition_match = match_delimiter;
-							MatchClosed else_if_match = search_closed_on_level(input, match_delimiter.regex(), regex_condition_open, regex_condition_close, regex_condition_else_if, condition_match);
+							MatchClosed else_if_match = search_closed_on_level(input, match_delimiter.regex(), regex_map_statement_openers.at(Parsed::Statement::Condition), regex_map_statement_closers.at(Parsed::Statement::Condition), regex_map_condition.at(Parsed::Condition::ElseIf), condition_match);
 							while (else_if_match.found()) {
 								condition_match = else_if_match.close_match;
 
-								Match match_command;
-								std::string else_if_open_str = else_if_match.open_match.str(1); // Regex match no r-value
-								if (std::regex_match(else_if_open_str, match_command, regex_condition)) {
-									condition_container->children.push_back( std::make_shared<Parsed::ElementConditionBranch>(else_if_match.inner(), match_command.str(1), parse_expression(match_command.str(2))) );
-								}
+								MatchType<Parsed::Condition> match_command = match(else_if_match.open_match.str(1), regex_map_condition);
+								condition_container->children.push_back( std::make_shared<Parsed::ElementConditionBranch>(else_if_match.inner(), match_command.type(), parse_expression(match_command.str(1))) );
 
-								else_if_match = search_closed_on_level(input, match_delimiter.regex(), regex_condition_open, regex_condition_close, regex_condition_else_if, condition_match);
+								else_if_match = search_closed_on_level(input, match_delimiter.regex(), regex_map_statement_openers.at(Parsed::Statement::Condition), regex_map_statement_closers.at(Parsed::Statement::Condition), regex_map_condition.at(Parsed::Condition::ElseIf), condition_match);
 							}
 
-							MatchClosed else_match = search_closed_on_level(input, match_delimiter.regex(), regex_condition_open, regex_condition_close, regex_condition_else, condition_match);
+							MatchClosed else_match = search_closed_on_level(input, match_delimiter.regex(), regex_map_statement_openers.at(Parsed::Statement::Condition), regex_map_statement_closers.at(Parsed::Statement::Condition), regex_map_condition.at(Parsed::Condition::Else), condition_match);
 							if (else_match.found()) {
 								condition_match = else_match.close_match;
 
-								Match match_command;
-								std::string else_open_str = else_match.open_match.str(1);
-								if (std::regex_match(else_open_str, match_command, regex_condition)) {
-									condition_container->children.push_back( std::make_shared<Parsed::ElementConditionBranch>(else_match.inner(), match_command.str(1), parse_expression(match_command.str(2))) );
-								}
+								MatchType<Parsed::Condition> match_command = match(else_match.open_match.str(1), regex_map_condition);
+								condition_container->children.push_back( std::make_shared<Parsed::ElementConditionBranch>(else_match.inner(), match_command.type(), parse_expression(match_command.str(1))) );
 							}
 
-							MatchClosed last_if_match = search_closed(input, match_delimiter.regex(), regex_condition_open, regex_condition_close, condition_match);
+							MatchClosed last_if_match = search_closed(input, match_delimiter.regex(), regex_map_statement_openers.at(Parsed::Statement::Condition), regex_map_statement_closers.at(Parsed::Statement::Condition), condition_match);
 
-							Match match_command;
-							std::string last_if_open_str = last_if_match.open_match.str(1);
-							if (std::regex_match(last_if_open_str, match_command, regex_condition)) {
-								condition_container->children.push_back( std::make_shared<Parsed::ElementConditionBranch>(last_if_match.inner(), match_command.str(1), parse_expression(match_command.str(2))) );
+							MatchType<Parsed::Condition> match_command = match(last_if_match.open_match.str(1), regex_map_condition);
+							if (match_command.type() == Parsed::Condition::Else) {
+								condition_container->children.push_back( std::make_shared<Parsed::ElementConditionBranch>(last_if_match.inner(), match_command.type()) );
+							} else {
+								condition_container->children.push_back( std::make_shared<Parsed::ElementConditionBranch>(last_if_match.inner(), match_command.type(), parse_expression(match_command.str(1))) );
 							}
 
 							current_position = last_if_match.end_position();
@@ -692,14 +672,14 @@ public:
 	}
 
 	Template parse(const std::string& input) {
-		auto parsed = parse_tree(std::make_shared<Parsed::Element>(Parsed::Element(Parsed::Type::String, input)), "./");
+		auto parsed = parse_tree(std::make_shared<Parsed::Element>(Parsed::Element(Parsed::Type::Main, input)), "./");
 		return Template(*parsed);
 	}
 
 	Template parse_template(const std::string& filename) {
 		std::string input = load_file(filename);
 		std::string path = filename.substr(0, filename.find_last_of("/\\") + 1);
-		auto parsed = parse_tree(std::make_shared<Parsed::Element>(Parsed::Element(Parsed::Type::String, input)), path);
+		auto parsed = parse_tree(std::make_shared<Parsed::Element>(Parsed::Element(Parsed::Type::Main, input)), path);
 		return Template(*parsed);
 	}
 
