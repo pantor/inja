@@ -160,7 +160,7 @@ inline MatchType<T> search(const std::string& input, std::map<T, Regex> regexes,
 	return search_match;
 }
 
-inline MatchClosed search_closed_on_level(const std::string& input, const Regex regex_statement, const Regex regex_level_up, const Regex regex_level_down, const Regex regex_search, Match open_match) {
+inline MatchClosed search_closed_on_level(const std::string& input, const Regex& regex_statement, const Regex regex_level_up, const Regex regex_level_down, const Regex regex_search, Match open_match) {
 
 	int level = 0;
 	size_t current_position = open_match.end_position();
@@ -179,7 +179,7 @@ inline MatchClosed search_closed_on_level(const std::string& input, const Regex 
 	return MatchClosed(open_match, match_delimiter);
 }
 
-inline MatchClosed search_closed(const std::string& input, const Regex regex_statement, const Regex regex_open, const Regex regex_close, Match open_match) {
+inline MatchClosed search_closed(const std::string& input, const Regex& regex_statement, const Regex regex_open, const Regex regex_close, Match open_match) {
 	return search_closed_on_level(input, regex_statement, regex_open, regex_close, regex_close, open_match);
 }
 
@@ -277,7 +277,7 @@ struct Parsed {
 		std::string command;
 
 		explicit ElementExpression(): ElementExpression(Function::ReadJson) { }
-		ElementExpression(const Function function): Element(Type::Expression), function(function), args({}), command("") { }
+		explicit ElementExpression(const Function function_): Element(Type::Expression), function(function_), args({}), command("") { }
 	};
 
 	struct ElementLoop: public Element {
@@ -310,8 +310,8 @@ public:
 	explicit Template(const Parsed::Element& parsed_template, ElementNotation elementNotation): parsed_template(parsed_template), elementNotation(elementNotation) { }
 
 	template<typename T = json>
-	T eval_variable(const Parsed::ElementExpression& element, json data) {
-		const json var = eval_variable(element, data, true);
+	T eval_expression(const Parsed::ElementExpression& element, json data) {
+		const json var = eval_expression(element, data, true);
 		if (std::is_same<T, json>::value) {
 			return var;
 		}
@@ -319,51 +319,51 @@ public:
 	}
 
 	bool eval_condition(const Parsed::ElementExpression& element, json data) {
-		const json var = eval_variable(element, data, false);
+		const json var = eval_expression(element, data, false);
 		if (var.empty()) { return false; }
 		else if (var.is_number()) { return (var != 0); }
 		else if (var.is_string()) { return not var.empty(); }
 		return var.get<bool>();
 	}
 
-	json eval_variable(const Parsed::ElementExpression& element, json data, bool throw_error) {
+	json eval_expression(const Parsed::ElementExpression& element, json data, bool throw_error) {
 		switch (element.function) {
 			case Parsed::Function::Upper: {
-				std::string str = eval_variable<std::string>(element.args[0], data);
+				std::string str = eval_expression<std::string>(element.args[0], data);
 				std::transform(str.begin(), str.end(), str.begin(), toupper);
 				return str;
 			}
 			case Parsed::Function::Lower: {
-				std::string str = eval_variable<std::string>(element.args[0], data);
+				std::string str = eval_expression<std::string>(element.args[0], data);
 				std::transform(str.begin(), str.end(), str.begin(), tolower);
 				return str;
 			}
 			case Parsed::Function::Range: {
-				const int number = eval_variable<int>(element.args[0], data);
+				const int number = eval_expression<int>(element.args[0], data);
 				std::vector<int> result(number);
 				std::iota(std::begin(result), std::end(result), 0);
 				return result;
 			}
 			case Parsed::Function::Length: {
-				const std::vector<json> list = eval_variable<std::vector<json>>(element.args[0], data);
+				const std::vector<json> list = eval_expression<std::vector<json>>(element.args[0], data);
 				return list.size();
 			}
 			case Parsed::Function::Round: {
-				const double number = eval_variable<double>(element.args[0], data);
-				const int precision = eval_variable<int>(element.args[1], data);
+				const double number = eval_expression<double>(element.args[0], data);
+				const int precision = eval_expression<int>(element.args[1], data);
 				return std::round(number * std::pow(10.0, precision)) / std::pow(10.0, precision);
 			}
 			case Parsed::Function::DivisibleBy: {
-				const int number = eval_variable<int>(element.args[0], data);
-				const int divisor = eval_variable<int>(element.args[1], data);
+				const int number = eval_expression<int>(element.args[0], data);
+				const int divisor = eval_expression<int>(element.args[1], data);
 				return (number % divisor == 0);
 			}
 			case Parsed::Function::Odd: {
-				const int number = eval_variable<int>(element.args[0], data);
+				const int number = eval_expression<int>(element.args[0], data);
 				return (number % 2 != 0);
 			}
 			case Parsed::Function::Even: {
-				const int number = eval_variable<int>(element.args[0], data);
+				const int number = eval_expression<int>(element.args[0], data);
 				return (number % 2 == 0);
 			}
 			case Parsed::Function::Not: {
@@ -376,27 +376,27 @@ public:
 				return (eval_condition(element.args[0], data) or eval_condition(element.args[1], data));
 			}
 			case Parsed::Function::In: {
-				const json item = eval_variable(element.args[0], data);
-				const json list = eval_variable(element.args[1], data);
+				const json item = eval_expression(element.args[0], data);
+				const json list = eval_expression(element.args[1], data);
 				return (std::find(list.begin(), list.end(), item) != list.end());
 			}
 			case Parsed::Function::Equal: {
-				return eval_variable(element.args[0], data) == eval_variable(element.args[1], data);
+				return eval_expression(element.args[0], data) == eval_expression(element.args[1], data);
 			}
 			case Parsed::Function::Greater: {
-				return eval_variable(element.args[0], data) > eval_variable(element.args[1], data);
+				return eval_expression(element.args[0], data) > eval_expression(element.args[1], data);
 			}
 			case Parsed::Function::Less: {
-				return eval_variable(element.args[0], data) < eval_variable(element.args[1], data);
+				return eval_expression(element.args[0], data) < eval_expression(element.args[1], data);
 			}
 			case Parsed::Function::GreaterEqual: {
-				return eval_variable(element.args[0], data) >= eval_variable(element.args[1], data);
+				return eval_expression(element.args[0], data) >= eval_expression(element.args[1], data);
 			}
 			case Parsed::Function::LessEqual: {
-				return eval_variable(element.args[0], data) <= eval_variable(element.args[1], data);
+				return eval_expression(element.args[0], data) <= eval_expression(element.args[1], data);
 			}
 			case Parsed::Function::Different: {
-				return eval_variable(element.args[0], data) != eval_variable(element.args[1], data);
+				return eval_expression(element.args[0], data) != eval_expression(element.args[1], data);
 			}
 			case Parsed::Function::ReadJson: {
 				// Json Raw Data
@@ -425,6 +425,7 @@ public:
 		std::string result = "";
 		for (auto element: parsed_template.children) {
 			switch (element->type) {
+				case Parsed::Type::Main: { throw std::runtime_error("Main type in renderer."); }
     		case Parsed::Type::String: {
 					auto elementString = std::static_pointer_cast<Parsed::ElementString>(element);
 					result += elementString->text;
@@ -432,7 +433,7 @@ public:
 				}
     		case Parsed::Type::Expression: {
 					auto elementExpression = std::static_pointer_cast<Parsed::ElementExpression>(element);
-					json variable = eval_variable(*elementExpression, data);
+					json variable = eval_expression(*elementExpression, data);
 					if (variable.is_string()) {
 						result += variable.get<std::string>();
 					} else {
@@ -446,7 +447,7 @@ public:
 					auto elementLoop = std::static_pointer_cast<Parsed::ElementLoop>(element);
 					const std::string item_name = elementLoop->item;
 
-					const std::vector<json> list = eval_variable<std::vector<json>>(elementLoop->list, data);
+					const std::vector<json> list = eval_expression<std::vector<json>>(elementLoop->list, data);
 					for (unsigned int i = 0; i < list.size(); i++) {
 						json data_loop = data;
 						data_loop[item_name] = list[i];
@@ -469,9 +470,8 @@ public:
 					}
 					break;
 				}
-				case Parsed::Type::Comment: { break; }
-				case Parsed::Type::Main: { throw std::runtime_error("Main type in renderer."); }
 				case Parsed::Type::ConditionBranch: { throw std::runtime_error("ConditionBranch type in renderer."); }
+				case Parsed::Type::Comment: { break; }
 		 	}
 		}
 		return result;
