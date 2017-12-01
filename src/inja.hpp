@@ -160,7 +160,7 @@ inline MatchType<T> search(const std::string& input, std::map<T, Regex> regexes,
 	return search_match;
 }
 
-inline MatchClosed search_closed_on_level(const std::string& input, const Regex& regex_statement, const Regex regex_level_up, const Regex regex_level_down, const Regex regex_search, Match open_match) {
+inline MatchClosed search_closed_on_level(const std::string& input, const Regex& regex_statement, const Regex& regex_level_up, const Regex& regex_level_down, const Regex& regex_search, Match open_match) {
 
 	int level = 0;
 	size_t current_position = open_match.end_position();
@@ -179,7 +179,7 @@ inline MatchClosed search_closed_on_level(const std::string& input, const Regex&
 	return MatchClosed(open_match, match_delimiter);
 }
 
-inline MatchClosed search_closed(const std::string& input, const Regex& regex_statement, const Regex regex_open, const Regex regex_close, Match open_match) {
+inline MatchClosed search_closed(const std::string& input, const Regex& regex_statement, const Regex& regex_open, const Regex& regex_close, Match open_match) {
 	return search_closed_on_level(input, regex_statement, regex_open, regex_close, regex_close, open_match);
 }
 
@@ -489,9 +489,9 @@ public:
 	};
 
 	const std::map<Parsed::Statement, Regex> regex_map_statement_openers = {
-		{Parsed::Statement::Loop, Regex{"for (.*)"}},
-		{Parsed::Statement::Condition, Regex{"if (.*)"}},
-		{Parsed::Statement::Include, Regex{"include \"(.*)\""}}
+		{Parsed::Statement::Loop, Regex{"for (.+)"}},
+		{Parsed::Statement::Condition, Regex{"if (.+)"}},
+		{Parsed::Statement::Include, Regex{"include \"(.+)\""}}
 	};
 
 	const Regex regex_loop_open = regex_map_statement_openers.at(Parsed::Statement::Loop);
@@ -499,7 +499,7 @@ public:
 	const Regex regex_loop_close{"endfor"};
 
 	const Regex regex_condition_open = regex_map_statement_openers.at(Parsed::Statement::Condition);
-	const Regex regex_condition_else_if{"else if (.*)"};
+	const Regex regex_condition_else_if{"else if (.+)"};
 	const Regex regex_condition_else{"else"};
 	const Regex regex_condition_close{"endif"};
 
