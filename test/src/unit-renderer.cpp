@@ -43,7 +43,7 @@ TEST_CASE("types") {
 		CHECK( env.render("{# --- #Todo --- #}", data) == "" );
 	}
 
-	/* SECTION("loops") {
+	SECTION("loops") {
 		CHECK( env.render("{% for name in names %}a{% endfor %}", data) == "aa" );
 		CHECK( env.render("Hello {% for name in names %}{{ name }} {% endfor %}!", data) == "Hello Jeff Seb !" );
 		CHECK( env.render("Hello {% for name in names %}{{ index }}: {{ name }}, {% endfor %}!", data) == "Hello 0: Jeff, 1: Seb, !" );
@@ -61,10 +61,10 @@ TEST_CASE("types") {
 		CHECK( env.render("{% if age in [28, 29, 30] %}True{% endif %}", data) == "True" );
 		CHECK( env.render("{% if age == 28 %}28{% else if age == 29 %}29{% endif %}", data) == "29" );
 		CHECK( env.render("{% if age == 26 %}26{% else if age == 27 %}27{% else if age == 28 %}28{% else %}29{% endif %}", data) == "29" );
-	} */
+	}
 }
 
-/* TEST_CASE("functions") {
+TEST_CASE("functions") {
 	inja::Environment env = inja::Environment();
 
 	json data;
@@ -125,7 +125,7 @@ TEST_CASE("types") {
 	}
 }
 
-TEST_CASE("combinations") {
+/* TEST_CASE("combinations") {
 	inja::Environment env = inja::Environment();
 	json data;
 	data["name"] = "Peter";
