@@ -64,7 +64,7 @@ TEST_CASE("types") {
 	}
 }
 
-TEST_CASE("functions") {
+/* TEST_CASE("functions") {
 	inja::Environment env = inja::Environment();
 
 	json data;
@@ -125,7 +125,7 @@ TEST_CASE("functions") {
 	}
 }
 
-/* TEST_CASE("combinations") {
+TEST_CASE("combinations") {
 	inja::Environment env = inja::Environment();
 	json data;
 	data["name"] = "Peter";
