@@ -25,7 +25,7 @@ TEST_CASE("types") {
 		CHECK( env.render("Hello World!", data) == "Hello World!" );
 	}
 
-	/* SECTION("variables") {
+	SECTION("variables") {
 		CHECK( env.render("Hello {{ name }}!", data) == "Hello Peter!" );
 		CHECK( env.render("{{ name }}", data) == "Peter" );
 		CHECK( env.render("{{name}}", data) == "Peter" );
@@ -43,7 +43,7 @@ TEST_CASE("types") {
 		CHECK( env.render("{# --- #Todo --- #}", data) == "" );
 	}
 
-	SECTION("loops") {
+	/* SECTION("loops") {
 		CHECK( env.render("{% for name in names %}a{% endfor %}", data) == "aa" );
 		CHECK( env.render("Hello {% for name in names %}{{ name }} {% endfor %}!", data) == "Hello Jeff Seb !" );
 		CHECK( env.render("Hello {% for name in names %}{{ index }}: {{ name }}, {% endfor %}!", data) == "Hello 0: Jeff, 1: Seb, !" );
