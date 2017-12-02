@@ -78,8 +78,11 @@ TEST_CASE("functions") {
 		CHECK( env.render("{{ upper(  name  ) }}", data) == "PETER" );
 		CHECK( env.render("{{ upper(city) }}", data) == "NEW YORK" );
 		CHECK( env.render("{{ upper(upper(name)) }}", data) == "PETER" );
+		std::cout << "1" << std::endl;
 		CHECK_THROWS_WITH( env.render("{{ upper(5) }}", data), "[json.exception.type_error.302] type must be string, but is number" );
+		std::cout << "2" << std::endl;
 		CHECK_THROWS_WITH( env.render("{{ upper(true) }}", data), "[json.exception.type_error.302] type must be string, but is boolean" );
+		std::cout << "3" << std::endl;
 	}
 
 	/* SECTION("lower") {

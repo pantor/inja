@@ -753,7 +753,8 @@ public:
 	}
 
 	std::string render(const std::string& input, json data) {
-		return parse(input).render(data);
+		const std::string text = input;
+		return parse(text).render(data);
 	}
 
 	std::string render_template(const std::string& filename, json data) {
