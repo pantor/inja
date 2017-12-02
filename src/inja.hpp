@@ -52,7 +52,7 @@ public:
 
 class Match: public std::smatch {
 	size_t offset_ = 0;
-	int group_offset_ = 0;
+	unsigned int group_offset_ = 0;
 	Regex regex_;
 
 public:
@@ -60,7 +60,7 @@ public:
 	explicit Match(size_t offset): std::smatch(), offset_(offset) { }
 	explicit Match(size_t offset, const Regex& regex): std::smatch(), offset_(offset), regex_(regex) { }
 
-	void setGroupOffset(int group_offset) { group_offset_ = group_offset; }
+	void setGroupOffset(unsigned int group_offset) { group_offset_ = group_offset; }
 	void setRegex(Regex regex) { regex_ = regex; }
 
 	size_t position() const { return offset_ + std::smatch::position(); }
@@ -118,7 +118,7 @@ inline Match search(const std::string& input, Regex regex, size_t position) {
 
 
 template<typename T>
-inline MatchType<T> search(const std::string& input, std::map<T, Regex> regexes, size_t position) {
+inline MatchType<T> search(const std::string& input, std::map<T, Regex>& regexes, size_t position) {
 	// Map to vectors
 	std::vector<T> class_vector;
 	std::vector<Regex> regexes_vector;
@@ -140,7 +140,7 @@ inline MatchType<T> search(const std::string& input, std::map<T, Regex> regexes,
 	if (not search_match.found()) { return MatchType<T>(); }
 
 	// Vector of id vs groups
-	std::vector<unsigned int> regex_mark_counts;
+	std::vector<unsigned int> regex_mark_counts = {};
 	for (unsigned int i = 0; i < regexes_vector.size(); i++) {
 		for (unsigned int j = 0; j < regexes_vector[i].mark_count() + 1; j++) {
 			regex_mark_counts.push_back(i);
@@ -186,7 +186,7 @@ inline MatchClosed search_closed(const std::string& input, const Regex& regex_st
 template<typename T>
 inline MatchType<T> match(const std::string& input, std::map<T, Regex> regexes) {
 	MatchType<T> match;
-	for (auto const& e : regexes) {
+	for (const auto e : regexes) {
 		if (std::regex_match(input, match, e.second)) {
 			match.setType(e.first);
 			match.setRegex(e.second);
@@ -426,6 +426,9 @@ public:
 				return result;
 			}
 		}
+
+		throw std::runtime_error("Unknown function in renderer.");
+		return json();
 	}
 
 	std::string render(json data) {
@@ -586,9 +589,11 @@ public:
 
 							current_position = loop_match.end_position();
 
-							MatchType<Parsed::Loop> match_command = match(match_statement.str(0), regex_map_loop);
+							const std::string loop_inner = match_statement.str(0);
+							MatchType<Parsed::Loop> match_command = match(loop_inner, regex_map_loop);
 							const std::string item_name = match_command.str(1);
 							const std::string list_name = match_command.str(2);
+
 							result.emplace_back( std::make_shared<Parsed::ElementLoop>(item_name, parse_expression(list_name), loop_match.inner()));
 							break;
 						}
@@ -600,7 +605,8 @@ public:
 							while (else_if_match.found()) {
 								condition_match = else_if_match.close_match;
 
-								MatchType<Parsed::Condition> match_command = match(else_if_match.open_match.str(1), regex_map_condition);
+								const std::string else_if_match_inner = else_if_match.open_match.str(1);
+								MatchType<Parsed::Condition> match_command = match(else_if_match_inner, regex_map_condition);
 								condition_container->children.push_back( std::make_shared<Parsed::ElementConditionBranch>(else_if_match.inner(), match_command.type(), parse_expression(match_command.str(1))) );
 
 								else_if_match = search_closed_on_level(input, match_delimiter.regex(), regex_map_statement_openers.at(Parsed::Statement::Condition), regex_map_statement_closers.at(Parsed::Statement::Condition), regex_map_condition.at(Parsed::Condition::ElseIf), condition_match);
@@ -610,13 +616,15 @@ public:
 							if (else_match.found()) {
 								condition_match = else_match.close_match;
 
-								MatchType<Parsed::Condition> match_command = match(else_match.open_match.str(1), regex_map_condition);
+								const std::string else_match_inner = else_match.open_match.str(1);
+								MatchType<Parsed::Condition> match_command = match(else_match_inner, regex_map_condition);
 								condition_container->children.push_back( std::make_shared<Parsed::ElementConditionBranch>(else_match.inner(), match_command.type(), parse_expression(match_command.str(1))) );
 							}
 
 							MatchClosed last_if_match = search_closed(input, match_delimiter.regex(), regex_map_statement_openers.at(Parsed::Statement::Condition), regex_map_statement_closers.at(Parsed::Statement::Condition), condition_match);
 
-							MatchType<Parsed::Condition> match_command = match(last_if_match.open_match.str(1), regex_map_condition);
+							const std::string last_if_match_inner = last_if_match.open_match.str(1);
+							MatchType<Parsed::Condition> match_command = match(last_if_match_inner, regex_map_condition);
 							if (match_command.type() == Parsed::Condition::Else) {
 								condition_container->children.push_back( std::make_shared<Parsed::ElementConditionBranch>(last_if_match.inner(), match_command.type()) );
 							} else {
