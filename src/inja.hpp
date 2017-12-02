@@ -335,9 +335,12 @@ public:
 	}
 
 	json eval_function(const Parsed::ElementExpression& element, json data) {
+		std::cout << "eval_function" << std::endl;
 		switch (element.function) {
 			case Parsed::Function::Upper: {
+				std::cout << "eval_function - upper" << std::endl;
 				std::string str = eval_expression<std::string>(element.args[0], data);
+				std::cout << "eval_function - upper - " << str << std::endl;
 				std::transform(str.begin(), str.end(), str.begin(), toupper);
 				return str;
 			}
@@ -547,11 +550,13 @@ public:
 		MatchType<Parsed::Function> match_function = match(input, regex_map_functions);
 		switch ( match_function.type() ) {
 			case Parsed::Function::ReadJson: {
+				std::cout << "parse read json" << std::endl;
 				Parsed::ElementExpression result = Parsed::ElementExpression(Parsed::Function::ReadJson);
 				result.command = match_function.str(1);
 				return result;
 			}
 			default: {
+				std::cout << "prase other function" << std::endl;
 				std::vector<Parsed::ElementExpression> args = {};
 				for (unsigned int i = 1; i < match_function.size(); i++) { // str(0) is whole group
 					args.push_back( parse_expression(match_function.str(i)) );

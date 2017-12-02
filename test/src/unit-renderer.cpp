@@ -7,7 +7,7 @@
 using json = nlohmann::json;
 
 
-TEST_CASE("types") {
+/* TEST_CASE("types") {
 	inja::Environment env = inja::Environment();
 	json data;
 	data["name"] = "Peter";
@@ -62,9 +62,9 @@ TEST_CASE("types") {
 		CHECK( env.render("{% if age == 28 %}28{% else if age == 29 %}29{% endif %}", data) == "29" );
 		CHECK( env.render("{% if age == 26 %}26{% else if age == 27 %}27{% else if age == 28 %}28{% else %}29{% endif %}", data) == "29" );
 	}
-}
+} */
 
-/* TEST_CASE("functions") {
+TEST_CASE("functions") {
 	inja::Environment env = inja::Environment();
 
 	json data;
@@ -75,14 +75,14 @@ TEST_CASE("types") {
 
 	SECTION("upper") {
 		CHECK( env.render("{{ upper(name) }}", data) == "PETER" );
-		CHECK( env.render("{{ upper(  name  ) }}", data) == "PETER" );
+		/* CHECK( env.render("{{ upper(  name  ) }}", data) == "PETER" );
 		CHECK( env.render("{{ upper(city) }}", data) == "NEW YORK" );
 		CHECK( env.render("{{ upper(upper(name)) }}", data) == "PETER" );
 		CHECK_THROWS_WITH( env.render("{{ upper(5) }}", data), "[json.exception.type_error.302] type must be string, but is number" );
-		CHECK_THROWS_WITH( env.render("{{ upper(true) }}", data), "[json.exception.type_error.302] type must be string, but is boolean" );
+		CHECK_THROWS_WITH( env.render("{{ upper(true) }}", data), "[json.exception.type_error.302] type must be string, but is boolean" ); */
 	}
 
-	SECTION("lower") {
+	/* SECTION("lower") {
 		CHECK( env.render("{{ lower(name) }}", data) == "peter" );
 		CHECK( env.render("{{ lower(city) }}", data) == "new york" );
 		CHECK_THROWS_WITH( env.render("{{ lower(5.45) }}", data), "[json.exception.type_error.302] type must be string, but is number" );
@@ -122,10 +122,10 @@ TEST_CASE("types") {
 		CHECK( env.render("{{ even(11) }}", data) == "false" );
 		CHECK( env.render("{{ even(12) }}", data) == "true" );
 		CHECK_THROWS_WITH( env.render("{{ even(name) }}", data), "[json.exception.type_error.302] type must be number, but is string" );
-	}
+	} */
 }
 
-TEST_CASE("combinations") {
+/* TEST_CASE("combinations") {
 	inja::Environment env = inja::Environment();
 	json data;
 	data["name"] = "Peter";
