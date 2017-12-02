@@ -7,7 +7,7 @@
 using json = nlohmann::json;
 
 
-/* TEST_CASE("types") {
+TEST_CASE("types") {
 	inja::Environment env = inja::Environment();
 	json data;
 	data["name"] = "Peter";
@@ -25,7 +25,7 @@ using json = nlohmann::json;
 		CHECK( env.render("Hello World!", data) == "Hello World!" );
 	}
 
-	SECTION("variables") {
+	/* SECTION("variables") {
 		CHECK( env.render("Hello {{ name }}!", data) == "Hello Peter!" );
 		CHECK( env.render("{{ name }}", data) == "Peter" );
 		CHECK( env.render("{{name}}", data) == "Peter" );
@@ -61,10 +61,10 @@ using json = nlohmann::json;
 		CHECK( env.render("{% if age in [28, 29, 30] %}True{% endif %}", data) == "True" );
 		CHECK( env.render("{% if age == 28 %}28{% else if age == 29 %}29{% endif %}", data) == "29" );
 		CHECK( env.render("{% if age == 26 %}26{% else if age == 27 %}27{% else if age == 28 %}28{% else %}29{% endif %}", data) == "29" );
-	}
+	} */
 }
 
-TEST_CASE("functions") {
+/* TEST_CASE("functions") {
 	inja::Environment env = inja::Environment();
 
 	json data;

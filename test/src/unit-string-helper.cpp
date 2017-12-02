@@ -67,12 +67,14 @@ TEST_CASE("search-multiple-regexes") {
 			{2, map_functions.at(inja::Parsed::Function::ReadJson)}
 		};
 
-		inja::MatchType<int> match = inja::search("upper(name)", regex_patterns, 0);
+		const std::string input_1 = "upper(name)";
+		inja::MatchType<int> match = inja::search(input_1, regex_patterns, 0);
 		CHECK( match.type() == 0 );
 		CHECK( match.str(0) == "upper(name)" );
 		CHECK( match.str(1) == "name" );
 
-		inja::MatchType<int> match2 = inja::search("upper(lower(name))", regex_patterns, 0);
+		const std::string input_2 = "upper(lower(name))";
+		inja::MatchType<int> match2 = inja::search(input_2, regex_patterns, 0);
 		CHECK( match2.type() == 0 );
 		CHECK( match2.str(0) == "upper(lower(name))" );
 		CHECK( match2.str(1) == "lower(name)" );
