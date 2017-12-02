@@ -7,7 +7,7 @@
 using json = nlohmann::json;
 
 
-TEST_CASE("types") {
+/* TEST_CASE("types") {
 	inja::Environment env = inja::Environment();
 	json data;
 	data["name"] = "Peter";
@@ -199,4 +199,4 @@ TEST_CASE("other-syntax") {
 		CHECK( env.render("Hello {# Test #}", data) == "Hello {# Test #}" );
 		CHECK( env.render("Hello (& Test &)", data) == "Hello " );
 	}
-}
+} */

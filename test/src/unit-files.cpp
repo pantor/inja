@@ -6,7 +6,7 @@
 using json = nlohmann::json;
 
 
-TEST_CASE("loading") {
+/* TEST_CASE("loading") {
 	inja::Environment env = inja::Environment();
 	json data;
 	data["name"] = "Jeff";
@@ -32,4 +32,4 @@ TEST_CASE("complete-files") {
 			CHECK( env.render_template_with_json_file(test_name + "/template.txt", test_name + "/data.json") == env.load_global_file(test_name + "/result.txt") );
 		}
 	}
-}
+} */

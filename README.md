@@ -38,7 +38,7 @@ You can also integrate Inja in your project using [Hunter](https://github.com/ru
 
 ## Tutorial
 
-This tutorial will give you an idea how to use inja. It will explain the most important concepts and give practical advices using examples and exectuable code. Beside this tutorial, you can check the [documentation]() for further information.
+This tutorial will give you an idea how to use inja. It will explain the most important concepts and give practical advices using examples and executable code.
 
 ### Template Rendering
 
