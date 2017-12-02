@@ -448,6 +448,7 @@ public:
     		case Parsed::Type::Expression: {
 					auto elementExpression = std::static_pointer_cast<Parsed::ElementExpression>(element);
 					json variable = eval_expression(*elementExpression, data);
+					std::cout << "expression - " << variable << std::endl;
 					if (variable.is_string()) {
 						result += variable.get<std::string>();
 					} else {
@@ -488,6 +489,7 @@ public:
 				case Parsed::Type::Comment: { break; }
 		 	}
 		}
+		std::cout << "result - " << result << std::endl;
 		return result;
 	}
 };

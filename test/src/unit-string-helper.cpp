@@ -4,7 +4,7 @@
 
 
 
-/* TEST_CASE("dot to pointer") {
+TEST_CASE("dot to pointer") {
 	CHECK( inja::dot_to_json_pointer_notation("person.names.surname") == "/person/names/surname" );
 	CHECK( inja::dot_to_json_pointer_notation("guests.2") == "/guests/2" );
 }
@@ -156,6 +156,6 @@ TEST_CASE("match-functions") {
 	CHECK( inja::match("lower(upper(test))", map_regex).type() == inja::Parsed::Function::Lower );
 	CHECK( inja::match("round(2, 3)", map_regex).type() == inja::Parsed::Function::Round );
 
-	CHECK_THROWS_WITH( inja::match("test(var)", map_regex), "Could not match input: test(var)" );
-	CHECK_THROWS_WITH( inja::match("round(var)", map_regex), "Could not match input: round(var)" );
-} */
+	// CHECK_THROWS_WITH( inja::match("test(var)", map_regex), "Could not match input: test(var)" );
+	// CHECK_THROWS_WITH( inja::match("round(var)", map_regex), "Could not match input: round(var)" );
+}
