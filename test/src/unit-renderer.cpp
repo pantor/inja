@@ -75,11 +75,11 @@ TEST_CASE("functions") {
 
 	SECTION("upper") {
 		CHECK( env.render("{{ upper(name) }}", data) == "PETER" );
-		/* CHECK( env.render("{{ upper(  name  ) }}", data) == "PETER" );
+		CHECK( env.render("{{ upper(  name  ) }}", data) == "PETER" );
 		CHECK( env.render("{{ upper(city) }}", data) == "NEW YORK" );
 		CHECK( env.render("{{ upper(upper(name)) }}", data) == "PETER" );
 		CHECK_THROWS_WITH( env.render("{{ upper(5) }}", data), "[json.exception.type_error.302] type must be string, but is number" );
-		CHECK_THROWS_WITH( env.render("{{ upper(true) }}", data), "[json.exception.type_error.302] type must be string, but is boolean" ); */
+		CHECK_THROWS_WITH( env.render("{{ upper(true) }}", data), "[json.exception.type_error.302] type must be string, but is boolean" );
 	}
 
 	/* SECTION("lower") {
