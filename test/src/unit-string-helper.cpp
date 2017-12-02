@@ -126,3 +126,26 @@ TEST_CASE("search-on-level") {
 		CHECK( match.inner() == "Test" );
 	}
 }
+
+TEST_CASE("match-functions") {
+	auto map_regex = inja::Parser().regex_map_functions;
+
+	CHECK( inja::match("not test", map_regex).type() == inja::Parsed::Function::Not );
+	CHECK( inja::match("not test", map_regex).type() != inja::Parsed::Function::And );
+	CHECK( inja::match("2 == 3", map_regex).type() == inja::Parsed::Function::Equal );
+	CHECK( inja::match("test and test", map_regex).type() == inja::Parsed::Function::And );
+	CHECK( inja::match("test and test", map_regex).type() != inja::Parsed::Function::ReadJson );
+	CHECK( inja::match("test", map_regex).type() == inja::Parsed::Function::ReadJson );
+	CHECK( inja::match("upper", map_regex).type() == inja::Parsed::Function::ReadJson );
+	CHECK( inja::match("upper()", map_regex).type() == inja::Parsed::Function::Upper );
+	CHECK( inja::match("upper(var)", map_regex).type() == inja::Parsed::Function::Upper );
+	CHECK( inja::match("upper(  var	)", map_regex).type() == inja::Parsed::Function::Upper );
+	CHECK( inja::match("upper(lower())", map_regex).type() == inja::Parsed::Function::Upper );
+	CHECK( inja::match("upper(  lower()  )", map_regex).type() == inja::Parsed::Function::Upper );
+	CHECK( inja::match(" upper(lower()) ", map_regex).type() == inja::Parsed::Function::Upper );
+	CHECK( inja::match("lower(upper(test))", map_regex).type() == inja::Parsed::Function::Lower );
+	CHECK( inja::match("round(2, 3)", map_regex).type() == inja::Parsed::Function::Round );
+
+	CHECK_THROWS_WITH( inja::match("test(var)", map_regex), "Could not match input: test(var)" );
+	CHECK_THROWS_WITH( inja::match("round(var)", map_regex), "Could not match input: round(var)" );
+}
