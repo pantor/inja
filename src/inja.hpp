@@ -335,12 +335,9 @@ public:
 	}
 
 	json eval_function(const Parsed::ElementExpression& element, json data) {
-		std::cout << "eval_function" << std::endl;
 		switch (element.function) {
 			case Parsed::Function::Upper: {
-				std::cout << "eval_function - upper" << std::endl;
 				std::string str = eval_expression<std::string>(element.args[0], data);
-				std::cout << "eval_function - upper - " << str << std::endl;
 				std::transform(str.begin(), str.end(), str.begin(), toupper);
 				return str;
 			}
@@ -410,7 +407,6 @@ public:
 				return eval_expression(element.args[0], data) != eval_expression(element.args[1], data);
 			}
 			case Parsed::Function::ReadJson: {
-				std::cout << "eval_function - read json - " << element.command << std::endl;
 				if ( json::accept(element.command) ) { return json::parse(element.command); } // Json Raw Data
 
 				std::string input = element.command;
@@ -448,7 +444,7 @@ public:
     		case Parsed::Type::Expression: {
 					auto elementExpression = std::static_pointer_cast<Parsed::ElementExpression>(element);
 					json variable = eval_expression(*elementExpression, data);
-					std::cout << "expression - " << variable << std::endl;
+
 					if (variable.is_string()) {
 						result += variable.get<std::string>();
 					} else {
@@ -489,7 +485,6 @@ public:
 				case Parsed::Type::Comment: { break; }
 		 	}
 		}
-		std::cout << "result - " << result << std::endl;
 		return result;
 	}
 };
@@ -553,13 +548,11 @@ public:
 		MatchType<Parsed::Function> match_function = match(input, regex_map_functions);
 		switch ( match_function.type() ) {
 			case Parsed::Function::ReadJson: {
-				std::cout << "parse read json - " << match_function.str(1) << std::endl;
 				Parsed::ElementExpression result = Parsed::ElementExpression(Parsed::Function::ReadJson);
 				result.command = match_function.str(1);
 				return result;
 			}
 			default: {
-				std::cout << "prase other function" << std::endl;
 				std::vector<Parsed::ElementExpression> args = {};
 				for (unsigned int i = 1; i < match_function.size(); i++) { // str(0) is whole group
 					args.push_back( parse_expression(match_function.str(i)) );
