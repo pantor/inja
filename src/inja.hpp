@@ -705,7 +705,8 @@ public:
 @brief Environment class
 */
 class Environment {
-	const std::string global_path;
+	const std::string input_path;
+	const std::string output_path;
 
 	ElementNotation elementNotation = ElementNotation::Pointer;
 
@@ -713,7 +714,8 @@ class Environment {
 
 public:
 	Environment(): Environment("./") { }
-	explicit Environment(const std::string& global_path): global_path(global_path), parser() { }
+	explicit Environment(const std::string& global_path): input_path(global_path), output_path(global_path), parser() { }
+	explicit Environment(const std::string& input_path, const std::string& output_path): input_path(input_path), output_path(output_path), parser() { }
 
 	void setStatement(const std::string& open, const std::string& close) {
 		parser.regex_map_delimiters[Parsed::Delimiter::Statement] = Regex{open + "\\s*(.+?)\\s*" + close};
@@ -743,7 +745,7 @@ public:
 	}
 
 	Template parse_template(const std::string& filename) {
-		Template parsed = parser.parse_template(global_path + filename);
+		Template parsed = parser.parse_template(input_path + filename);
 		parsed.elementNotation = elementNotation;
 		return parsed;
 	}
@@ -763,7 +765,7 @@ public:
 	}
 
 	void write(const std::string& filename, json data, const std::string& filename_out) {
-		std::ofstream file(global_path + filename_out);
+		std::ofstream file(output_path + filename_out);
 		file << render_template(filename, data);
 		file.close();
 	}
@@ -774,11 +776,11 @@ public:
 	}
 
 	std::string load_global_file(const std::string& filename) {
-		return parser.load_file(global_path + filename);
+		return parser.load_file(input_path + filename);
 	}
 
 	json load_json(const std::string& filename) {
-		std::ifstream file(global_path + filename);
+		std::ifstream file(input_path + filename);
 		json j;
 		file >> j;
 		return j;

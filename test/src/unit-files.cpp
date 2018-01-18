@@ -33,3 +33,25 @@ TEST_CASE("complete-files") {
 		}
 	}
 }
+
+TEST_CASE("global-path") {
+	inja::Environment env = inja::Environment("data/");
+	json data;
+	data["name"] = "Jeff";
+
+	SECTION("Files should be written") {
+		env.write("simple.txt", data, "result.txt");
+		CHECK( env.load_global_file("result.txt") == "Hello Jeff." );
+	}
+}
+
+TEST_CASE("input-output-path") {
+	inja::Environment env = inja::Environment("data/", "results/");
+	json data;
+	data["name"] = "Jeff";
+
+	SECTION("Files should be written") {
+		env.write("simple.txt", data, "result.txt");
+		CHECK( env.load_global_file("../results/result.txt") == "Hello Jeff." );
+	}
+}
