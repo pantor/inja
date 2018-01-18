@@ -57,8 +57,12 @@ add_custom_command(
   TARGET ${UNITTEST_TARGET_NAME} POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_directory
   ${CMAKE_SOURCE_DIR}/test/data
-  ${CMAKE_CURRENT_BINARY_DIR}/data)
-
+  ${CMAKE_CURRENT_BINARY_DIR}/data
+)
+add_custom_target(
+  build-time-make-directory ALL
+  COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/results
+)
 ##
 ## Add tests to make
 ##
