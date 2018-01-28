@@ -46,12 +46,12 @@ TEST_CASE("global-path") {
 }
 
 TEST_CASE("input-output-path") {
-	inja::Environment env = inja::Environment("data/", "results/");
+	inja::Environment env = inja::Environment("data/", "data/");
 	json data;
 	data["name"] = "Jeff";
 
 	SECTION("Files should be written") {
-		env.write("simple.txt", data, "result.txt");
-		CHECK( env.load_global_file("../results/result.txt") == "Hello Jeff." );
+		env.write("simple.txt", data, "simple-result.txt");
+		CHECK( env.load_global_file("simple-result.txt") == "Hello Jeff." );
 	}
 }
