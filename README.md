@@ -16,7 +16,7 @@ Inja is a template engine for modern C++, loosely inspired by [jinja](http://jin
 json data;
 data["name"] = "world";
 
-inja::render("Hello {{ name }}!", data); // "Hello world!"
+inja::render("Hello {{ name }}!", data); // Returns "Hello world!"
 ```
 
 
