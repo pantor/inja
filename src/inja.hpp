@@ -33,6 +33,14 @@ inline std::string dot_to_json_pointer_notation(std::string dot) {
 	return result;
 }
 
+/*!
+@brief interface for callback statement
+*/
+class IStatementCallback {
+public:
+	virtual ~IStatementCallback() {};
+	virtual std::string onCallback(std::string name) const = 0;
+};
 
 
 /*!
@@ -50,24 +58,24 @@ public:
 
 
 
-class Match: public std::smatch {
+class Match: public std::match_results<std::string::const_iterator> {
 	size_t offset_ = 0;
 	unsigned int group_offset_ = 0;
 	Regex regex_;
 
 public:
-	Match(): std::smatch() { }
-	explicit Match(size_t offset): std::smatch(), offset_(offset) { }
-	explicit Match(size_t offset, const Regex& regex): std::smatch(), offset_(offset), regex_(regex) { }
+	Match(): std::match_results<std::string::const_iterator>() { }
+	explicit Match(size_t offset): std::match_results<std::string::const_iterator>(), offset_(offset) { }
+	explicit Match(size_t offset, const Regex& regex): std::match_results<std::string::const_iterator>(), offset_(offset), regex_(regex) { }
 
 	void setGroupOffset(unsigned int group_offset) { group_offset_ = group_offset; }
 	void setRegex(Regex regex) { regex_ = regex; }
 
-	size_t position() const { return offset_ + std::smatch::position(); }
+	size_t position() const { return offset_ + std::match_results<std::string::const_iterator>::position(); }
 	size_t end_position() const { return position() + length(); }
 	bool found() const { return not empty(); }
 	const std::string str() const { return str(0); }
-	const std::string str(int i) const { return std::smatch::str(i + group_offset_); }
+	const std::string str(int i) const { return std::match_results<std::string::const_iterator>::str(i + group_offset_); }
 	Regex regex() const { return regex_; }
 };
 
@@ -169,9 +177,9 @@ inline MatchClosed search_closed_on_level(const std::string& input, const Regex&
 		current_position = match_delimiter.end_position();
 
 		const std::string inner = match_delimiter.str(1);
-		if (std::regex_match(inner, regex_search) and level == 0) { break; }
-		if (std::regex_match(inner, regex_level_up)) { level += 1; }
-		else if (std::regex_match(inner, regex_level_down)) { level -= 1; }
+		if (std::regex_match(inner.cbegin(), inner.cend(), regex_search) and level == 0) { break; }
+		if (std::regex_match(inner.cbegin(), inner.cend(), regex_level_up)) { level += 1; }
+		else if (std::regex_match(inner.cbegin(), inner.cend(), regex_level_down)) { level -= 1; }
 
 		match_delimiter = search(input, regex_statement, current_position);
 	}
@@ -187,7 +195,7 @@ template<typename T>
 inline MatchType<T> match(const std::string& input, std::map<T, Regex> regexes) {
 	MatchType<T> match;
 	for (const auto e : regexes) {
-		if (std::regex_match(input, match, e.second)) {
+		if (std::regex_match(input.cbegin(), input.cend(), match, e.second)) {
 			match.setType(e.first);
 			match.setRegex(e.second);
 			return match;
@@ -225,7 +233,8 @@ struct Parsed {
 	enum class Statement {
 		Loop,
 		Condition,
-		Include
+		Include,
+		Callback
 	};
 
 	enum class Function {
@@ -491,6 +500,9 @@ public:
 
 
 class Parser {
+
+	IStatementCallback * statement_callback = nullptr;
+
 public:
 	std::map<Parsed::Delimiter, Regex> regex_map_delimiters = {
 		{Parsed::Delimiter::Statement, Regex{"\\{\\%\\s*(.+?)\\s*\\%\\}"}},
@@ -502,7 +514,8 @@ public:
 	const std::map<Parsed::Statement, Regex> regex_map_statement_openers = {
 		{Parsed::Statement::Loop, Regex{"for (.+)"}},
 		{Parsed::Statement::Condition, Regex{"if (.+)"}},
-		{Parsed::Statement::Include, Regex{"include \"(.+)\""}}
+		{Parsed::Statement::Include, Regex{"include \"(.+)\""}},
+		{Parsed::Statement::Callback, Regex{ "callback \"(.+)\"" }}
 	};
 
 	const std::map<Parsed::Statement, Regex> regex_map_statement_closers = {
@@ -544,6 +557,10 @@ public:
 
 	Parser() { }
 
+	void setStatementCallback(IStatementCallback &callback) {
+		statement_callback = &callback;
+	}
+
 	Parsed::ElementExpression parse_expression(const std::string& input) {
 		MatchType<Parsed::Function> match_function = match(input, regex_map_functions);
 		switch ( match_function.type() ) {
@@ -572,7 +589,7 @@ public:
 		MatchType<Parsed::Delimiter> match_delimiter = search(input, regex_map_delimiters, current_position);
 		while (match_delimiter.found()) {
 			current_position = match_delimiter.end_position();
-			std::string string_prefix = match_delimiter.prefix();
+			std::string string_prefix = match_delimiter.prefix().str();
 			if (not string_prefix.empty()) {
 				result.emplace_back( std::make_shared<Parsed::ElementString>(string_prefix) );
 			}
@@ -641,6 +658,14 @@ public:
 							Template included_template = parse_template(included_filename);
 							for (auto element : included_template.parsed_template.children) {
 								result.emplace_back(element);
+							}
+							break;
+						}
+						case Parsed::Statement::Callback: {
+							std::string callback_name = match_statement.str(1);
+							if (statement_callback) {
+								std::string evaluated_callback = statement_callback->onCallback(callback_name);
+								result.emplace_back(std::make_shared<Parsed::ElementString>(evaluated_callback));
 							}
 							break;
 						}
@@ -737,6 +762,9 @@ public:
 		elementNotation = elementNotation_;
 	}
 
+	void setStatementCallback(IStatementCallback &callback) {
+		parser.setStatementCallback(callback);
+	}
 
 	Template parse(const std::string& input) {
 		Template parsed = parser.parse(input);
