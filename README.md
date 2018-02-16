@@ -151,7 +151,7 @@ render("{% if not guest_count %}…{% endif %}", data); // True
 
 #### Includes
 
-This include other files, relative from the current file location.
+This includes other template files, relative from the current file location.
 ```
 {% include "footer.html" %}
 ```
