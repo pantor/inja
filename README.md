@@ -175,13 +175,13 @@ render("{{ first(guests) }} was first.", data); // "Jeff was first."
 render("{{ last(guests) }} was last.", data); // "Tom was last."
 
 // Round numbers to a given precision
-render({{ round(3.1415, 0) }}, data); // 3
-render({{ round(3.1415, 3) }}, data); // 3.142
+render("{{ round(3.1415, 0) }}", data); // 3
+render("{{ round(3.1415, 3) }}", data); // 3.142
 
 // Check if a value is odd, even or divisible by a number
-render({{ odd(42) }}, data); // false
-render({{ even(42) }}, data); // true
-render({{ divisibleBy(42, 7) }}, data); // true
+render("{{ odd(42) }}", data); // false
+render("{{ even(42) }}", data); // true
+render("{{ divisibleBy(42, 7) }}", data); // true
 ```
 
 ### Callbacks
