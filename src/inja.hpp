@@ -34,14 +34,22 @@ inline std::string dot_to_json_pointer_notation(std::string dot) {
 }
 
 /*!
+@brief central point for throwing errors from inja.
+*/
+inline void throw_error(std::string text)
+{
+	throw std::runtime_error(text);
+}
+
+/*!
 @brief interface for callback statement
 */
 class IStatementCallback {
 public:
 	virtual ~IStatementCallback() {};
-	virtual std::string onCallback(std::string name) const = 0;
+	virtual bool onCallback(const std::string& name, std::string &value) const = 0;
+	virtual bool onMissingValue(const std::string& name, std::string &value) const = 0;
 };
-
 
 /*!
 @brief inja regex class, saves string pattern in addition to std::regex
@@ -164,7 +172,7 @@ inline MatchType<T> search(const std::string& input, std::map<T, Regex>& regexes
 		}
 	}
 
-	throw std::runtime_error("Error while searching in input: " + input);
+	throw_error("Error while searching in input: " + input);
 	return search_match;
 }
 
@@ -201,7 +209,7 @@ inline MatchType<T> match(const std::string& input, std::map<T, Regex> regexes) 
 			return match;
 		}
 	}
-	throw std::runtime_error("Could not match input: " + input);
+	throw_error("Could not match input: " + input);
 	return match;
 }
 
@@ -325,6 +333,7 @@ class Template {
 public:
 	const Parsed::Element parsed_template;
 	ElementNotation elementNotation;
+	IStatementCallback * statement_callback = nullptr;
 
 	explicit Template(const Parsed::Element& parsed_template): Template(parsed_template, ElementNotation::Pointer) { }
 	explicit Template(const Parsed::Element& parsed_template, ElementNotation elementNotation): parsed_template(parsed_template), elementNotation(elementNotation) { }
@@ -430,13 +439,20 @@ public:
 					}
 				}
 
-				const json result = data[json::json_pointer(input)];
-				if (result.is_null()) { throw std::runtime_error("Did not found json element: " + element.command); }
+				json result = data[json::json_pointer(input)];
+				if (result.is_null())
+				{
+					std::string callback_value;
+					if (statement_callback && statement_callback->onMissingValue(element.command, callback_value))
+						result = json(callback_value);
+					else
+						throw_error("Did not found json element: " + element.command);
+				}
 				return result;
 			}
 		}
 
-		throw std::runtime_error("Unknown function in renderer.");
+		throw_error("Unknown function in renderer.");
 		return json();
 	}
 
@@ -444,7 +460,7 @@ public:
 		std::string result = "";
 		for (auto element: parsed_template.children) {
 			switch (element->type) {
-				case Parsed::Type::Main: { throw std::runtime_error("Main type in renderer."); }
+				case Parsed::Type::Main: { throw_error("Main type in renderer."); }
     		case Parsed::Type::String: {
 					auto elementString = std::static_pointer_cast<Parsed::ElementString>(element);
 					result += elementString->text;
@@ -490,7 +506,7 @@ public:
 					}
 					break;
 				}
-				case Parsed::Type::ConditionBranch: { throw std::runtime_error("ConditionBranch type in renderer."); }
+				case Parsed::Type::ConditionBranch: { throw_error("ConditionBranch type in renderer."); }
 				case Parsed::Type::Comment: { break; }
 		 	}
 		}
@@ -663,10 +679,11 @@ public:
 						}
 						case Parsed::Statement::Callback: {
 							std::string callback_name = match_statement.str(1);
-							if (statement_callback) {
-								std::string evaluated_callback = statement_callback->onCallback(callback_name);
-								result.emplace_back(std::make_shared<Parsed::ElementString>(evaluated_callback));
-							}
+							std::string callback_value;
+							if (statement_callback &&  statement_callback->onCallback(callback_name, callback_value))
+								result.emplace_back(std::make_shared<Parsed::ElementString>(callback_value));
+							else						
+								throw_error("Unknown callback function: " + callback_name);
 							break;
 						}
 					}
@@ -734,6 +751,7 @@ class Environment {
 	const std::string output_path;
 
 	ElementNotation elementNotation = ElementNotation::Pointer;
+	IStatementCallback * statement_callback = nullptr;
 
 	Parser parser = Parser();
 
@@ -763,18 +781,21 @@ public:
 	}
 
 	void setStatementCallback(IStatementCallback &callback) {
+		statement_callback = &callback;
 		parser.setStatementCallback(callback);
 	}
 
 	Template parse(const std::string& input) {
 		Template parsed = parser.parse(input);
 		parsed.elementNotation = elementNotation;
+		parsed.statement_callback = statement_callback;
 		return parsed;
 	}
 
 	Template parse_template(const std::string& filename) {
 		Template parsed = parser.parse_template(input_path + filename);
 		parsed.elementNotation = elementNotation;
+		parsed.statement_callback = statement_callback;
 		return parsed;
 	}
 
