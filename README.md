@@ -167,8 +167,12 @@ render("Hello {{ lower(neighbour) }}!", data); // "Hello peter!"
 // Range function, useful for loops
 render("{% for i in range(4) %}{{ index1 }}{% endfor %}", data); // "1234"
 
-// Length function (but please don't combine with range, use list directly...)
+// Length function (please don't combine with range, use list directly...)
 render("I count {{ length(guests) }} guests.", data); // "I count 3 guests."
+
+// Get first and last element in a list
+render("{{ first(guests) }} was first.", data); // "Jeff was first."
+render("{{ last(guests) }} was last.", data); // "Tom was last."
 
 // Round numbers to a given precision
 render({{ round(3.1415, 0) }}, data); // 3

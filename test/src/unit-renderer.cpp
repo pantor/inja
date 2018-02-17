@@ -99,6 +99,16 @@ TEST_CASE("functions") {
 		// CHECK_THROWS_WITH( env.render("{{ length(5) }}", data), "[json.exception.type_error.302] type must be array, but is number" );
 	}
 
+	SECTION("first") {
+		CHECK( env.render("{{ first(names) }}", data) == "Jeff" );
+		// CHECK_THROWS_WITH( env.render("{{ length(5) }}", data), "[json.exception.type_error.302] type must be array, but is number" );
+	}
+
+	SECTION("last") {
+		CHECK( env.render("{{ last(names) }}", data) == "Tom" );
+		// CHECK_THROWS_WITH( env.render("{{ length(5) }}", data), "[json.exception.type_error.302] type must be array, but is number" );
+	}
+
 	SECTION("round") {
 		CHECK( env.render("{{ round(4, 0) }}", data) == "4.0" );
 		CHECK( env.render("{{ round(temperature, 2) }}", data) == "25.68" );

@@ -243,6 +243,8 @@ struct Parsed {
 		Lower,
 		Range,
 		Length,
+		First,
+		Last,
 		Round,
 		DivisibleBy,
 		Odd,
@@ -355,6 +357,14 @@ public:
 			case Parsed::Function::Length: {
 				const std::vector<json> list = eval_expression<std::vector<json>>(element.args[0], data);
 				return list.size();
+			}
+			case Parsed::Function::First: {
+				const std::vector<json> list = eval_expression<std::vector<json>>(element.args[0], data);
+				return list.front();
+			}
+			case Parsed::Function::Last: {
+				const std::vector<json> list = eval_expression<std::vector<json>>(element.args[0], data);
+				return list.back();
 			}
 			case Parsed::Function::Round: {
 				const double number = eval_expression<double>(element.args[0], data);
@@ -548,6 +558,8 @@ public:
 		{Parsed::Function::Lower, function_regex("lower", 1)},
 		{Parsed::Function::Range, function_regex("range", 1)},
 		{Parsed::Function::Length, function_regex("length", 1)},
+		{Parsed::Function::First, function_regex("first", 1)},
+		{Parsed::Function::Last, function_regex("last", 1)},
 		{Parsed::Function::Round, function_regex("round", 2)},
 		{Parsed::Function::DivisibleBy, function_regex("divisibleBy", 2)},
 		{Parsed::Function::Odd, function_regex("odd", 1)},
