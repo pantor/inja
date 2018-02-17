@@ -60,8 +60,8 @@ public:
 	explicit Match(size_t offset): std::match_results<std::string::const_iterator>(), offset_(offset) { }
 	explicit Match(size_t offset, const Regex& regex): std::match_results<std::string::const_iterator>(), offset_(offset), regex_(regex) { }
 
-	void setGroupOffset(unsigned int group_offset) { group_offset_ = group_offset; }
-	void setRegex(Regex regex) { regex_ = regex; }
+	void set_group_offset(unsigned int group_offset) { group_offset_ = group_offset; }
+	void set_regex(Regex regex) { regex_ = regex; }
 
 	size_t position() const { return offset_ + std::match_results<std::string::const_iterator>::position(); }
 	size_t end_position() const { return position() + length(); }
@@ -82,7 +82,7 @@ public:
 	explicit MatchType(const Match& obj) : Match(obj) { }
 	MatchType(Match&& obj) : Match(std::move(obj)) { }
 
-	void setType(T type) { type_ = type; }
+	void set_type(T type) { type_ = type; }
 
 	T type() const { return type_; }
 };
@@ -149,9 +149,9 @@ inline MatchType<T> search(const std::string& input, std::map<T, Regex>& regexes
 
 	for (unsigned int i = 1; i < search_match.size(); i++) {
 		if (search_match.length(i) > 0) {
-			search_match.setGroupOffset(i);
-			search_match.setType(class_vector[regex_mark_counts[i]]);
-			search_match.setRegex(regexes_vector[regex_mark_counts[i]]);
+			search_match.set_group_offset(i);
+			search_match.set_type(class_vector[regex_mark_counts[i]]);
+			search_match.set_regex(regexes_vector[regex_mark_counts[i]]);
 			return search_match;
 		}
 	}
@@ -188,8 +188,8 @@ inline MatchType<T> match(const std::string& input, std::map<T, Regex> regexes) 
 	MatchType<T> match;
 	for (const auto e : regexes) {
 		if (std::regex_match(input.cbegin(), input.cend(), match, e.second)) {
-			match.setType(e.first);
-			match.setRegex(e.second);
+			match.set_type(e.first);
+			match.set_regex(e.second);
 			return match;
 		}
 	}
@@ -326,7 +326,7 @@ public:
 
 class Renderer {
 public:
-	ElementNotation elementNotation;
+	ElementNotation element_notation;
 
 	std::map<std::string, std::function<json(Parsed::Arguments, json)>> map_callbacks;
 
@@ -428,7 +428,7 @@ public:
 				if ( json::accept(element.command) ) { return json::parse(element.command); } // Json Raw Data
 
 				std::string input = element.command;
-				switch (elementNotation) {
+				switch (element_notation) {
 					case ElementNotation::Pointer: {
 						if (input[0] != '/') { input.insert(0, "/"); }
 						break;
@@ -458,13 +458,13 @@ public:
 			switch (element->type) {
 				case Parsed::Type::Main: { throw std::runtime_error("Main type in renderer."); }
 				case Parsed::Type::String: {
-					auto elementString = std::static_pointer_cast<Parsed::ElementString>(element);
-					result += elementString->text;
+					auto element_string = std::static_pointer_cast<Parsed::ElementString>(element);
+					result += element_string->text;
 					break;
 				}
 				case Parsed::Type::Expression: {
-					auto elementExpression = std::static_pointer_cast<Parsed::ElementExpression>(element);
-					json variable = eval_expression(*elementExpression, data);
+					auto element_expression = std::static_pointer_cast<Parsed::ElementExpression>(element);
+					json variable = eval_expression(*element_expression, data);
 
 					if (variable.is_string()) {
 						result += variable.get<std::string>();
@@ -476,10 +476,10 @@ public:
 					break;
 				}
 				case Parsed::Type::Loop: {
-					auto elementLoop = std::static_pointer_cast<Parsed::ElementLoop>(element);
-					const std::string item_name = elementLoop->item;
+					auto element_loop = std::static_pointer_cast<Parsed::ElementLoop>(element);
+					const std::string item_name = element_loop->item;
 
-					const std::vector<json> list = eval_expression<std::vector<json>>(elementLoop->list, data);
+					const std::vector<json> list = eval_expression<std::vector<json>>(element_loop->list, data);
 					for (unsigned int i = 0; i < list.size(); i++) {
 						json data_loop = data;
 						data_loop[item_name] = list[i];
@@ -487,16 +487,16 @@ public:
 						data_loop["index1"] = i + 1;
 						data_loop["is_first"] = (i == 0);
 						data_loop["is_last"] = (i == list.size() - 1);
-						result += render(Template(*elementLoop), data_loop);
+						result += render(Template(*element_loop), data_loop);
 					}
 					break;
 				}
 				case Parsed::Type::Condition: {
-					auto elementCondition = std::static_pointer_cast<Parsed::ElementConditionContainer>(element);
-					for (auto branch: elementCondition->children) {
-						auto elementBranch = std::static_pointer_cast<Parsed::ElementConditionBranch>(branch);
-						if (elementBranch->condition_type == Parsed::Condition::Else || eval_expression<bool>(elementBranch->condition, data)) {
-							result += render(Template(*elementBranch), data);
+					auto element_condition = std::static_pointer_cast<Parsed::ElementConditionContainer>(element);
+					for (auto branch: element_condition->children) {
+						auto element_branch = std::static_pointer_cast<Parsed::ElementConditionBranch>(branch);
+						if (element_branch->condition_type == Parsed::Condition::Else || eval_expression<bool>(element_branch->condition, data)) {
+							result += render(Template(*element_branch), data);
 							break;
 						}
 					}
@@ -759,7 +759,7 @@ class Environment {
 	const std::string input_path;
 	const std::string output_path;
 
-	ElementNotation elementNotation = ElementNotation::Pointer;
+	ElementNotation element_notation = ElementNotation::Pointer;
 
 	Parser parser = Parser();
 
@@ -771,24 +771,24 @@ public:
 	explicit Environment(const std::string& global_path): input_path(global_path), output_path(global_path), parser() { }
 	explicit Environment(const std::string& input_path, const std::string& output_path): input_path(input_path), output_path(output_path), parser() { }
 
-	void setStatement(const std::string& open, const std::string& close) {
+	void set_statement(const std::string& open, const std::string& close) {
 		parser.regex_map_delimiters[Parsed::Delimiter::Statement] = Regex{open + "\\s*(.+?)\\s*" + close};
 	}
 
-	void setLineStatement(const std::string& open) {
+	void set_line_statement(const std::string& open) {
 		parser.regex_map_delimiters[Parsed::Delimiter::LineStatement] = Regex{"(?:^|\\n)" + open + "\\s*(.+)\\s*"};
 	}
 
-	void setExpression(const std::string& open, const std::string& close) {
+	void set_expression(const std::string& open, const std::string& close) {
 		parser.regex_map_delimiters[Parsed::Delimiter::Expression] = Regex{open + "\\s*(.+?)\\s*" + close};
 	}
 
-	void setComment(const std::string& open, const std::string& close) {
+	void set_comment(const std::string& open, const std::string& close) {
 		parser.regex_map_delimiters[Parsed::Delimiter::Comment] = Regex{open + "\\s*(.+?)\\s*" + close};
 	}
 
-	void setElementNotation(const ElementNotation elementNotation_) {
-		elementNotation = elementNotation_;
+	void set_element_notation(const ElementNotation element_notation_) {
+		element_notation = element_notation_;
 	}
 
 
@@ -804,12 +804,12 @@ public:
 
 	std::string render(const std::string& input, json data) {
 		const std::string text = input;
-		renderer.elementNotation = elementNotation;
+		renderer.element_notation = element_notation;
 		return renderer.render(parse(text), data);
 	}
 
 	std::string render_template(const std::string& filename, json data) {
-		renderer.elementNotation = elementNotation;
+		renderer.element_notation = element_notation;
 		return renderer.render(parse_template(filename), data);
 	}
 

@@ -213,7 +213,7 @@ TEST_CASE("other-syntax") {
 
 	SECTION("variables") {
 		inja::Environment env = inja::Environment();
-		env.setElementNotation(inja::ElementNotation::Dot);
+		env.set_element_notation(inja::ElementNotation::Dot);
 
 		CHECK( env.render("{{ name }}", data) == "Peter" );
 		CHECK( env.render("Hello {{ names.1 }}!", data) == "Hello Seb!" );
@@ -228,7 +228,7 @@ TEST_CASE("other-syntax") {
 
 		CHECK( env.render("Hello {{ name }}!", data) == "Hello Peter!" );
 
-		env.setExpression("\\(&", "&\\)");
+		env.set_expression("\\(&", "&\\)");
 
 		CHECK( env.render("Hello {{ name }}!", data) == "Hello {{ name }}!" );
 		CHECK( env.render("Hello (& name &)!", data) == "Hello Peter!" );
@@ -236,7 +236,7 @@ TEST_CASE("other-syntax") {
 
 	SECTION("other comment syntax") {
 		inja::Environment env = inja::Environment();
-		env.setComment("\\(&", "&\\)");
+		env.set_comment("\\(&", "&\\)");
 
 		CHECK( env.render("Hello {# Test #}", data) == "Hello {# Test #}" );
 		CHECK( env.render("Hello (& Test &)", data) == "Hello " );
