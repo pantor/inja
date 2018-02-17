@@ -446,12 +446,12 @@ public:
 		for (auto element: parsed_template.children) {
 			switch (element->type) {
 				case Parsed::Type::Main: { throw std::runtime_error("Main type in renderer."); }
-    		case Parsed::Type::String: {
+				case Parsed::Type::String: {
 					auto elementString = std::static_pointer_cast<Parsed::ElementString>(element);
 					result += elementString->text;
-          break;
+					break;
 				}
-    		case Parsed::Type::Expression: {
+				case Parsed::Type::Expression: {
 					auto elementExpression = std::static_pointer_cast<Parsed::ElementExpression>(element);
 					json variable = eval_expression(*elementExpression, data);
 
@@ -462,7 +462,7 @@ public:
 						ss << variable;
 						result += ss.str();
 					}
-          break;
+					break;
 				}
 				case Parsed::Type::Loop: {
 					auto elementLoop = std::static_pointer_cast<Parsed::ElementLoop>(element);
@@ -493,7 +493,7 @@ public:
 				}
 				case Parsed::Type::ConditionBranch: { throw std::runtime_error("ConditionBranch type in renderer."); }
 				case Parsed::Type::Comment: { break; }
-		 	}
+			}
 		}
 		return result;
 	}
