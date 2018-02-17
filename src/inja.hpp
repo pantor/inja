@@ -33,7 +33,23 @@ inline std::string dot_to_json_pointer_notation(std::string dot) {
 	return result;
 }
 
+/*!
+@brief central point for throwing errors from inja.
+*/
+inline void throw_error(std::string text)
+{
+	throw std::runtime_error(text);
+}
 
+/*!
+@brief interface for callback statement
+*/
+class IStatementCallback {
+public:
+	virtual ~IStatementCallback() {};
+	virtual bool onCallback(const std::string& name, std::string &value) const = 0;
+	virtual bool onMissingValue(const std::string& name, std::string &value) const = 0;
+};
 
 /*!
 @brief inja regex class, saves string pattern in addition to std::regex
@@ -156,7 +172,7 @@ inline MatchType<T> search(const std::string& input, std::map<T, Regex>& regexes
 		}
 	}
 
-	throw std::runtime_error("Error while searching in input: " + input);
+	throw_error("Error while searching in input: " + input);
 	return search_match;
 }
 
@@ -193,7 +209,7 @@ inline MatchType<T> match(const std::string& input, std::map<T, Regex> regexes) 
 			return match;
 		}
 	}
-	throw std::runtime_error("Could not match input: " + input);
+	throw_error("Could not match input: " + input);
 	return match;
 }
 
@@ -225,7 +241,8 @@ struct Parsed {
 	enum class Statement {
 		Loop,
 		Condition,
-		Include
+		Include,
+		Callback
 	};
 
 	enum class Function {
@@ -318,6 +335,7 @@ class Template {
 public:
 	const Parsed::Element parsed_template;
 	ElementNotation elementNotation;
+	IStatementCallback * statement_callback = nullptr;
 
 	explicit Template(const Parsed::Element& parsed_template): Template(parsed_template, ElementNotation::Pointer) { }
 	explicit Template(const Parsed::Element& parsed_template, ElementNotation elementNotation): parsed_template(parsed_template), elementNotation(elementNotation) { }
@@ -431,13 +449,20 @@ public:
 					}
 				}
 
-				const json result = data[json::json_pointer(input)];
-				if (result.is_null()) { throw std::runtime_error("Did not found json element: " + element.command); }
+				json result = data[json::json_pointer(input)];
+				if (result.is_null())
+				{
+					std::string callback_value;
+					if (statement_callback && statement_callback->onMissingValue(element.command, callback_value))
+						result = json(callback_value);
+					else
+						throw_error("Did not found json element: " + element.command);
+				}
 				return result;
 			}
 		}
 
-		throw std::runtime_error("Unknown function in renderer.");
+		throw_error("Unknown function in renderer.");
 		return json();
 	}
 
@@ -445,7 +470,7 @@ public:
 		std::string result = "";
 		for (auto element: parsed_template.children) {
 			switch (element->type) {
-				case Parsed::Type::Main: { throw std::runtime_error("Main type in renderer."); }
+				case Parsed::Type::Main: { throw_error("Main type in renderer."); }
 				case Parsed::Type::String: {
 					auto elementString = std::static_pointer_cast<Parsed::ElementString>(element);
 					result += elementString->text;
@@ -491,7 +516,7 @@ public:
 					}
 					break;
 				}
-				case Parsed::Type::ConditionBranch: { throw std::runtime_error("ConditionBranch type in renderer."); }
+				case Parsed::Type::ConditionBranch: { throw_error("ConditionBranch type in renderer."); }
 				case Parsed::Type::Comment: { break; }
 			}
 		}
@@ -502,6 +527,7 @@ public:
 
 class Parser {
 public:
+        IStatementCallback * statement_callback = nullptr;
 	static Regex function_regex(std::string name, int number_arguments) {
 		std::string pattern = name;
 		if (number_arguments > 0) {
@@ -525,7 +551,8 @@ public:
 	const std::map<Parsed::Statement, Regex> regex_map_statement_openers = {
 		{Parsed::Statement::Loop, Regex{"for (.+)"}},
 		{Parsed::Statement::Condition, Regex{"if (.+)"}},
-		{Parsed::Statement::Include, Regex{"include \"(.+)\""}}
+		{Parsed::Statement::Include, Regex{"include \"(.+)\""}},
+		{Parsed::Statement::Callback, Regex{ "callback \"(.+)\"" }}
 	};
 
 	const std::map<Parsed::Statement, Regex> regex_map_statement_closers = {
@@ -569,6 +596,10 @@ public:
 
 	Parser() { }
 
+	void setStatementCallback(IStatementCallback &callback) {
+		statement_callback = &callback;
+	}
+
 	Parsed::ElementExpression parse_expression(const std::string& input) {
 		MatchType<Parsed::Function> match_function = match(input, regex_map_functions);
 		switch ( match_function.type() ) {
@@ -597,7 +628,7 @@ public:
 		MatchType<Parsed::Delimiter> match_delimiter = search(input, regex_map_delimiters, current_position);
 		while (match_delimiter.found()) {
 			current_position = match_delimiter.end_position();
-			std::string string_prefix = match_delimiter.prefix();
+			std::string string_prefix = match_delimiter.prefix().str();
 			if (not string_prefix.empty()) {
 				result.emplace_back( std::make_shared<Parsed::ElementString>(string_prefix) );
 			}
@@ -669,6 +700,15 @@ public:
 							}
 							break;
 						}
+						case Parsed::Statement::Callback: {
+							std::string callback_name = match_statement.str(1);
+							std::string callback_value;
+							if (statement_callback &&  statement_callback->onCallback(callback_name, callback_value))
+								result.emplace_back(std::make_shared<Parsed::ElementString>(callback_value));
+							else						
+								throw_error("Unknown callback function: " + callback_name);
+							break;
+						}
 					}
 					break;
 				}
@@ -734,6 +774,7 @@ class Environment {
 	const std::string output_path;
 
 	ElementNotation elementNotation = ElementNotation::Pointer;
+	IStatementCallback * statement_callback = nullptr;
 
 	Parser parser = Parser();
 
@@ -762,16 +803,22 @@ public:
 		elementNotation = elementNotation_;
 	}
 
+	void setStatementCallback(IStatementCallback &callback) {
+		statement_callback = &callback;
+		parser.setStatementCallback(callback);
+	}
 
 	Template parse(const std::string& input) {
 		Template parsed = parser.parse(input);
 		parsed.elementNotation = elementNotation;
+		parsed.statement_callback = statement_callback;
 		return parsed;
 	}
 
 	Template parse_template(const std::string& filename) {
 		Template parsed = parser.parse_template(input_path + filename);
 		parsed.elementNotation = elementNotation;
+		parsed.statement_callback = statement_callback;
 		return parsed;
 	}
 
