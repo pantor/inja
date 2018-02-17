@@ -33,6 +33,14 @@ inline std::string dot_to_json_pointer_notation(std::string dot) {
 	return result;
 }
 
+/*!
+@brief interface for callback statement
+*/
+class IStatementCallback {
+public:
+	virtual ~IStatementCallback() {};
+	virtual std::string onCallback(std::string name) const = 0;
+};
 
 
 /*!
@@ -225,7 +233,8 @@ struct Parsed {
 	enum class Statement {
 		Loop,
 		Condition,
-		Include
+		Include,
+		Callback
 	};
 
 	enum class Function {
@@ -501,6 +510,9 @@ public:
 
 
 class Parser {
+
+	IStatementCallback * statement_callback = nullptr;
+
 public:
 	static Regex function_regex(std::string name, int number_arguments) {
 		std::string pattern = name;
@@ -525,7 +537,8 @@ public:
 	const std::map<Parsed::Statement, Regex> regex_map_statement_openers = {
 		{Parsed::Statement::Loop, Regex{"for (.+)"}},
 		{Parsed::Statement::Condition, Regex{"if (.+)"}},
-		{Parsed::Statement::Include, Regex{"include \"(.+)\""}}
+		{Parsed::Statement::Include, Regex{"include \"(.+)\""}},
+		{Parsed::Statement::Callback, Regex{ "callback \"(.+)\"" }}
 	};
 
 	const std::map<Parsed::Statement, Regex> regex_map_statement_closers = {
@@ -569,6 +582,10 @@ public:
 
 	Parser() { }
 
+	void setStatementCallback(IStatementCallback &callback) {
+		statement_callback = &callback;
+	}
+
 	Parsed::ElementExpression parse_expression(const std::string& input) {
 		MatchType<Parsed::Function> match_function = match(input, regex_map_functions);
 		switch ( match_function.type() ) {
@@ -597,7 +614,7 @@ public:
 		MatchType<Parsed::Delimiter> match_delimiter = search(input, regex_map_delimiters, current_position);
 		while (match_delimiter.found()) {
 			current_position = match_delimiter.end_position();
-			std::string string_prefix = match_delimiter.prefix();
+			std::string string_prefix = match_delimiter.prefix().str();
 			if (not string_prefix.empty()) {
 				result.emplace_back( std::make_shared<Parsed::ElementString>(string_prefix) );
 			}
@@ -666,6 +683,14 @@ public:
 							Template included_template = parse_template(included_filename);
 							for (auto element : included_template.parsed_template.children) {
 								result.emplace_back(element);
+							}
+							break;
+						}
+						case Parsed::Statement::Callback: {
+							std::string callback_name = match_statement.str(1);
+							if (statement_callback) {
+								std::string evaluated_callback = statement_callback->onCallback(callback_name);
+								result.emplace_back(std::make_shared<Parsed::ElementString>(evaluated_callback));
 							}
 							break;
 						}
@@ -762,6 +787,9 @@ public:
 		elementNotation = elementNotation_;
 	}
 
+	void setStatementCallback(IStatementCallback &callback) {
+		parser.setStatementCallback(callback);
+	}
 
 	Template parse(const std::string& input) {
 		Template parsed = parser.parse(input);

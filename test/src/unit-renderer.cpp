@@ -168,6 +168,23 @@ TEST_CASE("templates") {
 	CHECK( temp.render(data) == "Brunswick" );
 }
 
+
+TEST_CASE("callback")
+{
+	class CTestData : public inja::IStatementCallback
+	{
+	public:
+		virtual std::string onCallback(std::string name) const override { return name + name; }
+	} statementCallback;
+
+	inja::Environment env = inja::Environment();
+	env.setStatementCallback(statementCallback);
+
+	json data;
+	std::string res = env.render("test {% callback \"hi\" %} test", data);
+	CHECK(res == "test hihi test");
+}
+
 TEST_CASE("other-syntax") {
 	json data;
 	data["name"] = "Peter";
