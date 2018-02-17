@@ -135,6 +135,38 @@ TEST_CASE("functions") {
 	}
 }
 
+TEST_CASE("callbacks") {
+	inja::Environment env = inja::Environment();
+	json data;
+	data["age"] = 28;
+
+	env.add_callback("double", 1, [&env](inja::Parsed::Arguments args, json data) {
+		const int number = env.renderer.eval_expression<int>(args[0], data);
+		return 2 * number;
+	});
+
+	env.add_callback("half", 1, [&env](inja::Parsed::Arguments args, json data) {
+		const int number = env.renderer.eval_expression<int>(args[0], data);
+		return number / 2;
+	});
+
+	std::string greet = "Hello";
+	env.add_callback("double-greetings", 0, [&env, greet](inja::Parsed::Arguments args, json data) {
+		return greet + " " + greet + "!";
+	});
+
+	env.add_callback("multiply", 2, [&env](inja::Parsed::Arguments args, json data) {
+		const double number1 = env.renderer.eval_expression<double>(args[0], data);
+		const double number2 = env.renderer.eval_expression<double>(args[1], data);
+		return number1 * number2;
+	});
+
+	CHECK( env.render("{{ double(age) }}", data) == "56" );
+	CHECK( env.render("{{ half(age) }}", data) == "14" );
+	CHECK( env.render("{{ double-greetings }}", data) == "Hello Hello!" );
+	CHECK( env.render("{{ multiply(4, 5) }}", data) == "20.0" );
+}
+
 TEST_CASE("combinations") {
 	inja::Environment env = inja::Environment();
 	json data;
@@ -161,11 +193,11 @@ TEST_CASE("templates") {
 	data["city"] = "Brunswick";
 	data["is_happy"] = true;
 
-	CHECK( temp.render(data) == "Peter" );
+	CHECK( env.renderer.render(temp, data) == "Peter" );
 
 	data["is_happy"] = false;
 
-	CHECK( temp.render(data) == "Brunswick" );
+	CHECK( env.renderer.render(temp, data) == "Brunswick" );
 }
 
 TEST_CASE("other-syntax") {

@@ -193,7 +193,7 @@ inline MatchType<T> match(const std::string& input, std::map<T, Regex> regexes) 
 			return match;
 		}
 	}
-	throw std::runtime_error("Could not match input: " + input);
+	// throw std::runtime_error("Could not match input: " + input);
 	return match;
 }
 
@@ -249,7 +249,8 @@ struct Parsed {
 		DivisibleBy,
 		Odd,
 		Even,
-		ReadJson
+		ReadJson,
+		Callback
 	};
 
 	enum class Condition {
@@ -291,6 +292,7 @@ struct Parsed {
 		explicit ElementExpression(): ElementExpression(Function::ReadJson) { }
 		explicit ElementExpression(const Function function_): Element(Type::Expression), function(function_), args({}), command("") { }
 	};
+	typedef std::vector<ElementExpression> Arguments;
 
 	struct ElementLoop: public Element {
 		const std::string item;
@@ -317,10 +319,16 @@ struct Parsed {
 class Template {
 public:
 	const Parsed::Element parsed_template;
+
+	explicit Template(const Parsed::Element& parsed_template): parsed_template(parsed_template) { }
+};
+
+
+class Renderer {
+public:
 	ElementNotation elementNotation;
 
-	explicit Template(const Parsed::Element& parsed_template): Template(parsed_template, ElementNotation::Pointer) { }
-	explicit Template(const Parsed::Element& parsed_template, ElementNotation elementNotation): parsed_template(parsed_template), elementNotation(elementNotation) { }
+	std::map<std::string, std::function<json(Parsed::Arguments, json)>> map_callbacks;
 
 	template<bool>
 	bool eval_expression(const Parsed::ElementExpression& element, json data) {
@@ -332,7 +340,7 @@ public:
 	}
 
 	template<typename T = json>
-	T eval_expression(const Parsed::ElementExpression& element, json data) {
+  T eval_expression(const Parsed::ElementExpression& element, json data) {
 		return eval_function(element, data).get<T>();
 	}
 
@@ -435,15 +443,18 @@ public:
 				if (result.is_null()) { throw std::runtime_error("Did not found json element: " + element.command); }
 				return result;
 			}
+			case Parsed::Function::Callback: {
+				return map_callbacks[element.command](element.args, data);
+			}
 		}
 
 		throw std::runtime_error("Unknown function in renderer.");
 		return json();
 	}
 
-	std::string render(json data) {
+	std::string render(Template temp, json data) {
 		std::string result = "";
-		for (auto element: parsed_template.children) {
+		for (auto element: temp.parsed_template.children) {
 			switch (element->type) {
 				case Parsed::Type::Main: { throw std::runtime_error("Main type in renderer."); }
 				case Parsed::Type::String: {
@@ -476,7 +487,7 @@ public:
 						data_loop["index1"] = i + 1;
 						data_loop["is_first"] = (i == 0);
 						data_loop["is_last"] = (i == list.size() - 1);
-						result += Template(*elementLoop, elementNotation).render(data_loop);
+						result += render(Template(*elementLoop), data_loop);
 					}
 					break;
 				}
@@ -485,7 +496,7 @@ public:
 					for (auto branch: elementCondition->children) {
 						auto elementBranch = std::static_pointer_cast<Parsed::ElementConditionBranch>(branch);
 						if (elementBranch->condition_type == Parsed::Condition::Else || eval_expression<bool>(elementBranch->condition, data)) {
-							result += Template(*elementBranch, elementNotation).render(data);
+							result += render(Template(*elementBranch), data);
 							break;
 						}
 					}
@@ -567,9 +578,24 @@ public:
 		{Parsed::Function::ReadJson, Regex{"\\s*([^\\(\\)]*\\S)\\s*"}}
 	};
 
+	std::map<std::string, Regex> regex_map_callbacks;
+
 	Parser() { }
 
 	Parsed::ElementExpression parse_expression(const std::string& input) {
+		MatchType<std::string> match_callback = match(input, regex_map_callbacks);
+		if (!match_callback.type().empty()) {
+			std::vector<Parsed::ElementExpression> args = {};
+			for (unsigned int i = 1; i < match_callback.size(); i++) { // str(0) is whole group
+				args.push_back( parse_expression(match_callback.str(i)) );
+			}
+
+			Parsed::ElementExpression result = Parsed::ElementExpression(Parsed::Function::Callback);
+			result.args = args;
+			result.command = match_callback.type();
+			return result;
+		}
+
 		MatchType<Parsed::Function> match_function = match(input, regex_map_functions);
 		switch ( match_function.type() ) {
 			case Parsed::Function::ReadJson: {
@@ -738,6 +764,9 @@ class Environment {
 	Parser parser = Parser();
 
 public:
+	Renderer renderer = Renderer();
+
+
 	Environment(): Environment("./") { }
 	explicit Environment(const std::string& global_path): input_path(global_path), output_path(global_path), parser() { }
 	explicit Environment(const std::string& input_path, const std::string& output_path): input_path(input_path), output_path(output_path), parser() { }
@@ -765,23 +794,23 @@ public:
 
 	Template parse(const std::string& input) {
 		Template parsed = parser.parse(input);
-		parsed.elementNotation = elementNotation;
 		return parsed;
 	}
 
 	Template parse_template(const std::string& filename) {
 		Template parsed = parser.parse_template(input_path + filename);
-		parsed.elementNotation = elementNotation;
 		return parsed;
 	}
 
 	std::string render(const std::string& input, json data) {
 		const std::string text = input;
-		return parse(text).render(data);
+		renderer.elementNotation = elementNotation;
+		return renderer.render(parse(text), data);
 	}
 
 	std::string render_template(const std::string& filename, json data) {
-		return parse_template(filename).render(data);
+		renderer.elementNotation = elementNotation;
+		return renderer.render(parse_template(filename), data);
 	}
 
 	std::string render_template_with_json_file(const std::string& filename, const std::string& filename_data) {
@@ -802,6 +831,11 @@ public:
 
 	std::string load_global_file(const std::string& filename) {
 		return parser.load_file(input_path + filename);
+	}
+
+	void add_callback(std::string name, int number_arguments, std::function<json(Parsed::Arguments, json)> callback) {
+		parser.regex_map_callbacks[name] = Parser::function_regex(name, number_arguments);
+		renderer.map_callbacks[name] = callback;
 	}
 
 	json load_json(const std::string& filename) {

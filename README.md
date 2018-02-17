@@ -184,6 +184,34 @@ render({{ even(42) }}, data); // true
 render({{ divisibleBy(42, 7) }}, data); // true
 ```
 
+### Callbacks
+
+You can create your own functions with callbacks. They can be added to the environment like
+```c++
+Environment env = Environment();
+
+/*
+ * Callbacks are defined by its:
+ * - name, which is equal to its function name
+ * - number of arguments
+ * - callback function. Using std::function, you can e.g. also use lambdas.
+ */
+env.add_callback("double", 1, [&env](Parsed::Arguments args, json data) {
+	const int number = env.renderer.eval_expression<int>(args[0], data); // Adapt the type and index of the argument
+	return 2 * number;
+});
+
+// You can then use a callback like a regular function
+env.render("{{ double(16) }}", data) // "32"
+
+// A callback without argument can be used like a variable:
+std::string greet = "Hello";
+env.add_callback("double-greetings", 0, [&env, greet](Parsed::Arguments args, json data) {
+	return greet + " " + greet + "!";
+});
+env.render("{{ double-greetings }}", data) // "Hello Hello!"
+```
+
 ### Comments
 
 Comments can be written with the `{# ... #}` syntax.
