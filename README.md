@@ -83,14 +83,14 @@ Environment env = Environment("../path/templates/");
 Environment env = Environment("../path/templates/", "../path/results/");
 
 // Choose between JSON pointer or dot notation to access elements
-env.setElementNotation(inja::ElementNotation::Pointer); // (default) e.g. time/start
-env.setElementNotation(inja::ElementNotation::Dot); // e.g. time.start
+env.set_element_notation(inja::ElementNotation::Pointer); // (default) e.g. time/start
+env.set_element_notation(inja::ElementNotation::Dot); // e.g. time.start
 
 // With other opening and closing strings (here the defaults, as regex)
-env.setVariables("\\{\\{", "\\}\\}"); // Variables {{ }}
-env.setComments("\\{#", "#\\}"); // Comments {# #}
-env.setStatements("\\{\\%", "\\%\\}"); // Statements {% %} for many things, see below
-env.setLineStatements("##"); // Line statement ## (just an opener)
+env.set_variables("\\{\\{", "\\}\\}"); // Variables {{ }}
+env.set_comments("\\{#", "#\\}"); // Comments {# #}
+env.set_statements("\\{\\%", "\\%\\}"); // Statements {% %} for many things, see below
+env.set_line_statements("##"); // Line statement ## (just an opener)
 ```
 
 ### Variables
