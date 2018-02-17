@@ -168,6 +168,87 @@ TEST_CASE("templates") {
 	CHECK( temp.render(data) == "Brunswick" );
 }
 
+TEST_CASE("callback_notused")
+{
+	inja::Environment env = inja::Environment();
+
+	json data;
+	CHECK_THROWS(env.render("test {% callback \"hi\" %} test", data));
+}
+
+TEST_CASE("callback_undefined")
+{
+	class CTestData : public inja::IStatementCallback
+	{
+	public:
+		virtual bool onCallback(const std::string& name, std::string &value) const override { return false; }
+		virtual bool onMissingValue(const std::string& name, std::string &value) const override { return false; }
+	} statementCallback;
+
+	inja::Environment env = inja::Environment();
+	env.setStatementCallback(statementCallback);
+
+	json data;
+	CHECK_THROWS(env.render("test {% callback \"hi\" %} test", data));
+}
+
+TEST_CASE("callback_defined")
+{
+	class CTestData : public inja::IStatementCallback
+	{
+	public:
+		virtual bool onCallback(const std::string& name, std::string &value) const override { value = name + name; return true; }
+		virtual bool onMissingValue(const std::string& name, std::string &value) const override { return false; }
+	} statementCallback;
+
+	inja::Environment env = inja::Environment();
+	env.setStatementCallback(statementCallback);
+
+	json data;
+	std::string res = env.render("test {% callback \"hi\" %} test", data);
+	CHECK(res == "test hihi test");
+}
+
+TEST_CASE("missing_value_callback_notused")
+{
+	json data;
+	inja::Environment env = inja::Environment();
+	CHECK_THROWS(env.render("test {{missing}} test", data));
+}
+
+TEST_CASE("missing_value_callback_undefined")
+{
+	class CTestData : public inja::IStatementCallback
+	{
+	public:
+		virtual bool onCallback(const std::string& name, std::string &value) const override { return false; }
+		virtual bool onMissingValue(const std::string& name, std::string &value) const override { return false; }
+	} statementCallback;
+
+	inja::Environment env = inja::Environment();
+	env.setStatementCallback(statementCallback);
+
+	json data;
+	CHECK_THROWS(env.render("test {{missing}} test", data));
+}
+
+TEST_CASE("missing_value_callback_defined")
+{
+	class CTestData : public inja::IStatementCallback
+	{
+	public:
+		virtual bool onCallback(const std::string& name, std::string &value) const override { return false; }
+		virtual bool onMissingValue(const std::string& name, std::string &value) const override { value = name + name; return true; }
+	} statementCallback;
+
+	inja::Environment env = inja::Environment();
+	env.setStatementCallback(statementCallback);
+
+	json data;
+	std::string res = env.render("test {{missing}} test", data);
+	CHECK(res == "test missingmissing test");
+}
+
 TEST_CASE("other-syntax") {
 	json data;
 	data["name"] = "Peter";
