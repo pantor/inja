@@ -83,8 +83,8 @@ Environment env = Environment("../path/templates/");
 Environment env = Environment("../path/templates/", "../path/results/");
 
 // Choose between JSON pointer or dot notation to access elements
-env.set_element_notation(inja::ElementNotation::Pointer); // (default) e.g. time/start
-env.set_element_notation(inja::ElementNotation::Dot); // e.g. time.start
+env.set_element_notation(ElementNotation::Pointer); // (default) e.g. time/start
+env.set_element_notation(ElementNotation::Dot); // e.g. time.start
 
 // With other opening and closing strings (here the defaults, as regex)
 env.set_variables("\\{\\{", "\\}\\}"); // Variables {{ }}
@@ -206,7 +206,7 @@ env.render("{{ double(16) }}", data) // "32"
 
 // A callback without argument can be used like a dynamic variable:
 std::string greet = "Hello";
-env.add_callback("double-greetings", 0, [&env, greet](Parsed::Arguments args, json data) {
+env.add_callback("double-greetings", 0, [greet](Parsed::Arguments args, json data) {
 	return greet + " " + greet + "!";
 });
 env.render("{{ double-greetings }}", data) // "Hello Hello!"

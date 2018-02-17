@@ -151,7 +151,7 @@ TEST_CASE("callbacks") {
 	});
 
 	std::string greet = "Hello";
-	env.add_callback("double-greetings", 0, [&env, greet](inja::Parsed::Arguments args, json data) {
+	env.add_callback("double-greetings", 0, [greet](inja::Parsed::Arguments args, json data) {
 		return greet + " " + greet + "!";
 	});
 
