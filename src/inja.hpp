@@ -492,6 +492,19 @@ public:
 
 class Parser {
 public:
+	static Regex function_regex(std::string name, int number_arguments) {
+		std::string pattern = name;
+		if (number_arguments > 0) {
+			pattern += "\\(";
+			for (int i = 0; i < number_arguments; i++) {
+				if (i != 0) pattern += ",";
+				pattern += "(.*)";
+			}
+			pattern += "\\)";
+		}
+		return Regex{"\\s*" + pattern + "\\s*"};
+	}
+
 	std::map<Parsed::Delimiter, Regex> regex_map_delimiters = {
 		{Parsed::Delimiter::Statement, Regex{"\\{\\%\\s*(.+?)\\s*\\%\\}"}},
 		{Parsed::Delimiter::LineStatement, Regex{"(?:^|\\n)##\\s*(.+)\\s*"}},
@@ -531,14 +544,14 @@ public:
 		{Parsed::Function::GreaterEqual, Regex{"(.+) >= (.+)"}},
 		{Parsed::Function::LessEqual, Regex{"(.+) <= (.+)"}},
 		{Parsed::Function::Different, Regex{"(.+) != (.+)"}},
-		{Parsed::Function::Upper, Regex{"\\s*upper\\((.*)\\)\\s*"}},
-		{Parsed::Function::Lower, Regex{"\\s*lower\\((.*)\\)\\s*"}},
-		{Parsed::Function::Range, Regex{"\\s*range\\((.*)\\)\\s*"}},
-		{Parsed::Function::Length, Regex{"\\s*length\\((.*)\\)\\s*"}},
-		{Parsed::Function::Round, Regex{"\\s*round\\((.*),(.*)\\)\\s*"}},
-		{Parsed::Function::DivisibleBy, Regex{"\\s*divisibleBy\\((.*),(.*)\\)\\s*"}},
-		{Parsed::Function::Odd, Regex{"\\s*odd\\((.*)\\)\\s*"}},
-		{Parsed::Function::Even, Regex{"\\s*even\\((.*)\\)\\s*"}},
+		{Parsed::Function::Upper, function_regex("upper", 1)},
+		{Parsed::Function::Lower, function_regex("lower", 1)},
+		{Parsed::Function::Range, function_regex("range", 1)},
+		{Parsed::Function::Length, function_regex("length", 1)},
+		{Parsed::Function::Round, function_regex("round", 2)},
+		{Parsed::Function::DivisibleBy, function_regex("divisibleBy", 2)},
+		{Parsed::Function::Odd, function_regex("odd", 1)},
+		{Parsed::Function::Even, function_regex("even", 1)},
 		{Parsed::Function::ReadJson, Regex{"\\s*([^\\(\\)]*\\S)\\s*"}}
 	};
 

@@ -159,3 +159,9 @@ TEST_CASE("match-functions") {
 	// CHECK_THROWS_WITH( inja::match("test(var)", map_regex), "Could not match input: test(var)" );
 	// CHECK_THROWS_WITH( inja::match("round(var)", map_regex), "Could not match input: round(var)" );
 }
+
+TEST_CASE("create-regex-functions") {
+	CHECK( inja::Parser::function_regex("upper", 1).pattern() == "\\s*upper\\((.*)\\)\\s*" );
+	CHECK( inja::Parser::function_regex("upper", 0).pattern() == "\\s*upper\\s*" );
+	CHECK( inja::Parser::function_regex("lower", 2).pattern() == "\\s*lower\\((.*),(.*)\\)\\s*" );
+}
