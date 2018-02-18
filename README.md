@@ -178,7 +178,6 @@ render("{{ last(guests) }} was last.", data); // "Patir was last."
 render("{{ sort([3,2,1]) }}", data); // "[1,2,3]"
 render("{{ sort(guests) }}", data); // "[\"Jeff\", \"Patrick\", \"Tom\"]"
 
-
 // Round numbers to a given precision
 render("{{ round(3.1415, 0) }}", data); // 3
 render("{{ round(3.1415, 3) }}", data); // 3.142
