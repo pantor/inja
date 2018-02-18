@@ -142,6 +142,18 @@ TEST_CASE("functions") {
 		// CHECK_THROWS_WITH( env.render("{{ even(name) }}", data), "[json.exception.type_error.302] type must be number, but is string" );
 	}
 
+	SECTION("max") {
+		CHECK( env.render("{{ max([1, 2, 3]) }}", data) == "3" );
+		CHECK( env.render("{{ max([-5.2, 100.2, 2.4]) }}", data) == "100.2" );
+		// CHECK_THROWS_WITH( env.render("{{ even(name) }}", data), "[json.exception.type_error.302] type must be number, but is string" );
+	}
+
+	SECTION("min") {
+		CHECK( env.render("{{ min([1, 2, 3]) }}", data) == "1" );
+		CHECK( env.render("{{ min([-5.2, 100.2, 2.4]) }}", data) == "-5.2" );
+		// CHECK_THROWS_WITH( env.render("{{ even(name) }}", data), "[json.exception.type_error.302] type must be number, but is string" );
+	}
+
 	SECTION("default") {
 		CHECK( env.render("{{ default(11, 0) }}", data) == "11" );
 		CHECK( env.render("{{ default(nothing, 0) }}", data) == "0" );

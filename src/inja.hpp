@@ -248,6 +248,8 @@ struct Parsed {
 		DivisibleBy,
 		Odd,
 		Even,
+		Max,
+		Min,
 		ReadJson,
 		Default,
 		Callback
@@ -395,6 +397,14 @@ public:
 			case Parsed::Function::Even: {
 				const int number = eval_expression<int>(element.args[0], data);
 				return (number % 2 == 0);
+			}
+			case Parsed::Function::Max: {
+				const std::vector<json> list = eval_expression<std::vector<json>>(element.args[0], data);
+				return *std::max_element(list.begin(), list.end());
+			}
+			case Parsed::Function::Min: {
+				const std::vector<json> list = eval_expression<std::vector<json>>(element.args[0], data);
+				return *std::min_element(list.begin(), list.end());
 			}
 			case Parsed::Function::Not: {
 				return not eval_expression<bool>(element.args[0], data);
@@ -601,6 +611,8 @@ public:
 		{Parsed::Function::DivisibleBy, function_regex("divisibleBy", 2)},
 		{Parsed::Function::Odd, function_regex("odd", 1)},
 		{Parsed::Function::Even, function_regex("even", 1)},
+		{Parsed::Function::Max, function_regex("max", 1)},
+		{Parsed::Function::Min, function_regex("min", 1)},
 		{Parsed::Function::ReadJson, Regex{"\\s*([^\\(\\)]*\\S)\\s*"}},
 		{Parsed::Function::Default, function_regex("default", 2)}
 	};

@@ -183,6 +183,10 @@ render("{{ odd(42) }}", data); // false
 render("{{ even(42) }}", data); // true
 render("{{ divisibleBy(42, 7) }}", data); // true
 
+// Maximum and minimum values from a list
+render("{{ max([1, 2, 3]) }}", data); // 3
+render("{{ min([-2.4, -1.2, 4.5]) }}", data); // -2.4
+
 // Set default values if variables are not defined
 render("Hello {{ default(neighbour, \"my friend\") }}!"); // "Hello Peter!"
 render("Hello {{ default(colleague, \"my friend\") }}!"); // "Hello my friend!"
