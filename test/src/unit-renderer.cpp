@@ -150,12 +150,12 @@ TEST_CASE("callbacks") {
 	data["age"] = 28;
 
 	env.add_callback("double", 1, [&env](inja::Parsed::Arguments args, json data) {
-		const int number = env.renderer.eval_expression<int>(args[0], data);
+		int number = env.get_argument<double>(args, 0, data);
 		return 2 * number;
 	});
 
 	env.add_callback("half", 1, [&env](inja::Parsed::Arguments args, json data) {
-		const int number = env.renderer.eval_expression<int>(args[0], data);
+		int number = env.get_argument<double>(args, 0, data);
 		return number / 2;
 	});
 
@@ -165,8 +165,8 @@ TEST_CASE("callbacks") {
 	});
 
 	env.add_callback("multiply", 2, [&env](inja::Parsed::Arguments args, json data) {
-		const double number1 = env.renderer.eval_expression<double>(args[0], data);
-		const double number2 = env.renderer.eval_expression<double>(args[1], data);
+		double number1 = env.get_argument<double>(args, 0, data);
+		double number2 = env.get_argument<double>(args, 1, data);
 		return number1 * number2;
 	});
 

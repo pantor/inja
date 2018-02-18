@@ -201,7 +201,7 @@ Environment env = Environment();
  * - callback function. Implemented with std::function, you can for example use lambdas.
  */
 env.add_callback("double", 1, [&env](Parsed::Arguments args, json data) {
-	const int number = env.renderer.eval_expression<int>(args[0], data); // Adapt the type and index of the argument
+	int number = env.get_argument<int>(args, 0, data); // Adapt the type and index of the argument
 	return 2 * number;
 });
 

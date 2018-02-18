@@ -193,7 +193,6 @@ inline MatchType<T> match(const std::string& input, std::map<T, Regex> regexes) 
 			return match;
 		}
 	}
-	// throw std::runtime_error("Could not match input: " + input);
 	return match;
 }
 
@@ -447,7 +446,7 @@ public:
 			case Parsed::Function::Default: {
 				try {
 					return eval_expression(element.args[0], data);
-				} catch (std::exception e) {
+				} catch (std::exception& exception) {
 					return eval_expression(element.args[1], data);
 				}
 			}
@@ -842,16 +841,21 @@ public:
 		return parser.load_file(input_path + filename);
 	}
 
-	void add_callback(std::string name, int number_arguments, std::function<json(Parsed::Arguments, json)> callback) {
-		parser.regex_map_callbacks[name] = Parser::function_regex(name, number_arguments);
-		renderer.map_callbacks[name] = callback;
-	}
-
 	json load_json(const std::string& filename) {
 		std::ifstream file(input_path + filename);
 		json j;
 		file >> j;
 		return j;
+	}
+
+	void add_callback(std::string name, int number_arguments, std::function<json(Parsed::Arguments, json)> callback) {
+		parser.regex_map_callbacks[name] = Parser::function_regex(name, number_arguments);
+		renderer.map_callbacks[name] = callback;
+	}
+
+	template<typename T>
+	T get_argument(Parsed::Arguments args, int index, json data) {
+		return renderer.eval_expression<T>(args[index], data);
 	}
 };
 
