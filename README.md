@@ -182,6 +182,10 @@ render("{{ round(3.1415, 3) }}", data); // 3.142
 render("{{ odd(42) }}", data); // false
 render("{{ even(42) }}", data); // true
 render("{{ divisibleBy(42, 7) }}", data); // true
+
+// Set default values if variables are not defined
+render("Hello {{ default(neighbour, "my friend") }}!") // "Hello Peter!"
+render("Hello {{ default(colleague, "my friend") }}!") // "Hello my friend!"
 ```
 
 ### Callbacks

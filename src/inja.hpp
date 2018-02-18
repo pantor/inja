@@ -250,6 +250,7 @@ struct Parsed {
 		Odd,
 		Even,
 		ReadJson,
+		Default,
 		Callback
 	};
 
@@ -443,6 +444,13 @@ public:
 				if (result.is_null()) { throw std::runtime_error("Did not found json element: " + element.command); }
 				return result;
 			}
+			case Parsed::Function::Default: {
+				try {
+					return eval_expression(element.args[0], data);
+				} catch (std::exception e) {
+					return eval_expression(element.args[1], data);
+				}
+			}
 			case Parsed::Function::Callback: {
 				return map_callbacks[element.command](element.args, data);
 			}
@@ -575,7 +583,8 @@ public:
 		{Parsed::Function::DivisibleBy, function_regex("divisibleBy", 2)},
 		{Parsed::Function::Odd, function_regex("odd", 1)},
 		{Parsed::Function::Even, function_regex("even", 1)},
-		{Parsed::Function::ReadJson, Regex{"\\s*([^\\(\\)]*\\S)\\s*"}}
+		{Parsed::Function::ReadJson, Regex{"\\s*([^\\(\\)]*\\S)\\s*"}},
+		{Parsed::Function::Default, function_regex("default", 2)}
 	};
 
 	std::map<std::string, Regex> regex_map_callbacks;

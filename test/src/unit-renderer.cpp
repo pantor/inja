@@ -133,6 +133,15 @@ TEST_CASE("functions") {
 		CHECK( env.render("{{ even(12) }}", data) == "true" );
 		// CHECK_THROWS_WITH( env.render("{{ even(name) }}", data), "[json.exception.type_error.302] type must be number, but is string" );
 	}
+
+	SECTION("default") {
+		CHECK( env.render("{{ default(11, 0) }}", data) == "11" );
+		CHECK( env.render("{{ default(nothing, 0) }}", data) == "0" );
+		CHECK( env.render("{{ default(name, \"nobody\") }}", data) == "Peter" );
+		CHECK( env.render("{{ default(surname, \"nobody\") }}", data) == "nobody" );
+
+		CHECK_THROWS_WITH( env.render("{{ default(surname, lastname) }}", data), "Did not found json element: lastname" );
+	}
 }
 
 TEST_CASE("callbacks") {
