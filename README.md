@@ -184,8 +184,8 @@ render("{{ even(42) }}", data); // true
 render("{{ divisibleBy(42, 7) }}", data); // true
 
 // Set default values if variables are not defined
-render("Hello {{ default(neighbour, "my friend") }}!") // "Hello Peter!"
-render("Hello {{ default(colleague, "my friend") }}!") // "Hello my friend!"
+render("Hello {{ default(neighbour, "my friend") }}!"); // "Hello Peter!"
+render("Hello {{ default(colleague, "my friend") }}!"); // "Hello my friend!"
 ```
 
 ### Callbacks
@@ -206,14 +206,14 @@ env.add_callback("double", 1, [&env](Parsed::Arguments args, json data) {
 });
 
 // You can then use a callback like a regular function
-env.render("{{ double(16) }}", data) // "32"
+env.render("{{ double(16) }}", data); // "32"
 
 // A callback without argument can be used like a dynamic variable:
 std::string greet = "Hello";
 env.add_callback("double-greetings", 0, [greet](Parsed::Arguments args, json data) {
 	return greet + " " + greet + "!";
 });
-env.render("{{ double-greetings }}", data) // "Hello Hello!"
+env.render("{{ double-greetings }}", data); // "Hello Hello!"
 ```
 
 ### Comments
