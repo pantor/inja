@@ -99,12 +99,12 @@ Variables are rendered within the `{{ ... }}` expressions.
 ```c++
 json data;
 data["neighbour"] = "Peter";
-data["guests"] = {"Jeff", "Patrick", "Tom"};
+data["guests"] = {"Jeff", "Tom", "Patrick"};
 data["time"]["start"] = 16;
 data["time"]["end"] = 22;
 
 // Indexing in array
-render("{{ guests/1 }}", data); // "Patrick"
+render("{{ guests/1 }}", data); // "Tom"
 
 // Objects
 render("{{ time/start }} to {{ time/end }}pm"); // "16 to 22pm"
@@ -127,8 +127,8 @@ render(R"(Guest List:
 
 /* Guest List:
 	1: Jeff
-	2: Pierre
-	3: Tom */
+	2: Tom
+	3: Patrick */
 ```
 In a loop, the special variables `index (number)`, `index1 (number)`, `is_first (boolean)` and `is_last (boolean)` are available. You can also iterate over objects like `{% for key, value in time %}`.
 
@@ -172,7 +172,12 @@ render("I count {{ length(guests) }} guests.", data); // "I count 3 guests."
 
 // Get first and last element in a list
 render("{{ first(guests) }} was first.", data); // "Jeff was first."
-render("{{ last(guests) }} was last.", data); // "Tom was last."
+render("{{ last(guests) }} was last.", data); // "Patir was last."
+
+// Sort a list
+render("{{ sort([3,2,1]) }}", data); // "[1,2,3]"
+render("{{ sort(guests) }}", data); // "[\"Jeff\", \"Patrick\", \"Tom\"]"
+
 
 // Round numbers to a given precision
 render("{{ round(3.1415, 0) }}", data); // 3

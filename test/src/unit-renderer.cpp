@@ -107,6 +107,12 @@ TEST_CASE("functions") {
 		// CHECK_THROWS_WITH( env.render("{{ length(5) }}", data), "[json.exception.type_error.302] type must be array, but is number" );
 	}
 
+	SECTION("sort") {
+		CHECK( env.render("{{ sort([3, 2, 1]) }}", data) == "[1,2,3]" );
+		CHECK( env.render("{{ sort([\"bob\", \"charlie\", \"alice\"]) }}", data) == "[\"alice\",\"bob\",\"charlie\"]" );
+		// CHECK_THROWS_WITH( env.render("{{ sort(5) }}", data), "[json.exception.type_error.302] type must be array, but is number" );
+	}
+
 	SECTION("first") {
 		CHECK( env.render("{{ first(names) }}", data) == "Jeff" );
 		// CHECK_THROWS_WITH( env.render("{{ length(5) }}", data), "[json.exception.type_error.302] type must be array, but is number" );

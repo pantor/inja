@@ -12,6 +12,8 @@
 #include <iostream>
 #include <locale>
 #include <regex>
+#include <vector>
+#include <algorithm>
 #include <type_traits>
 
 
@@ -242,6 +244,7 @@ struct Parsed {
 		Lower,
 		Range,
 		Length,
+		Sort,
 		First,
 		Last,
 		Round,
@@ -371,6 +374,11 @@ public:
 			case Parsed::Function::Length: {
 				const std::vector<json> list = eval_expression<std::vector<json>>(element.args[0], data);
 				return list.size();
+			}
+			case Parsed::Function::Sort: {
+				std::vector<json> list = eval_expression<std::vector<json>>(element.args[0], data);
+				std::sort(list.begin(), list.end());
+				return list;
 			}
 			case Parsed::Function::First: {
 				const std::vector<json> list = eval_expression<std::vector<json>>(element.args[0], data);
@@ -605,6 +613,7 @@ public:
 		{Parsed::Function::Lower, function_regex("lower", 1)},
 		{Parsed::Function::Range, function_regex("range", 1)},
 		{Parsed::Function::Length, function_regex("length", 1)},
+		{Parsed::Function::Sort, function_regex("sort", 1)},
 		{Parsed::Function::First, function_regex("first", 1)},
 		{Parsed::Function::Last, function_regex("last", 1)},
 		{Parsed::Function::Round, function_regex("round", 2)},
