@@ -19,6 +19,10 @@ TEST_CASE("types") {
 	data["brother"]["daughter0"] = { { "name", "Maria" } };
 	data["is_happy"] = true;
 	data["is_sad"] = false;
+	data["relatives"]["mother"] = "Maria";
+	data["relatives"]["brother"] = "Chris";
+	data["relatives"]["sister"] = "Jenny";
+
 
 	SECTION("basic") {
 		CHECK( env.render("", data) == "" );
@@ -47,6 +51,10 @@ TEST_CASE("types") {
 		CHECK( env.render("{% for name in names %}a{% endfor %}", data) == "aa" );
 		CHECK( env.render("Hello {% for name in names %}{{ name }} {% endfor %}!", data) == "Hello Jeff Seb !" );
 		CHECK( env.render("Hello {% for name in names %}{{ index }}: {{ name }}, {% endfor %}!", data) == "Hello 0: Jeff, 1: Seb, !" );
+		CHECK( env.render("{% for type, name in relatives %}{{ type }}: {{ name }}, {% endfor %}", data) == "brother: Chris, mother: Maria, sister: Jenny, " );
+
+		CHECK_THROWS_WITH( env.render("{% for name ins names %}a{% endfor %}", data), "Unknown loop statement."  );
+		// CHECK_THROWS_WITH( env.render("{% for name in relatives %}{{ name }}{% endfor %}", data), "[json.exception.type_error.302] type must be array, but is object"  );
 	}
 
 	SECTION("conditionals") {

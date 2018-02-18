@@ -130,7 +130,7 @@ render(R"(Guest List:
 	2: Pierre
 	3: Tom */
 ```
-In a loop, the special variables `index (number)`, `index1 (number)`, `is_first (boolean)` and `is_last (boolean)` are available.
+In a loop, the special variables `index (number)`, `index1 (number)`, `is_first (boolean)` and `is_last (boolean)` are available. You can also iterate over objects like `{% for key, value in time %}`.
 
 #### Conditions
 

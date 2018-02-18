@@ -260,7 +260,8 @@ struct Parsed {
 	};
 
 	enum class Loop {
-		ForIn
+		ForListIn,
+		ForMapIn
 	};
 
 	struct Element {
@@ -295,10 +296,13 @@ struct Parsed {
 	typedef std::vector<ElementExpression> Arguments;
 
 	struct ElementLoop: public Element {
-		const std::string item;
+		Loop loop;
+		const std::string key;
+		const std::string value;
 		const ElementExpression list;
 
-		explicit ElementLoop(const std::string& item, const ElementExpression& list, const std::string& inner): Element(Type::Loop, inner), item(item), list(list) { }
+		explicit ElementLoop(const Loop loop_, const std::string& value, const ElementExpression& list, const std::string& inner): Element(Type::Loop, inner), loop(loop_), value(value), list(list) { }
+		explicit ElementLoop(const Loop loop_, const std::string& key, const std::string& value, const ElementExpression& list, const std::string& inner): Element(Type::Loop, inner), loop(loop_), key(key), value(value), list(list) { }
 	};
 
 	struct ElementConditionContainer: public Element {
@@ -402,9 +406,9 @@ public:
 				return (eval_expression<bool>(element.args[0], data) or eval_expression<bool>(element.args[1], data));
 			}
 			case Parsed::Function::In: {
-				const json item = eval_expression(element.args[0], data);
+				const json value = eval_expression(element.args[0], data);
 				const json list = eval_expression(element.args[1], data);
-				return (std::find(list.begin(), list.end(), item) != list.end());
+				return (std::find(list.begin(), list.end(), value) != list.end());
 			}
 			case Parsed::Function::Equal: {
 				return eval_expression(element.args[0], data) == eval_expression(element.args[1], data);
@@ -484,18 +488,32 @@ public:
 				}
 				case Parsed::Type::Loop: {
 					auto element_loop = std::static_pointer_cast<Parsed::ElementLoop>(element);
-					const std::string item_name = element_loop->item;
-
-					const std::vector<json> list = eval_expression<std::vector<json>>(element_loop->list, data);
-					for (unsigned int i = 0; i < list.size(); i++) {
-						json data_loop = data;
-						data_loop[item_name] = list[i];
-						data_loop["index"] = i;
-						data_loop["index1"] = i + 1;
-						data_loop["is_first"] = (i == 0);
-						data_loop["is_last"] = (i == list.size() - 1);
-						result += render(Template(*element_loop), data_loop);
+					switch (element_loop->loop) {
+						case Parsed::Loop::ForListIn: {
+							const std::vector<json> list = eval_expression<std::vector<json>>(element_loop->list, data);
+							for (unsigned int i = 0; i < list.size(); i++) {
+								json data_loop = data;
+								data_loop[element_loop->value] = list[i];
+								data_loop["index"] = i;
+								data_loop["index1"] = i + 1;
+								data_loop["is_first"] = (i == 0);
+								data_loop["is_last"] = (i == list.size() - 1);
+								result += render(Template(*element_loop), data_loop);
+							}
+							break;
+						}
+						case Parsed::Loop::ForMapIn: {
+							const std::map<std::string, json> map = eval_expression<std::map<std::string, json>>(element_loop->list, data);
+							for (auto const& item : map) {
+								json data_loop = data;
+								data_loop[element_loop->key] = item.first;
+								data_loop[element_loop->value] = item.second;
+								result += render(Template(*element_loop), data_loop);
+							}
+							break;
+						}
 					}
+
 					break;
 				}
 				case Parsed::Type::Condition: {
@@ -552,7 +570,8 @@ public:
 	};
 
 	const std::map<Parsed::Loop, Regex> regex_map_loop = {
-		{Parsed::Loop::ForIn, Regex{"for (\\w+) in (.+)"}},
+		{Parsed::Loop::ForListIn, Regex{"for (\\w+) in (.+)"}},
+		{Parsed::Loop::ForMapIn, Regex{"for (\\w+), (\\w+) in (.+)"}},
 	};
 
 	const std::map<Parsed::Condition, Regex> regex_map_condition = {
@@ -651,10 +670,26 @@ public:
 
 							const std::string loop_inner = match_statement.str(0);
 							MatchType<Parsed::Loop> match_command = match(loop_inner, regex_map_loop);
-							const std::string item_name = match_command.str(1);
-							const std::string list_name = match_command.str(2);
+							switch (match_command.type()) {
+								case Parsed::Loop::ForListIn: {
+									const std::string value_name = match_command.str(1);
+									const std::string list_name = match_command.str(2);
 
-							result.emplace_back( std::make_shared<Parsed::ElementLoop>(item_name, parse_expression(list_name), loop_match.inner()));
+									result.emplace_back( std::make_shared<Parsed::ElementLoop>(match_command.type(), value_name, parse_expression(list_name), loop_match.inner()));
+									break;
+								}
+								case Parsed::Loop::ForMapIn: {
+									const std::string key_name = match_command.str(1);
+									const std::string value_name = match_command.str(2);
+									const std::string list_name = match_command.str(3);
+
+									result.emplace_back( std::make_shared<Parsed::ElementLoop>(match_command.type(), key_name, value_name, parse_expression(list_name), loop_match.inner()));
+									break;
+								}
+								default: {
+									throw std::runtime_error("Unknown loop statement.");
+								}
+							}
 							break;
 						}
 						case Parsed::Statement::Condition: {
