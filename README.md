@@ -33,7 +33,7 @@ using namespace inja;
 using json = nlohmann::json;
 ```
 
-You can also integrate Inja in your project using [Hunter](https://github.com/ruslo/hunter), a package manager for C++.
+You can also integrate inja in your project using [Hunter](https://github.com/ruslo/hunter), a package manager for C++.
 
 
 ## Tutorial
