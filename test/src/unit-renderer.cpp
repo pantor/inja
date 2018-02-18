@@ -165,8 +165,8 @@ TEST_CASE("callbacks") {
 	});
 
 	env.add_callback("multiply", 2, [&env](inja::Parsed::Arguments args, json data) {
-		double number1 = env.get_argument<double>(args, 0, data);
-		double number2 = env.get_argument<double>(args, 1, data);
+		double number1 = env.get_argument(args, 0, data);
+		auto number2 = env.get_argument<double>(args, 1, data);
 		return number1 * number2;
 	});
 

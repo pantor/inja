@@ -853,7 +853,7 @@ public:
 		renderer.map_callbacks[name] = callback;
 	}
 
-	template<typename T>
+	template<typename T = json>
 	T get_argument(Parsed::Arguments args, int index, json data) {
 		return renderer.eval_expression<T>(args[index], data);
 	}
