@@ -2,7 +2,7 @@
 
 
 [![Build Status](https://travis-ci.org/pantor/inja.svg?branch=master)](https://travis-ci.org/pantor/inja)
-[![Build status](https://ci.appveyor.com/api/projects/status/qtgniyyg6fn8ich8?svg=true)](https://ci.appveyor.com/project/pantor/inja)
+[![Build status](https://ci.appveyor.com/api/projects/status/qtgniyyg6fn8ich8/branch/master?svg=true)](https://ci.appveyor.com/project/pantor/inja)
 [![Coverage Status](https://img.shields.io/coveralls/pantor/inja.svg)](https://coveralls.io/r/pantor/inja)
 [![Codacy Status](https://api.codacy.com/project/badge/Grade/aa2041f1e6e648ae83945d29cfa0da17)](https://www.codacy.com/app/pantor/inja?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=pantor/inja&amp;utm_campaign=Badge_Grade)
 [![Github Releases](https://img.shields.io/github/release/pantor/inja.svg)](https://github.com/pantor/inja/releases)
