@@ -238,7 +238,7 @@ render("Hello{# Todo #}!", data); // "Hello!"
 Currently, the following compilers are tested:
 
 - GCC 4.9 - 7.1 (and possibly later)
-- Clang 3.6 - 3.7 (and possibly later)
+- Clang 3.6 - 5.0 (and possibly later)
 - Microsoft Visual C++ 2015 / Build Tools 14.0.25123.0 (and possibly later)
 - Microsoft Visual C++ 2017 / Build Tools 15.1.548.43366 (and possibly later)
 
