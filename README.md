@@ -107,7 +107,7 @@ data["time"]["end"] = 22;
 render("{{ guests/1 }}", data); // "Tom"
 
 // Objects
-render("{{ time/start }} to {{ time/end }}pm"); // "16 to 22pm"
+render("{{ time/start }} to {{ time/end }}pm", data); // "16 to 22pm"
 ```
 In general, the variables can be fetched using the [JSON Pointer](https://tools.ietf.org/html/rfc6901) syntax. For convenience, the leading `/` can be ommited. If no variable is found, valid JSON is printed directly, otherwise an error is thrown.
 
@@ -192,8 +192,8 @@ render("{{ max([1, 2, 3]) }}", data); // 3
 render("{{ min([-2.4, -1.2, 4.5]) }}", data); // -2.4
 
 // Set default values if variables are not defined
-render("Hello {{ default(neighbour, \"my friend\") }}!"); // "Hello Peter!"
-render("Hello {{ default(colleague, \"my friend\") }}!"); // "Hello my friend!"
+render("Hello {{ default(neighbour, \"my friend\") }}!", data); // "Hello Peter!"
+render("Hello {{ default(colleague, \"my friend\") }}!", data); // "Hello my friend!"
 ```
 
 ### Callbacks
