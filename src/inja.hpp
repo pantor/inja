@@ -872,19 +872,24 @@ public:
 		return renderer.render(parse(text), data);
 	}
 
-	std::string render_template(const std::string& filename, json data) {
+	std::string render_template(const Template temp, json data) {
+		renderer.element_notation = element_notation;
+		return renderer.render(temp, data);
+	}
+
+	std::string render_file(const std::string& filename, json data) {
 		renderer.element_notation = element_notation;
 		return renderer.render(parse_template(filename), data);
 	}
 
-	std::string render_template_with_json_file(const std::string& filename, const std::string& filename_data) {
+	std::string render_file_with_json_file(const std::string& filename, const std::string& filename_data) {
 		json data = load_json(filename_data);
-		return render_template(filename, data);
+		return render_file(filename, data);
 	}
 
 	void write(const std::string& filename, json data, const std::string& filename_out) {
 		std::ofstream file(output_path + filename_out);
-		file << render_template(filename, data);
+		file << render_file(filename, data);
 		file.close();
 	}
 

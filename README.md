@@ -58,13 +58,13 @@ std::string result = env.render("Hello {{ name }}!", data); // "Hello world!"
 
 // Or directly read a template file
 Template temp = env.parse_template("./template.txt");
-std::string result = temp.render(data); // "Hello world!"
+std::string result = env.render_template(temp, data); // "Hello world!"
 
 data["name"] = "Inja";
-std::string result = temp.render(data); // "Hello Inja!"
+std::string result = env.render_template(temp, data); // "Hello Inja!"
 
 // Or read a json file for data directly from the environment
-result = env.render_template("./template.txt", "./data.json");
+result = env.render_file("./template.txt", "./data.json");
 
 // Or write a rendered template file
 temp.write(data, "./result.txt")

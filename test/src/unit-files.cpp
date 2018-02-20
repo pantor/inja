@@ -16,11 +16,11 @@ TEST_CASE("loading") {
 	}
 
 	SECTION("Files should be rendered") {
-		CHECK( env.render_template("data/simple.txt", data) == "Hello Jeff." );
+		CHECK( env.render_file("data/simple.txt", data) == "Hello Jeff." );
 	}
 
 	SECTION("File includes should be rendered") {
-		CHECK( env.render_template("data/include.txt", data) == "Answer: Hello Jeff." );
+		CHECK( env.render_file("data/include.txt", data) == "Answer: Hello Jeff." );
 	}
 }
 
@@ -29,7 +29,7 @@ TEST_CASE("complete-files") {
 
 	for (std::string test_name : {"simple-file", "nested", "nested-line"}) {
 		SECTION(test_name) {
-			CHECK( env.render_template_with_json_file(test_name + "/template.txt", test_name + "/data.json") == env.load_global_file(test_name + "/result.txt") );
+			CHECK( env.render_file_with_json_file(test_name + "/template.txt", test_name + "/data.json") == env.load_global_file(test_name + "/result.txt") );
 		}
 	}
 }
