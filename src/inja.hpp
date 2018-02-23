@@ -100,7 +100,7 @@ public:
 
 	size_t position() const { return open_match.position(); }
 	size_t end_position() const { return close_match.end_position(); }
-	int length() const { return close_match.end_position() - open_match.position(); }
+	size_t length() const { return close_match.end_position() - open_match.position(); }
 	bool found() const { return open_match.found() and close_match.found(); }
 	std::string prefix() const { return open_match.prefix().str(); }
 	std::string suffix() const { return close_match.suffix().str(); }
@@ -468,7 +468,7 @@ public:
 			case Parsed::Function::Default: {
 				try {
 					return eval_expression(element.args[0], data);
-				} catch (std::exception& exception) {
+				} catch (std::exception& /*exception*/) {
 					return eval_expression(element.args[1], data);
 				}
 			}
@@ -559,12 +559,12 @@ public:
 	static Regex function_regex(std::string name, int number_arguments) {
 		std::string pattern = name;
 		if (number_arguments > 0) {
-			pattern += "\\(";
+			pattern.append("\\(");
 			for (int i = 0; i < number_arguments; i++) {
-				if (i != 0) pattern += ",";
-				pattern += "(.*)";
+				if (i != 0) pattern.append(",");
+				pattern.append("(.*)");
 			}
-			pattern += "\\)";
+			pattern.append("\\)");
 		}
 		return Regex{"\\s*" + pattern + "\\s*"};
 	}
