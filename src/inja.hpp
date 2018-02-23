@@ -233,32 +233,32 @@ inline MatchType<T> match(const std::string& input, std::map<T, Regex> regexes) 
 
 
 enum class ElementNotation {
-	Pointer,
-	Dot
+	Dot,
+	Pointer
 };
 
 struct Parsed {
 	enum class Type {
-		Main,
-		String,
 		Comment,
+		Condition,
+		ConditionBranch,
 		Expression,
 		Loop,
-		Condition,
-		ConditionBranch
+		Main,
+		String
 	};
 
 	enum class Delimiter {
-		Statement,
-		LineStatement,
+		Comment,
 		Expression,
-		Comment
+		LineStatement,
+		Statement
 	};
 
 	enum class Statement {
-		Loop,
 		Condition,
-		Include
+		Include,
+		Loop
 	};
 
 	enum class Function {
@@ -268,26 +268,26 @@ struct Parsed {
 		In,
 		Equal,
 		Greater,
-		Less,
 		GreaterEqual,
+		Less,
 		LessEqual,
 		Different,
-		Upper,
-		Lower,
-		Range,
-		Length,
-		Sort,
+		Callback,
+		DivisibleBy,
+		Even,
 		First,
 		Last,
-		Round,
-		DivisibleBy,
-		Odd,
-		Even,
+		Length,
+		Lower,
 		Max,
 		Min,
+		Odd,
+		Range,
+		Round,
+		Sort,
+		Upper,
 		ReadJson,
-		Default,
-		Callback
+		Default
 	};
 
 	enum class Condition {
@@ -639,21 +639,21 @@ public:
 		{Parsed::Function::GreaterEqual, Regex{"(.+) >= (.+)"}},
 		{Parsed::Function::LessEqual, Regex{"(.+) <= (.+)"}},
 		{Parsed::Function::Different, Regex{"(.+) != (.+)"}},
-		{Parsed::Function::Upper, function_regex("upper", 1)},
-		{Parsed::Function::Lower, function_regex("lower", 1)},
-		{Parsed::Function::Range, function_regex("range", 1)},
-		{Parsed::Function::Length, function_regex("length", 1)},
-		{Parsed::Function::Sort, function_regex("sort", 1)},
+		{Parsed::Function::Default, function_regex("default", 2)},
+		{Parsed::Function::DivisibleBy, function_regex("divisibleBy", 2)},
+		{Parsed::Function::Even, function_regex("even", 1)},
 		{Parsed::Function::First, function_regex("first", 1)},
 		{Parsed::Function::Last, function_regex("last", 1)},
-		{Parsed::Function::Round, function_regex("round", 2)},
-		{Parsed::Function::DivisibleBy, function_regex("divisibleBy", 2)},
-		{Parsed::Function::Odd, function_regex("odd", 1)},
-		{Parsed::Function::Even, function_regex("even", 1)},
+		{Parsed::Function::Length, function_regex("length", 1)},
+		{Parsed::Function::Lower, function_regex("lower", 1)},
 		{Parsed::Function::Max, function_regex("max", 1)},
 		{Parsed::Function::Min, function_regex("min", 1)},
-		{Parsed::Function::ReadJson, Regex{"\\s*([^\\(\\)]*\\S)\\s*"}},
-		{Parsed::Function::Default, function_regex("default", 2)}
+		{Parsed::Function::Odd, function_regex("odd", 1)},
+		{Parsed::Function::Range, function_regex("range", 1)},
+		{Parsed::Function::Round, function_regex("round", 2)},
+		{Parsed::Function::Sort, function_regex("sort", 1)},
+		{Parsed::Function::Upper, function_regex("upper", 1)},
+		{Parsed::Function::ReadJson, Regex{"\\s*([^\\(\\)]*\\S)\\s*"}}
 	};
 
 	std::map<std::string, Regex> regex_map_callbacks;
