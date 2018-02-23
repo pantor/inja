@@ -69,7 +69,7 @@ std::string result = env.render_template(temp, data); // "Hello Inja!"
 result = env.render_file("./template.txt", "./data.json");
 
 // Or write a rendered template file
-temp.write(data, "./result.txt")
+env.write(temp, data, "./result.txt")
 env.write("./template.txt", "./data.json", "./result.txt")
 ```
 
