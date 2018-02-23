@@ -28,6 +28,11 @@ SOFTWARE.
 #ifndef PANTOR_INJA_HPP
 #define PANTOR_INJA_HPP
 
+#define PANTOR_INJA_VERSION_MAJOR 1
+#define PANTOR_INJA_VERSION_MINOR 0
+#define PANTOR_INJA_VERSION_PATCH 0
+
+
 #ifndef NLOHMANN_JSON_HPP
 	static_assert(false, "nlohmann/json not found.");
 #endif
