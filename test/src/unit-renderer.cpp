@@ -241,11 +241,11 @@ TEST_CASE("templates") {
 	data["city"] = "Brunswick";
 	data["is_happy"] = true;
 
-	CHECK( env.renderer.render(temp, data) == "Peter" );
+	CHECK( env.render_template(temp, data) == "Peter" );
 
 	data["is_happy"] = false;
 
-	CHECK( env.renderer.render(temp, data) == "Brunswick" );
+	CHECK( env.render_template(temp, data) == "Brunswick" );
 }
 
 TEST_CASE("other-syntax") {

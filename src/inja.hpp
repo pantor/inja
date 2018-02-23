@@ -865,11 +865,9 @@ class Environment {
 	const std::string output_path;
 
 	Parser parser = Parser();
-
-public:
 	Renderer renderer = Renderer();
 
-
+public:
 	Environment(): Environment("./") { }
 	explicit Environment(const std::string& global_path): input_path(global_path), output_path(global_path), parser() { }
 	explicit Environment(const std::string& input_path, const std::string& output_path): input_path(input_path), output_path(output_path), parser() { }
