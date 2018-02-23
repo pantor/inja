@@ -488,7 +488,7 @@ public:
 				case Parsed::Type::Main: { throw std::runtime_error("Main type in renderer."); }
 				case Parsed::Type::String: {
 					auto element_string = std::static_pointer_cast<Parsed::ElementString>(element);
-					result += element_string->text;
+					result.append(element_string->text);
 					break;
 				}
 				case Parsed::Type::Expression: {
@@ -496,11 +496,11 @@ public:
 					json variable = eval_expression(*element_expression, data);
 
 					if (variable.is_string()) {
-						result += variable.get<std::string>();
+						result.append( variable.get<std::string>() );
 					} else {
 						std::stringstream ss;
 						ss << variable;
-						result += ss.str();
+						result.append( ss.str() );
 					}
 					break;
 				}
@@ -516,7 +516,7 @@ public:
 								data_loop["index1"] = i + 1;
 								data_loop["is_first"] = (i == 0);
 								data_loop["is_last"] = (i == list.size() - 1);
-								result += render(Template(*element_loop), data_loop);
+								result.append( render(Template(*element_loop), data_loop) );
 							}
 							break;
 						}
@@ -526,7 +526,7 @@ public:
 								json data_loop = data;
 								data_loop[element_loop->key] = item.first;
 								data_loop[element_loop->value] = item.second;
-								result += render(Template(*element_loop), data_loop);
+								result.append( render(Template(*element_loop), data_loop) );
 							}
 							break;
 						}
@@ -539,7 +539,7 @@ public:
 					for (auto branch: element_condition->children) {
 						auto element_branch = std::static_pointer_cast<Parsed::ElementConditionBranch>(branch);
 						if (element_branch->condition_type == Parsed::Condition::Else || eval_expression<bool>(element_branch->condition, data)) {
-							result += render(Template(*element_branch), data);
+							result.append( render(Template(*element_branch), data) );
 							break;
 						}
 					}
