@@ -337,7 +337,7 @@ class Renderer {
 public:
 	ElementNotation element_notation;
 
-	std::map<std::string, std::function<json(Parsed::Arguments, json)>> map_callbacks;
+	std::map<std::string, std::function<json(Parsed::Arguments, const json&)>> map_callbacks;
 
 	template<bool>
 	bool eval_expression(const Parsed::ElementExpression& element, json data) {
@@ -349,11 +349,11 @@ public:
 	}
 
 	template<typename T = json>
-  T eval_expression(const Parsed::ElementExpression& element, json data) {
+  T eval_expression(const Parsed::ElementExpression& element, const json &data) {
 		return eval_function(element, data).get<T>();
 	}
 
-	json eval_function(const Parsed::ElementExpression& element, json data) {
+	json eval_function(const Parsed::ElementExpression& element, const json& data) {
 		switch (element.function) {
 			case Parsed::Function::Upper: {
 				std::string str = eval_expression<std::string>(element.args[0], data);
@@ -909,13 +909,13 @@ public:
 		return j;
 	}
 
-	void add_callback(std::string name, int number_arguments, std::function<json(Parsed::Arguments, json)> callback) {
+	void add_callback(std::string name, int number_arguments, std::function<json(Parsed::Arguments, const json&)> callback) {
 		parser.regex_map_callbacks[name] = Parser::function_regex(name, number_arguments);
 		renderer.map_callbacks[name] = callback;
 	}
 
 	template<typename T = json>
-	T get_argument(Parsed::Arguments args, int index, json data) {
+	T get_argument(Parsed::Arguments args, int index, const json& data) {
 		return renderer.eval_expression<T>(args[index], data);
 	}
 };
