@@ -206,7 +206,7 @@ Environment env = Environment();
 
 /*
  * Callbacks are defined by its:
- * - name, which is equal to the function name
+ * - name
  * - number of arguments
  * - callback function. Implemented with std::function, you can for example use lambdas.
  */

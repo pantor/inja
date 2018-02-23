@@ -196,10 +196,23 @@ TEST_CASE("callbacks") {
 		return number1 * number2;
 	});
 
+	env.add_callback("multiply", 3, [&env](inja::Parsed::Arguments args, json data) {
+		double number1 = env.get_argument(args, 0, data);
+		double number2 = env.get_argument(args, 1, data);
+		double number3 = env.get_argument(args, 2, data);
+		return number1 * number2 * number3;
+	});
+
+	env.add_callback("multiply", 0, [&env](inja::Parsed::Arguments args, json data) {
+		return 1.0;
+	});
+
 	CHECK( env.render("{{ double(age) }}", data) == "56" );
 	CHECK( env.render("{{ half(age) }}", data) == "14" );
 	CHECK( env.render("{{ double-greetings }}", data) == "Hello Hello!" );
 	CHECK( env.render("{{ multiply(4, 5) }}", data) == "20.0" );
+	CHECK( env.render("{{ multiply(3, 4, 5) }}", data) == "60.0" );
+	CHECK( env.render("{{ multiply }}", data) == "1.0" );
 }
 
 TEST_CASE("combinations") {

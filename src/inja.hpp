@@ -217,8 +217,8 @@ inline MatchClosed search_closed(const std::string& input, const Regex& regex_st
 	return search_closed_on_level(input, regex_statement, regex_open, regex_close, regex_close, open_match);
 }
 
-template<typename T>
-inline MatchType<T> match(const std::string& input, std::map<T, Regex> regexes) {
+template<typename T, typename S>
+inline MatchType<T> match(const std::string& input, std::map<T, Regex, S> regexes) {
 	MatchType<T> match;
 	for (const auto e : regexes) {
 		if (std::regex_match(input.cbegin(), input.cend(), match, e.second)) {
@@ -330,7 +330,6 @@ struct Parsed {
 		explicit ElementExpression(): ElementExpression(Function::ReadJson) { }
 		explicit ElementExpression(const Function function_): Element(Type::Expression), function(function_), args({}), command("") { }
 	};
-	typedef std::vector<ElementExpression> Arguments;
 
 	struct ElementLoop: public Element {
 		Loop loop;
@@ -353,6 +352,9 @@ struct Parsed {
 		explicit ElementConditionBranch(const std::string& inner, const Condition condition_type): Element(Type::ConditionBranch, inner), condition_type(condition_type) { }
 		explicit ElementConditionBranch(const std::string& inner, const Condition condition_type, const ElementExpression& condition): Element(Type::ConditionBranch, inner), condition_type(condition_type), condition(condition) { }
 	};
+
+	using Arguments = std::vector<ElementExpression>;
+	using CallbackSignature = std::pair<std::string, int>;
 };
 
 
@@ -369,7 +371,7 @@ class Renderer {
 public:
 	ElementNotation element_notation;
 
-	std::map<std::string, std::function<json(Parsed::Arguments, const json&)>> map_callbacks;
+	std::map<Parsed::CallbackSignature, std::function<json(Parsed::Arguments, const json&)>> map_callbacks;
 
 	template<bool>
 	bool eval_expression(const Parsed::ElementExpression& element, const json &data) {
@@ -503,7 +505,8 @@ public:
 				}
 			}
 			case Parsed::Function::Callback: {
-				return map_callbacks[element.command](element.args, data);
+				Parsed::CallbackSignature signature = std::make_pair(element.command, element.args.size());
+				return map_callbacks.at(signature)(element.args, data);
 			}
 		}
 
@@ -656,13 +659,13 @@ public:
 		{Parsed::Function::ReadJson, Regex{"\\s*([^\\(\\)]*\\S)\\s*"}}
 	};
 
-	std::map<std::string, Regex> regex_map_callbacks;
+	std::map<Parsed::CallbackSignature, Regex, std::greater<Parsed::CallbackSignature>> regex_map_callbacks;
 
 	Parser() { }
 
 	Parsed::ElementExpression parse_expression(const std::string& input) {
-		MatchType<std::string> match_callback = match(input, regex_map_callbacks);
-		if (!match_callback.type().empty()) {
+		MatchType<Parsed::CallbackSignature> match_callback = match(input, regex_map_callbacks);
+		if (!match_callback.type().first.empty()) {
 			std::vector<Parsed::ElementExpression> args = {};
 			for (unsigned int i = 1; i < match_callback.size(); i++) { // str(0) is whole group
 				args.push_back( parse_expression(match_callback.str(i)) );
@@ -670,7 +673,7 @@ public:
 
 			Parsed::ElementExpression result = Parsed::ElementExpression(Parsed::Function::Callback);
 			result.args = args;
-			result.command = match_callback.type();
+			result.command = match_callback.type().first;
 			return result;
 		}
 
@@ -951,8 +954,9 @@ public:
 	}
 
 	void add_callback(std::string name, int number_arguments, std::function<json(Parsed::Arguments, const json&)> callback) {
-		parser.regex_map_callbacks[name] = Parser::function_regex(name, number_arguments);
-		renderer.map_callbacks[name] = callback;
+		Parsed::CallbackSignature signature = std::make_pair(name, number_arguments);
+		parser.regex_map_callbacks[signature] = Parser::function_regex(name, number_arguments);
+		renderer.map_callbacks[signature] = callback;
 	}
 
 	template<typename T = json>
