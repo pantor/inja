@@ -100,6 +100,7 @@ public:
 	size_t position() const { return offset_ + std::match_results<std::string::const_iterator>::position(); }
 	size_t end_position() const { return position() + length(); }
 	bool found() const { return not empty(); }
+	bool valid(int i) const { return std::match_results<std::string::const_iterator>::length(i + group_offset_) > 0; }
 	const std::string str() const { return str(0); }
 	const std::string str(int i) const { return std::match_results<std::string::const_iterator>::str(i + group_offset_); }
 	Regex regex() const { return regex_; }
@@ -369,7 +370,7 @@ class Renderer {
 public:
 	ElementNotation element_notation;
 
-	std::map<std::string, std::function<json(Parsed::Arguments, const json&)>> map_callbacks;
+	std::map<std::string, std::function<json(const Parsed::Arguments&, const json&)>> map_callbacks;
 
 	template<bool>
 	bool eval_expression(const Parsed::ElementExpression& element, const json &data) {
@@ -586,14 +587,22 @@ public:
 
 class Parser {
 public:
-	static Regex function_regex(std::string name, int number_arguments) {
+	static Regex function_regex(std::string name, int minimum_number_arguments, int maximum_number_argumets = -1) {
+		if (maximum_number_argumets < minimum_number_arguments )
+			maximum_number_argumets = minimum_number_arguments;
+
 		std::string pattern = name;
-		if (number_arguments > 0) {
+		if (maximum_number_argumets > 0) {
 			pattern.append("\\(");
-			for (int i = 0; i < number_arguments; i++) {
-				if (i != 0) pattern.append(",");
+
+			if ( maximum_number_argumets == 1 )
 				pattern.append("(.*)");
-			}
+			else
+				for (int i = 0; i < maximum_number_argumets; i++) {
+					pattern.append(R"((?:((?:"[^"]*")|(?:[^,]*)|(?:\[[^"]*\])))");
+					pattern.append(i != maximum_number_argumets - 1 ? ",)" : ")");
+					pattern.append(i >= maximum_number_argumets - minimum_number_arguments ? "{1}" : "{0,1}");
+				}
 			pattern.append("\\)");
 		}
 		return Regex{"\\s*" + pattern + "\\s*"};
@@ -665,7 +674,8 @@ public:
 		if (!match_callback.type().empty()) {
 			std::vector<Parsed::ElementExpression> args = {};
 			for (unsigned int i = 1; i < match_callback.size(); i++) { // str(0) is whole group
-				args.push_back( parse_expression(match_callback.str(i)) );
+				if ( match_callback.valid(i) )
+					args.push_back( parse_expression(match_callback.str(i)) );
 			}
 
 			Parsed::ElementExpression result = Parsed::ElementExpression(Parsed::Function::Callback);
@@ -950,14 +960,21 @@ public:
 		return j;
 	}
 
-	void add_callback(std::string name, int number_arguments, std::function<json(Parsed::Arguments, const json&)> callback) {
+	void add_callback(std::string name, int number_arguments, std::function<json(const Parsed::Arguments&, const json&)> callback) {
 		parser.regex_map_callbacks[name] = Parser::function_regex(name, number_arguments);
 		renderer.map_callbacks[name] = callback;
 	}
-
+	void add_callback(std::string name, int minimum_number_arguments,int maximum_number_arguments, std::function<json(const Parsed::Arguments&, const json&)> callback) {
+		parser.regex_map_callbacks[name] = Parser::function_regex(name, minimum_number_arguments, maximum_number_arguments);
+		renderer.map_callbacks[name] = callback;
+	}
 	template<typename T = json>
-	T get_argument(Parsed::Arguments args, int index, const json& data) {
+	T get_argument(const Parsed::Arguments &args, int index, const json& data) {
 		return renderer.eval_expression<T>(args[index], data);
+	}
+
+	size_t get_arguments_count(const Parsed::Arguments &args) {
+		return args.size();
 	}
 };
 

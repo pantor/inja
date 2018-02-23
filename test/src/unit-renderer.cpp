@@ -202,6 +202,28 @@ TEST_CASE("callbacks") {
 	CHECK( env.render("{{ multiply(4, 5) }}", data) == "20.0" );
 }
 
+TEST_CASE("callbacks_variable_params") {
+	inja::Environment env = inja::Environment();
+	json data;
+	data["age"] = 28;
+
+	env.add_callback("sum", 0,3, [&env](inja::Parsed::Arguments args, json data) {
+		int sum = 0;
+		if (env.get_arguments_count(args) > 0 )
+			sum += env.get_argument<int>(args, 0, data);
+		if (env.get_arguments_count(args) > 1)
+			sum += env.get_argument<int>(args, 1, data);
+		if (env.get_arguments_count(args) > 2)
+			sum += env.get_argument<int>(args, 2, data);
+		return sum;
+	});
+
+	CHECK(env.render("{{ sum() }}", data) == "0");
+	CHECK(env.render("{{ sum(1) }}", data) == "1");
+	CHECK(env.render("{{ sum(1,2) }}", data) == "3");
+	CHECK(env.render("{{ sum(1,2,3) }}", data) == "6");
+}
+
 TEST_CASE("combinations") {
 	inja::Environment env = inja::Environment();
 	json data;
