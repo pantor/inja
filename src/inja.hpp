@@ -132,7 +132,7 @@ public:
 
 	size_t position() const { return open_match.position(); }
 	size_t end_position() const { return close_match.end_position(); }
-	int length() const { return close_match.end_position() - open_match.position(); }
+	size_t length() const { return close_match.end_position() - open_match.position(); }
 	bool found() const { return open_match.found() and close_match.found(); }
 	std::string prefix() const { return open_match.prefix().str(); }
 	std::string suffix() const { return close_match.suffix().str(); }
@@ -369,10 +369,10 @@ class Renderer {
 public:
 	ElementNotation element_notation;
 
-	std::map<std::string, std::function<json(Parsed::Arguments, json)>> map_callbacks;
+	std::map<std::string, std::function<json(Parsed::Arguments, const json&)>> map_callbacks;
 
 	template<bool>
-	bool eval_expression(const Parsed::ElementExpression& element, json data) {
+	bool eval_expression(const Parsed::ElementExpression& element, const json &data) {
 		const json var = eval_function(element, data);
 		if (var.empty()) { return false; }
 		else if (var.is_number()) { return (var != 0); }
@@ -381,11 +381,11 @@ public:
 	}
 
 	template<typename T = json>
-  T eval_expression(const Parsed::ElementExpression& element, json data) {
+  T eval_expression(const Parsed::ElementExpression& element, const json &data) {
 		return eval_function(element, data).get<T>();
 	}
 
-	json eval_function(const Parsed::ElementExpression& element, json data) {
+	json eval_function(const Parsed::ElementExpression& element, const json& data) {
 		switch (element.function) {
 			case Parsed::Function::Upper: {
 				std::string str = eval_expression<std::string>(element.args[0], data);
@@ -493,9 +493,7 @@ public:
 					}
 				}
 
-				const json result = data[json::json_pointer(input)];
-				if (result.is_null()) { throw std::runtime_error("Did not found json element: " + element.command); }
-				return result;
+				return data.at(json::json_pointer(input));
 			}
 			case Parsed::Function::Default: {
 				try {
@@ -520,7 +518,7 @@ public:
 				case Parsed::Type::Main: { throw std::runtime_error("Main type in renderer."); }
 				case Parsed::Type::String: {
 					auto element_string = std::static_pointer_cast<Parsed::ElementString>(element);
-					result += element_string->text;
+					result.append(element_string->text);
 					break;
 				}
 				case Parsed::Type::Expression: {
@@ -528,11 +526,11 @@ public:
 					json variable = eval_expression(*element_expression, data);
 
 					if (variable.is_string()) {
-						result += variable.get<std::string>();
+						result.append( variable.get<std::string>() );
 					} else {
 						std::stringstream ss;
 						ss << variable;
-						result += ss.str();
+						result.append( ss.str() );
 					}
 					break;
 				}
@@ -548,7 +546,7 @@ public:
 								data_loop["index1"] = i + 1;
 								data_loop["is_first"] = (i == 0);
 								data_loop["is_last"] = (i == list.size() - 1);
-								result += render(Template(*element_loop), data_loop);
+								result.append( render(Template(*element_loop), data_loop) );
 							}
 							break;
 						}
@@ -558,7 +556,7 @@ public:
 								json data_loop = data;
 								data_loop[element_loop->key] = item.first;
 								data_loop[element_loop->value] = item.second;
-								result += render(Template(*element_loop), data_loop);
+								result.append( render(Template(*element_loop), data_loop) );
 							}
 							break;
 						}
@@ -571,7 +569,7 @@ public:
 					for (auto branch: element_condition->children) {
 						auto element_branch = std::static_pointer_cast<Parsed::ElementConditionBranch>(branch);
 						if (element_branch->condition_type == Parsed::Condition::Else || eval_expression<bool>(element_branch->condition, data)) {
-							result += render(Template(*element_branch), data);
+							result.append( render(Template(*element_branch), data) );
 							break;
 						}
 					}
@@ -591,12 +589,12 @@ public:
 	static Regex function_regex(std::string name, int number_arguments) {
 		std::string pattern = name;
 		if (number_arguments > 0) {
-			pattern += "\\(";
+			pattern.append("\\(");
 			for (int i = 0; i < number_arguments; i++) {
-				if (i != 0) pattern += ",";
-				pattern += "(.*)";
+				if (i != 0) pattern.append(",");
+				pattern.append("(.*)");
 			}
-			pattern += "\\)";
+			pattern.append("\\)");
 		}
 		return Regex{"\\s*" + pattern + "\\s*"};
 	}
@@ -941,13 +939,13 @@ public:
 		return j;
 	}
 
-	void add_callback(std::string name, int number_arguments, std::function<json(Parsed::Arguments, json)> callback) {
+	void add_callback(std::string name, int number_arguments, std::function<json(Parsed::Arguments, const json&)> callback) {
 		parser.regex_map_callbacks[name] = Parser::function_regex(name, number_arguments);
 		renderer.map_callbacks[name] = callback;
 	}
 
 	template<typename T = json>
-	T get_argument(Parsed::Arguments args, int index, json data) {
+	T get_argument(Parsed::Arguments args, int index, const json& data) {
 		return renderer.eval_expression<T>(args[index], data);
 	}
 };
