@@ -283,6 +283,7 @@ struct Parsed {
 		Min,
 		Odd,
 		Range,
+		Result,
 		Round,
 		Sort,
 		Upper,
@@ -326,6 +327,7 @@ struct Parsed {
 		Function function;
 		std::vector<ElementExpression> args;
 		std::string command;
+		json result;
 
 		explicit ElementExpression(): ElementExpression(Function::ReadJson) { }
 		explicit ElementExpression(const Function function_): Element(Type::Expression), function(function_), args({}), command("") { }
@@ -369,8 +371,6 @@ public:
 
 class Renderer {
 public:
-	ElementNotation element_notation;
-
 	std::map<Parsed::CallbackSignature, std::function<json(Parsed::Arguments, const json&)>> map_callbacks;
 
 	template<bool>
@@ -481,21 +481,10 @@ public:
 				return eval_expression(element.args[0], data) != eval_expression(element.args[1], data);
 			}
 			case Parsed::Function::ReadJson: {
-				if ( json::accept(element.command) ) { return json::parse(element.command); } // Json Raw Data
-
-				std::string input = element.command;
-				switch (element_notation) {
-					case ElementNotation::Pointer: {
-						if (input[0] != '/') { input.insert(0, "/"); }
-						break;
-					}
-					case ElementNotation::Dot: {
-						input = dot_to_json_pointer_notation(input);
-						break;
-					}
-				}
-
-				return data.at(json::json_pointer(input));
+				return data.at(json::json_pointer(element.command));
+			}
+			case Parsed::Function::Result: {
+				return element.result;
 			}
 			case Parsed::Function::Default: {
 				try {
@@ -589,6 +578,8 @@ public:
 
 class Parser {
 public:
+	ElementNotation element_notation = ElementNotation::Pointer;
+
 	static Regex function_regex(std::string name, int number_arguments) {
 		std::string pattern = name;
 		if (number_arguments > 0) {
@@ -680,8 +671,25 @@ public:
 		MatchType<Parsed::Function> match_function = match(input, regex_map_functions);
 		switch ( match_function.type() ) {
 			case Parsed::Function::ReadJson: {
+				std::string command = match_function.str(1);
+				if ( json::accept(command) ) { // JSON Result
+					Parsed::ElementExpression result = Parsed::ElementExpression(Parsed::Function::Result);
+					result.result = json::parse(command);
+					return result;
+				}
+
 				Parsed::ElementExpression result = Parsed::ElementExpression(Parsed::Function::ReadJson);
-				result.command = match_function.str(1);
+				switch (element_notation) {
+					case ElementNotation::Pointer: {
+						if (command[0] != '/') { command.insert(0, "/"); }
+						result.command = command;
+						break;
+					}
+					case ElementNotation::Dot: {
+						result.command = dot_to_json_pointer_notation(command);
+						break;
+					}
+				}
 				return result;
 			}
 			default: {
@@ -856,8 +864,6 @@ class Environment {
 	const std::string input_path;
 	const std::string output_path;
 
-	ElementNotation element_notation = ElementNotation::Pointer;
-
 	Parser parser = Parser();
 
 public:
@@ -885,7 +891,7 @@ public:
 	}
 
 	void set_element_notation(const ElementNotation element_notation_) {
-		element_notation = element_notation_;
+		parser.element_notation = element_notation_;
 	}
 
 
@@ -901,17 +907,14 @@ public:
 
 	std::string render(const std::string& input, json data) {
 		const std::string text = input;
-		renderer.element_notation = element_notation;
 		return renderer.render(parse(text), data);
 	}
 
 	std::string render_template(const Template& temp, json data) {
-		renderer.element_notation = element_notation;
 		return renderer.render(temp, data);
 	}
 
 	std::string render_file(const std::string& filename, json data) {
-		renderer.element_notation = element_notation;
 		return renderer.render(parse_template(filename), data);
 	}
 
