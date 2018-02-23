@@ -22,7 +22,7 @@ inja::render("Hello {{ name }}!", data); // Returns "Hello world!"
 
 ## Integration
 
-Inja is a headers only library, which can be downloaded in the releases or directly from the `src/` folder. Inja uses json by nlohmann as its single dependency, so make sure that it is included before inja. json can be found [here](https://github.com/nlohmann/json/releases).
+Inja is a headers only library, which can be downloaded from the [releases](https://github.com/pantor/inja/releases) or directly from the `src/` folder. Inja uses json by nlohmann as its single dependency, so make sure that it is included before inja. json can be found [here](https://github.com/nlohmann/json/releases).
 
 ```c++
 #include "json.hpp"
@@ -34,6 +34,8 @@ using json = nlohmann::json;
 ```
 
 You can also integrate inja in your project using [Hunter](https://github.com/ruslo/hunter), a package manager for C++.
+
+If you are using the [Meson Build System](http://mesonbuild.com), then you can wrap this repository as a subproject.
 
 
 ## Tutorial
