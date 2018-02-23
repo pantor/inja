@@ -340,7 +340,7 @@ public:
 	std::map<std::string, std::function<json(Parsed::Arguments, const json&)>> map_callbacks;
 
 	template<bool>
-	bool eval_expression(const Parsed::ElementExpression& element, json data) {
+	bool eval_expression(const Parsed::ElementExpression& element, const json &data) {
 		const json var = eval_function(element, data);
 		if (var.empty()) { return false; }
 		else if (var.is_number()) { return (var != 0); }
@@ -461,14 +461,12 @@ public:
 					}
 				}
 
-				const json result = data[json::json_pointer(input)];
-				if (result.is_null()) { throw std::runtime_error("Did not found json element: " + element.command); }
-				return result;
+				return data.at(json::json_pointer(input));
 			}
 			case Parsed::Function::Default: {
 				try {
 					return eval_expression(element.args[0], data);
-				} catch (std::exception& /*exception*/) {
+				} catch (std::exception& exception) {
 					return eval_expression(element.args[1], data);
 				}
 			}
