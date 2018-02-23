@@ -369,7 +369,7 @@ class Renderer {
 public:
 	ElementNotation element_notation;
 
-	std::map<std::string, std::function<json(Parsed::Arguments, const json&)>> map_callbacks;
+	std::map<std::string, std::function<json(const Parsed::Arguments&, const json&)>> map_callbacks;
 
 	template<bool>
 	bool eval_expression(const Parsed::ElementExpression& element, const json &data) {
@@ -950,7 +950,7 @@ public:
 		return j;
 	}
 
-	void add_callback(std::string name, int number_arguments, std::function<json(Parsed::Arguments, const json&)> callback) {
+	void add_callback(std::string name, int number_arguments, std::function<json(const Parsed::Arguments&, const json&)> callback) {
 		parser.regex_map_callbacks[name] = Parser::function_regex(name, number_arguments);
 		renderer.map_callbacks[name] = callback;
 	}
