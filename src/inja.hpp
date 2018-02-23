@@ -956,7 +956,7 @@ public:
 	}
 
 	template<typename T = json>
-	T get_argument(Parsed::Arguments args, int index, const json& data) {
+	T get_argument(const Parsed::Arguments &args, int index, const json& data) {
 		return renderer.eval_expression<T>(args[index], data);
 	}
 };
