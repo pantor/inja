@@ -498,7 +498,7 @@ public:
 			case Parsed::Function::Default: {
 				try {
 					return eval_expression(element.args[0], data);
-				} catch (std::exception& exception) {
+				} catch (std::exception&) {
 					return eval_expression(element.args[1], data);
 				}
 			}
