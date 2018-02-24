@@ -507,7 +507,6 @@ public:
 		std::string result = "";
 		for (auto element: temp.parsed_template.children) {
 			switch (element->type) {
-				case Parsed::Type::Main: { throw std::runtime_error("Main type in renderer."); }
 				case Parsed::Type::String: {
 					auto element_string = std::static_pointer_cast<Parsed::ElementString>(element);
 					result.append(element_string->text);
@@ -567,8 +566,9 @@ public:
 					}
 					break;
 				}
-				case Parsed::Type::ConditionBranch: { throw std::runtime_error("ConditionBranch type in renderer."); }
-				case Parsed::Type::Comment: { break; }
+				default: {
+					break;
+				}
 			}
 		}
 		return result;
@@ -892,15 +892,12 @@ public:
 		parser.element_notation = element_notation_;
 	}
 
-
 	Template parse(const std::string& input) {
-		Template parsed = parser.parse(input);
-		return parsed;
+		return parser.parse(input);
 	}
 
 	Template parse_template(const std::string& filename) {
-		Template parsed = parser.parse_template(input_path + filename);
-		return parsed;
+		return parser.parse_template(input_path + filename);
 	}
 
 	std::string render(const std::string& input, json data) {
