@@ -54,19 +54,12 @@ namespace inja {
 using json = nlohmann::json;
 
 
-
 /*!
-@brief dot notation to json pointer notiation
+@brief throw an error with a given message
 */
-inline std::string dot_to_json_pointer_notation(std::string dot) {
-	std::string result = dot;
-	while (result.find(".") != std::string::npos) {
-		result.replace(result.find("."), 1, "/");
-	}
-	result.insert(0, "/");
-	return result;
+inline void inja_throw(std::string type, std::string message) {
+	throw std::runtime_error("[inja.exception." + type + "] " + message);
 }
-
 
 
 /*!
@@ -81,7 +74,6 @@ public:
 
 	std::string pattern() { return pattern_; }
 };
-
 
 
 class Match: public std::match_results<std::string::const_iterator> {
@@ -106,7 +98,6 @@ public:
 };
 
 
-
 template<typename T>
 class MatchType: public Match {
 	T type_;
@@ -120,7 +111,6 @@ public:
 
 	T type() const { return type_; }
 };
-
 
 
 class MatchClosed {
@@ -148,7 +138,6 @@ inline Match search(const std::string& input, Regex regex, size_t position) {
 	std::regex_search(input.cbegin() + position, input.cend(), match, regex);
 	return match;
 }
-
 
 
 template<typename T>
@@ -190,7 +179,7 @@ inline MatchType<T> search(const std::string& input, std::map<T, Regex>& regexes
 		}
 	}
 
-	throw std::runtime_error("Error while searching in input: " + input);
+	inja_throw("regex_search_error", "error while searching in input: " + input);
 	return search_match;
 }
 
@@ -229,7 +218,6 @@ inline MatchType<T> match(const std::string& input, std::map<T, Regex, S> regexe
 	}
 	return match;
 }
-
 
 
 enum class ElementNotation {
@@ -360,7 +348,6 @@ struct Parsed {
 };
 
 
-
 class Template {
 public:
 	const Parsed::Element parsed_template;
@@ -379,12 +366,23 @@ public:
 		if (var.empty()) { return false; }
 		else if (var.is_number()) { return (var != 0); }
 		else if (var.is_string()) { return not var.empty(); }
-		return var.get<bool>();
+		try {
+			return var.get<bool>();
+		} catch (json::type_error& e) {
+			inja_throw("json_error", e.what());
+			throw;
+		}
 	}
 
 	template<typename T = json>
   T eval_expression(const Parsed::ElementExpression& element, const json &data) {
-		return eval_function(element, data).get<T>();
+		const json var = eval_function(element, data);
+		try {
+			return var.get<T>();
+		} catch (json::type_error& e) {
+			inja_throw("json_error", e.what());
+			throw;
+		}
 	}
 
 	json eval_function(const Parsed::ElementExpression& element, const json& data) {
@@ -481,7 +479,11 @@ public:
 				return eval_expression(element.args[0], data) != eval_expression(element.args[1], data);
 			}
 			case Parsed::Function::ReadJson: {
-				return data.at(json::json_pointer(element.command));
+				try {
+					return data.at(json::json_pointer(element.command));
+				} catch (std::exception&) {
+					inja_throw("render_error", "variable '" + element.command + "' not found");
+				}
 			}
 			case Parsed::Function::Result: {
 				return element.result;
@@ -499,7 +501,7 @@ public:
 			}
 		}
 
-		throw std::runtime_error("Unknown function in renderer.");
+		inja_throw("render_error", "unknown function in renderer: " + element.command);
 		return json();
 	}
 
@@ -580,6 +582,9 @@ class Parser {
 public:
 	ElementNotation element_notation = ElementNotation::Pointer;
 
+	/*!
+	@brief create a corresponding regex for a function name with a number of arguments seperated by ,
+	*/
 	static Regex function_regex(std::string name, int number_arguments) {
 		std::string pattern = name;
 		if (number_arguments > 0) {
@@ -591,6 +596,18 @@ public:
 			pattern.append("\\)");
 		}
 		return Regex{"\\s*" + pattern + "\\s*"};
+	}
+
+	/*!
+	@brief dot notation to json pointer notiation
+	*/
+	static std::string dot_to_json_pointer_notation(std::string dot) {
+		std::string result = dot;
+		while (result.find(".") != std::string::npos) {
+			result.replace(result.find("."), 1, "/");
+		}
+		result.insert(0, "/");
+		return result;
 	}
 
 	std::map<Parsed::Delimiter, Regex> regex_map_delimiters = {
@@ -749,7 +766,7 @@ public:
 									break;
 								}
 								default: {
-									throw std::runtime_error("Unknown loop statement.");
+									inja_throw("parser_error", "unknown loop statement");
 								}
 							}
 							break;
@@ -854,7 +871,6 @@ public:
 		return text;
 	}
 };
-
 
 
 /*!
@@ -962,7 +978,6 @@ public:
 		return renderer.eval_expression<T>(args[index], data);
 	}
 };
-
 
 
 /*!

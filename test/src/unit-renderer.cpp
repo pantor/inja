@@ -39,7 +39,7 @@ TEST_CASE("types") {
 		CHECK( env.render("Hello {{ brother/name }}!", data) == "Hello Chris!" );
 		CHECK( env.render("Hello {{ brother/daughter0/name }}!", data) == "Hello Maria!" );
 
-		// CHECK_THROWS_WITH( env.render("{{unknown}}", data), "[json.exception.out_of_range.403] key 'unknown' not found" );
+		CHECK_THROWS_WITH( env.render("{{unknown}}", data), "[inja.exception.render_error] variable '/unknown' not found" );
 	}
 
 	SECTION("comments") {
@@ -53,8 +53,8 @@ TEST_CASE("types") {
 		CHECK( env.render("Hello {% for name in names %}{{ index }}: {{ name }}, {% endfor %}!", data) == "Hello 0: Jeff, 1: Seb, !" );
 		CHECK( env.render("{% for type, name in relatives %}{{ type }}: {{ name }}, {% endfor %}", data) == "brother: Chris, mother: Maria, sister: Jenny, " );
 
-		CHECK_THROWS_WITH( env.render("{% for name ins names %}a{% endfor %}", data), "Unknown loop statement."  );
-		// CHECK_THROWS_WITH( env.render("{% for name in relatives %}{{ name }}{% endfor %}", data), "[json.exception.type_error.302] type must be array, but is object"  );
+		CHECK_THROWS_WITH( env.render("{% for name ins names %}a{% endfor %}", data), "[inja.exception.parser_error] unknown loop statement"  );
+		CHECK_THROWS_WITH( env.render("{% for name in relatives %}{{ name }}{% endfor %}", data), "[inja.exception.json_error] [json.exception.type_error.302] type must be array, but is object"  );
 	}
 
 	SECTION("conditionals") {
@@ -86,78 +86,78 @@ TEST_CASE("functions") {
 		CHECK( env.render("{{ upper(  name  ) }}", data) == "PETER" );
 		CHECK( env.render("{{ upper(city) }}", data) == "NEW YORK" );
 		CHECK( env.render("{{ upper(upper(name)) }}", data) == "PETER" );
-		// CHECK_THROWS_WITH( env.render("{{ upper(5) }}", data), "[json.exception.type_error.302] type must be string, but is number" );
-		// CHECK_THROWS_WITH( env.render("{{ upper(true) }}", data), "[json.exception.type_error.302] type must be string, but is boolean" );
+		CHECK_THROWS_WITH( env.render("{{ upper(5) }}", data), "[inja.exception.json_error] [json.exception.type_error.302] type must be string, but is number" );
+		CHECK_THROWS_WITH( env.render("{{ upper(true) }}", data), "[inja.exception.json_error] [json.exception.type_error.302] type must be string, but is boolean" );
 	}
 
 	SECTION("lower") {
 		CHECK( env.render("{{ lower(name) }}", data) == "peter" );
 		CHECK( env.render("{{ lower(city) }}", data) == "new york" );
-		// CHECK_THROWS_WITH( env.render("{{ lower(5.45) }}", data), "[json.exception.type_error.302] type must be string, but is number" );
+		CHECK_THROWS_WITH( env.render("{{ lower(5.45) }}", data), "[inja.exception.json_error] [json.exception.type_error.302] type must be string, but is number" );
 	}
 
 	SECTION("range") {
 		CHECK( env.render("{{ range(2) }}", data) == "[0,1]" );
 		CHECK( env.render("{{ range(4) }}", data) == "[0,1,2,3]" );
-		// CHECK_THROWS_WITH( env.render("{{ range(name) }}", data), "[json.exception.type_error.302] type must be number, but is string" );
+		CHECK_THROWS_WITH( env.render("{{ range(name) }}", data), "[inja.exception.json_error] [json.exception.type_error.302] type must be number, but is string" );
 	}
 
 	SECTION("length") {
 		CHECK( env.render("{{ length(names) }}", data) == "4" );
-		// CHECK_THROWS_WITH( env.render("{{ length(5) }}", data), "[json.exception.type_error.302] type must be array, but is number" );
+		CHECK_THROWS_WITH( env.render("{{ length(5) }}", data), "[inja.exception.json_error] [json.exception.type_error.302] type must be array, but is number" );
 	}
 
 	SECTION("sort") {
 		CHECK( env.render("{{ sort([3, 2, 1]) }}", data) == "[1,2,3]" );
 		CHECK( env.render("{{ sort([\"bob\", \"charlie\", \"alice\"]) }}", data) == "[\"alice\",\"bob\",\"charlie\"]" );
-		// CHECK_THROWS_WITH( env.render("{{ sort(5) }}", data), "[json.exception.type_error.302] type must be array, but is number" );
+		CHECK_THROWS_WITH( env.render("{{ sort(5) }}", data), "[inja.exception.json_error] [json.exception.type_error.302] type must be array, but is number" );
 	}
 
 	SECTION("first") {
 		CHECK( env.render("{{ first(names) }}", data) == "Jeff" );
-		// CHECK_THROWS_WITH( env.render("{{ length(5) }}", data), "[json.exception.type_error.302] type must be array, but is number" );
+		CHECK_THROWS_WITH( env.render("{{ first(5) }}", data), "[inja.exception.json_error] [json.exception.type_error.302] type must be array, but is number" );
 	}
 
 	SECTION("last") {
 		CHECK( env.render("{{ last(names) }}", data) == "Tom" );
-		// CHECK_THROWS_WITH( env.render("{{ length(5) }}", data), "[json.exception.type_error.302] type must be array, but is number" );
+		CHECK_THROWS_WITH( env.render("{{ last(5) }}", data), "[inja.exception.json_error] [json.exception.type_error.302] type must be array, but is number" );
 	}
 
 	SECTION("round") {
 		CHECK( env.render("{{ round(4, 0) }}", data) == "4.0" );
 		CHECK( env.render("{{ round(temperature, 2) }}", data) == "25.68" );
-		// CHECK_THROWS_WITH( env.render("{{ round(name, 2) }}", data), "[json.exception.type_error.302] type must be number, but is string" );
+		CHECK_THROWS_WITH( env.render("{{ round(name, 2) }}", data), "[inja.exception.json_error] [json.exception.type_error.302] type must be number, but is string" );
 	}
 
 	SECTION("divisibleBy") {
 		CHECK( env.render("{{ divisibleBy(50, 5) }}", data) == "true" );
 		CHECK( env.render("{{ divisibleBy(12, 3) }}", data) == "true" );
 		CHECK( env.render("{{ divisibleBy(11, 3) }}", data) == "false" );
-		// CHECK_THROWS_WITH( env.render("{{ divisibleBy(name, 2) }}", data), "[json.exception.type_error.302] type must be number, but is string" );
+		CHECK_THROWS_WITH( env.render("{{ divisibleBy(name, 2) }}", data), "[inja.exception.json_error] [json.exception.type_error.302] type must be number, but is string" );
 	}
 
 	SECTION("odd") {
 		CHECK( env.render("{{ odd(11) }}", data) == "true" );
 		CHECK( env.render("{{ odd(12) }}", data) == "false" );
-		// CHECK_THROWS_WITH( env.render("{{ odd(name) }}", data), "[json.exception.type_error.302] type must be number, but is string" );
+		CHECK_THROWS_WITH( env.render("{{ odd(name) }}", data), "[inja.exception.json_error] [json.exception.type_error.302] type must be number, but is string" );
 	}
 
 	SECTION("even") {
 		CHECK( env.render("{{ even(11) }}", data) == "false" );
 		CHECK( env.render("{{ even(12) }}", data) == "true" );
-		// CHECK_THROWS_WITH( env.render("{{ even(name) }}", data), "[json.exception.type_error.302] type must be number, but is string" );
+		CHECK_THROWS_WITH( env.render("{{ even(name) }}", data), "[inja.exception.json_error] [json.exception.type_error.302] type must be number, but is string" );
 	}
 
 	SECTION("max") {
 		CHECK( env.render("{{ max([1, 2, 3]) }}", data) == "3" );
 		CHECK( env.render("{{ max([-5.2, 100.2, 2.4]) }}", data) == "100.2" );
-		// CHECK_THROWS_WITH( env.render("{{ even(name) }}", data), "[json.exception.type_error.302] type must be number, but is string" );
+		CHECK_THROWS_WITH( env.render("{{ max(name) }}", data), "[inja.exception.json_error] [json.exception.type_error.302] type must be array, but is string" );
 	}
 
 	SECTION("min") {
 		CHECK( env.render("{{ min([1, 2, 3]) }}", data) == "1" );
 		CHECK( env.render("{{ min([-5.2, 100.2, 2.4]) }}", data) == "-5.2" );
-		// CHECK_THROWS_WITH( env.render("{{ even(name) }}", data), "[json.exception.type_error.302] type must be number, but is string" );
+		CHECK_THROWS_WITH( env.render("{{ min(name) }}", data), "[inja.exception.json_error] [json.exception.type_error.302] type must be array, but is string" );
 	}
 
 	SECTION("default") {
@@ -166,7 +166,7 @@ TEST_CASE("functions") {
 		CHECK( env.render("{{ default(name, \"nobody\") }}", data) == "Peter" );
 		CHECK( env.render("{{ default(surname, \"nobody\") }}", data) == "nobody" );
 
-		// CHECK_THROWS_WITH( env.render("{{ default(surname, lastname) }}", data), "[json.exception.out_of_range.403] key 'lastname' not found" );
+		CHECK_THROWS_WITH( env.render("{{ default(surname, lastname) }}", data), "[inja.exception.render_error] variable '/lastname' not found" );
 	}
 }
 
@@ -268,7 +268,7 @@ TEST_CASE("other-syntax") {
 		CHECK( env.render("Hello {{ brother.name }}!", data) == "Hello Chris!" );
 		CHECK( env.render("Hello {{ brother.daughter0.name }}!", data) == "Hello Maria!" );
 
-		// CHECK_THROWS_WITH( env.render("{{unknown}}", data), "[json.exception.out_of_range.403] key 'unknown' not found" );
+		CHECK_THROWS_WITH( env.render("{{unknown.name}}", data), "[inja.exception.render_error] variable '/unknown/name' not found" );
 	}
 
 	SECTION("other expression syntax") {
