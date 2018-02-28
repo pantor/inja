@@ -22,6 +22,7 @@ TEST_CASE("types") {
 	data["relatives"]["mother"] = "Maria";
 	data["relatives"]["brother"] = "Chris";
 	data["relatives"]["sister"] = "Jenny";
+	data["vars"] = {2, 3, 4, 0, -1, -2, -3};
 
 
 	SECTION("basic") {
@@ -52,6 +53,8 @@ TEST_CASE("types") {
 		CHECK( env.render("Hello {% for name in names %}{{ name }} {% endfor %}!", data) == "Hello Jeff Seb !" );
 		CHECK( env.render("Hello {% for name in names %}{{ index }}: {{ name }}, {% endfor %}!", data) == "Hello 0: Jeff, 1: Seb, !" );
 		CHECK( env.render("{% for type, name in relatives %}{{ type }}: {{ name }}, {% endfor %}", data) == "brother: Chris, mother: Maria, sister: Jenny, " );
+		CHECK( env.render("{% for v in vars %}{% if v > 0 %}+{% endif %}{% endfor %}", data) == "+++" );
+		// CHECK( env.render("{% if 1 >= 18 %}test{% endif %}{% for v in vars %}{% if v > 0 %}+{% else %}-{% endif %}{% endfor %}", data) == "+++----" );
 
 		CHECK_THROWS_WITH( env.render("{% for name ins names %}a{% endfor %}", data), "[inja.exception.parser_error] unknown loop statement"  );
 		// CHECK_THROWS_WITH( env.render("{% for name in relatives %}{{ name }}{% endfor %}", data), "[inja.exception.json_error] [json.exception.type_error.302] type must be array, but is object"  );
@@ -69,6 +72,7 @@ TEST_CASE("types") {
 		CHECK( env.render("{% if age in [28, 29, 30] %}True{% endif %}", data) == "True" );
 		CHECK( env.render("{% if age == 28 %}28{% else if age == 29 %}29{% endif %}", data) == "29" );
 		CHECK( env.render("{% if age == 26 %}26{% else if age == 27 %}27{% else if age == 28 %}28{% else %}29{% endif %}", data) == "29" );
+		CHECK( env.render("{% if age == 25 %}+{% endif %}{% if age == 29 %}+{% else %}-{% endif %}", data) == "+" );
 	}
 }
 

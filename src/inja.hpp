@@ -72,7 +72,7 @@ public:
 	Regex(): std::regex() {}
 	explicit Regex(const std::string& pattern): std::regex(pattern, std::regex_constants::ECMAScript), pattern_(pattern) { }
 
-	std::string pattern() { return pattern_; }
+	std::string pattern() const { return pattern_; }
 };
 
 
@@ -196,6 +196,7 @@ inline MatchClosed search_closed_on_level(const std::string& input, const Regex&
 		if (std::regex_match(inner.cbegin(), inner.cend(), regex_level_up)) { level += 1; }
 		else if (std::regex_match(inner.cbegin(), inner.cend(), regex_level_down)) { level -= 1; }
 
+		if (level < 0) { return MatchClosed(); }
 		match_delimiter = search(input, regex_statement, current_position);
 	}
 
