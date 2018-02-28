@@ -92,7 +92,7 @@ env.set_element_notation(ElementNotation::Dot); // e.g. time.start
 env.set_expression("\\{\\{", "\\}\\}"); // Expressions {{ }}
 env.set_comment("\\{#", "#\\}"); // Comments {# #}
 env.set_statement("\\{\\%", "\\%\\}"); // Statements {% %} for many things, see below
-env.set_line_statement("##"); // Line statement ## (just an opener)
+env.set_line_statement("##"); // Line statements ## (just an opener)
 ```
 
 ### Variables
