@@ -359,7 +359,7 @@ public:
 
 class Renderer {
 public:
-	std::map<Parsed::CallbackSignature, std::function<json(Parsed::Arguments, const json&)>> map_callbacks;
+	std::map<Parsed::CallbackSignature, std::function<json(const Parsed::Arguments&, const json&)>> map_callbacks;
 
 	template<bool>
 	bool eval_expression(const Parsed::ElementExpression& element, const json &data) {
@@ -968,14 +968,14 @@ public:
 		return j;
 	}
 
-	void add_callback(std::string name, int number_arguments, std::function<json(Parsed::Arguments, const json&)> callback) {
+	void add_callback(std::string name, int number_arguments, std::function<json(const Parsed::Arguments&, const json&)> callback) {
 		Parsed::CallbackSignature signature = std::make_pair(name, number_arguments);
 		parser.regex_map_callbacks[signature] = Parser::function_regex(name, number_arguments);
 		renderer.map_callbacks[signature] = callback;
 	}
 
 	template<typename T = json>
-	T get_argument(Parsed::Arguments args, int index, const json& data) {
+	T get_argument(const Parsed::Arguments& args, int index, const json& data) {
 		return renderer.eval_expression<T>(args[index], data);
 	}
 };
