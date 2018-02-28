@@ -89,10 +89,10 @@ env.set_element_notation(ElementNotation::Pointer); // (default) e.g. time/start
 env.set_element_notation(ElementNotation::Dot); // e.g. time.start
 
 // With other opening and closing strings (here the defaults, as regex)
-env.set_variables("\\{\\{", "\\}\\}"); // Variables {{ }}
-env.set_comments("\\{#", "#\\}"); // Comments {# #}
-env.set_statements("\\{\\%", "\\%\\}"); // Statements {% %} for many things, see below
-env.set_line_statements("##"); // Line statement ## (just an opener)
+env.set_expression("\\{\\{", "\\}\\}"); // Expressions {{ }}
+env.set_comment("\\{#", "#\\}"); // Comments {# #}
+env.set_statement("\\{\\%", "\\%\\}"); // Statements {% %} for many things, see below
+env.set_line_statement("##"); // Line statements ## (just an opener)
 ```
 
 ### Variables
@@ -206,7 +206,7 @@ Environment env = Environment();
 
 /*
  * Callbacks are defined by its:
- * - name, which is equal to the function name
+ * - name
  * - number of arguments
  * - callback function. Implemented with std::function, you can for example use lambdas.
  */
