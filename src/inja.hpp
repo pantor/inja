@@ -54,19 +54,12 @@ namespace inja {
 using json = nlohmann::json;
 
 
-
 /*!
-@brief dot notation to json pointer notiation
+@brief throw an error with a given message
 */
-inline std::string dot_to_json_pointer_notation(std::string dot) {
-	std::string result = dot;
-	while (result.find(".") != std::string::npos) {
-		result.replace(result.find("."), 1, "/");
-	}
-	result.insert(0, "/");
-	return result;
+inline void inja_throw(std::string type, std::string message) {
+	throw std::runtime_error("[inja.exception." + type + "] " + message);
 }
-
 
 
 /*!
@@ -79,9 +72,8 @@ public:
 	Regex(): std::regex() {}
 	explicit Regex(const std::string& pattern): std::regex(pattern, std::regex_constants::ECMAScript), pattern_(pattern) { }
 
-	std::string pattern() { return pattern_; }
+	std::string pattern() const { return pattern_; }
 };
-
 
 
 class Match: public std::match_results<std::string::const_iterator> {
@@ -100,12 +92,10 @@ public:
 	size_t position() const { return offset_ + std::match_results<std::string::const_iterator>::position(); }
 	size_t end_position() const { return position() + length(); }
 	bool found() const { return not empty(); }
-	bool valid(int i) const { return std::match_results<std::string::const_iterator>::length(i + group_offset_) > 0; }
 	const std::string str() const { return str(0); }
 	const std::string str(int i) const { return std::match_results<std::string::const_iterator>::str(i + group_offset_); }
 	Regex regex() const { return regex_; }
 };
-
 
 
 template<typename T>
@@ -121,7 +111,6 @@ public:
 
 	T type() const { return type_; }
 };
-
 
 
 class MatchClosed {
@@ -149,7 +138,6 @@ inline Match search(const std::string& input, Regex regex, size_t position) {
 	std::regex_search(input.cbegin() + position, input.cend(), match, regex);
 	return match;
 }
-
 
 
 template<typename T>
@@ -191,7 +179,7 @@ inline MatchType<T> search(const std::string& input, std::map<T, Regex>& regexes
 		}
 	}
 
-	throw std::runtime_error("Error while searching in input: " + input);
+	inja_throw("regex_search_error", "error while searching in input: " + input);
 	return search_match;
 }
 
@@ -208,6 +196,7 @@ inline MatchClosed search_closed_on_level(const std::string& input, const Regex&
 		if (std::regex_match(inner.cbegin(), inner.cend(), regex_level_up)) { level += 1; }
 		else if (std::regex_match(inner.cbegin(), inner.cend(), regex_level_down)) { level -= 1; }
 
+		if (level < 0) { return MatchClosed(); }
 		match_delimiter = search(input, regex_statement, current_position);
 	}
 
@@ -218,8 +207,8 @@ inline MatchClosed search_closed(const std::string& input, const Regex& regex_st
 	return search_closed_on_level(input, regex_statement, regex_open, regex_close, regex_close, open_match);
 }
 
-template<typename T>
-inline MatchType<T> match(const std::string& input, std::map<T, Regex> regexes) {
+template<typename T, typename S>
+inline MatchType<T> match(const std::string& input, std::map<T, Regex, S> regexes) {
 	MatchType<T> match;
 	for (const auto e : regexes) {
 		if (std::regex_match(input.cbegin(), input.cend(), match, e.second)) {
@@ -232,34 +221,33 @@ inline MatchType<T> match(const std::string& input, std::map<T, Regex> regexes) 
 }
 
 
-
 enum class ElementNotation {
-	Pointer,
-	Dot
+	Dot,
+	Pointer
 };
 
 struct Parsed {
 	enum class Type {
-		Main,
-		String,
 		Comment,
+		Condition,
+		ConditionBranch,
 		Expression,
 		Loop,
-		Condition,
-		ConditionBranch
+		Main,
+		String
 	};
 
 	enum class Delimiter {
-		Statement,
-		LineStatement,
+		Comment,
 		Expression,
-		Comment
+		LineStatement,
+		Statement
 	};
 
 	enum class Statement {
-		Loop,
 		Condition,
-		Include
+		Include,
+		Loop
 	};
 
 	enum class Function {
@@ -269,26 +257,27 @@ struct Parsed {
 		In,
 		Equal,
 		Greater,
-		Less,
 		GreaterEqual,
+		Less,
 		LessEqual,
 		Different,
-		Upper,
-		Lower,
-		Range,
-		Length,
-		Sort,
+		Callback,
+		DivisibleBy,
+		Even,
 		First,
 		Last,
-		Round,
-		DivisibleBy,
-		Odd,
-		Even,
+		Length,
+		Lower,
 		Max,
 		Min,
+		Odd,
+		Range,
+		Result,
+		Round,
+		Sort,
+		Upper,
 		ReadJson,
-		Default,
-		Callback
+		Default
 	};
 
 	enum class Condition {
@@ -327,11 +316,11 @@ struct Parsed {
 		Function function;
 		std::vector<ElementExpression> args;
 		std::string command;
+		json result;
 
 		explicit ElementExpression(): ElementExpression(Function::ReadJson) { }
 		explicit ElementExpression(const Function function_): Element(Type::Expression), function(function_), args({}), command("") { }
 	};
-	typedef std::vector<ElementExpression> Arguments;
 
 	struct ElementLoop: public Element {
 		Loop loop;
@@ -354,8 +343,10 @@ struct Parsed {
 		explicit ElementConditionBranch(const std::string& inner, const Condition condition_type): Element(Type::ConditionBranch, inner), condition_type(condition_type) { }
 		explicit ElementConditionBranch(const std::string& inner, const Condition condition_type, const ElementExpression& condition): Element(Type::ConditionBranch, inner), condition_type(condition_type), condition(condition) { }
 	};
-};
 
+	using Arguments = std::vector<ElementExpression>;
+	using CallbackSignature = std::pair<std::string, int>;
+};
 
 
 class Template {
@@ -368,9 +359,7 @@ public:
 
 class Renderer {
 public:
-	ElementNotation element_notation;
-
-	std::map<std::string, std::function<json(const Parsed::Arguments&, const json&)>> map_callbacks;
+	std::map<Parsed::CallbackSignature, std::function<json(Parsed::Arguments, const json&)>> map_callbacks;
 
 	template<bool>
 	bool eval_expression(const Parsed::ElementExpression& element, const json &data) {
@@ -378,12 +367,23 @@ public:
 		if (var.empty()) { return false; }
 		else if (var.is_number()) { return (var != 0); }
 		else if (var.is_string()) { return not var.empty(); }
-		return var.get<bool>();
+		try {
+			return var.get<bool>();
+		} catch (json::type_error& e) {
+			inja_throw("json_error", e.what());
+			throw;
+		}
 	}
 
 	template<typename T = json>
   T eval_expression(const Parsed::ElementExpression& element, const json &data) {
-		return eval_function(element, data).get<T>();
+		const json var = eval_function(element, data);
+		try {
+			return var.get<T>();
+		} catch (json::type_error& e) {
+			inja_throw("json_error", e.what());
+			throw;
+		}
 	}
 
 	json eval_function(const Parsed::ElementExpression& element, const json& data) {
@@ -480,21 +480,14 @@ public:
 				return eval_expression(element.args[0], data) != eval_expression(element.args[1], data);
 			}
 			case Parsed::Function::ReadJson: {
-				if ( json::accept(element.command) ) { return json::parse(element.command); } // Json Raw Data
-
-				std::string input = element.command;
-				switch (element_notation) {
-					case ElementNotation::Pointer: {
-						if (input[0] != '/') { input.insert(0, "/"); }
-						break;
-					}
-					case ElementNotation::Dot: {
-						input = dot_to_json_pointer_notation(input);
-						break;
-					}
+				try {
+					return data.at(json::json_pointer(element.command));
+				} catch (std::exception&) {
+					inja_throw("render_error", "variable '" + element.command + "' not found");
 				}
-
-				return data.at(json::json_pointer(input));
+			}
+			case Parsed::Function::Result: {
+				return element.result;
 			}
 			case Parsed::Function::Default: {
 				try {
@@ -504,11 +497,12 @@ public:
 				}
 			}
 			case Parsed::Function::Callback: {
-				return map_callbacks[element.command](element.args, data);
+				Parsed::CallbackSignature signature = std::make_pair(element.command, element.args.size());
+				return map_callbacks.at(signature)(element.args, data);
 			}
 		}
 
-		throw std::runtime_error("Unknown function in renderer.");
+		inja_throw("render_error", "unknown function in renderer: " + element.command);
 		return json();
 	}
 
@@ -516,7 +510,6 @@ public:
 		std::string result = "";
 		for (auto element: temp.parsed_template.children) {
 			switch (element->type) {
-				case Parsed::Type::Main: { throw std::runtime_error("Main type in renderer."); }
 				case Parsed::Type::String: {
 					auto element_string = std::static_pointer_cast<Parsed::ElementString>(element);
 					result.append(element_string->text);
@@ -576,8 +569,9 @@ public:
 					}
 					break;
 				}
-				case Parsed::Type::ConditionBranch: { throw std::runtime_error("ConditionBranch type in renderer."); }
-				case Parsed::Type::Comment: { break; }
+				default: {
+					break;
+				}
 			}
 		}
 		return result;
@@ -587,25 +581,34 @@ public:
 
 class Parser {
 public:
-	static Regex function_regex(std::string name, int minimum_number_arguments, int maximum_number_argumets = -1) {
-		if (maximum_number_argumets < minimum_number_arguments )
-			maximum_number_argumets = minimum_number_arguments;
+	ElementNotation element_notation = ElementNotation::Pointer;
 
+	/*!
+	@brief create a corresponding regex for a function name with a number of arguments seperated by ,
+	*/
+	static Regex function_regex(std::string name, int number_arguments) {
 		std::string pattern = name;
-		if (maximum_number_argumets > 0) {
+		if (number_arguments > 0) {
 			pattern.append("\\(");
-
-			if ( maximum_number_argumets == 1 )
+			for (int i = 0; i < number_arguments; i++) {
+				if (i != 0) pattern.append(",");
 				pattern.append("(.*)");
-			else
-				for (int i = 0; i < maximum_number_argumets; i++) {
-					pattern.append(R"((?:((?:"[^"]*")|(?:[^,]*)|(?:\[[^"]*\])))");
-					pattern.append(i != maximum_number_argumets - 1 ? ",)" : ")");
-					pattern.append(i >= maximum_number_argumets - minimum_number_arguments ? "{1}" : "{0,1}");
-				}
+			}
 			pattern.append("\\)");
 		}
 		return Regex{"\\s*" + pattern + "\\s*"};
+	}
+
+	/*!
+	@brief dot notation to json pointer notiation
+	*/
+	static std::string dot_to_json_pointer_notation(std::string dot) {
+		std::string result = dot;
+		while (result.find(".") != std::string::npos) {
+			result.replace(result.find("."), 1, "/");
+		}
+		result.insert(0, "/");
+		return result;
 	}
 
 	std::map<Parsed::Delimiter, Regex> regex_map_delimiters = {
@@ -648,47 +651,63 @@ public:
 		{Parsed::Function::GreaterEqual, Regex{"(.+) >= (.+)"}},
 		{Parsed::Function::LessEqual, Regex{"(.+) <= (.+)"}},
 		{Parsed::Function::Different, Regex{"(.+) != (.+)"}},
-		{Parsed::Function::Upper, function_regex("upper", 1)},
-		{Parsed::Function::Lower, function_regex("lower", 1)},
-		{Parsed::Function::Range, function_regex("range", 1)},
-		{Parsed::Function::Length, function_regex("length", 1)},
-		{Parsed::Function::Sort, function_regex("sort", 1)},
+		{Parsed::Function::Default, function_regex("default", 2)},
+		{Parsed::Function::DivisibleBy, function_regex("divisibleBy", 2)},
+		{Parsed::Function::Even, function_regex("even", 1)},
 		{Parsed::Function::First, function_regex("first", 1)},
 		{Parsed::Function::Last, function_regex("last", 1)},
-		{Parsed::Function::Round, function_regex("round", 2)},
-		{Parsed::Function::DivisibleBy, function_regex("divisibleBy", 2)},
-		{Parsed::Function::Odd, function_regex("odd", 1)},
-		{Parsed::Function::Even, function_regex("even", 1)},
+		{Parsed::Function::Length, function_regex("length", 1)},
+		{Parsed::Function::Lower, function_regex("lower", 1)},
 		{Parsed::Function::Max, function_regex("max", 1)},
 		{Parsed::Function::Min, function_regex("min", 1)},
-		{Parsed::Function::ReadJson, Regex{"\\s*([^\\(\\)]*\\S)\\s*"}},
-		{Parsed::Function::Default, function_regex("default", 2)}
+		{Parsed::Function::Odd, function_regex("odd", 1)},
+		{Parsed::Function::Range, function_regex("range", 1)},
+		{Parsed::Function::Round, function_regex("round", 2)},
+		{Parsed::Function::Sort, function_regex("sort", 1)},
+		{Parsed::Function::Upper, function_regex("upper", 1)},
+		{Parsed::Function::ReadJson, Regex{"\\s*([^\\(\\)]*\\S)\\s*"}}
 	};
 
-	std::map<std::string, Regex> regex_map_callbacks;
+	std::map<Parsed::CallbackSignature, Regex, std::greater<Parsed::CallbackSignature>> regex_map_callbacks;
 
 	Parser() { }
 
 	Parsed::ElementExpression parse_expression(const std::string& input) {
-		MatchType<std::string> match_callback = match(input, regex_map_callbacks);
-		if (!match_callback.type().empty()) {
+		MatchType<Parsed::CallbackSignature> match_callback = match(input, regex_map_callbacks);
+		if (!match_callback.type().first.empty()) {
 			std::vector<Parsed::ElementExpression> args = {};
 			for (unsigned int i = 1; i < match_callback.size(); i++) { // str(0) is whole group
-				if ( match_callback.valid(i) )
-					args.push_back( parse_expression(match_callback.str(i)) );
+				args.push_back( parse_expression(match_callback.str(i)) );
 			}
 
 			Parsed::ElementExpression result = Parsed::ElementExpression(Parsed::Function::Callback);
 			result.args = args;
-			result.command = match_callback.type();
+			result.command = match_callback.type().first;
 			return result;
 		}
 
 		MatchType<Parsed::Function> match_function = match(input, regex_map_functions);
 		switch ( match_function.type() ) {
 			case Parsed::Function::ReadJson: {
+				std::string command = match_function.str(1);
+				if ( json::accept(command) ) { // JSON Result
+					Parsed::ElementExpression result = Parsed::ElementExpression(Parsed::Function::Result);
+					result.result = json::parse(command);
+					return result;
+				}
+
 				Parsed::ElementExpression result = Parsed::ElementExpression(Parsed::Function::ReadJson);
-				result.command = match_function.str(1);
+				switch (element_notation) {
+					case ElementNotation::Pointer: {
+						if (command[0] != '/') { command.insert(0, "/"); }
+						result.command = command;
+						break;
+					}
+					case ElementNotation::Dot: {
+						result.command = dot_to_json_pointer_notation(command);
+						break;
+					}
+				}
 				return result;
 			}
 			default: {
@@ -748,7 +767,7 @@ public:
 									break;
 								}
 								default: {
-									throw std::runtime_error("Unknown loop statement.");
+									inja_throw("parser_error", "unknown loop statement");
 								}
 							}
 							break;
@@ -855,7 +874,6 @@ public:
 };
 
 
-
 /*!
 @brief Environment class
 */
@@ -863,14 +881,10 @@ class Environment {
 	const std::string input_path;
 	const std::string output_path;
 
-	ElementNotation element_notation = ElementNotation::Pointer;
-
 	Parser parser = Parser();
-
-public:
 	Renderer renderer = Renderer();
 
-
+public:
 	Environment(): Environment("./") { }
 	explicit Environment(const std::string& global_path): input_path(global_path), output_path(global_path), parser() { }
 	explicit Environment(const std::string& input_path, const std::string& output_path): input_path(input_path), output_path(output_path), parser() { }
@@ -892,33 +906,27 @@ public:
 	}
 
 	void set_element_notation(const ElementNotation element_notation_) {
-		element_notation = element_notation_;
+		parser.element_notation = element_notation_;
 	}
 
-
 	Template parse(const std::string& input) {
-		Template parsed = parser.parse(input);
-		return parsed;
+		return parser.parse(input);
 	}
 
 	Template parse_template(const std::string& filename) {
-		Template parsed = parser.parse_template(input_path + filename);
-		return parsed;
+		return parser.parse_template(input_path + filename);
 	}
 
 	std::string render(const std::string& input, json data) {
 		const std::string text = input;
-		renderer.element_notation = element_notation;
 		return renderer.render(parse(text), data);
 	}
 
 	std::string render_template(const Template& temp, json data) {
-		renderer.element_notation = element_notation;
 		return renderer.render(temp, data);
 	}
 
 	std::string render_file(const std::string& filename, json data) {
-		renderer.element_notation = element_notation;
 		return renderer.render(parse_template(filename), data);
 	}
 
@@ -960,24 +968,17 @@ public:
 		return j;
 	}
 
-	void add_callback(std::string name, int number_arguments, std::function<json(const Parsed::Arguments&, const json&)> callback) {
-		parser.regex_map_callbacks[name] = Parser::function_regex(name, number_arguments);
-		renderer.map_callbacks[name] = callback;
+	void add_callback(std::string name, int number_arguments, std::function<json(Parsed::Arguments, const json&)> callback) {
+		Parsed::CallbackSignature signature = std::make_pair(name, number_arguments);
+		parser.regex_map_callbacks[signature] = Parser::function_regex(name, number_arguments);
+		renderer.map_callbacks[signature] = callback;
 	}
-	void add_callback(std::string name, int minimum_number_arguments,int maximum_number_arguments, std::function<json(const Parsed::Arguments&, const json&)> callback) {
-		parser.regex_map_callbacks[name] = Parser::function_regex(name, minimum_number_arguments, maximum_number_arguments);
-		renderer.map_callbacks[name] = callback;
-	}
+
 	template<typename T = json>
-	T get_argument(const Parsed::Arguments &args, int index, const json& data) {
+	T get_argument(Parsed::Arguments args, int index, const json& data) {
 		return renderer.eval_expression<T>(args[index], data);
 	}
-
-	size_t get_arguments_count(const Parsed::Arguments &args) {
-		return args.size();
-	}
 };
-
 
 
 /*!
