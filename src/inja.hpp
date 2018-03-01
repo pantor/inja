@@ -777,7 +777,7 @@ public:
 									break;
 								}
 								default: {
-									inja_throw("parser_error", "unknown loop statement");
+									inja_throw("parser_error", "unknown loop statement: " + loop_inner);
 								}
 							}
 							break;
