@@ -164,6 +164,18 @@ TEST_CASE("functions") {
 		// CHECK_THROWS_WITH( env.render("{{ min(name) }}", data), "[inja.exception.json_error] [json.exception.type_error.302] type must be array, but is string" );
 	}
 
+	SECTION("float") {
+		CHECK( env.render("{{ float(\"2.2\") == 2.2 }}", data) == "true" );
+		CHECK( env.render("{{ float(\"-1.25\") == -1.25 }}", data) == "true" );
+		// CHECK_THROWS_WITH( env.render("{{ max(name) }}", data), "[inja.exception.json_error] [json.exception.type_error.302] type must be array, but is string" );
+	}
+
+	SECTION("int") {
+		CHECK( env.render("{{ int(\"2\") == 2 }}", data) == "true" );
+		CHECK( env.render("{{ int(\"-1.25\") == -1 }}", data) == "true" );
+		// CHECK_THROWS_WITH( env.render("{{ max(name) }}", data), "[inja.exception.json_error] [json.exception.type_error.302] type must be array, but is string" );
+	}
+
 	SECTION("default") {
 		CHECK( env.render("{{ default(11, 0) }}", data) == "11" );
 		CHECK( env.render("{{ default(nothing, 0) }}", data) == "0" );
