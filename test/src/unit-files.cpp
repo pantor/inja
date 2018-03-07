@@ -35,8 +35,8 @@ TEST_CASE("complete-files") {
 }
 
 TEST_CASE("global-path") {
-	inja::Environment env = inja::Environment("../test/data/", "test/");
-	inja::Environment env_result = inja::Environment("test/");
+	inja::Environment env = inja::Environment("../test/data/", "./");
+	inja::Environment env_result = inja::Environment("./");
 	json data;
 	data["name"] = "Jeff";
 
