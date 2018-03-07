@@ -1,4 +1,4 @@
-#include "catch.hpp"
+#include "catch/catch.hpp"
 #include "nlohmann/json.hpp"
 #include "inja.hpp"
 
@@ -12,20 +12,20 @@ TEST_CASE("loading") {
 	data["name"] = "Jeff";
 
 	SECTION("Files should be loaded") {
-		CHECK( env.load_global_file("data/simple.txt") == "Hello {{ name }}." );
+		CHECK( env.load_global_file("../test/data/simple.txt") == "Hello {{ name }}." );
 	}
 
 	SECTION("Files should be rendered") {
-		CHECK( env.render_file("data/simple.txt", data) == "Hello Jeff." );
+		CHECK( env.render_file("../test/data/simple.txt", data) == "Hello Jeff." );
 	}
 
 	SECTION("File includes should be rendered") {
-		CHECK( env.render_file("data/include.txt", data) == "Answer: Hello Jeff." );
+		CHECK( env.render_file("../test/data/include.txt", data) == "Answer: Hello Jeff." );
 	}
 }
 
 TEST_CASE("complete-files") {
-	inja::Environment env = inja::Environment("data/");
+	inja::Environment env = inja::Environment("../test/data/");
 
 	for (std::string test_name : {"simple-file", "nested", "nested-line"}) {
 		SECTION(test_name) {
@@ -35,23 +35,13 @@ TEST_CASE("complete-files") {
 }
 
 TEST_CASE("global-path") {
-	inja::Environment env = inja::Environment("data/");
+	inja::Environment env = inja::Environment("../test/data/", "test/");
+	inja::Environment env_result = inja::Environment("test/");
 	json data;
 	data["name"] = "Jeff";
 
 	SECTION("Files should be written") {
-		env.write("simple.txt", data, "result.txt");
-		CHECK( env.load_global_file("result.txt") == "Hello Jeff." );
-	}
-}
-
-TEST_CASE("input-output-path") {
-	inja::Environment env = inja::Environment("data/", "data/");
-	json data;
-	data["name"] = "Jeff";
-
-	SECTION("Files should be written") {
-		env.write("simple.txt", data, "simple-result.txt");
-		CHECK( env.load_global_file("simple-result.txt") == "Hello Jeff." );
+		env.write("simple.txt", data, "global-path-result.txt");
+		CHECK( env_result.load_global_file("global-path-result.txt") == "Hello Jeff." );
 	}
 }

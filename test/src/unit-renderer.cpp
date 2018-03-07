@@ -1,4 +1,4 @@
-#include "catch.hpp"
+#include "catch/catch.hpp"
 #include "nlohmann/json.hpp"
 #include "inja.hpp"
 
