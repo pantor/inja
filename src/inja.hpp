@@ -265,6 +265,8 @@ struct Parsed {
 		DivisibleBy,
 		Even,
 		First,
+		Float,
+		Int,
 		Last,
 		Length,
 		Lower,
@@ -479,6 +481,12 @@ public:
 			case Parsed::Function::Different: {
 				return eval_expression(element.args[0], data) != eval_expression(element.args[1], data);
 			}
+			case Parsed::Function::Float: {
+				return std::stod(eval_expression<std::string>(element.args[0], data));
+			}
+			case Parsed::Function::Int: {
+				return std::stoi(eval_expression<std::string>(element.args[0], data));
+			}
 			case Parsed::Function::ReadJson: {
 				try {
 					return data.at(json::json_pointer(element.command));
@@ -655,6 +663,8 @@ public:
 		{Parsed::Function::DivisibleBy, function_regex("divisibleBy", 2)},
 		{Parsed::Function::Even, function_regex("even", 1)},
 		{Parsed::Function::First, function_regex("first", 1)},
+		{Parsed::Function::Float, function_regex("float", 1)},
+		{Parsed::Function::Int, function_regex("int", 1)},
 		{Parsed::Function::Last, function_regex("last", 1)},
 		{Parsed::Function::Length, function_regex("length", 1)},
 		{Parsed::Function::Lower, function_regex("lower", 1)},
@@ -767,7 +777,7 @@ public:
 									break;
 								}
 								default: {
-									inja_throw("parser_error", "unknown loop statement");
+									inja_throw("parser_error", "unknown loop statement: " + loop_inner);
 								}
 							}
 							break;

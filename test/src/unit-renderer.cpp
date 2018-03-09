@@ -1,4 +1,4 @@
-#include "catch.hpp"
+#include "catch/catch.hpp"
 #include "nlohmann/json.hpp"
 #include "inja.hpp"
 
@@ -56,7 +56,7 @@ TEST_CASE("types") {
 		CHECK( env.render("{% for v in vars %}{% if v > 0 %}+{% endif %}{% endfor %}", data) == "+++" );
 		// CHECK( env.render("{% if 1 >= 18 %}test{% endif %}{% for v in vars %}{% if v > 0 %}+{% else %}-{% endif %}{% endfor %}", data) == "+++----" );
 
-		CHECK_THROWS_WITH( env.render("{% for name ins names %}a{% endfor %}", data), "[inja.exception.parser_error] unknown loop statement"  );
+		CHECK_THROWS_WITH( env.render("{% for name ins names %}a{% endfor %}", data), "[inja.exception.parser_error] unknown loop statement: for name ins names"  );
 		// CHECK_THROWS_WITH( env.render("{% for name in relatives %}{{ name }}{% endfor %}", data), "[inja.exception.json_error] [json.exception.type_error.302] type must be array, but is object"  );
 	}
 
@@ -162,6 +162,18 @@ TEST_CASE("functions") {
 		CHECK( env.render("{{ min([1, 2, 3]) }}", data) == "1" );
 		CHECK( env.render("{{ min([-5.2, 100.2, 2.4]) }}", data) == "-5.2" );
 		// CHECK_THROWS_WITH( env.render("{{ min(name) }}", data), "[inja.exception.json_error] [json.exception.type_error.302] type must be array, but is string" );
+	}
+
+	SECTION("float") {
+		CHECK( env.render("{{ float(\"2.2\") == 2.2 }}", data) == "true" );
+		CHECK( env.render("{{ float(\"-1.25\") == -1.25 }}", data) == "true" );
+		// CHECK_THROWS_WITH( env.render("{{ max(name) }}", data), "[inja.exception.json_error] [json.exception.type_error.302] type must be array, but is string" );
+	}
+
+	SECTION("int") {
+		CHECK( env.render("{{ int(\"2\") == 2 }}", data) == "true" );
+		CHECK( env.render("{{ int(\"-1.25\") == -1 }}", data) == "true" );
+		// CHECK_THROWS_WITH( env.render("{{ max(name) }}", data), "[inja.exception.json_error] [json.exception.type_error.302] type must be array, but is string" );
 	}
 
 	SECTION("default") {

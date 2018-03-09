@@ -42,7 +42,7 @@ if(HUNTER_ENABLED) # Use Hunter to manage dependencies
 else() # Manage dependencies manually
     # Prepare "Catch" library for other executables
     add_library(Catch INTERFACE)
-    target_include_directories(Catch INTERFACE "thirdparty/catch")
+    target_include_directories(Catch INTERFACE "thirdparty")
     # Prepare "JSON" library for other executables
     add_library(JSON INTERFACE)
     target_include_directories(JSON INTERFACE "thirdparty")

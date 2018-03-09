@@ -193,6 +193,10 @@ render("{{ divisibleBy(42, 7) }}", data); // true
 render("{{ max([1, 2, 3]) }}", data); // 3
 render("{{ min([-2.4, -1.2, 4.5]) }}", data); // -2.4
 
+// Convert strings to numbers
+render("{{ int(\"2\") == 2 }}", data); // true
+render("{{ float(\"1.8\") > 2 }}", data); // false
+
 // Set default values if variables are not defined
 render("Hello {{ default(neighbour, \"my friend\") }}!", data); // "Hello Peter!"
 render("Hello {{ default(colleague, \"my friend\") }}!", data); // "Hello my friend!"
