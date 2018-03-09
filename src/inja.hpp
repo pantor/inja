@@ -347,7 +347,7 @@ struct Parsed {
 	};
 
 	using Arguments = std::vector<ElementExpression>;
-	using CallbackSignature = std::pair<std::string, int>;
+	using CallbackSignature = std::pair<std::string, size_t>;
 };
 
 
