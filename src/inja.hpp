@@ -364,7 +364,7 @@ public:
 	std::map<Parsed::CallbackSignature, std::function<json(const Parsed::Arguments&, const json&)>> map_callbacks;
 
 	template<bool>
-	bool eval_expression(const Parsed::ElementExpression& element, const json &data) {
+	bool eval_expression(const Parsed::ElementExpression& element, const json& data) {
 		const json var = eval_function(element, data);
 		if (var.empty()) { return false; }
 		else if (var.is_number()) { return (var != 0); }
@@ -378,7 +378,7 @@ public:
 	}
 
 	template<typename T = json>
-  T eval_expression(const Parsed::ElementExpression& element, const json &data) {
+  T eval_expression(const Parsed::ElementExpression& element, const json& data) {
 		const json var = eval_function(element, data);
 		try {
 			return var.get<T>();
@@ -514,7 +514,7 @@ public:
 		return json();
 	}
 
-	std::string render(Template temp, json data) {
+	std::string render(Template temp, const json& data) {
 		std::string result = "";
 		for (auto element: temp.parsed_template.children) {
 			switch (element->type) {
@@ -927,16 +927,16 @@ public:
 		return parser.parse_template(input_path + filename);
 	}
 
-	std::string render(const std::string& input, json data) {
+	std::string render(const std::string& input, const json& data) {
 		const std::string text = input;
 		return renderer.render(parse(text), data);
 	}
 
-	std::string render_template(const Template& temp, json data) {
+	std::string render_template(const Template& temp, const json& data) {
 		return renderer.render(temp, data);
 	}
 
-	std::string render_file(const std::string& filename, json data) {
+	std::string render_file(const std::string& filename, const json& data) {
 		return renderer.render(parse_template(filename), data);
 	}
 
@@ -945,13 +945,13 @@ public:
 		return render_file(filename, data);
 	}
 
-	void write(const std::string& filename, json data, const std::string& filename_out) {
+	void write(const std::string& filename, const json& data, const std::string& filename_out) {
 		std::ofstream file(output_path + filename_out);
 		file << render_file(filename, data);
 		file.close();
 	}
 
-	void write(const Template& temp, json data, const std::string& filename_out) {
+	void write(const Template& temp, const json& data, const std::string& filename_out) {
 		std::ofstream file(output_path + filename_out);
 		file << render_template(temp, data);
 		file.close();
@@ -994,7 +994,7 @@ public:
 /*!
 @brief render with default settings
 */
-inline std::string render(const std::string& input, json data) {
+inline std::string render(const std::string& input, const json& data) {
 	return Environment().render(input, data);
 }
 
