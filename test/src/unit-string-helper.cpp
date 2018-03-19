@@ -159,6 +159,6 @@ TEST_CASE("match-functions") {
 
 TEST_CASE("create-regex-functions") {
 	CHECK( inja::Parser::function_regex("upper", 1).pattern() == "\\s*upper\\((.*)\\)\\s*" );
-	CHECK( inja::Parser::function_regex("upper", 0).pattern() == "\\s*upper\\s*" );
+	CHECK( inja::Parser::function_regex("upper", 0).pattern() == "\\s*(?:upper|upper\\(\\))\\s*" );
 	CHECK( inja::Parser::function_regex("lower", 2).pattern() == "\\s*lower\\((.*),(.*)\\)\\s*" );
 }
