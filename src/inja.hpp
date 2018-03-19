@@ -30,7 +30,7 @@ SOFTWARE.
 
 #define PANTOR_INJA_VERSION_MAJOR 1
 #define PANTOR_INJA_VERSION_MINOR 0
-#define PANTOR_INJA_VERSION_PATCH 0
+#define PANTOR_INJA_VERSION_PATCH 1
 
 
 #ifndef NLOHMANN_JSON_HPP
@@ -630,7 +630,7 @@ public:
 
 	std::map<Parsed::Delimiter, Regex> regex_map_delimiters = {
 		{Parsed::Delimiter::Statement, Regex{"\\{\\%\\s*(.+?)\\s*\\%\\}"}},
-		{Parsed::Delimiter::LineStatement, Regex{"(?:^|\\n)##\\s*(.+)\\s*"}},
+		{Parsed::Delimiter::LineStatement, Regex{"(?:^|\\n)## *(.+?) *(?:\\n|$)"}},
 		{Parsed::Delimiter::Expression, Regex{"\\{\\{\\s*(.+?)\\s*\\}\\}"}},
 		{Parsed::Delimiter::Comment, Regex{"\\{#\\s*(.*?)\\s*#\\}"}}
 	};
@@ -925,7 +925,7 @@ public:
 	}
 
 	void set_line_statement(const std::string& open) {
-		parser.regex_map_delimiters[Parsed::Delimiter::LineStatement] = Regex{"(?:^|\\n)" + open + "\\s*(.+)\\s*"};
+		parser.regex_map_delimiters[Parsed::Delimiter::LineStatement] = Regex{"(?:^|\\n)" + open + " *(.+?) *(?:\\n|$)"};
 	}
 
 	void set_expression(const std::string& open, const std::string& close) {

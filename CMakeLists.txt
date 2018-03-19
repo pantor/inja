@@ -21,7 +21,7 @@ endif()
 ## PROJECT
 ## name and version
 ##
-project(inja LANGUAGES CXX VERSION 1.0.0)
+project(inja LANGUAGES CXX VERSION 1.0.1)
 set(INJA_VERSION ${PROJECT_VERSION})
 
 ##
