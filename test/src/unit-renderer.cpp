@@ -54,7 +54,7 @@ TEST_CASE("types") {
 		CHECK( env.render("Hello {% for name in names %}{{ index }}: {{ name }}, {% endfor %}!", data) == "Hello 0: Jeff, 1: Seb, !" );
 		CHECK( env.render("{% for type, name in relatives %}{{ type }}: {{ name }}, {% endfor %}", data) == "brother: Chris, mother: Maria, sister: Jenny, " );
 		CHECK( env.render("{% for v in vars %}{% if v > 0 %}+{% endif %}{% endfor %}", data) == "+++" );
-		// CHECK( env.render("{% if 1 >= 18 %}test{% endif %}{% for v in vars %}{% if v > 0 %}+{% else %}-{% endif %}{% endfor %}", data) == "+++----" );
+		CHECK( env.render("{% for name in names %}{{ index }}: {{ name }}{% if not is_last %}, {% endif %}{% endfor %}!", data) == "0: Jeff, 1: Seb!" );
 
 		data["empty_loop"] = {};
 		CHECK( env.render("{% for name in empty_loop %}a{% endfor %}", data) == "" );
