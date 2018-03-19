@@ -124,7 +124,7 @@ Statements can be written either with the `{% ... %}` syntax or the `##` syntax 
 // Combining loops and line statements
 render(R"(Guest List:
 ## for guest in guests
-	{{ index1 }}: {{ guest }} {% if not is_last %},
+	{{ index1 }}: {{ guest }}
 ## endfor )", data)
 
 /* Guest List:
