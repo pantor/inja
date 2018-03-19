@@ -124,7 +124,7 @@ Statements can be written either with the `{% ... %}` syntax or the `##` syntax 
 // Combining loops and line statements
 render(R"(Guest List:
 ## for guest in guests
-	{{ index1 }}: {{ guest }}
+	{{ index1 }}: {{ guest }} {%if not(last(guest)) %},{% endif %}
 ## endfor )", data)
 
 /* Guest List:
@@ -132,7 +132,7 @@ render(R"(Guest List:
 	2: Tom
 	3: Patrick */
 ```
-In a loop, the special variables `index (number)`, `index1 (number)`, `is_first (boolean)` and `is_last (boolean)` are available. You can also iterate over objects like `{% for key, value in time %}`.
+In a loop, the special functions `index(key)`, `index1(key)`, `first(key)` and `last(key)` are available. You can also iterate over objects like `{% for key, value in time %}`.
 
 #### Conditions
 
