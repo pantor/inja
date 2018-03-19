@@ -136,9 +136,12 @@ render(R"(Guest List:
 
 ```c++
 // Combining loops and common statements
-render(R"(Guest List: {% for guest in guests %}{{ index1 }}:{{ guest }}{% if not is_last %},{% endif %}{% endfor %}", data)
+render(R"(Guest List: 
+{% for guest in guests %}{{ index1 }}:{{ guest }}{% if not is_last %},{% endif %}{% endfor %} )"
+, data)
 
-/* Guest List: 1:Jeff,2:Tom,3:Patrick */
+/* Guest List: 
+   1:Jeff,2:Tom,3:Patrick */
 ```
 
 In a loop, the special variables `index (number)`, `index1 (number)`, `is_first (boolean)` and `is_last (boolean)` are available. You can also iterate over objects like `{% for key, value in time %}`.
