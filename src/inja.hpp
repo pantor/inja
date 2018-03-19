@@ -380,6 +380,7 @@ public:
 	template<typename T = json>
   T eval_expression(const Parsed::ElementExpression& element, const json& data) {
 		const json var = eval_function(element, data);
+		if (var.empty()) return T();
 		try {
 			return var.get<T>();
 		} catch (json::type_error& e) {

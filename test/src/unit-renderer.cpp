@@ -56,6 +56,9 @@ TEST_CASE("types") {
 		CHECK( env.render("{% for v in vars %}{% if v > 0 %}+{% endif %}{% endfor %}", data) == "+++" );
 		// CHECK( env.render("{% if 1 >= 18 %}test{% endif %}{% for v in vars %}{% if v > 0 %}+{% else %}-{% endif %}{% endfor %}", data) == "+++----" );
 
+		data["empty_loop"] = {};
+		CHECK( env.render("{% for name in empty_loop %}a{% endfor %}", data) == "" );
+
 		CHECK_THROWS_WITH( env.render("{% for name ins names %}a{% endfor %}", data), "[inja.exception.parser_error] unknown loop statement: for name ins names"  );
 		// CHECK_THROWS_WITH( env.render("{% for name in relatives %}{{ name }}{% endfor %}", data), "[inja.exception.json_error] [json.exception.type_error.302] type must be array, but is object"  );
 	}
