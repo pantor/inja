@@ -61,8 +61,8 @@ TEST_CASE("types") {
 		CHECK( env.render("{% for name in empty_loop %}a{% endfor %}", data) == "" );
 		CHECK( env.render("{% for name in {} %}a{% endfor %}", data) == "" );
 
-		CHECK_THROWS_WITH( env.render("{% for name ins names %}a{% endfor %}", data), "[inja.exception.parser_error] unknown loop statement: for name ins names"  );
-		// CHECK_THROWS_WITH( env.render("{% for name in relatives %}{{ name }}{% endfor %}", data), "[inja.exception.json_error] [json.exception.type_error.302] type must be array, but is object"  );
+		CHECK_THROWS_WITH( env.render("{% for name ins names %}a{% endfor %}", data), "[inja.exception.parser_error] unknown loop statement: for name ins names" );
+		// CHECK_THROWS_WITH( env.render("{% for name in relatives %}{{ name }}{% endfor %}", data), "[inja.exception.json_error] [json.exception.type_error.302] type must be array, but is object" );
 	}
 
 	SECTION("conditionals") {
@@ -78,6 +78,9 @@ TEST_CASE("types") {
 		CHECK( env.render("{% if age == 28 %}28{% else if age == 29 %}29{% endif %}", data) == "29" );
 		CHECK( env.render("{% if age == 26 %}26{% else if age == 27 %}27{% else if age == 28 %}28{% else %}29{% endif %}", data) == "29" );
 		CHECK( env.render("{% if age == 25 %}+{% endif %}{% if age == 29 %}+{% else %}-{% endif %}", data) == "+" );
+
+		CHECK_THROWS_WITH( env.render("{% if is_happy %}{% if is_happy %}{% endif %}", data), "[inja.exception.parser_error] misordered if statement" );
+		CHECK_THROWS_WITH( env.render("{% if is_happy %}{% else if is_happy %}{% end if %}", data), "[inja.exception.parser_error] misordered if statement" );
 	}
 }
 

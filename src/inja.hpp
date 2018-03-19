@@ -769,6 +769,9 @@ public:
 
 							const std::string loop_inner = match_statement.str(0);
 							MatchType<Parsed::Loop> match_command = match(loop_inner, regex_map_loop);
+							if (not match_command.found()) {
+								inja_throw("parser_error", "unknown loop statement: " + loop_inner);
+							}
 							switch (match_command.type()) {
 								case Parsed::Loop::ForListIn: {
 									const std::string value_name = match_command.str(1);
@@ -785,9 +788,6 @@ public:
 									result.emplace_back( std::make_shared<Parsed::ElementLoop>(match_command.type(), key_name, value_name, parse_expression(list_name), loop_match.inner()));
 									break;
 								}
-								default: {
-									inja_throw("parser_error", "unknown loop statement: " + loop_inner);
-								}
 							}
 							break;
 						}
@@ -801,6 +801,9 @@ public:
 
 								const std::string else_if_match_inner = else_if_match.open_match.str(1);
 								MatchType<Parsed::Condition> match_command = match(else_if_match_inner, regex_map_condition);
+								if (not match_command.found()) {
+									inja_throw("parser_error", "unknown if statement: " + else_if_match.open_match.str());
+								}
 								condition_container->children.push_back( std::make_shared<Parsed::ElementConditionBranch>(else_if_match.inner(), match_command.type(), parse_expression(match_command.str(1))) );
 
 								else_if_match = search_closed_on_level(input, match_delimiter.regex(), regex_map_statement_openers.at(Parsed::Statement::Condition), regex_map_statement_closers.at(Parsed::Statement::Condition), regex_map_condition.at(Parsed::Condition::ElseIf), condition_match);
@@ -812,13 +815,22 @@ public:
 
 								const std::string else_match_inner = else_match.open_match.str(1);
 								MatchType<Parsed::Condition> match_command = match(else_match_inner, regex_map_condition);
+								if (not match_command.found()) {
+									inja_throw("parser_error", "unknown if statement: " + else_match.open_match.str());
+								}
 								condition_container->children.push_back( std::make_shared<Parsed::ElementConditionBranch>(else_match.inner(), match_command.type(), parse_expression(match_command.str(1))) );
 							}
 
 							MatchClosed last_if_match = search_closed(input, match_delimiter.regex(), regex_map_statement_openers.at(Parsed::Statement::Condition), regex_map_statement_closers.at(Parsed::Statement::Condition), condition_match);
+							if (not last_if_match.found()) {
+								inja_throw("parser_error", "misordered if statement");
+							}
 
 							const std::string last_if_match_inner = last_if_match.open_match.str(1);
 							MatchType<Parsed::Condition> match_command = match(last_if_match_inner, regex_map_condition);
+							if (not match_command.found()) {
+								inja_throw("parser_error", "unknown if statement: " + last_if_match.open_match.str());
+							}
 							if (match_command.type() == Parsed::Condition::Else) {
 								condition_container->children.push_back( std::make_shared<Parsed::ElementConditionBranch>(last_if_match.inner(), match_command.type()) );
 							} else {
