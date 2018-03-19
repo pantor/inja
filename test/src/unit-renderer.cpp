@@ -59,6 +59,7 @@ TEST_CASE("types") {
 
 		data["empty_loop"] = {};
 		CHECK( env.render("{% for name in empty_loop %}a{% endfor %}", data) == "" );
+		CHECK( env.render("{% for name in {} %}a{% endfor %}", data) == "" );
 
 		CHECK_THROWS_WITH( env.render("{% for name ins names %}a{% endfor %}", data), "[inja.exception.parser_error] unknown loop statement: for name ins names"  );
 		// CHECK_THROWS_WITH( env.render("{% for name in relatives %}{{ name }}{% endfor %}", data), "[inja.exception.json_error] [json.exception.type_error.302] type must be array, but is object"  );
