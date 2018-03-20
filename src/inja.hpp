@@ -604,14 +604,14 @@ public:
 	*/
 	static Regex function_regex(std::string name, int number_arguments) {
 		std::string pattern = name;
-		pattern.append("\\(");
+		pattern.append("(?:\\(");
 		for (int i = 0; i < number_arguments; i++) {
 			if (i != 0) pattern.append(",");
 			pattern.append("(.*)");
 		}
-		pattern.append("\\)");
+		pattern.append("\\))");
 		if (number_arguments == 0) { // Without arguments, allow to use the callback without parenthesis
-			pattern = "(?:" + name + "|" + pattern + ")";
+			pattern.append("?");
 		}
 		return Regex{"\\s*" + pattern + "\\s*"};
 	}
