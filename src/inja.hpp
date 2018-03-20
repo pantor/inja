@@ -57,7 +57,7 @@ using json = nlohmann::json;
 /*!
 @brief throw an error with a given message
 */
-inline void inja_throw(std::string type, std::string message) {
+inline void inja_throw(const std::string& type, const std::string& message) {
 	throw std::runtime_error("[inja.exception." + type + "] " + message);
 }
 
@@ -131,7 +131,7 @@ public:
 };
 
 
-inline Match search(const std::string& input, Regex regex, size_t position) {
+inline Match search(const std::string& input, const Regex& regex, size_t position) {
 	if (position >= input.length()) { return Match(); }
 
 	Match match{position, regex};
@@ -141,7 +141,7 @@ inline Match search(const std::string& input, Regex regex, size_t position) {
 
 
 template<typename T>
-inline MatchType<T> search(const std::string& input, std::map<T, Regex>& regexes, size_t position) {
+inline MatchType<T> search(const std::string& input, const std::map<T, Regex>& regexes, size_t position) {
 	// Map to vectors
 	std::vector<T> class_vector;
 	std::vector<Regex> regexes_vector;
@@ -208,7 +208,7 @@ inline MatchClosed search_closed(const std::string& input, const Regex& regex_st
 }
 
 template<typename T, typename S>
-inline MatchType<T> match(const std::string& input, std::map<T, Regex, S> regexes) {
+inline MatchType<T> match(const std::string& input, const std::map<T, Regex, S>& regexes) {
 	MatchType<T> match;
 	for (const auto e : regexes) {
 		if (std::regex_match(input.cbegin(), input.cend(), match, e.second)) {
@@ -545,7 +545,7 @@ public:
 							for (unsigned int i = 0; i < list.size(); i++) {
 								json data_loop = data;
 								/* For nested loops, use parent/index */
-								if (data_loop.count ("index") == 1 && data_loop.count ("index") == 1) {
+								if (data_loop.count("index") == 1 && data_loop.count("index1") == 1) {
 									data_loop["parent"]["index"] = data_loop["index"];
 									data_loop["parent"]["index1"] = data_loop["index1"];
 									data_loop["parent"]["is_first"] = data_loop["is_first"];
@@ -602,7 +602,7 @@ public:
 	/*!
 	@brief create a corresponding regex for a function name with a number of arguments seperated by ,
 	*/
-	static Regex function_regex(std::string name, int number_arguments) {
+	static Regex function_regex(const std::string& name, int number_arguments) {
 		std::string pattern = name;
 		pattern.append("(?:\\(");
 		for (int i = 0; i < number_arguments; i++) {
@@ -619,7 +619,7 @@ public:
 	/*!
 	@brief dot notation to json pointer notiation
 	*/
-	static std::string dot_to_json_pointer_notation(std::string dot) {
+	static std::string dot_to_json_pointer_notation(const std::string& dot) {
 		std::string result = dot;
 		while (result.find(".") != std::string::npos) {
 			result.replace(result.find("."), 1, "/");
@@ -999,7 +999,7 @@ public:
 		return j;
 	}
 
-	void add_callback(std::string name, int number_arguments, std::function<json(const Parsed::Arguments&, const json&)> callback) {
+	void add_callback(std::string name, int number_arguments, const std::function<json(const Parsed::Arguments&, const json&)>& callback) {
 		Parsed::CallbackSignature signature = std::make_pair(name, number_arguments);
 		parser.regex_map_callbacks[signature] = Parser::function_regex(name, number_arguments);
 		renderer.map_callbacks[signature] = callback;
