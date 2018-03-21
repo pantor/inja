@@ -212,12 +212,15 @@ TEST_CASE("functions") {
 		CHECK( env.render("{{ exists(\"zipcode\") }}", data) == "false" );
 		CHECK( env.render("{{ exists(name) }}", data) == "false" );
 		CHECK( env.render("{{ exists(property) }}", data) == "true" );
-		CHECK( env.render("{{ exists(brother, \"name\") }}", data) == "true" );
-		CHECK( env.render("{{ exists(brother, \"parents\") }}", data) == "false" );
-		CHECK( env.render("{{ exists(brother, property) }}", data) == "true" );
-		CHECK( env.render("{{ exists(brother, name) }}", data) == "false" );
-		CHECK_THROWS_WITH( env.render("{{ exists(sister, \"lastname\") }}", data), "[inja.exception.render_error] variable '/sister' not found" );
-		CHECK_THROWS_WITH( env.render("{{ exists(brother, sister) }}", data), "[inja.exception.render_error] variable '/sister' not found" );
+	}
+
+	SECTION("existsIn") {
+		CHECK( env.render("{{ existsIn(brother, \"name\") }}", data) == "true" );
+		CHECK( env.render("{{ existsIn(brother, \"parents\") }}", data) == "false" );
+		CHECK( env.render("{{ existsIn(brother, property) }}", data) == "true" );
+		CHECK( env.render("{{ existsIn(brother, name) }}", data) == "false" );
+		CHECK_THROWS_WITH( env.render("{{ existsIn(sister, \"lastname\") }}", data), "[inja.exception.render_error] variable '/sister' not found" );
+		CHECK_THROWS_WITH( env.render("{{ existsIn(brother, sister) }}", data), "[inja.exception.render_error] variable '/sister' not found" );
 	}
 }
 

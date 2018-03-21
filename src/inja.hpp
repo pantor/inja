@@ -280,6 +280,7 @@ struct Parsed {
 		Upper,
 		ReadJson,
 		Exists,
+		ExistsInObject,
 		Default
 	};
 
@@ -511,20 +512,13 @@ public:
 				return map_callbacks.at(signature)(element.args, data);
 			}
 			case Parsed::Function::Exists: {
-				if ((element.args[1].function == Parsed::Function::ReadJson) && (element.args[1].command == "/"))
-				{
-					// Only one argument provided, check existence of item in global data
-					const std::string name = eval_expression<std::string>(element.args[0], data);
-					return data.find(name) != data.end();
-				}
-				else
-				{
-					// Two arguments provided, check existence of item in some local data
-					const std::string name = eval_expression<std::string>(element.args[1], data);
-					const json d = eval_expression(element.args[0], data);
-					return d.find(name) != d.end();
-				}
-				inja_throw("render_error", "argument error in exists(), this should not be reachable");
+				const std::string name = eval_expression<std::string>(element.args[0], data);
+				return data.find(name) != data.end();
+			}
+			case Parsed::Function::ExistsInObject: {
+				const std::string name = eval_expression<std::string>(element.args[1], data);
+				const json d = eval_expression(element.args[0], data);
+				return d.find(name) != d.end();
 			}
 		}
 
@@ -701,7 +695,8 @@ public:
 		{Parsed::Function::Round, function_regex("round", 2)},
 		{Parsed::Function::Sort, function_regex("sort", 1)},
 		{Parsed::Function::Upper, function_regex("upper", 1)},
-		{Parsed::Function::Exists, Regex{"\\s*exists(?:\\(([^,]*),?([^,]*)?\\))\\s*"}},
+		{Parsed::Function::Exists, function_regex("exists", 1)},
+		{Parsed::Function::ExistsInObject, function_regex("existsIn", 2)},
 		{Parsed::Function::ReadJson, Regex{"\\s*([^\\(\\)]*\\S)\\s*"}}
 	};
 

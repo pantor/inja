@@ -203,8 +203,9 @@ render("Hello {{ default(colleague, \"my friend\") }}!", data); // "Hello my fri
 
 // Check if a key exists in an object
 render("{{ exists(\"guests\") }}", data); // "true"
-render("{{ exists(time, \"start\") }}", data); // "true"
-render("{{ exists(time, neighbour) }}", data); // "false"
+render("{{ exists(\"city\") }}", data); // "false"
+render("{{ existsIn(time, \"start\") }}", data); // "true"
+render("{{ existsIn(time, neighbour) }}", data); // "false"
 ```
 
 ### Callbacks
