@@ -155,6 +155,8 @@ TEST_CASE("match-functions") {
 	CHECK( inja::match(" upper(lower()) ", map_regex).type() == inja::Parsed::Function::Upper );
 	CHECK( inja::match("lower(upper(test))", map_regex).type() == inja::Parsed::Function::Lower );
 	CHECK( inja::match("round(2, 3)", map_regex).type() == inja::Parsed::Function::Round );
+	CHECK( inja::match("exists(\"var\")", map_regex).type() == inja::Parsed::Function::Exists );
+	CHECK( inja::match("exists(var, \"othervar\")", map_regex).type() == inja::Parsed::Function::Exists );
 }
 
 TEST_CASE("create-regex-functions") {
