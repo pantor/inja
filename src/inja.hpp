@@ -355,7 +355,7 @@ struct Parsed {
 
 class Template {
 public:
-	Parsed::Element parsed_template() { return _parsed_template; };
+	const Parsed::Element parsed_template() { return _parsed_template; };
 
 	explicit Template (): _parsed_template(Parsed::Element()) {}
 	explicit Template(const Parsed::Element& parsed_template): _parsed_template(parsed_template) { }
