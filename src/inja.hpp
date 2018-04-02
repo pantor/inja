@@ -145,7 +145,7 @@ inline MatchType<T> search(const std::string& input, const std::map<T, Regex>& r
 	// Map to vectors
 	std::vector<T> class_vector;
 	std::vector<Regex> regexes_vector;
-	for (const auto element: regexes) {
+	for (const auto& element: regexes) {
 		class_vector.push_back(element.first);
 		regexes_vector.push_back(element.second);
 	}
@@ -210,7 +210,7 @@ inline MatchClosed search_closed(const std::string& input, const Regex& regex_st
 template<typename T, typename S>
 inline MatchType<T> match(const std::string& input, const std::map<T, Regex, S>& regexes) {
 	MatchType<T> match;
-	for (const auto e : regexes) {
+	for (const auto& e: regexes) {
 		if (std::regex_match(input.cbegin(), input.cend(), match, e.second)) {
 			match.set_type(e.first);
 			match.set_regex(e.second);
@@ -517,7 +517,7 @@ public:
 
 	std::string render(Template temp, const json& data) {
 		std::string result = "";
-		for (auto element: temp.parsed_template.children) {
+		for (const auto& element: temp.parsed_template.children) {
 			switch (element->type) {
 				case Parsed::Type::String: {
 					auto element_string = std::static_pointer_cast<Parsed::ElementString>(element);
@@ -562,7 +562,7 @@ public:
 						}
 						case Parsed::Loop::ForMapIn: {
 							const std::map<std::string, json> map = eval_expression<std::map<std::string, json>>(element_loop->list, data);
-							for (auto const& item : map) {
+							for (const auto& item: map) {
 								json data_loop = data;
 								data_loop[element_loop->key] = item.first;
 								data_loop[element_loop->value] = item.second;
@@ -576,7 +576,7 @@ public:
 				}
 				case Parsed::Type::Condition: {
 					auto element_condition = std::static_pointer_cast<Parsed::ElementConditionContainer>(element);
-					for (auto branch: element_condition->children) {
+					for (const auto& branch: element_condition->children) {
 						auto element_branch = std::static_pointer_cast<Parsed::ElementConditionBranch>(branch);
 						if (element_branch->condition_type == Parsed::Condition::Else || eval_expression<bool>(element_branch->condition, data)) {
 							result.append( render(Template(*element_branch), data) );
@@ -844,7 +844,7 @@ public:
 						case Parsed::Statement::Include: {
 							std::string included_filename = path + match_statement.str(1);
 							Template included_template = parse_template(included_filename);
-							for (auto element : included_template.parsed_template.children) {
+							for (auto& element: included_template.parsed_template.children) {
 								result.emplace_back(element);
 							}
 							break;
