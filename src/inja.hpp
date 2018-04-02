@@ -103,9 +103,9 @@ class MatchType: public Match {
 	T type_;
 
 public:
-	MatchType() : Match() { }
-	explicit MatchType(const Match& obj) : Match(obj) { }
-	MatchType(Match&& obj) : Match(std::move(obj)) { }
+	MatchType(): Match() { }
+	explicit MatchType(const Match& obj): Match(obj) { }
+	MatchType(Match&& obj): Match(std::move(obj)) { }
 
 	void set_type(T type) { type_ = type; }
 
@@ -298,6 +298,7 @@ struct Parsed {
 		std::string inner;
 		std::vector<std::shared_ptr<Element>> children;
 
+		explicit Element(): Element(Type::Main, "") { }
 		explicit Element(const Type type): Element(type, "") { }
 		explicit Element(const Type type, const std::string& inner): type(type), inner(inner), children({}) { }
 	};
@@ -352,10 +353,13 @@ struct Parsed {
 
 
 class Template {
-public:
-	const Parsed::Element parsed_template;
+	Parsed::Element _parsed_template;
 
-	explicit Template(const Parsed::Element& parsed_template): parsed_template(parsed_template) { }
+public:
+	const Parsed::Element parsed_template() { return _parsed_template; }
+
+	explicit Template(): _parsed_template(Parsed::Element()) { }
+	explicit Template(const Parsed::Element& parsed_template): _parsed_template(parsed_template) { }
 };
 
 
@@ -517,7 +521,7 @@ public:
 
 	std::string render(Template temp, const json& data) {
 		std::string result = "";
-		for (const auto& element: temp.parsed_template.children) {
+		for (const auto& element: temp.parsed_template().children) {
 			switch (element->type) {
 				case Parsed::Type::String: {
 					auto element_string = std::static_pointer_cast<Parsed::ElementString>(element);
@@ -844,7 +848,7 @@ public:
 						case Parsed::Statement::Include: {
 							std::string included_filename = path + match_statement.str(1);
 							Template included_template = parse_template(included_filename);
-							for (auto& element: included_template.parsed_template.children) {
+							for (auto& element: included_template.parsed_template().children) {
 								result.emplace_back(element);
 							}
 							break;
