@@ -279,6 +279,8 @@ struct Parsed {
 		Sort,
 		Upper,
 		ReadJson,
+		Exists,
+		ExistsInObject,
 		Default
 	};
 
@@ -513,6 +515,15 @@ public:
 				Parsed::CallbackSignature signature = std::make_pair(element.command, element.args.size());
 				return map_callbacks.at(signature)(element.args, data);
 			}
+			case Parsed::Function::Exists: {
+				const std::string name = eval_expression<std::string>(element.args[0], data);
+				return data.find(name) != data.end();
+			}
+			case Parsed::Function::ExistsInObject: {
+				const std::string name = eval_expression<std::string>(element.args[1], data);
+				const json d = eval_expression(element.args[0], data);
+				return d.find(name) != d.end();
+			}
 		}
 
 		inja_throw("render_error", "unknown function in renderer: " + element.command);
@@ -688,6 +699,8 @@ public:
 		{Parsed::Function::Round, function_regex("round", 2)},
 		{Parsed::Function::Sort, function_regex("sort", 1)},
 		{Parsed::Function::Upper, function_regex("upper", 1)},
+		{Parsed::Function::Exists, function_regex("exists", 1)},
+		{Parsed::Function::ExistsInObject, function_regex("existsIn", 2)},
 		{Parsed::Function::ReadJson, Regex{"\\s*([^\\(\\)]*\\S)\\s*"}}
 	};
 

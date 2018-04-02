@@ -104,6 +104,9 @@ TEST_CASE("functions") {
 	data["city"] = "New York";
 	data["names"] = {"Jeff", "Seb", "Peter", "Tom"};
 	data["temperature"] = 25.6789;
+	data["brother"]["name"] = "Chris";
+	data["brother"]["daughters"] = {"Maria", "Helen"};
+	data["property"] = "name";
 
 	SECTION("upper") {
 		CHECK( env.render("{{ upper(name) }}", data) == "PETER" );
@@ -202,6 +205,22 @@ TEST_CASE("functions") {
 		CHECK( env.render("{{ default(name, \"nobody\") }}", data) == "Peter" );
 		CHECK( env.render("{{ default(surname, \"nobody\") }}", data) == "nobody" );
 		CHECK_THROWS_WITH( env.render("{{ default(surname, lastname) }}", data), "[inja.exception.render_error] variable '/lastname' not found" );
+	}
+
+	SECTION("exists") {
+		CHECK( env.render("{{ exists(\"name\") }}", data) == "true" );
+		CHECK( env.render("{{ exists(\"zipcode\") }}", data) == "false" );
+		CHECK( env.render("{{ exists(name) }}", data) == "false" );
+		CHECK( env.render("{{ exists(property) }}", data) == "true" );
+	}
+
+	SECTION("existsIn") {
+		CHECK( env.render("{{ existsIn(brother, \"name\") }}", data) == "true" );
+		CHECK( env.render("{{ existsIn(brother, \"parents\") }}", data) == "false" );
+		CHECK( env.render("{{ existsIn(brother, property) }}", data) == "true" );
+		CHECK( env.render("{{ existsIn(brother, name) }}", data) == "false" );
+		CHECK_THROWS_WITH( env.render("{{ existsIn(sister, \"lastname\") }}", data), "[inja.exception.render_error] variable '/sister' not found" );
+		CHECK_THROWS_WITH( env.render("{{ existsIn(brother, sister) }}", data), "[inja.exception.render_error] variable '/sister' not found" );
 	}
 }
 

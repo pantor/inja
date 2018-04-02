@@ -200,6 +200,12 @@ render("{{ float(\"1.8\") > 2 }}", data); // false
 // Set default values if variables are not defined
 render("Hello {{ default(neighbour, \"my friend\") }}!", data); // "Hello Peter!"
 render("Hello {{ default(colleague, \"my friend\") }}!", data); // "Hello my friend!"
+
+// Check if a key exists in an object
+render("{{ exists(\"guests\") }}", data); // "true"
+render("{{ exists(\"city\") }}", data); // "false"
+render("{{ existsIn(time, \"start\") }}", data); // "true"
+render("{{ existsIn(time, neighbour) }}", data); // "false"
 ```
 
 ### Callbacks
