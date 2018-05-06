@@ -35,9 +35,11 @@ using json = nlohmann::json;
 
 If you are using the [Meson Build System](http://mesonbuild.com), then you can wrap this repository as a subproject.
 
+If you are using [Conan](https://conan.io) to manage your dependencies, have a look at [this repository](https://github.com/DEGoodmanWilson/conan-inja). Please file issues [here](https://github.com/DEGoodmanWilson/conan-inja/issues) if you experience problems with the packages.
+
 You can also integrate inja in your project using [Hunter](https://github.com/ruslo/hunter), a package manager for C++.
 
-If you are using [Conan](https://conan.io) to manage your dependencies, have a look at [this repository](https://github.com/DEGoodmanWilson/conan-inja). Please file issues [here](https://github.com/DEGoodmanWilson/conan-inja/issues) if you experience problems with the packages.
+If you are using [vcpkg](https://github.com/Microsoft/vcpkg) on your project for external dependencies, then you can use the [inja package](https://github.com/Microsoft/vcpkg/tree/master/ports/inja). Please see the vcpkg project for any issues regarding the packaging.
 
 
 ## Tutorial
