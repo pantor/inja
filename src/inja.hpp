@@ -614,6 +614,10 @@ class Parser {
 public:
 	ElementNotation element_notation = ElementNotation::Pointer;
 
+	std::map<Parsed::CallbackSignature, Regex, std::greater<Parsed::CallbackSignature>> regex_map_callbacks;
+
+	std::map<const std::string, Template> included_templates;
+
 	/*!
 	@brief create a corresponding regex for a function name with a number of arguments seperated by ,
 	*/
@@ -703,8 +707,6 @@ public:
 		{Parsed::Function::ExistsInObject, function_regex("existsIn", 2)},
 		{Parsed::Function::ReadJson, Regex{"\\s*([^\\(\\)]*\\S)\\s*"}}
 	};
-
-	std::map<Parsed::CallbackSignature, Regex, std::greater<Parsed::CallbackSignature>> regex_map_callbacks;
 
 	Parser() { }
 
@@ -859,11 +861,16 @@ public:
 							break;
 						}
 						case Parsed::Statement::Include: {
-							std::string included_filename = path + match_statement.str(1);
-							Template included_template = parse_template(included_filename);
-							for (auto& element: included_template.parsed_template().children) {
-								result.emplace_back(element);
+							std::string template_name = match_statement.str(1);
+							Template included_template;
+							if (included_templates.find( template_name ) != included_templates.end()) {
+								included_template = included_templates[template_name];
+							} else {
+								included_template = parse_template(path + template_name);
 							}
+
+							auto children = included_template.parsed_template().children;
+							result.insert(result.end(), children.begin(), children.end());
 							break;
 						}
 					}
@@ -1020,6 +1027,10 @@ public:
 		Parsed::CallbackSignature signature = std::make_pair(name, number_arguments);
 		parser.regex_map_callbacks[signature] = Parser::function_regex(name, number_arguments);
 		renderer.map_callbacks[signature] = callback;
+	}
+
+	void include_template(std::string name, const Template& temp) {
+		parser.included_templates[name] = temp;
 	}
 
 	template<typename T = json>

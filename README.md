@@ -157,9 +157,14 @@ render("{% if not guest_count %}…{% endif %}", data); // True
 
 #### Includes
 
-This includes other template files, relative from the current file location.
+You can either include other template files or already parsed templates.
 ```
-{% include "footer.html" %}
+// Other template files are included relative from the current file location
+render({% include "footer.html" %}, data);
+
+// To include in-memory templates, add them to the environment first
+env.include_template("footer", temp);
+render({% include "footer" %}, data);
 ```
 
 ### Functions

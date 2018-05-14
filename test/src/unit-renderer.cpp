@@ -288,19 +288,30 @@ TEST_CASE("combinations") {
 }
 
 TEST_CASE("templates") {
-	inja::Environment env = inja::Environment();
-	inja::Template temp = env.parse("{% if is_happy %}{{ name }}{% else %}{{ city }}{% endif %}");
-
 	json data;
 	data["name"] = "Peter";
 	data["city"] = "Brunswick";
 	data["is_happy"] = true;
 
-	CHECK( env.render_template(temp, data) == "Peter" );
+	SECTION("reuse") {
+		inja::Environment env = inja::Environment();
+		inja::Template temp = env.parse("{% if is_happy %}{{ name }}{% else %}{{ city }}{% endif %}");
 
-	data["is_happy"] = false;
+		CHECK( env.render_template(temp, data) == "Peter" );
 
-	CHECK( env.render_template(temp, data) == "Brunswick" );
+		data["is_happy"] = false;
+
+		CHECK( env.render_template(temp, data) == "Brunswick" );
+	}
+
+	SECTION("include") {
+		inja::Environment env = inja::Environment();
+		inja::Template t1 = env.parse("Hello {{ name }}");
+		env.include_template("greeting", t1);
+
+		inja::Template t2 = env.parse("{% include \"greeting\" %}!");
+		CHECK( env.render_template(t2, data) == "Hello Peter!" );
+	}
 }
 
 TEST_CASE("other-syntax") {
