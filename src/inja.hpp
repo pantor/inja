@@ -38,15 +38,16 @@ SOFTWARE.
 #endif
 
 
-#include <string>
-#include <sstream>
+#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <locale>
+#include <map>
 #include <regex>
-#include <vector>
-#include <algorithm>
+#include <string>
+#include <sstream>
 #include <type_traits>
+#include <vector>
 
 
 namespace inja {
