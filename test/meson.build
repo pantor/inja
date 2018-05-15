@@ -4,8 +4,7 @@ unit_test = executable(
   'src/unit-files.cpp',
   'src/unit-renderer.cpp',
   'src/unit-string-helper.cpp',
-  dependencies: inja_dep,
-  include_directories: include_directories('thirdparty')
+  dependencies: inja_dep
 )
 
 test('Inja unit test', unit_test)

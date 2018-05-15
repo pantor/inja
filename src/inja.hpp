@@ -33,20 +33,17 @@ SOFTWARE.
 #define PANTOR_INJA_VERSION_PATCH 1
 
 
-#ifndef NLOHMANN_JSON_HPP
-	static_assert(false, "nlohmann/json not found.");
-#endif
-
-
-#include <string>
-#include <sstream>
+#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <locale>
+#include <map>
+#include <nlohmann/json.hpp>
 #include <regex>
-#include <vector>
-#include <algorithm>
+#include <string>
+#include <sstream>
 #include <type_traits>
+#include <vector>
 
 
 namespace inja {
