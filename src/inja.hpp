@@ -33,16 +33,12 @@ SOFTWARE.
 #define PANTOR_INJA_VERSION_PATCH 1
 
 
-#ifndef NLOHMANN_JSON_HPP
-	static_assert(false, "nlohmann/json not found.");
-#endif
-
-
 #include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <locale>
 #include <map>
+#include <nlohmann/json.hpp>
 #include <regex>
 #include <string>
 #include <sstream>

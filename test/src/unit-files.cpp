@@ -1,6 +1,6 @@
 #include "catch/catch.hpp"
-#include "nlohmann/json.hpp"
 #include "inja.hpp"
+#include "nlohmann/json.hpp"
 
 
 using json = nlohmann::json;
