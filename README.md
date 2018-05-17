@@ -120,7 +120,7 @@ In general, the variables can be fetched using the [JSON Pointer](https://tools.
 
 ### Statements
 
-Statements can be written either with the `{% ... %}` syntax or the `##` syntax for entire lines. The most important statements are loops, conditions and file includes. All statements can be nested.
+Statements can be written either with the `{% ... %}` syntax or the `##` syntax for entire lines. The syntax `{% ... -%}`, where the `-%}` is at the end of a line, will supress the new line after the statement. The most important statements are loops, conditions and file includes. All statements can be nested.
 
 #### Loops
 
