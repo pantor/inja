@@ -86,13 +86,13 @@ TEST_CASE("types") {
 	SECTION("line statements") {
 		CHECK( env.render(R"(## if is_happy
 Yeah!
-## endif)", data) == "Yeah!" );
+## endif)", data) == "Yeah!\n" );
 
 		CHECK( env.render(R"(## if is_happy
-## if is_happy
+    ## if is_happy
 Yeah!
-## endif
-## endif    )", data) == "Yeah!" );
+    ## endif
+## endif    )", data) == "Yeah!\n" );
 	}
 }
 
