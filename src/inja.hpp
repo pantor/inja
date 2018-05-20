@@ -616,7 +616,7 @@ public:
 	std::map<const std::string, Template> included_templates;
 
 	/*!
-	@brief create a corresponding regex for a function name with a number of arguments seperated by ,
+	@brief create a corresponding regex for a function name with a number of arguments separated by ,
 	*/
 	static Regex function_regex(const std::string& name, int number_arguments) {
 		std::string pattern = name;
@@ -633,7 +633,7 @@ public:
 	}
 
 	/*!
-	@brief dot notation to json pointer notiation
+	@brief dot notation to json pointer notation
 	*/
 	static std::string dot_to_json_pointer_notation(const std::string& dot) {
 		std::string result = dot;
