@@ -574,11 +574,24 @@ public:
 						}
 						case Parsed::Loop::ForMapIn: {
 							const std::map<std::string, json> map = eval_expression<std::map<std::string, json>>(element_loop->list, data);
+                            unsigned int i = 0;
 							for (const auto& item: map) {
 								json data_loop = data;
-								data_loop[element_loop->key] = item.first;
-								data_loop[element_loop->value] = item.second;
-								result.append( render(Template(*element_loop), data_loop) );
+                                /* For nested loops, use parent/index */
+                                if (data_loop.count("index") == 1 && data_loop.count("index1") == 1) {
+                                    data_loop["parent"]["index"] = data_loop["index"];
+                                    data_loop["parent"]["index1"] = data_loop["index1"];
+                                    data_loop["parent"]["is_first"] = data_loop["is_first"];
+                                    data_loop["parent"]["is_last"] = data_loop["is_last"];
+                                }
+                                data_loop[element_loop->key] = item.first;
+                                data_loop[element_loop->value] = item.second;
+                                data_loop["index"] = i;
+                                data_loop["index1"] = i + 1;
+                                data_loop["is_first"] = (i == 0);
+                                data_loop["is_last"] = (i == map.size() - 1);
+                                result.append( render(Template(*element_loop ), data_loop) );
+                                i++;
 							}
 							break;
 						}
