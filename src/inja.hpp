@@ -864,7 +864,7 @@ public:
 								included_template = included_templates[template_name];
 							} else {
                                 std::string template_file = template_name;
-                                if ( std::regex_search(template_file, std::regex("^(\./|[:alpha:]:")) )   // Relative or absolute file path
+                                if ( not std::regex_search(template_file, std::regex("^(\\.|/|[:alpha:]:)")) )   // Relative or absolute file path
                                 {
                                     template_file = path + template_file;
                                 }
