@@ -83,22 +83,7 @@ TEST_CASE("types") {
 		CHECK_THROWS_WITH( env.render("{% if is_happy %}{% else if is_happy %}{% end if %}", data), "[inja.exception.parser_error] misordered if statement" );
 	}
 
-    SECTION( "statement sytax" ) {
-        CHECK( env.render( "{% if is_happy -%}  Yeah!{% endif %}", data ) == "Yeah!" );
-        CHECK( env.render( R"({% if is_happy -%}
-Yeah!
-{% endif -%})", data ) == R"(Yeah!
-)" );
-
-        CHECK( env.render( R"({% if is_happy -%}
-{% if is_happy -%}
-Yeah!
-{% endif -%}
-{% endif -%}    )", data ) == R"(Yeah!
-)" );
-    }
-
-    SECTION( "line statements" ) {
+	SECTION("line statements") {
 		CHECK( env.render(R"(## if is_happy
 Yeah!
 ## endif)", data) == "Yeah!" );
