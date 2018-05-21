@@ -863,7 +863,12 @@ public:
 							if (included_templates.find( template_name ) != included_templates.end()) {
 								included_template = included_templates[template_name];
 							} else {
-								included_template = parse_template(path + template_name);
+                                std::string template_file = template_name;
+                                if ( std::regex_search(template_file, std::regex("^(\./|[:alpha:]:")) )   // Relative or absolute file path
+                                {
+                                    template_file = path + template_file;
+                                }
+								included_template = parse_template(template_file);
 							}
 
 							auto children = included_template.parsed_template().children;
