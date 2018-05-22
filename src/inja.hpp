@@ -557,17 +557,14 @@ public:
 							for (unsigned int i = 0; i < list.size(); i++) {
 								json data_loop = data;
 								/* For nested loops, use parent/index */
-								if (data_loop.count("index") == 1 && data_loop.count("index1") == 1) {
-									data_loop["parent"]["index"] = data_loop["index"];
-									data_loop["parent"]["index1"] = data_loop["index1"];
-									data_loop["parent"]["is_first"] = data_loop["is_first"];
-									data_loop["parent"]["is_last"] = data_loop["is_last"];
+								if (data_loop.count("loop") == 1) {
+									data_loop["loop"]["parent"] = data_loop["loop"];
 								}
 								data_loop[element_loop->value] = list[i];
-								data_loop["index"] = i;
-								data_loop["index1"] = i + 1;
-								data_loop["is_first"] = (i == 0);
-								data_loop["is_last"] = (i == list.size() - 1);
+								data_loop["loop"]["index"] = i;
+								data_loop["loop"]["index1"] = i + 1;
+								data_loop["loop"]["is_first"] = (i == 0);
+								data_loop["loop"]["is_last"] = (i == list.size() - 1);
 								result.append( render(Template(*element_loop), data_loop) );
 							}
 							break;

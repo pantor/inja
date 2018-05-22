@@ -51,11 +51,11 @@ TEST_CASE("types") {
 	SECTION("loops") {
 		CHECK( env.render("{% for name in names %}a{% endfor %}", data) == "aa" );
 		CHECK( env.render("Hello {% for name in names %}{{ name }} {% endfor %}!", data) == "Hello Jeff Seb !" );
-		CHECK( env.render("Hello {% for name in names %}{{ index }}: {{ name }}, {% endfor %}!", data) == "Hello 0: Jeff, 1: Seb, !" );
+		CHECK( env.render("Hello {% for name in names %}{{ loop/index }}: {{ name }}, {% endfor %}!", data) == "Hello 0: Jeff, 1: Seb, !" );
 		CHECK( env.render("{% for type, name in relatives %}{{ type }}: {{ name }}, {% endfor %}", data) == "brother: Chris, mother: Maria, sister: Jenny, " );
 		CHECK( env.render("{% for v in vars %}{% if v > 0 %}+{% endif %}{% endfor %}", data) == "+++" );
-		CHECK( env.render("{% for name in names %}{{ index }}: {{ name }}{% if not is_last %}, {% endif %}{% endfor %}!", data) == "0: Jeff, 1: Seb!" );
-		CHECK( env.render("{% for name in names %}{{ index }}: {{ name }}{% if is_last == false %}, {% endif %}{% endfor %}!", data) == "0: Jeff, 1: Seb!" );
+		CHECK( env.render("{% for name in names %}{{ loop/index }}: {{ name }}{% if not loop/is_last %}, {% endif %}{% endfor %}!", data) == "0: Jeff, 1: Seb!" );
+		CHECK( env.render("{% for name in names %}{{ loop/index }}: {{ name }}{% if loop/is_last == false %}, {% endif %}{% endfor %}!", data) == "0: Jeff, 1: Seb!" );
 
 		data["empty_loop"] = {};
 		CHECK( env.render("{% for name in empty_loop %}a{% endfor %}", data) == "" );
@@ -284,7 +284,7 @@ TEST_CASE("combinations") {
 
 	CHECK( env.render("{% if upper(\"Peter\") == \"PETER\" %}TRUE{% endif %}", data) == "TRUE" );
 	CHECK( env.render("{% if lower(upper(name)) == \"peter\" %}TRUE{% endif %}", data) == "TRUE" );
-	CHECK( env.render("{% for i in range(4) %}{{ index1 }}{% endfor %}", data) == "1234" );
+	CHECK( env.render("{% for i in range(4) %}{{ loop/index1 }}{% endfor %}", data) == "1234" );
 }
 
 TEST_CASE("templates") {

@@ -128,7 +128,7 @@ Statements can be written either with the `{% ... %}` syntax or the `##` syntax 
 // Combining loops and line statements
 render(R"(Guest List:
 ## for guest in guests
-	{{ index1 }}: {{ guest }}
+	{{ loop/index1 }}: {{ guest }}
 ## endfor )", data)
 
 /* Guest List:
@@ -136,7 +136,7 @@ render(R"(Guest List:
 	2: Tom
 	3: Patrick */
 ```
-In a loop, the special variables `index (number)`, `index1 (number)`, `is_first (boolean)` and `is_last (boolean)` are available. You can also iterate over objects like `{% for key, value in time %}`.
+In a loop, the special variables `loop/index (number)`, `loop/index1 (number)`, `loop/is_first (boolean)` and `loop/is_last (boolean)` are defined. In nested loops, the parent loop variables are available e.g. via `loop/parent/index`. You can also iterate over objects like `{% for key, value in time %}`.
 
 #### Conditions
 
@@ -176,7 +176,7 @@ render("Hello {{ upper(neighbour) }}!", data); // "Hello PETER!"
 render("Hello {{ lower(neighbour) }}!", data); // "Hello peter!"
 
 // Range function, useful for loops
-render("{% for i in range(4) %}{{ index1 }}{% endfor %}", data); // "1234"
+render("{% for i in range(4) %}{{ loop/index1 }}{% endfor %}", data); // "1234"
 
 // Length function (please don't combine with range, use list directly...)
 render("I count {{ length(guests) }} guests.", data); // "I count 3 guests."
