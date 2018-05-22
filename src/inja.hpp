@@ -970,8 +970,7 @@ public:
 	}
 
 	std::string render(const std::string& input, const json& data) {
-		const std::string text = input;
-		return renderer.render(parse(text), data);
+		return renderer.render(parse(input), data);
 	}
 
 	std::string render_template(const Template& temp, const json& data) {
