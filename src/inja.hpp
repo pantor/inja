@@ -538,7 +538,7 @@ public:
 				}
 				case Parsed::Type::Expression: {
 					auto element_expression = std::static_pointer_cast<Parsed::ElementExpression>(element);
-					json variable = eval_expression(*element_expression, data);
+					const json variable = eval_expression(*element_expression, data);
 
 					if (variable.is_string()) {
 						result.append( variable.get<std::string>() );
@@ -705,7 +705,7 @@ public:
 	Parser() { }
 
 	Parsed::ElementExpression parse_expression(const std::string& input) {
-		MatchType<Parsed::CallbackSignature> match_callback = match(input, regex_map_callbacks);
+		const MatchType<Parsed::CallbackSignature> match_callback = match(input, regex_map_callbacks);
 		if (!match_callback.type().first.empty()) {
 			std::vector<Parsed::ElementExpression> args = {};
 			for (unsigned int i = 1; i < match_callback.size(); i++) { // str(0) is whole group
@@ -718,7 +718,7 @@ public:
 			return result;
 		}
 
-		MatchType<Parsed::Function> match_function = match(input, regex_map_functions);
+		const MatchType<Parsed::Function> match_function = match(input, regex_map_functions);
 		switch ( match_function.type() ) {
 			case Parsed::Function::ReadJson: {
 				std::string command = match_function.str(1);
@@ -762,26 +762,26 @@ public:
 		MatchType<Parsed::Delimiter> match_delimiter = search(input, regex_map_delimiters, current_position);
 		while (match_delimiter.found()) {
 			current_position = match_delimiter.end_position();
-			std::string string_prefix = match_delimiter.prefix();
+			const std::string string_prefix = match_delimiter.prefix();
 			if (not string_prefix.empty()) {
 				result.emplace_back( std::make_shared<Parsed::ElementString>(string_prefix) );
 			}
 
-			std::string delimiter_inner = match_delimiter.str(1);
+			const std::string delimiter_inner = match_delimiter.str(1);
 
 			switch ( match_delimiter.type() ) {
 				case Parsed::Delimiter::Statement:
 				case Parsed::Delimiter::LineStatement: {
 
-					MatchType<Parsed::Statement> match_statement = match(delimiter_inner, regex_map_statement_openers);
+					const MatchType<Parsed::Statement> match_statement = match(delimiter_inner, regex_map_statement_openers);
 					switch ( match_statement.type() ) {
 						case Parsed::Statement::Loop: {
-							MatchClosed loop_match = search_closed(input, match_delimiter.regex(), regex_map_statement_openers.at(Parsed::Statement::Loop), regex_map_statement_closers.at(Parsed::Statement::Loop), match_delimiter);
+							const MatchClosed loop_match = search_closed(input, match_delimiter.regex(), regex_map_statement_openers.at(Parsed::Statement::Loop), regex_map_statement_closers.at(Parsed::Statement::Loop), match_delimiter);
 
 							current_position = loop_match.end_position();
 
 							const std::string loop_inner = match_statement.str(0);
-							MatchType<Parsed::Loop> match_command = match(loop_inner, regex_map_loop);
+							const MatchType<Parsed::Loop> match_command = match(loop_inner, regex_map_loop);
 							if (not match_command.found()) {
 								inja_throw("parser_error", "unknown loop statement: " + loop_inner);
 							}
@@ -813,7 +813,7 @@ public:
 								condition_match = else_if_match.close_match;
 
 								const std::string else_if_match_inner = else_if_match.open_match.str(1);
-								MatchType<Parsed::Condition> match_command = match(else_if_match_inner, regex_map_condition);
+								const MatchType<Parsed::Condition> match_command = match(else_if_match_inner, regex_map_condition);
 								if (not match_command.found()) {
 									inja_throw("parser_error", "unknown if statement: " + else_if_match.open_match.str());
 								}
@@ -827,20 +827,20 @@ public:
 								condition_match = else_match.close_match;
 
 								const std::string else_match_inner = else_match.open_match.str(1);
-								MatchType<Parsed::Condition> match_command = match(else_match_inner, regex_map_condition);
+								const MatchType<Parsed::Condition> match_command = match(else_match_inner, regex_map_condition);
 								if (not match_command.found()) {
 									inja_throw("parser_error", "unknown if statement: " + else_match.open_match.str());
 								}
 								condition_container->children.push_back( std::make_shared<Parsed::ElementConditionBranch>(else_match.inner(), match_command.type(), parse_expression(match_command.str(1))) );
 							}
 
-							MatchClosed last_if_match = search_closed(input, match_delimiter.regex(), regex_map_statement_openers.at(Parsed::Statement::Condition), regex_map_statement_closers.at(Parsed::Statement::Condition), condition_match);
+							const MatchClosed last_if_match = search_closed(input, match_delimiter.regex(), regex_map_statement_openers.at(Parsed::Statement::Condition), regex_map_statement_closers.at(Parsed::Statement::Condition), condition_match);
 							if (not last_if_match.found()) {
 								inja_throw("parser_error", "misordered if statement");
 							}
 
 							const std::string last_if_match_inner = last_if_match.open_match.str(1);
-							MatchType<Parsed::Condition> match_command = match(last_if_match_inner, regex_map_condition);
+							const MatchType<Parsed::Condition> match_command = match(last_if_match_inner, regex_map_condition);
 							if (not match_command.found()) {
 								inja_throw("parser_error", "unknown if statement: " + last_if_match.open_match.str());
 							}
@@ -855,7 +855,7 @@ public:
 							break;
 						}
 						case Parsed::Statement::Include: {
-							std::string template_name = match_statement.str(1);
+							const std::string template_name = match_statement.str(1);
 							Template included_template;
 							if (included_templates.find( template_name ) != included_templates.end()) {
 								included_template = included_templates[template_name];
@@ -909,8 +909,8 @@ public:
 	}
 
 	Template parse_template(const std::string& filename) {
-		std::string input = load_file(filename);
-		std::string path = filename.substr(0, filename.find_last_of("/\\") + 1);
+		const std::string input = load_file(filename);
+		const std::string path = filename.substr(0, filename.find_last_of("/\\") + 1);
 		auto parsed = parse_tree(std::make_shared<Parsed::Element>(Parsed::Element(Parsed::Type::Main, input)), path);
 		return Template(*parsed);
 	}
@@ -967,8 +967,7 @@ public:
 	}
 
 	std::string render(const std::string& input, const json& data) {
-		const std::string text = input;
-		return renderer.render(parse(text), data);
+		return renderer.render(parse(input), data);
 	}
 
 	std::string render_template(const Template& temp, const json& data) {
@@ -980,7 +979,7 @@ public:
 	}
 
 	std::string render_file_with_json_file(const std::string& filename, const std::string& filename_data) {
-		json data = load_json(filename_data);
+		const json data = load_json(filename_data);
 		return render_file(filename, data);
 	}
 
@@ -997,12 +996,12 @@ public:
 	}
 
 	void write_with_json_file(const std::string& filename, const std::string& filename_data, const std::string& filename_out) {
-		json data = load_json(filename_data);
+		const json data = load_json(filename_data);
 		write(filename, data, filename_out);
 	}
 
 	void write_with_json_file(const Template& temp, const std::string& filename_data, const std::string& filename_out) {
-		json data = load_json(filename_data);
+		const json data = load_json(filename_data);
 		write(temp, data, filename_out);
 	}
 
@@ -1018,7 +1017,7 @@ public:
 	}
 
 	void add_callback(std::string name, int number_arguments, const std::function<json(const Parsed::Arguments&, const json&)>& callback) {
-		Parsed::CallbackSignature signature = std::make_pair(name, number_arguments);
+		const Parsed::CallbackSignature signature = std::make_pair(name, number_arguments);
 		parser.regex_map_callbacks[signature] = Parser::function_regex(name, number_arguments);
 		renderer.map_callbacks[signature] = callback;
 	}
