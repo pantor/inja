@@ -396,12 +396,12 @@ public:
 		switch (element.function) {
 			case Parsed::Function::Upper: {
 				std::string str = eval_expression<std::string>(element.args[0], data);
-				std::transform(str.begin(), str.end(), str.begin(), toupper);
+				std::transform(str.begin(), str.end(), str.begin(), ::toupper);
 				return str;
 			}
 			case Parsed::Function::Lower: {
 				std::string str = eval_expression<std::string>(element.args[0], data);
-				std::transform(str.begin(), str.end(), str.begin(), tolower);
+				std::transform(str.begin(), str.end(), str.begin(), ::tolower);
 				return str;
 			}
 			case Parsed::Function::Range: {
