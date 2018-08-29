@@ -1,6 +1,6 @@
 /*
 Inja - A Template Engine for Modern C++
-version 1.0.0
+version 1.1.0
 https://github.com/pantor/inja
 
 Licensed under the MIT License <https://opensource.org/licenses/MIT>.
@@ -29,8 +29,8 @@ SOFTWARE.
 #define PANTOR_INJA_HPP
 
 #define PANTOR_INJA_VERSION_MAJOR 1
-#define PANTOR_INJA_VERSION_MINOR 0
-#define PANTOR_INJA_VERSION_PATCH 1
+#define PANTOR_INJA_VERSION_MINOR 1
+#define PANTOR_INJA_VERSION_PATCH 0
 
 
 #include <algorithm>

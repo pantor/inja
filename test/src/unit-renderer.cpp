@@ -257,7 +257,7 @@ TEST_CASE("callbacks") {
 		return number1 * number2 * number3;
 	});
 
-	env.add_callback("multiply", 0, [&env](inja::Parsed::Arguments args, json data) {
+	env.add_callback("multiply", 0, [](inja::Parsed::Arguments args, json data) {
 		return 1.0;
 	});
 
