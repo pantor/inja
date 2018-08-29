@@ -396,12 +396,12 @@ public:
 		switch (element.function) {
 			case Parsed::Function::Upper: {
 				std::string str = eval_expression<std::string>(element.args[0], data);
-				std::transform(str.begin(), str.end(), str.begin(), toupper);
+				std::transform(str.begin(), str.end(), str.begin(), ::toupper);
 				return str;
 			}
 			case Parsed::Function::Lower: {
 				std::string str = eval_expression<std::string>(element.args[0], data);
-				std::transform(str.begin(), str.end(), str.begin(), tolower);
+				std::transform(str.begin(), str.end(), str.begin(), ::tolower);
 				return str;
 			}
 			case Parsed::Function::Range: {
@@ -435,7 +435,7 @@ public:
 			case Parsed::Function::DivisibleBy: {
 				const int number = eval_expression<int>(element.args[0], data);
 				const int divisor = eval_expression<int>(element.args[1], data);
-				return (number % divisor == 0);
+				return (divisor != 0) && (number % divisor == 0);
 			}
 			case Parsed::Function::Odd: {
 				const int number = eval_expression<int>(element.args[0], data);
