@@ -649,9 +649,9 @@ public:
 	};
 
 	const std::map<Parsed::Statement, Regex> regex_map_statement_openers = {
-		{Parsed::Statement::Loop, Regex{"for (.+)"}},
-		{Parsed::Statement::Condition, Regex{"if (.+)"}},
-		{Parsed::Statement::Include, Regex{"include \"(.+)\""}}
+		{Parsed::Statement::Loop, Regex{"for\\s+(.+)"}},
+		{Parsed::Statement::Condition, Regex{"if\\s+(.+)"}},
+		{Parsed::Statement::Include, Regex{"include\\s+\"(.+)\""}}
 	};
 
 	const std::map<Parsed::Statement, Regex> regex_map_statement_closers = {
@@ -660,13 +660,13 @@ public:
 	};
 
 	const std::map<Parsed::Loop, Regex> regex_map_loop = {
-		{Parsed::Loop::ForListIn, Regex{"for (\\w+) in (.+)"}},
-		{Parsed::Loop::ForMapIn, Regex{"for (\\w+), (\\w+) in (.+)"}},
+		{Parsed::Loop::ForListIn, Regex{"for\\s+(\\w+)\\s+in\\s+(.+)"}},
+		{Parsed::Loop::ForMapIn, Regex{"for\\s+(\\w+),\\s+(\\w+)\\s+in\\s+(.+)"}},
 	};
 
 	const std::map<Parsed::Condition, Regex> regex_map_condition = {
-		{Parsed::Condition::If, Regex{"if (.+)"}},
-		{Parsed::Condition::ElseIf, Regex{"else if (.+)"}},
+		{Parsed::Condition::If, Regex{"if\\s+(.+)"}},
+		{Parsed::Condition::ElseIf, Regex{"else\\s+if\\s+(.+)"}},
 		{Parsed::Condition::Else, Regex{"else"}}
 	};
 
