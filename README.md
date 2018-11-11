@@ -214,6 +214,11 @@ render("{{ exists(\"guests\") }}", data); // "true"
 render("{{ exists(\"city\") }}", data); // "false"
 render("{{ existsIn(time, \"start\") }}", data); // "true"
 render("{{ existsIn(time, neighbour) }}", data); // "false"
+
+// Check if a key is a specific type
+render("{{ isString(neighbour) }}", data); // "true"
+render("{{ isArray(guests) }}", data); // "true"
+// Implemented type checks: isArray, isBoolean, isFloat, isInteger, isNumber, isObject, isString,
 ```
 
 ### Callbacks

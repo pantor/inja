@@ -278,6 +278,13 @@ struct Parsed {
 		ReadJson,
 		Exists,
 		ExistsInObject,
+		IsBoolean,
+		IsNumber,
+		IsInteger,
+		IsFloat,
+		IsObject,
+		IsArray,
+		IsString,
 		Default
 	};
 
@@ -521,6 +528,34 @@ public:
 				const json d = eval_expression(element.args[0], data);
 				return d.find(name) != d.end();
 			}
+			case Parsed::Function::IsBoolean: {
+				const json d = eval_expression(element.args[0], data);
+				return d.is_boolean();
+			}
+			case Parsed::Function::IsNumber: {
+				const json d = eval_expression(element.args[0], data);
+				return d.is_number();
+			}
+			case Parsed::Function::IsInteger: {
+				const json d = eval_expression(element.args[0], data);
+				return d.is_number_integer();
+			}
+			case Parsed::Function::IsFloat: {
+				const json d = eval_expression(element.args[0], data);
+				return d.is_number_float();
+			}
+			case Parsed::Function::IsObject: {
+				const json d = eval_expression(element.args[0], data);
+				return d.is_object();
+			}
+			case Parsed::Function::IsArray: {
+				const json d = eval_expression(element.args[0], data);
+				return d.is_array();
+			}
+			case Parsed::Function::IsString: {
+				const json d = eval_expression(element.args[0], data);
+				return d.is_string();
+			}
 		}
 
 		inja_throw("render_error", "unknown function in renderer: " + element.command);
@@ -699,6 +734,13 @@ public:
 		{Parsed::Function::Upper, function_regex("upper", 1)},
 		{Parsed::Function::Exists, function_regex("exists", 1)},
 		{Parsed::Function::ExistsInObject, function_regex("existsIn", 2)},
+		{Parsed::Function::IsBoolean, function_regex("isBoolean", 1)},
+		{Parsed::Function::IsNumber, function_regex("isNumber", 1)},
+		{Parsed::Function::IsInteger, function_regex("isInteger", 1)},
+		{Parsed::Function::IsFloat, function_regex("isFloat", 1)},
+		{Parsed::Function::IsObject, function_regex("isObject", 1)},
+		{Parsed::Function::IsArray, function_regex("isArray", 1)},
+		{Parsed::Function::IsString, function_regex("isString", 1)},
 		{Parsed::Function::ReadJson, Regex{"\\s*([^\\(\\)]*\\S)\\s*"}}
 	};
 

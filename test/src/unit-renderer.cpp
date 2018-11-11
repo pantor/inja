@@ -107,6 +107,10 @@ TEST_CASE("functions") {
 	data["brother"]["name"] = "Chris";
 	data["brother"]["daughters"] = {"Maria", "Helen"};
 	data["property"] = "name";
+	data["age"] = 29;
+	data["is_happy"] = true;
+	data["is_sad"] = false;
+	data["vars"] = {2, 3, 4, 0, -1, -2, -3};
 
 	SECTION("upper") {
 		CHECK( env.render("{{ upper(name) }}", data) == "PETER" );
@@ -221,6 +225,23 @@ TEST_CASE("functions") {
 		CHECK( env.render("{{ existsIn(brother, name) }}", data) == "false" );
 		CHECK_THROWS_WITH( env.render("{{ existsIn(sister, \"lastname\") }}", data), "[inja.exception.render_error] variable '/sister' not found" );
 		CHECK_THROWS_WITH( env.render("{{ existsIn(brother, sister) }}", data), "[inja.exception.render_error] variable '/sister' not found" );
+	}
+
+	SECTION("isType") {
+		CHECK( env.render("{{ isBoolean(is_happy) }}", data) == "true" );
+		CHECK( env.render("{{ isBoolean(vars) }}", data) == "false" );
+		CHECK( env.render("{{ isNumber(age) }}", data) == "true" );
+		CHECK( env.render("{{ isNumber(name) }}", data) == "false" );
+		CHECK( env.render("{{ isInteger(age) }}", data) == "true" );
+		CHECK( env.render("{{ isInteger(is_happy) }}", data) == "false" );
+		CHECK( env.render("{{ isFloat(temperature) }}", data) == "true" );
+		CHECK( env.render("{{ isFloat(age) }}", data) == "false" );
+		CHECK( env.render("{{ isObject(brother) }}", data) == "true" );
+		CHECK( env.render("{{ isObject(vars) }}", data) == "false" );
+		CHECK( env.render("{{ isArray(vars) }}", data) == "true" );
+		CHECK( env.render("{{ isArray(name) }}", data) == "false" );
+		CHECK( env.render("{{ isString(name) }}", data) == "true" );
+		CHECK( env.render("{{ isString(names) }}", data) == "false" );
 	}
 }
 
