@@ -26,9 +26,8 @@ Inja is a headers only library, which can be downloaded from the [releases](http
 
 ```c++
 #include <inja.hpp>
-#include <nlohmann/json.hpp>
 
-// For convenience
+// Just for convenience
 using namespace inja;
 using json = nlohmann::json;
 ```
