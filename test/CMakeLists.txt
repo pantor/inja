@@ -21,6 +21,10 @@ add_executable(inja_test
   src/unit.cpp
 )
 
+add_executable(BENCHMARK
+  src/benchmark.cpp
+)
+
 
 ##
 ## INCLUDES

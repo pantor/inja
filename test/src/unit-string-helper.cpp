@@ -1,7 +1,5 @@
 #include "catch/catch.hpp"
 #include "inja.hpp"
-#include "nlohmann/json.hpp"
-
 
 
 TEST_CASE("dot to pointer") {

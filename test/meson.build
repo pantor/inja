@@ -7,4 +7,10 @@ unit_test = executable(
   dependencies: inja_dep
 )
 
+inja_benchmark = executable(
+  'inja_benchmark',
+  'src/benchmark.cpp',
+  dependencies: inja_dep
+)
+
 test('Inja unit test', unit_test)
