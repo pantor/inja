@@ -74,8 +74,8 @@ public:
 
 
 class Match: public std::match_results<std::string::const_iterator> {
-	size_t offset_ = 0;
-	unsigned int group_offset_ = 0;
+	size_t offset_ {0};
+	unsigned int group_offset_ {0};
 	Regex regex_;
 
 public:
@@ -182,7 +182,7 @@ inline MatchType<T> search(const std::string& input, const std::map<T, Regex>& r
 
 inline MatchClosed search_closed_on_level(const std::string& input, const Regex& regex_statement, const Regex& regex_level_up, const Regex& regex_level_down, const Regex& regex_search, Match open_match) {
 
-	int level = 0;
+	int level {0};
 	size_t current_position = open_match.end_position();
 	Match match_delimiter = search(input, regex_statement, current_position);
 	while (match_delimiter.found()) {
@@ -563,7 +563,7 @@ public:
 	}
 
 	std::string render(Template temp, const json& data) {
-		std::string result = "";
+		std::string result {""};
 		for (const auto& element: temp.parsed_template().children) {
 			switch (element->type) {
 				case Parsed::Type::String: {
@@ -749,7 +749,7 @@ public:
 	Parsed::ElementExpression parse_expression(const std::string& input) {
 		const MatchType<Parsed::CallbackSignature> match_callback = match(input, regex_map_callbacks);
 		if (!match_callback.type().first.empty()) {
-			std::vector<Parsed::ElementExpression> args = {};
+			std::vector<Parsed::ElementExpression> args {};
 			for (unsigned int i = 1; i < match_callback.size(); i++) { // str(0) is whole group
 				args.push_back( parse_expression(match_callback.str(i)) );
 			}
@@ -972,8 +972,8 @@ class Environment {
 	const std::string input_path;
 	const std::string output_path;
 
-	Parser parser = Parser();
-	Renderer renderer = Renderer();
+	Parser parser;
+	Renderer renderer;
 
 public:
 	Environment(): Environment("./") { }
