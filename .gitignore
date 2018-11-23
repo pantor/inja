@@ -33,6 +33,7 @@
 
 # Build Folders
 build
+buildc
 dist
 
 # Coveralls repo token

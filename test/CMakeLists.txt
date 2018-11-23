@@ -21,7 +21,7 @@ add_executable(inja_test
   src/unit.cpp
 )
 
-add_executable(BENCHMARK
+add_executable(inja_benchmark
   src/benchmark.cpp
 )
 
@@ -43,14 +43,15 @@ if(HUNTER_ENABLED) # Use Hunter to manage dependencies
 else() # Manage dependencies manually
   # Prepare "Catch" library for other executables
   add_library(Catch INTERFACE)
-  target_include_directories(Catch INTERFACE "thirdparty")
+  target_include_directories(Catch INTERFACE "src/catch")
 
-  # Prepare "JSON" library for other executables
-  add_library(JSON INTERFACE)
-  target_include_directories(JSON INTERFACE "thirdparty")
+  # Prepare "hayai" library for other executables
+  add_library(hayai INTERFACE)
+  target_include_directories(hayai INTERFACE "src/hayai")
 
-  # Add dependencies to target
-  target_link_libraries(inja_test Catch JSON inja)
+  # Add dependencies to targets
+  target_link_libraries(inja_test Catch inja)
+  target_link_libraries(inja_benchmark hayai inja)
 endif()
 
 
