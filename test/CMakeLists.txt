@@ -12,7 +12,7 @@ endif()
 
 
 ##
-## TARGETS
+## TESTS
 ##
 add_executable(inja_test
   src/unit-files.cpp
@@ -28,14 +28,7 @@ add_executable(inja_single_test
   src/unit.cpp
 )
 
-add_executable(inja_benchmark
-  src/benchmark.cpp
-)
 
-
-##
-## INCLUDES
-##
 if(HUNTER_ENABLED) # Use Hunter to manage dependencies
   # Add Catch framework
   hunter_add_package(Catch)
@@ -59,6 +52,17 @@ else() # Manage dependencies manually
   # Add dependencies to targets
   target_link_libraries(inja_test Catch inja)
   target_link_libraries(inja_single_test Catch inja_single)
+endif()
+
+
+##
+## BENCHMARK
+##
+if(BUILD_BENCHMARK)
+  add_executable(inja_benchmark
+    src/benchmark.cpp
+  )
+
   target_link_libraries(inja_benchmark hayai inja)
 endif()
 

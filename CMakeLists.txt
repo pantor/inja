@@ -12,6 +12,7 @@ set(INJA_VERSION ${PROJECT_VERSION})
 ## OPTIONS
 ##
 option(BUILD_UNIT_TESTS "Build the unit tests" ON)
+option(BUILD_BENCHMARK "Build the inja benchmark" OFF)
 option(HUNTER_ENABLED "Use hunter to manage dependencies" OFF)
 
 
