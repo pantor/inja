@@ -33,23 +33,17 @@ SOFTWARE.
 #define PANTOR_INJA_VERSION_PATCH 0
 
 
-#include <algorithm>
-#include <fstream>
-#include <iostream>
-#include <locale>
-#include <map>
 #include <nlohmann/json.hpp>
-#include <regex>
+
+
+// #include "error.hpp"
+#ifndef PANTOR_INJA_ERROR_HPP
+#define PANTOR_INJA_ERROR_HPP
+
 #include <string>
-#include <sstream>
-#include <type_traits>
-#include <vector>
 
 
 namespace inja {
-
-using json = nlohmann::json;
-
 
 /*!
 @brief throw an error with a given message
@@ -58,6 +52,20 @@ inline void inja_throw(const std::string& type, const std::string& message) {
 	throw std::runtime_error("[inja.exception." + type + "] " + message);
 }
 
+}
+
+#endif // PANTOR_INJA_ERROR_HPP
+
+// #include "regex.hpp"
+#ifndef PANTOR_INJA_REGEX_HPP
+#define PANTOR_INJA_REGEX_HPP
+
+#include <regex>
+#include <string>
+#include <sstream>
+
+
+namespace inja {
 
 /*!
 @brief inja regex class, saves string pattern in addition to std::regex
@@ -217,6 +225,22 @@ inline MatchType<T> match(const std::string& input, const std::map<T, Regex, S>&
 	return match;
 }
 
+}
+
+#endif // PANTOR_INJA_REGEX_HPP
+
+// #include "parsed.hpp"
+#ifndef PANTOR_INJA_PARSED_HPP
+#define PANTOR_INJA_PARSED_HPP
+
+#include <string>
+#include <vector>
+
+
+namespace inja {
+
+using json = nlohmann::json;
+
 
 enum class ElementNotation {
 	Dot,
@@ -357,6 +381,16 @@ struct Parsed {
 	using CallbackSignature = std::pair<std::string, size_t>;
 };
 
+}
+
+#endif // PANTOR_INJA_PARSED_HPP
+
+// #include "template.hpp"
+#ifndef PANTOR_INJA_TEMPLATE_HPP
+#define PANTOR_INJA_TEMPLATE_HPP
+
+
+namespace inja {
 
 class Template {
 	Parsed::Element _parsed_template;
@@ -367,6 +401,23 @@ public:
 	explicit Template(): _parsed_template(Parsed::Element()) { }
 	explicit Template(const Parsed::Element& parsed_template): _parsed_template(parsed_template) { }
 };
+
+}
+
+#endif // PANTOR_INJA_TEMPLATE_HPP
+
+// #include "renderer.hpp"
+#ifndef PANTOR_INJA_RENDERER_HPP
+#define PANTOR_INJA_RENDERER_HPP
+
+#include <algorithm>
+#include <string>
+#include <sstream>
+
+
+namespace inja {
+
+using json = nlohmann::json;
 
 
 class Renderer {
@@ -637,6 +688,27 @@ public:
 		return result;
 	}
 };
+
+}
+
+#endif // PANTOR_INJA_RENDERER_HPP
+
+// #include "parser.hpp"
+#ifndef PANTOR_INJA_PARSER_HPP
+#define PANTOR_INJA_PARSER_HPP
+
+#include <fstream>
+#include <iostream>
+#include <map>
+#include <string>
+
+#include <regex.hpp>
+#include <template.hpp>
+
+
+namespace inja {
+
+using json = nlohmann::json;
 
 
 class Parser {
@@ -964,6 +1036,27 @@ public:
 	}
 };
 
+}
+
+#endif // PANTOR_INJA_PARSER_HPP
+
+// #include "environment.hpp"
+#ifndef PANTOR_INJA_ENVIRONMENT_HPP
+#define PANTOR_INJA_ENVIRONMENT_HPP
+
+#include <fstream>
+#include <iostream>
+#include <string>
+
+#include <parser.hpp>
+#include <renderer.hpp>
+#include <template.hpp>
+
+
+namespace inja {
+
+using json = nlohmann::json;
+
 
 /*!
 @brief Environment class
@@ -1074,14 +1167,28 @@ public:
 	}
 };
 
-
-/*!
-@brief render with default settings
-*/
-inline std::string render(const std::string& input, const json& data) {
-	return Environment().render(input, data);
 }
 
-} // namespace inja
+#endif // PANTOR_INJA_ENVIRONMENT_HPP
+
+// #include "utils.hpp"
+#ifndef PANTOR_INJA_UTILS_HPP
+#define PANTOR_INJA_UTILS_HPP
+
+#include <string>
+
+
+namespace inja {
+	/*!
+	@brief render with default settings
+	*/
+	inline std::string render(const std::string& input, const json& data) {
+		return Environment().render(input, data);
+	}
+}
+
+#endif // PANTOR_INJA_UTILS_HPP
+
+
 
 #endif // PANTOR_INJA_HPP

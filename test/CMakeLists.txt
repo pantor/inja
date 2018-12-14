@@ -21,6 +21,13 @@ add_executable(inja_test
   src/unit.cpp
 )
 
+add_executable(inja_single_test
+  src/unit-files.cpp
+  src/unit-renderer.cpp
+  src/unit-string-helper.cpp
+  src/unit.cpp
+)
+
 add_executable(inja_benchmark
   src/benchmark.cpp
 )
@@ -51,6 +58,7 @@ else() # Manage dependencies manually
 
   # Add dependencies to targets
   target_link_libraries(inja_test Catch inja)
+  target_link_libraries(inja_single_test Catch inja_single)
   target_link_libraries(inja_benchmark hayai inja)
 endif()
 
@@ -71,5 +79,10 @@ add_custom_command(
 ##
 add_test(NAME inja_test
   COMMAND inja_test
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+add_test(NAME inja_single_test
+  COMMAND inja_single_test
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )

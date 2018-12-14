@@ -32,7 +32,8 @@ endif()
 ##
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
-set(INJA_SOURCE_DIR src)
+set(INJA_INCLUDE_DIR include)
+set(INJA_SINGLE_INCLUDE_DIR single_include)
 set(INJA_HEADER_INSTALL_DIR include)
 
 if(WIN32 AND MSVC AND MSVC_VERSION LESS 1900)
@@ -51,25 +52,38 @@ endif()
 
 
 ##
+## AMALGAMATE
+## amalgamate header files into single_include
+##
+execute_process(COMMAND python3 amalgamate/amalgamate.py -c amalgamate/config.json -s include
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+
+
+##
 ## TARGETS
 ## Build targets for the interface library
 ##
 add_library(inja INTERFACE)
 target_include_directories(inja INTERFACE
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/${INJA_SOURCE_DIR}>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/${INJA_INCLUDE_DIR}>
   $<INSTALL_INTERFACE:${INJA_HEADER_INSTALL_DIR}>
 )
+
+
+add_library(inja_single INTERFACE)
+target_include_directories(inja_single INTERFACE
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/${INJA_SINGLE_INCLUDE_DIR}>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/${INJA_INCLUDE_DIR}>
+  $<INSTALL_INTERFACE:${INJA_HEADER_INSTALL_DIR}>
+)
+
+
 if(HUNTER_ENABLED) # Use Hunter to manage dependencies
   # Add JSON package
   hunter_add_package(nlohmann_json)
   find_package(nlohmann_json CONFIG REQUIRED)
   # Add dependencies to target
   target_link_libraries(inja INTERFACE nlohmann_json)
-else()
-  target_include_directories(inja INTERFACE
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test/thirdparty>
-    $<INSTALL_INTERFACE:${INJA_HEADER_INSTALL_DIR}>
-  )
 endif()
 
 
@@ -106,7 +120,7 @@ install(
 )
 
 install(
-  FILES ${INJA_SOURCE_DIR}/inja.hpp
+  FILES ${INJA_INCLUDE_DIR}/inja.hpp
   DESTINATION "${include_install_dir}"
 )
 
