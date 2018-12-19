@@ -11,7 +11,9 @@
 #define WPIUTIL_WPI_STRINGREF_H
 
 #include <algorithm>
+#include <bitset>
 #include <cassert>
+#include <climits>
 #include <cstddef>
 #include <cstring>
 #include <iosfwd>
@@ -19,23 +21,12 @@
 #include <string>
 #include <type_traits>
 #include <utility>
+#include <ostream>
 
 #include "wpi/Compiler.h"
 
 
 namespace wpi {
-
-  class StringRef;
-
-  /// Helper functions for StringRef::getAsInteger.
-  bool getAsUnsignedInteger(StringRef Str, unsigned Radix,
-                            unsigned long long &Result) noexcept;
-
-  bool getAsSignedInteger(StringRef Str, unsigned Radix, long long &Result) noexcept;
-
-  bool consumeUnsignedInteger(StringRef &Str, unsigned Radix,
-                              unsigned long long &Result) noexcept;
-  bool consumeSignedInteger(StringRef &Str, unsigned Radix, long long &Result) noexcept;
 
   /// StringRef - Represent a constant reference to a string, i.e. a character
   /// array and a length, which need not be null terminated.
@@ -262,33 +253,97 @@ namespace wpi {
     /// \returns The index of the first occurrence of \p Str, or npos if not
     /// found.
 
-    size_t find(StringRef Str, size_t From = 0) const noexcept;
+    // size_t find(StringRef Str, size_t From = 0) const noexcept;
+    size_t find(StringRef Str, size_t From) const noexcept {
+      if (From > Length)
+        return npos;
 
-    /// Search for the first string \p Str in the string, ignoring case.
-    ///
-    /// \returns The index of the first occurrence of \p Str, or npos if not
-    /// found.
+      const char *Start = Data + From;
+      size_t Size = Length - From;
 
-    size_t find_lower(StringRef Str, size_t From = 0) const noexcept;
+      const char *Needle = Str.data();
+      size_t N = Str.size();
+      if (N == 0)
+        return From;
+      if (Size < N)
+        return npos;
+      if (N == 1) {
+        const char *Ptr = (const char *)::memchr(Start, Needle[0], Size);
+        return Ptr == nullptr ? npos : Ptr - Data;
+      }
 
-    /// Find the first character in the string that is \p C, or npos if not
-    /// found. Same as find.
+      const char *Stop = Start + (Size - N + 1);
 
-    size_t find_first_of(char C, size_t From = 0) const noexcept {
-      return find(C, From);
+      // For short haystacks or unsupported needles fall back to the naive algorithm
+      if (Size < 16 || N > 255) {
+        do {
+          if (std::memcmp(Start, Needle, N) == 0)
+            return Start - Data;
+          ++Start;
+        } while (Start < Stop);
+        return npos;
+      }
+
+      // Build the bad char heuristic table, with uint8_t to reduce cache thrashing.
+      uint8_t BadCharSkip[256];
+      std::memset(BadCharSkip, N, 256);
+      for (unsigned i = 0; i != N - 1; ++i)
+        BadCharSkip[(uint8_t)Str[i]] = N - 1 - i;
+
+      do {
+        uint8_t Last = Start[N - 1];
+        if (LLVM_UNLIKELY(Last == (uint8_t)Needle[N - 1]))
+          if (std::memcmp(Start, Needle, N - 1) == 0)
+            return Start - Data;
+
+        // Otherwise skip the appropriate number of bytes.
+        Start += BadCharSkip[Last];
+      } while (Start < Stop);
+
+      return npos;
+    }
+
+    size_t find(StringRef Str) const noexcept {
+      return find(Str, 0);
     }
 
     /// Find the first character in the string that is in \p Chars, or npos if
     /// not found.
     ///
     /// Complexity: O(size() + Chars.size())
-    size_t find_first_of(StringRef Chars, size_t From = 0) const noexcept;
+    size_t find_first_of(StringRef Chars, size_t From) const noexcept {
+      std::bitset<1 << CHAR_BIT> CharBits;
+      for (size_type i = 0; i != Chars.size(); ++i)
+        CharBits.set((unsigned char)Chars[i]);
+
+      for (size_type i = std::min(From, Length), e = Length; i != e; ++i)
+        if (CharBits.test((unsigned char)Data[i]))
+          return i;
+      return npos;
+    }
+
+    size_t find_first_of(StringRef Chars) const noexcept {
+      return find_first_of(Chars, 0);
+    }
 
     /// Find the last character in the string that is in \p C, or npos if not
     /// found.
     ///
     /// Complexity: O(size() + Chars.size())
-    size_t find_last_of(StringRef Chars, size_t From = npos) const noexcept;
+    size_t find_last_of(StringRef Chars, size_t From) const noexcept {
+      std::bitset<1 << CHAR_BIT> CharBits;
+      for (size_type i = 0; i != Chars.size(); ++i)
+        CharBits.set((unsigned char)Chars[i]);
+
+      for (size_type i = std::min(From, Length) - 1, e = -1; i != e; --i)
+        if (CharBits.test((unsigned char)Data[i]))
+          return i;
+      return npos;
+    }
+
+    size_t find_last_of(StringRef Chars) const noexcept {
+      return find_first_of(Chars, npos);
+    }
 
     /// @}
     /// @name Substring Operations
@@ -380,7 +435,10 @@ namespace wpi {
     return !(LHS == StringRef(RHS));
   }
 
-  std::ostream &operator<<(std::ostream &os, StringRef string);
+  inline std::ostream &operator<<(std::ostream &os, StringRef string) {
+    os.write(string.data(), string.size());
+    return os;
+  }
 
   /// @}
 

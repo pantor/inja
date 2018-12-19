@@ -521,7 +521,7 @@ bool Parser::ParseStatement(Template& tmpl, StringRef path) {
     GetNextToken();
 
     // previous conditional jump jumps here
-    if (ifData.prevCondJump != UINT_MAX)
+    if (ifData.prevCondJump != std::numeric_limits<unsigned int>::max())
       tmpl.bytecodes[ifData.prevCondJump].args = tmpl.bytecodes.size();
 
     // update all previous unconditional jumps to here
@@ -543,7 +543,7 @@ bool Parser::ParseStatement(Template& tmpl, StringRef path) {
 
     // previous conditional jump jumps here
     tmpl.bytecodes[ifData.prevCondJump].args = tmpl.bytecodes.size();
-    ifData.prevCondJump = UINT_MAX;
+    ifData.prevCondJump = std::numeric_limits<unsigned int>::max();
 
     // chained else if
     if (m_tok.kind == Token::kId && m_tok.text == "if") {

@@ -9,6 +9,7 @@
 #define WPIUTIL_INJA_PARSER_H_
 
 #include <cctype>
+#include <limits>
 
 #include "wpi/SmallString.h"
 #include "wpi/StringRef.h"

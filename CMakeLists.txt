@@ -11,7 +11,6 @@ add_library(inja
   src/inja_parser.cpp
   src/inja_renderer.cpp
   src/inja.cpp
-  src/wpi/StringRef.cpp
 )
 target_include_directories(inja PUBLIC include)
 
