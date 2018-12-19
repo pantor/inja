@@ -15,12 +15,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 # set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 
 
-add_library(inja
-  src/environment.cpp
-  src/parser.cpp
-  src/renderer.cpp
-)
-target_include_directories(inja PUBLIC include)
+add_library(inja INTERFACE)
+target_include_directories(inja INTERFACE include)
 
 
 # execute_process(COMMAND python3 amalgamate/amalgamate.py -c amalgamate/config.json -s include WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})

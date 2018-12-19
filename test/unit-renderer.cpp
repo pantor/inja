@@ -38,7 +38,7 @@ TEST_CASE("types") {
 		CHECK( env.render("Hello {{ brother/name }}!", data) == "Hello Chris!" );
 		CHECK( env.render("Hello {{ brother/daughter0/name }}!", data) == "Hello Maria!" );
 
-		CHECK_THROWS_WITH( env.render("{{unknown}}", data), "[inja.exception.render_error] variable '/unknown' not found" );
+		CHECK_THROWS_WITH( env.render("{{unknown}}", data), "[inja.exception.render_error] variable 'unknown' not found" );
 	}
 
 	SECTION("comments") {
@@ -206,7 +206,7 @@ TEST_CASE("functions") {
 		CHECK( env.render("{{ default(nothing, 0) }}", data) == "0" );
 		CHECK( env.render("{{ default(name, \"nobody\") }}", data) == "Peter" );
 		CHECK( env.render("{{ default(surname, \"nobody\") }}", data) == "nobody" );
-		CHECK_THROWS_WITH( env.render("{{ default(surname, lastname) }}", data), "[inja.exception.render_error] variable '/lastname' not found" );
+		CHECK_THROWS_WITH( env.render("{{ default(surname, lastname) }}", data), "[inja.exception.render_error] variable 'lastname' not found" );
 	}
 
 	SECTION("exists") {
@@ -221,8 +221,8 @@ TEST_CASE("functions") {
 		CHECK( env.render("{{ existsIn(brother, \"parents\") }}", data) == "false" );
 		CHECK( env.render("{{ existsIn(brother, property) }}", data) == "true" );
 		CHECK( env.render("{{ existsIn(brother, name) }}", data) == "false" );
-		CHECK_THROWS_WITH( env.render("{{ existsIn(sister, \"lastname\") }}", data), "[inja.exception.render_error] variable '/sister' not found" );
-		CHECK_THROWS_WITH( env.render("{{ existsIn(brother, sister) }}", data), "[inja.exception.render_error] variable '/sister' not found" );
+		CHECK_THROWS_WITH( env.render("{{ existsIn(sister, \"lastname\") }}", data), "[inja.exception.render_error] variable 'sister' not found" );
+		CHECK_THROWS_WITH( env.render("{{ existsIn(brother, sister) }}", data), "[inja.exception.render_error] variable 'sister' not found" );
 	}
 
 	SECTION("isType") {
@@ -353,7 +353,7 @@ TEST_CASE("other-syntax") {
 		CHECK( env.render("Hello {{ brother.name }}!", data) == "Hello Chris!" );
 		CHECK( env.render("Hello {{ brother.daughter0.name }}!", data) == "Hello Maria!" );
 
-		CHECK_THROWS_WITH( env.render("{{unknown.name}}", data), "[inja.exception.render_error] variable '/unknown/name' not found" );
+		CHECK_THROWS_WITH( env.render("{{unknown.name}}", data), "[inja.exception.render_error] variable 'unknown/name' not found" );
 	}
 
 	SECTION("other expression syntax") {

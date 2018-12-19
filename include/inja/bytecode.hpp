@@ -1,7 +1,6 @@
-#ifndef PANTOR_INJA_INTERNAL_HPP
-#define PANTOR_INJA_INTERNAL_HPP
+#ifndef PANTOR_INJA_BYTECODE_HPP
+#define PANTOR_INJA_BYTECODE_HPP
 
-#include <stdexcept>
 #include <utility>
 
 #include <nlohmann/json.hpp>
@@ -9,32 +8,7 @@
 
 namespace inja {
 
-inline void inja_throw(const std::string& type, const std::string& message) {
-  throw std::runtime_error("[inja.exception." + type + "] " + message);
-}
-
-inline std::string_view string_view_slice(std::string_view view, size_t Start, size_t End) {
-  Start = std::min(Start, view.size());
-  End = std::min(std::max(Start, End), view.size());
-  return view.substr(Start, End - Start); // StringRef(Data + Start, End - Start);
-}
-
-inline std::pair<std::string_view, std::string_view> string_view_split(std::string_view view, char Separator) {
-  size_t Idx = view.find(Separator);
-  if (Idx == std::string_view::npos) {
-    return std::make_pair(view, std::string_view());
-    return std::make_pair(string_view_slice(view, 0, Idx), string_view_slice(view, Idx+1, std::string_view::npos));
-  }
-}
-
-inline bool string_view_starts_with(std::string_view view, std::string_view prefix) {
-  return (view.size() >= prefix.size() && view.compare(0, prefix.size(), prefix) == 0);
-}
-
-
 using namespace nlohmann;
-
-using CallbackFunction = std::function<json(std::vector<const json*>& args, const json& data)>;
 
 
 class Bytecode {
@@ -150,11 +124,6 @@ class Bytecode {
   Bytecode(Op op, json&& value, unsigned int flags): op(op), args(0), flags(flags), value(std::move(value)) {}
 };
 
-enum class ElementNotation {
-  Dot,
-  Pointer
-};
-
 }  // namespace inja
 
-#endif  // PANTOR_INJA_INTERNAL_HPP
+#endif  // PANTOR_INJA_BYTECODE_HPP
