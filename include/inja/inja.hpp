@@ -11,13 +11,15 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <vector>
 #include <sstream>
 
-#include <wpi/ArrayRef.h>
-#include <wpi/StringRef.h>
 
 #include <nlohmann/json.hpp>
+
+#include <inja/ArrayRef.h>
+#include <inja/StringRef.h>
 
 
 namespace inja {

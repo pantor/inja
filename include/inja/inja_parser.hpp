@@ -11,7 +11,7 @@
 #include <cctype>
 #include <limits>
 
-#include <wpi/StringRef.h>
+#include <inja/StringRef.h>
 
 #include <inja/inja.hpp>
 #include <inja/inja_internal.hpp>

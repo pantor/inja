@@ -15,8 +15,8 @@
 
 #include <nlohmann/json.hpp>
 
-#include <wpi/ArrayRef.h>
-#include <wpi/StringRef.h>
+#include <inja/ArrayRef.h>
+#include <inja/StringRef.h>
 
 #include <inja/inja.hpp>
 #include <inja/inja_internal.hpp>
