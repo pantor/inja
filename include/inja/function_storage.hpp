@@ -3,7 +3,7 @@
 
 #include <string_view>
 
-#include <inja/bytecode.hpp>
+#include "bytecode.hpp"
 
 
 namespace inja {

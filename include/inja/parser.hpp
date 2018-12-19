@@ -3,13 +3,13 @@
 
 #include <limits>
 
-#include <inja/bytecode.hpp>
-#include <inja/config.hpp>
-#include <inja/function_storage.hpp>
-#include <inja/lexer.hpp>
-#include <inja/template.hpp>
-#include <inja/token.hpp>
-#include <inja/utils.hpp>
+#include "bytecode.hpp"
+#include "config.hpp"
+#include "function_storage.hpp"
+#include "lexer.hpp"
+#include "template.hpp"
+#include "token.hpp"
+#include "utils.hpp"
 
 #include <nlohmann/json.hpp>
 

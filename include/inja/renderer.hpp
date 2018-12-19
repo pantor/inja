@@ -6,9 +6,9 @@
 
 #include <nlohmann/json.hpp>
 
-#include <inja/bytecode.hpp>
-#include <inja/template.hpp>
-#include <inja/utils.hpp>
+#include "bytecode.hpp"
+#include "template.hpp"
+#include "utils.hpp"
 
 
 namespace inja {

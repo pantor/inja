@@ -10,8 +10,17 @@ inja_dep = declare_dependency(
 )
 
 
+# Amalgamate inja header files
+r = run_command('python3', 'amalgamate/amalgamate.py', '-c', 'amalgamate/config.json', '-s', 'include')
+if r.returncode() != 0
+  message(r.stdout().strip())
+else
+  message('Amalgamated inja header files.')
+endif
+
+
 inja_test = executable(
-  'inja-test',
+  'inja_test',
   'test/unit.cpp',
   # 'test/unit-files.cpp',
   'test/unit-renderer.cpp',

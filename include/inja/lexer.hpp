@@ -1,9 +1,9 @@
 #ifndef PANTOR_INJA_LEXER_HPP
 #define PANTOR_INJA_LEXER_HPP
 
-#include <inja/config.hpp>
-#include <inja/token.hpp>
-#include <inja/utils.hpp>
+#include "config.hpp"
+#include "token.hpp"
+#include "utils.hpp"
 
 
 namespace inja {

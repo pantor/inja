@@ -1,0 +1,1 @@
+Answer: {% include "simple.txt" %}

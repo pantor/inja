@@ -5,11 +5,11 @@
 
 #include <nlohmann/json.hpp>
 
-#include <inja/config.hpp>
-#include <inja/function_storage.hpp>
-#include <inja/parser.hpp>
-#include <inja/renderer.hpp>
-#include <inja/template.hpp>
+#include "config.hpp"
+#include "function_storage.hpp"
+#include "parser.hpp"
+#include "renderer.hpp"
+#include "template.hpp"
 
 
 namespace inja {

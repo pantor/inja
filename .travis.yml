@@ -1,0 +1,40 @@
+#########################
+# project configuration #
+#########################
+
+language: cpp
+
+dist: trusty
+sudo: required
+
+matrix:
+  include:
+    - os: linux
+      compiler: gcc
+      env: COMPILER=g++-7
+      addons:
+        apt:
+          sources: ['ubuntu-toolchain-r-test']
+          packages: g++-7
+
+    - os: linux
+      compiler: clang
+      env: COMPILER=clang++-5.0
+      addons:
+        apt:
+          sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-5.0']
+          packages: ['g++-6', 'clang-5.0']
+
+    - os: osx
+      osx_image: xcode9
+
+
+script:
+  - if [[ "${COMPILER}" != "" ]]; then export CXX=${COMPILER}; fi
+  - uname -a
+  - $CXX --version
+
+  - mkdir -p build && cd build
+  - cmake .. && cmake --build . --config Release -- -j4
+  - ctest -C Release -V
+  - cd ..

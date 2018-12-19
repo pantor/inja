@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.5)
 
 
 project(inja LANGUAGES CXX VERSION 2.0.0)
@@ -19,11 +19,11 @@ add_library(inja INTERFACE)
 target_include_directories(inja INTERFACE include)
 
 
-# execute_process(COMMAND python3 amalgamate/amalgamate.py -c amalgamate/config.json -s include WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+execute_process(COMMAND python3 amalgamate/amalgamate.py -c amalgamate/config.json -s include WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
 
 
 if(BUILD_TESTS)
-  add_executable(inja_test test/unit.cpp test/unit-renderer.cpp)
+  add_executable(inja_test test/unit.cpp test test/unit-files.cpp test/unit-renderer.cpp)
   target_link_libraries(inja_test PRIVATE inja)
 endif()
 

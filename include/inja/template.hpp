@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include <inja/bytecode.hpp>
+#include "bytecode.hpp"
 
 
 namespace inja {

@@ -12,10 +12,10 @@
 
 #include <nlohmann/json.hpp>
 
-#include <inja/environment.hpp>
-#include <inja/template.hpp>
-#include <inja/parser.hpp>
-#include <inja/renderer.hpp>
+#include "environment.hpp"
+#include "template.hpp"
+#include "parser.hpp"
+#include "renderer.hpp"
 
 
 #endif  // PANTOR_INJA_HPP
