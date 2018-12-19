@@ -1,9 +1,0 @@
-{
-	"project": "inja",
-	"target": "single_include/inja.hpp",
-	"sources": [
-		"../include/inja.hpp"
-	],
-	"include_paths": [
-	]
-}
