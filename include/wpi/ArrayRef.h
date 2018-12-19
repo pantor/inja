@@ -170,18 +170,6 @@ namespace wpi {
       return slice(0, size() - N);
     }
 
-    /// Return a copy of *this with the first N elements satisfying the
-    /// given predicate removed.
-    template <class PredicateT> ArrayRef<T> drop_while(PredicateT Pred) const {
-      return ArrayRef<T>(find_if_not(*this, Pred), end());
-    }
-
-    /// Return a copy of *this with the first N elements not satisfying
-    /// the given predicate removed.
-    template <class PredicateT> ArrayRef<T> drop_until(PredicateT Pred) const {
-      return ArrayRef<T>(find_if(*this, Pred), end());
-    }
-
     /// Return a copy of *this with only the first \p N elements.
     ArrayRef<T> take_front(size_t N = 1) const {
       if (N >= size())
@@ -196,54 +184,12 @@ namespace wpi {
       return drop_front(size() - N);
     }
 
-    /// Return the first N elements of this Array that satisfy the given
-    /// predicate.
-    template <class PredicateT> ArrayRef<T> take_while(PredicateT Pred) const {
-      return ArrayRef<T>(begin(), find_if_not(*this, Pred));
-    }
-
-    /// Return the first N elements of this Array that don't satisfy the
-    /// given predicate.
-    template <class PredicateT> ArrayRef<T> take_until(PredicateT Pred) const {
-      return ArrayRef<T>(begin(), find_if(*this, Pred));
-    }
-
     /// @}
     /// @name Operator Overloads
     /// @{
     const T &operator[](size_t Index) const {
       assert(Index < Length && "Invalid index!");
       return Data[Index];
-    }
-
-    /// Disallow accidental assignment from a temporary.
-    ///
-    /// The declaration here is extra complicated so that "arrayRef = {}"
-    /// continues to select the move assignment operator.
-    template <typename U>
-    typename std::enable_if<std::is_same<U, T>::value, ArrayRef<T>>::type &
-    operator=(U &&Temporary) = delete;
-
-    /// Disallow accidental assignment from a temporary.
-    ///
-    /// The declaration here is extra complicated so that "arrayRef = {}"
-    /// continues to select the move assignment operator.
-    template <typename U>
-    typename std::enable_if<std::is_same<U, T>::value, ArrayRef<T>>::type &
-    operator=(std::initializer_list<U>) = delete;
-
-    /// @}
-    /// @name Expensive Operations
-    /// @{
-    std::vector<T> vec() const {
-      return std::vector<T>(Data, Data+Length);
-    }
-
-    /// @}
-    /// @name Conversion operators
-    /// @{
-    operator std::vector<T>() const {
-      return std::vector<T>(Data, Data+Length);
     }
 
     /// @}

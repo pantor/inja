@@ -8,8 +8,8 @@
 #include <inja/inja_parser.hpp>
 
 
-using namespace wpi;
 using namespace inja;
+
 
 StringRef Token::Describe() const {
   switch (kind) {

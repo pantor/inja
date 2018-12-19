@@ -10,8 +10,8 @@
 #include <inja/inja_renderer.hpp>
 
 
-using namespace wpi;
 using namespace inja;
+
 
 static bool Truthy(const json& var) {
   if (var.empty()) {

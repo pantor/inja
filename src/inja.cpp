@@ -12,8 +12,8 @@
 #include <inja/inja_renderer.hpp>
 
 
-using namespace wpi;
 using namespace inja;
+
 
 void inja::inja_throw(const std::string& type, const std::string& message) {
   throw std::runtime_error("[inja.exception." + type + "] " + message);

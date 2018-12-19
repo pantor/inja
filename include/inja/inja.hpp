@@ -26,6 +26,7 @@ namespace inja {
 using namespace nlohmann;
 using namespace wpi;
 
+
 class Bytecode;
 class Parser;
 class Renderer;
