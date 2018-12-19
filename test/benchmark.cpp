@@ -13,7 +13,7 @@ std::string string_template {"Lorem {{ name }}! Omnis in aut nobis libero enim. 
 
 
 BENCHMARK(InjaBenchmarker, render, 10, 100) {
-  env.Render(string_template, data);
+  env.render(string_template, data);
 }
 
 int main() {
