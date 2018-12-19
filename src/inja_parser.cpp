@@ -5,7 +5,7 @@
 /* the project.                                                               */
 /*----------------------------------------------------------------------------*/
 
-#include "inja/inja_parser.h"
+#include <inja/inja_parser.hpp>
 
 
 using namespace wpi;
@@ -295,7 +295,9 @@ Parser::Parser(const ParserConfig& parserConfig, const LexerConfig& lexerConfig,
     : m_config(parserConfig),
       m_lexer(lexerConfig),
       m_includedTemplates(includedTemplates),
-      m_static(ParserStatic::GetInstance()) {}
+      m_static(ParserStatic::GetInstance()) {
+
+  }
 
 bool Parser::ParseExpression(Template& tmpl) {
   if (!ParseExpressionAnd(tmpl)) return false;
@@ -610,7 +612,7 @@ bool Parser::ParseStatement(Template& tmpl, StringRef path) {
 
     // build the relative path
     json jsonName = json::parse(m_tok.text);
-    SmallString<128> pathname = path;
+    std::string pathname = path;
     pathname += jsonName.get_ref<const std::string&>();
     // sys::path::remove_dots(pathname, true, sys::path::Style::posix);
 

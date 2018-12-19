@@ -13,12 +13,11 @@
 #include <utility>
 #include <vector>
 
-#include "wpi/SmallVector.h"
-#include "wpi/StringRef.h"
-
 #include <nlohmann/json.hpp>
 
-#include "inja/inja.h"
+#include <wpi/StringRef.h>
+
+#include <inja/inja.hpp>
 
 
 namespace inja {
@@ -180,7 +179,7 @@ class FunctionStorage {
   FunctionData& GetOrNew(StringRef name, unsigned int numArgs);
   const FunctionData* Get(StringRef name, unsigned int numArgs) const;
 
-  std::map<std::string, SmallVector<FunctionData, 1>> m_map;
+  std::map<std::string, std::vector<FunctionData>> m_map;
 };
 
 using TemplateStorage = std::map<std::string, Template>;

@@ -14,9 +14,8 @@
 #include <vector>
 #include <sstream>
 
-#include "wpi/ArrayRef.h"
-#include "wpi/SmallString.h"
-#include "wpi/StringRef.h"
+#include <wpi/ArrayRef.h>
+#include <wpi/StringRef.h>
 
 #include <nlohmann/json.hpp>
 
@@ -94,7 +93,7 @@ class Environment {
 /*!
 @brief render with default settings
 */
-inline std::string Render(StringRef input, const json& data) {
+inline std::string Render(const std::string& input, const json& data) {
   return Environment().Render(input, data);
 }
 

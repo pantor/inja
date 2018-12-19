@@ -11,11 +11,10 @@
 #include <cctype>
 #include <limits>
 
-#include "wpi/SmallString.h"
-#include "wpi/StringRef.h"
+#include <wpi/StringRef.h>
 
-#include "inja/inja.h"
-#include "inja/inja_internal.h"
+#include <inja/inja.hpp>
+#include <inja/inja_internal.hpp>
 
 
 namespace inja {
@@ -75,14 +74,14 @@ struct Token {
 };
 
 struct LexerConfig {
-  SmallString<4> statementOpen{"{%"};
-  SmallString<4> statementClose{"%}"};
-  SmallString<4> lineStatement{"##"};
-  SmallString<4> expressionOpen{"{{"};
-  SmallString<4> expressionClose{"}}"};
-  SmallString<4> commentOpen{"{#"};
-  SmallString<4> commentClose{"#}"};
-  SmallString<4> openChars{"#{"};
+  std::string statementOpen{"{%"};
+  std::string statementClose{"%}"};
+  std::string lineStatement{"##"};
+  std::string expressionOpen{"{{"};
+  std::string expressionClose{"}}"};
+  std::string commentOpen{"{#"};
+  std::string commentClose{"#}"};
+  std::string openChars{"#{"};
 
   void UpdateOpenChars();
 };
@@ -156,12 +155,12 @@ class Parser {
   const ParserStatic& m_static;
   struct IfData {
     unsigned int prevCondJump;
-    SmallVector<unsigned int, 4> uncondJumps;
+    std::vector<unsigned int> uncondJumps;
 
     explicit IfData(unsigned int condJump) : prevCondJump(condJump) {}
   };
-  SmallVector<IfData, 4> m_ifStack;
-  SmallVector<unsigned int, 4> m_loopStack;
+  std::vector<IfData> m_ifStack;
+  std::vector<unsigned int> m_loopStack;
 
   void GetNextToken() {
     if (m_havePeekTok) {

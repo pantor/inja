@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "inja/inja.h"
+#include <inja/inja.hpp>
 
 
 int main() {

@@ -1,5 +1,5 @@
 #include "hayai/hayai.hpp"
-#include "inja/inja.h"
+#include <inja/inja.hpp>
 
 
 // using json = nlohmann::json;

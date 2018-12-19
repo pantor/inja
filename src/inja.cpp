@@ -6,10 +6,10 @@
 /*----------------------------------------------------------------------------*/
 
 
-#include "inja/inja.h"
-#include "inja/inja_internal.h"
-#include "inja/inja_parser.h"
-#include "inja/inja_renderer.h"
+#include <inja/inja.hpp>
+#include <inja/inja_internal.hpp>
+#include <inja/inja_parser.hpp>
+#include <inja/inja_renderer.hpp>
 
 
 using namespace wpi;
@@ -117,7 +117,7 @@ void Environment::AddCallback(StringRef name, unsigned int numArgs, const Callba
 }
 
 void Environment::IncludeTemplate(const std::string& name, const Template& tmpl) {
-  SmallString<64> buf;
+  std::string buf;
   m_impl->includedTemplates[name] = tmpl;
 }
 

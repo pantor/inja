@@ -23,7 +23,18 @@
 #include <utility>
 #include <ostream>
 
-#include "wpi/Compiler.h"
+
+#ifndef __has_builtin
+# define __has_builtin(x) 0
+#endif
+
+#ifndef LLVM_LIKELY
+#if __has_builtin(__builtin_expect)
+#define LLVM_UNLIKELY(EXPR) __builtin_expect((bool)(EXPR), false)
+#else
+#define LLVM_UNLIKELY(EXPR) (EXPR)
+#endif
+#endif
 
 
 namespace wpi {

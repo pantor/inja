@@ -13,27 +13,27 @@
 #include <sstream>
 #include <vector>
 
-#include "wpi/ArrayRef.h"
-#include "wpi/SmallString.h"
-#include "wpi/SmallVector.h"
-#include "wpi/StringRef.h"
-
 #include <nlohmann/json.hpp>
 
-#include "inja/inja.h"
-#include "inja/inja_internal.h"
+#include <wpi/ArrayRef.h>
+#include <wpi/StringRef.h>
+
+#include <inja/inja.hpp>
+#include <inja/inja_internal.hpp>
 
 
 namespace inja {
 
 using namespace wpi;
 
-StringRef ConvertDotToJsonPointer(StringRef dot, SmallVectorImpl<char>& out);
+StringRef ConvertDotToJsonPointer(StringRef dot, std::string& out);
 
 class Renderer {
  public:
-  Renderer(const TemplateStorage& includedTemplates, const FunctionStorage& callbacks)
-      : m_includedTemplates(includedTemplates), m_callbacks(callbacks) {}
+  Renderer(const TemplateStorage& includedTemplates, const FunctionStorage& callbacks): m_includedTemplates(includedTemplates), m_callbacks(callbacks) {
+    m_stack.reserve(16);
+    m_tmpArgs.reserve(4);
+  }
 
   void RenderTo(std::stringstream& os, const Template& tmpl, const json& data);
 
@@ -46,7 +46,7 @@ class Renderer {
   const TemplateStorage& m_includedTemplates;
   const FunctionStorage& m_callbacks;
 
-  SmallVector<json, 16> m_stack;
+  std::vector<json> m_stack;
 
   struct LoopLevel {
     StringRef keyName;              // variable name for keys
@@ -67,10 +67,10 @@ class Renderer {
     MapValues::iterator mapIt;      // iterator over values
   };
 
-  SmallVector<LoopLevel, 0> m_loopStack;
+  std::vector<LoopLevel> m_loopStack;
   const json* m_data;
 
-  SmallVector<const json*, 4> m_tmpArgs;
+  std::vector<const json*> m_tmpArgs;
   json m_tmpVal;
 };
 

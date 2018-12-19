@@ -5,9 +5,9 @@
 /* the project.                                                               */
 /*----------------------------------------------------------------------------*/
 
-#include "inja/inja.h"
-#include "inja/inja_internal.h"
-#include "inja/inja_renderer.h"
+#include <inja/inja.hpp>
+#include <inja/inja_internal.hpp>
+#include <inja/inja_renderer.hpp>
 
 
 using namespace wpi;
@@ -29,8 +29,7 @@ static bool Truthy(const json& var) {
   }
 }
 
-StringRef inja::ConvertDotToJsonPointer(StringRef dot,
-                                        SmallVectorImpl<char>& out) {
+StringRef inja::ConvertDotToJsonPointer(StringRef dot, std::string& out) {
   out.clear();
   do {
     StringRef part;
@@ -413,8 +412,7 @@ void Renderer::RenderTo(std::stringstream& os, const Template& tmpl, const json&
         break;
       }
       default:
-        inja_throw("render_error", "unknown op in renderer: " +
-                                       std::to_string(static_cast<unsigned int>(bc.op)));
+        inja_throw("render_error", "unknown op in renderer: " + std::to_string(static_cast<unsigned int>(bc.op)));
     }
   }
 }
@@ -460,7 +458,7 @@ void Renderer::PopArgs(const Bytecode& bc) {
 }
 
 const json* Renderer::GetImm(const Bytecode& bc) {
-  SmallString<64> ptrBuf;
+  std::string ptrBuf;
   StringRef ptr;
   switch (bc.flags & Bytecode::kFlagValueMask) {
     case Bytecode::kFlagValuePop:
