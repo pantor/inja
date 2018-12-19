@@ -18,22 +18,40 @@
 
 #include <nlohmann/json.hpp>
 
-#include <inja/ArrayRef.h>
-#include <inja/StringRef.h>
-
 
 namespace inja {
 
 
 using namespace nlohmann;
-using namespace wpi;
 
 
 class Bytecode;
 class Parser;
 class Renderer;
 
-using CallbackFunction = std::function<json(ArrayRef<const json*> args, const json& data)>;
+
+using CallbackFunction = std::function<json(std::vector<const json*>& args, const json& data)>;
+
+
+inline std::string_view string_view_slice(std::string_view view, size_t Start, size_t End) {
+  Start = std::min(Start, view.size());
+  End = std::min(std::max(Start, End), view.size());
+  return view.substr(Start, End - Start); // StringRef(Data + Start, End - Start);
+}
+
+inline std::pair<std::string_view, std::string_view> string_view_split(std::string_view view, char Separator) {
+  size_t Idx = view.find(Separator);
+  if (Idx == std::string_view::npos) {
+    return std::make_pair(view, std::string_view());
+    return std::make_pair(string_view_slice(view, 0, Idx), string_view_slice(view, Idx+1, std::string_view::npos));
+  }
+}
+
+inline bool string_view_starts_with(std::string_view view, std::string_view prefix) {
+  return (view.size() >= prefix.size() && view.compare(0, prefix.size(), prefix) == 0);
+}
+
+
 
 class Template {
   friend class Parser;
@@ -74,17 +92,17 @@ class Environment {
 
   void SetElementNotation(ElementNotation notation);
 
-  void SetLoadFile(std::function<std::string(StringRef)> loadFile);
+  void SetLoadFile(std::function<std::string(std::string_view)> loadFile);
 
-  Template Parse(StringRef input);
+  Template Parse(std::string_view input);
 
-  std::string Render(StringRef input, const json& data);
+  std::string Render(std::string_view input, const json& data);
 
   std::string Render(const Template& tmpl, const json& data);
 
   std::stringstream& RenderTo(std::stringstream& os, const Template& tmpl, const json& data);
 
-  void AddCallback(StringRef name, unsigned int numArgs, const CallbackFunction& callback);
+  void AddCallback(std::string_view name, unsigned int numArgs, const CallbackFunction& callback);
 
   void IncludeTemplate(const std::string& name, const Template& tmpl);
 

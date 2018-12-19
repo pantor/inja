@@ -7,9 +7,9 @@
 
 
 #include <inja/inja.hpp>
-#include <inja/inja_internal.hpp>
-#include <inja/inja_parser.hpp>
-#include <inja/inja_renderer.hpp>
+#include <inja/internal.hpp>
+#include <inja/parser.hpp>
+#include <inja/renderer.hpp>
 
 
 using namespace inja;
@@ -88,16 +88,16 @@ void Environment::SetElementNotation(ElementNotation notation) {
   m_impl->parserConfig.notation = notation;
 }
 
-void Environment::SetLoadFile(std::function<std::string(StringRef)> loadFile) {
+void Environment::SetLoadFile(std::function<std::string(std::string_view)> loadFile) {
   m_impl->parserConfig.loadFile = loadFile;
 }
 
-Template Environment::Parse(StringRef input) {
+Template Environment::Parse(std::string_view input) {
   Parser parser(m_impl->parserConfig, m_impl->lexerConfig, m_impl->includedTemplates);
   return parser.Parse(input);
 }
 
-std::string Environment::Render(StringRef input, const json& data) {
+std::string Environment::Render(std::string_view input, const json& data) {
   return Render(Parse(input), data);
 }
 
@@ -112,7 +112,7 @@ std::stringstream& Environment::RenderTo(std::stringstream& os, const Template& 
   return os;
 }
 
-void Environment::AddCallback(StringRef name, unsigned int numArgs, const CallbackFunction& callback) {
+void Environment::AddCallback(std::string_view name, unsigned int numArgs, const CallbackFunction& callback) {
   m_impl->callbacks.AddCallback(name, numArgs, callback);
 }
 
@@ -121,8 +121,8 @@ void Environment::IncludeTemplate(const std::string& name, const Template& tmpl)
   m_impl->includedTemplates[name] = tmpl;
 }
 
-FunctionStorage::FunctionData& FunctionStorage::GetOrNew(StringRef name, unsigned int numArgs) {
-  auto& vec = m_map[name];
+FunctionStorage::FunctionData& FunctionStorage::GetOrNew(std::string_view name, unsigned int numArgs) {
+  auto& vec = m_map[name.data()];
   for (auto& i : vec) {
     if (i.numArgs == numArgs) return i;
   }
@@ -131,8 +131,8 @@ FunctionStorage::FunctionData& FunctionStorage::GetOrNew(StringRef name, unsigne
   return vec.back();
 }
 
-const FunctionStorage::FunctionData* FunctionStorage::Get(StringRef name, unsigned int numArgs) const {
-  auto it = m_map.find(name);
+const FunctionStorage::FunctionData* FunctionStorage::Get(std::string_view name, unsigned int numArgs) const {
+  auto it = m_map.find(static_cast<std::string>(name));
   if (it == m_map.end()) return nullptr;
   for (auto&& i : it->second) {
     if (i.numArgs == numArgs) return &i;

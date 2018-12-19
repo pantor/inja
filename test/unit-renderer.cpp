@@ -8,5 +8,5 @@ int main() {
   inja::json data;
   data["name"] = "Peter";
 
-  std::cout << env.Render("Hello {{ name }}!", data) << std::endl; // , "Hello Peter!"
+  std::cout << env.Render("Hello {{ lower(name) }}!", data) << std::endl; // , "Hello Peter!"
 }

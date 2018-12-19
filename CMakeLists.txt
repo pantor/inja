@@ -10,9 +10,9 @@ set(CMAKE_CXX_STANDARD 17)
 
 
 add_library(inja
-  src/inja_parser.cpp
-  src/inja_renderer.cpp
   src/inja.cpp
+  src/parser.cpp
+  src/renderer.cpp
 )
 target_include_directories(inja PUBLIC include)
 
