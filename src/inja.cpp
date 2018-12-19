@@ -6,8 +6,7 @@
 /*----------------------------------------------------------------------------*/
 
 
-#include <inja/inja.hpp>
-#include <inja/internal.hpp>
+#include <inja/environment.hpp>
 #include <inja/parser.hpp>
 #include <inja/renderer.hpp>
 
@@ -15,43 +14,17 @@
 using namespace inja;
 
 
-void inja::inja_throw(const std::string& type, const std::string& message) {
-  throw std::runtime_error("[inja.exception." + type + "] " + message);
-}
-
 class Environment::Impl {
  public:
   std::string path;
-
-  FunctionStorage callbacks;
-
+  
   LexerConfig lexerConfig;
   ParserConfig parserConfig;
 
+  FunctionStorage callbacks;
+
   TemplateStorage includedTemplates;
 };
-
-Template::Template() {}
-
-Template::~Template() {}
-
-Template::Template(const Template& oth)
-    : bytecodes(oth.bytecodes), contents(oth.contents) {}
-
-Template::Template(Template&& oth)
-    : bytecodes(std::move(oth.bytecodes)), contents(std::move(oth.contents)) {}
-
-Template& Template::operator=(const Template& oth) {
-  bytecodes = oth.bytecodes;
-  contents = oth.contents;
-  return *this;
-}
-
-Template& Template::operator=(Template&& oth) {
-  bytecodes = std::move(oth.bytecodes);
-  contents = std::move(oth.contents);
-  return *this;
-}
 
 Environment::Environment() : Environment("./") {}
 
@@ -117,25 +90,5 @@ void Environment::AddCallback(std::string_view name, unsigned int numArgs, const
 }
 
 void Environment::IncludeTemplate(const std::string& name, const Template& tmpl) {
-  std::string buf;
   m_impl->includedTemplates[name] = tmpl;
-}
-
-FunctionStorage::FunctionData& FunctionStorage::GetOrNew(std::string_view name, unsigned int numArgs) {
-  auto& vec = m_map[name.data()];
-  for (auto& i : vec) {
-    if (i.numArgs == numArgs) return i;
-  }
-  vec.emplace_back();
-  vec.back().numArgs = numArgs;
-  return vec.back();
-}
-
-const FunctionStorage::FunctionData* FunctionStorage::Get(std::string_view name, unsigned int numArgs) const {
-  auto it = m_map.find(static_cast<std::string>(name));
-  if (it == m_map.end()) return nullptr;
-  for (auto&& i : it->second) {
-    if (i.numArgs == numArgs) return &i;
-  }
-  return nullptr;
 }

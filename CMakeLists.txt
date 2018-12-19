@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.10)
 
 
 project(inja LANGUAGES CXX VERSION 2.0.0)
@@ -18,8 +18,8 @@ target_include_directories(inja PUBLIC include)
 
 
 add_executable(inja_unit_renderer test/unit-renderer.cpp)
-target_link_libraries(inja_unit_renderer inja)
+target_link_libraries(inja_unit_renderer PRIVATE inja)
 
 
 add_executable(inja_benchmark test/benchmark.cpp)
-target_link_libraries(inja_benchmark inja)
+target_link_libraries(inja_benchmark PRIVATE inja)
