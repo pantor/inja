@@ -28,8 +28,8 @@ class Environment {
 
 public:
 	Environment(): Environment("./") { }
-	explicit Environment(const std::string& global_path): input_path(global_path), output_path(global_path), parser() { }
-	explicit Environment(const std::string& input_path, const std::string& output_path): input_path(input_path), output_path(output_path), parser() { }
+	explicit Environment(const std::string& global_path): input_path(global_path), output_path(global_path), parser(),renderer(*this) { }
+	explicit Environment(const std::string& input_path, const std::string& output_path): input_path(input_path), output_path(output_path), parser(),renderer(*this) { }
 
 	void set_statement(const std::string& open, const std::string& close) {
 		parser.regex_map_delimiters[Parsed::Delimiter::Statement] = Regex{open + "\\s*(.+?)\\s*" + close};
@@ -109,7 +109,7 @@ public:
 		return j;
 	}
 
-	void add_callback(std::string name, int number_arguments, const std::function<json(const Parsed::Arguments&, const json&)>& callback) {
+	void add_callback(std::string name, int number_arguments, const Renderer::CallbackType& callback) {
 		const Parsed::CallbackSignature signature = std::make_pair(name, number_arguments);
 		parser.regex_map_callbacks[signature] = Parser::function_regex(name, number_arguments);
 		renderer.map_callbacks[signature] = callback;

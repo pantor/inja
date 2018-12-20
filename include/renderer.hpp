@@ -10,10 +10,16 @@ namespace inja {
 
 using json = nlohmann::json;
 
+class Environment;
 
 class Renderer {
 public:
-	std::map<Parsed::CallbackSignature, std::function<json(const Parsed::Arguments&, const json&)>> map_callbacks;
+	using CallbackType = std::function<json(Environment &env, const Parsed::Arguments&, const json&)>;
+
+	Environment &environment;
+	std::map<Parsed::CallbackSignature, CallbackType> map_callbacks;
+
+	Renderer(Environment &env) : environment(env) { }
 
 	template<bool>
 	bool eval_expression(const Parsed::ElementExpression& element, const json& data) {
@@ -159,7 +165,7 @@ public:
 			}
 			case Parsed::Function::Callback: {
 				Parsed::CallbackSignature signature = std::make_pair(element.command, element.args.size());
-				return map_callbacks.at(signature)(element.args, data);
+				return map_callbacks.at(signature)(environment, element.args, data);
 			}
 			case Parsed::Function::Exists: {
 				const std::string name = eval_expression<std::string>(element.args[0], data);
