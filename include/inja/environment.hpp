@@ -102,7 +102,7 @@ class Environment {
 /*!
 @brief render with default settings
 */
-inline std::string render(const std::string& input, const json& data) {
+inline std::string render(std::string_view input, const json& data) {
   return Environment().render(input, data);
 }
 

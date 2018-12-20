@@ -59,7 +59,7 @@ TEST_CASE("types") {
 		CHECK( env.render("{% for name in empty_loop %}a{% endfor %}", data) == "" );
 		CHECK( env.render("{% for name in {} %}a{% endfor %}", data) == "" );
 
-		CHECK_THROWS_WITH( env.render("{% for name ins names %}a{% endfor %}", data), "[inja.exception.parser_error] unknown loop statement: for name ins names" );
+		CHECK_THROWS_WITH( env.render("{% for name ins names %}a{% endfor %}", data), "[inja.exception.parser_error] expected 'in', got 'ins'" );
 		// CHECK_THROWS_WITH( env.render("{% for name in relatives %}{{ name }}{% endfor %}", data), "[inja.exception.json_error] [json.exception.type_error.302] type must be array, but is object" );
 	}
 
@@ -77,20 +77,22 @@ TEST_CASE("types") {
 		CHECK( env.render("{% if age == 26 %}26{% else if age == 27 %}27{% else if age == 28 %}28{% else %}29{% endif %}", data) == "29" );
 		CHECK( env.render("{% if age == 25 %}+{% endif %}{% if age == 29 %}+{% else %}-{% endif %}", data) == "+" );
 
-		CHECK_THROWS_WITH( env.render("{% if is_happy %}{% if is_happy %}{% endif %}", data), "[inja.exception.parser_error] misordered if statement" );
-		CHECK_THROWS_WITH( env.render("{% if is_happy %}{% else if is_happy %}{% end if %}", data), "[inja.exception.parser_error] misordered if statement" );
+		CHECK_THROWS_WITH( env.render("{% if is_happy %}{% if is_happy %}{% endif %}", data), "[inja.exception.parser_error] unmatched if" );
+		CHECK_THROWS_WITH( env.render("{% if is_happy %}{% else if is_happy %}{% end if %}", data), "[inja.exception.parser_error] expected statement, got 'end'" );
 	}
 
 	SECTION("line statements") {
 		CHECK( env.render(R"(## if is_happy
 Yeah!
-## endif)", data) == "Yeah!" );
+## endif)", data) == R"(Yeah!
+)" );
 
 		CHECK( env.render(R"(## if is_happy
 ## if is_happy
 Yeah!
 ## endif
-## endif    )", data) == "Yeah!" );
+## endif    )", data) == R"(Yeah!
+)" );
 	}
 }
 
@@ -353,7 +355,7 @@ TEST_CASE("other-syntax") {
 		CHECK( env.render("Hello {{ brother.name }}!", data) == "Hello Chris!" );
 		CHECK( env.render("Hello {{ brother.daughter0.name }}!", data) == "Hello Maria!" );
 
-		CHECK_THROWS_WITH( env.render("{{unknown.name}}", data), "[inja.exception.render_error] variable 'unknown/name' not found" );
+		CHECK_THROWS_WITH( env.render("{{unknown.name}}", data), "[inja.exception.render_error] variable 'unknown.name' not found" );
 	}
 
 	SECTION("other expression syntax") {
@@ -361,7 +363,7 @@ TEST_CASE("other-syntax") {
 
 		CHECK( env.render("Hello {{ name }}!", data) == "Hello Peter!" );
 
-		env.set_expression("\\(&", "&\\)");
+		env.set_expression("(&", "&)");
 
 		CHECK( env.render("Hello {{ name }}!", data) == "Hello {{ name }}!" );
 		CHECK( env.render("Hello (& name &)!", data) == "Hello Peter!" );
@@ -369,7 +371,7 @@ TEST_CASE("other-syntax") {
 
 	SECTION("other comment syntax") {
 		inja::Environment env = inja::Environment();
-		env.set_comment("\\(&", "&\\)");
+		env.set_comment("(&", "&)");
 
 		CHECK( env.render("Hello {# Test #}", data) == "Hello {# Test #}" );
 		CHECK( env.render("Hello (& Test &)", data) == "Hello " );

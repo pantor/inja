@@ -91,10 +91,10 @@ Environment env = Environment("../path/templates/", "../path/results/");
 env.set_element_notation(ElementNotation::Pointer); // (default) e.g. time/start
 env.set_element_notation(ElementNotation::Dot); // e.g. time.start
 
-// With other opening and closing strings (here the defaults, as regex)
-env.set_expression("\\{\\{", "\\}\\}"); // Expressions {{ }}
-env.set_comment("\\{#", "#\\}"); // Comments {# #}
-env.set_statement("\\{\\%", "\\%\\}"); // Statements {% %} for many things, see below
+// With other opening and closing strings (here the defaults)
+env.set_expression("{{", "}}"); // Expressions
+env.set_comment("{#", "#}"); // Comments
+env.set_statement("{%", "%}"); // Statements {% %} for many things, see below
 env.set_line_statement("##"); // Line statements ## (just an opener)
 ```
 

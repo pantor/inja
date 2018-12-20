@@ -372,13 +372,17 @@ class Parser {
       json jsonName = json::parse(m_tok.text);
       std::string pathname = static_cast<std::string>(path);
       pathname += jsonName.get_ref<const std::string&>();
+      if (pathname.compare(0, 2, "./") == 0) {
+        pathname.erase(0, 2);
+      }
       // sys::path::remove_dots(pathname, true, sys::path::Style::posix);
 
       // parse it only if it's new
-      TemplateStorage::iterator included;
-      bool is_new {true};
-      // TODO: std::tie(included, isNew) = m_includedTemplates.emplace(pathname);
-      if (is_new) included->second = parse_template(pathname);
+      // TemplateStorage::iterator included;
+      // bool is_new {true};
+      // std::tie(included, isNew) = m_includedTemplates.emplace(pathname);
+      // if (is_new) included->second = parse_template(pathname);
+      m_includedTemplates.emplace(std::make_pair(pathname, parse_template(pathname)));
 
       // generate a reference bytecode
       tmpl.bytecodes.emplace_back(Bytecode::Op::Include, json(pathname), Bytecode::kFlagValueImmediate);

@@ -46,7 +46,7 @@ class FunctionStorage {
   };
 
   FunctionData& get_or_new(std::string_view name, unsigned int numArgs) {
-    auto &vec = m_map[name.data()];
+    auto &vec = m_map[static_cast<std::string>(name)];
     for (auto &i : vec) {
       if (i.numArgs == numArgs) return i;
     }

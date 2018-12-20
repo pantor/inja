@@ -125,8 +125,7 @@ class Renderer {
           double number = args[0]->get<double>();
           int precision = args[1]->get<int>();
           pop_args(bc);
-          m_stack.emplace_back(std::round(number * std::pow(10.0, precision)) /
-                               std::pow(10.0, precision));
+          m_stack.emplace_back(std::round(number * std::pow(10.0, precision)) / std::pow(10.0, precision));
           break;
         }
         case Bytecode::Op::DivisibleBy: {
@@ -489,15 +488,15 @@ class Renderer {
   void update_loop_data()  {
     LoopLevel& level = m_loopStack.back();
     if (level.keyName.empty()) {
-      level.data[level.valueName.data()] = *level.it;
+      level.data[static_cast<std::string>(level.valueName)] = *level.it;
       auto& loopData = level.data["loop"];
       loopData["index"] = level.index;
       loopData["index1"] = level.index + 1;
       loopData["is_first"] = (level.index == 0);
       loopData["is_last"] = (level.index == level.size - 1);
     } else {
-      level.data[level.keyName.data()] = level.mapIt->first;
-      level.data[level.valueName.data()] = *level.mapIt->second;
+      level.data[static_cast<std::string>(level.keyName)] = level.mapIt->first;
+      level.data[static_cast<std::string>(level.valueName)] = *level.mapIt->second;
     }
   }
 
