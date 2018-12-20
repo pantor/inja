@@ -19,11 +19,11 @@ matrix:
 
     - os: linux
       compiler: clang
-      env: COMPILER=clang++-5.0
+      env: COMPILER=clang++-6.0
       addons:
         apt:
-          sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-5.0']
-          packages: ['g++-6', 'clang-5.0']
+          sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-6.0']
+          packages: ['clang-6.0', 'libstdc++-7-dev']
 
     - os: osx
       osx_image: xcode9
