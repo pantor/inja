@@ -63,10 +63,10 @@ std::string result = env.render("Hello {{ name }}!", data); // "Hello world!"
 
 // Or directly read a template file
 Template temp = env.parse_template("./template.txt");
-std::string result = env.render_template(temp, data); // "Hello world!"
+std::string result = env.render(temp, data); // "Hello world!"
 
 data["name"] = "Inja";
-std::string result = env.render_template(temp, data); // "Hello Inja!"
+std::string result = env.render(temp, data); // "Hello Inja!"
 
 // Or read a json file for data directly from the environment
 result = env.render_file("./template.txt", "./data.json");
