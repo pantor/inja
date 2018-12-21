@@ -17,18 +17,6 @@
 namespace inja {
 
 class ParserStatic {
- public:
-  ParserStatic(const ParserStatic&) = delete;
-  ParserStatic& operator=(const ParserStatic&) = delete;
-
-  static const ParserStatic& get_instance() {
-    static ParserStatic inst;
-    return inst;
-  }
-
-  FunctionStorage functions;
-
- private:
   ParserStatic() {
     functions.add_builtin("default", 2, Bytecode::Op::Default);
     functions.add_builtin("divisibleBy", 2, Bytecode::Op::DivisibleBy);
@@ -56,11 +44,22 @@ class ParserStatic {
     functions.add_builtin("isArray", 1, Bytecode::Op::IsArray);
     functions.add_builtin("isString", 1, Bytecode::Op::IsString);
   }
+
+ public:
+  ParserStatic(const ParserStatic&) = delete;
+  ParserStatic& operator=(const ParserStatic&) = delete;
+
+  static const ParserStatic& get_instance() {
+    static ParserStatic inst;
+    return inst;
+  }
+
+  FunctionStorage functions;
 };
 
 class Parser {
  public:
-  Parser(const parser_config& parser_config, const lexer_config& lexer_config,
+  Parser(const ParserConfig& parser_config, const LexerConfig& lexer_config,
          TemplateStorage& included_templates): m_config(parser_config),
            m_lexer(lexer_config),
            m_included_templates(included_templates),
@@ -491,17 +490,22 @@ class Parser {
 
   Template parse_template(std::string_view filename) {
     Template result;
-    if (m_config.loadFile) {
-      result.contents = m_config.loadFile(filename);
-      std::string_view path = filename.substr(0, filename.find_last_of("/\\") + 1);
+    result.contents = load_file(filename);
+
+    std::string_view path = filename.substr(0, filename.find_last_of("/\\") + 1);
       // StringRef path = sys::path::parent_path(filename);
-      Parser(m_config, m_lexer.get_config(), m_included_templates).parse_into(result, path);
-    }
+    Parser(m_config, m_lexer.get_config(), m_included_templates).parse_into(result, path);
     return result;
   }
 
+  std::string load_file(std::string_view filename) {
+		std::ifstream file(static_cast<std::string>(filename));
+		std::string text((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+		return text;
+	}
+
  private:
-  const parser_config& m_config;
+  const ParserConfig& m_config;
   Lexer m_lexer;
   Token m_tok;
   Token m_peek_tok;

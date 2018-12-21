@@ -13,7 +13,7 @@ enum class ElementNotation {
   Pointer
 };
 
-struct lexer_config {
+struct LexerConfig {
   std::string statement_open {"{%"};
   std::string statement_close {"%}"};
   std::string line_statement {"##"};
@@ -37,9 +37,8 @@ struct lexer_config {
   }
 };
 
-struct parser_config {
+struct ParserConfig {
   ElementNotation notation = ElementNotation::Pointer;
-  std::function<std::string(std::string_view filename)> loadFile;
 };
 
 }

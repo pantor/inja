@@ -21,13 +21,13 @@ class Lexer {
     CommentBody
   } m_state;
 
-  const lexer_config& m_config;
+  const LexerConfig& m_config;
   std::string_view m_in;
   size_t m_tok_start;
   size_t m_pos;
 
  public:
-  explicit Lexer(const lexer_config& config) : m_config(config) {}
+  explicit Lexer(const LexerConfig& config) : m_config(config) {}
 
   void start(std::string_view in) {
     m_in = in;
@@ -113,7 +113,7 @@ class Lexer {
     }
   }
 
-  const lexer_config& get_config() const { return m_config; }
+  const LexerConfig& get_config() const { return m_config; }
 
  private:
   Token scan_body(std::string_view close, Token::Kind closeKind) {

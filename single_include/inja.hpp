@@ -1885,10 +1885,15 @@ class Environment {
     m_impl->parser_config.loadFile = loadFile;
   }
 
+
   Template parse(std::string_view input) {
     Parser parser(m_impl->parser_config, m_impl->lexer_config, m_impl->included_templates);
     return parser.parse(input);
   }
+
+  Template parse_template(std::string_view filename) {
+		return parser.parse_template(m_impl->path + filename);
+	}
 
   std::string render(std::string_view input, const json& data) {
     return render(parse(input), data);
@@ -1899,6 +1904,10 @@ class Environment {
     render_to(os, tmpl, data);
     return os.str();
   }
+
+  std::string render_file(std::string_view filename, const json& data) {
+		return render(parse_template(filename), data);
+	}
 
   std::stringstream& render_to(std::stringstream& os, const Template& tmpl, const json& data) {
     Renderer(m_impl->included_templates, m_impl->callbacks).render_to(os, tmpl, data);
