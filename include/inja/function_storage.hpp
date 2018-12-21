@@ -10,56 +10,57 @@ namespace inja {
 
 using namespace nlohmann;
 
-using CallbackFunction = std::function<json(std::vector<const json*>& args, const json& data)>;
+using Arguments = std::vector<const json*>;
+using CallbackFunction = std::function<json(Arguments& args)>;
 
 class FunctionStorage {
  public:
-  void add_builtin(std::string_view name, unsigned int numArgs, Bytecode::Op op) {
-    auto& data = get_or_new(name, numArgs);
+  void add_builtin(std::string_view name, unsigned int num_args, Bytecode::Op op) {
+    auto& data = get_or_new(name, num_args);
     data.op = op;
   }
 
-  void add_callback(std::string_view name, unsigned int numArgs, const CallbackFunction& function) {
-    auto& data = get_or_new(name, numArgs);
+  void add_callback(std::string_view name, unsigned int num_args, const CallbackFunction& function) {
+    auto& data = get_or_new(name, num_args);
     data.function = function;
   }
 
-  Bytecode::Op find_builtin(std::string_view name, unsigned int numArgs) const {
-    if (auto ptr = get(name, numArgs))
+  Bytecode::Op find_builtin(std::string_view name, unsigned int num_args) const {
+    if (auto ptr = get(name, num_args)) {
       return ptr->op;
-    else
-      return Bytecode::Op::Nop;
+    }
+    return Bytecode::Op::Nop;
   }
 
-  CallbackFunction find_callback(std::string_view name, unsigned int numArgs) const {
-    if (auto ptr = get(name, numArgs))
+  CallbackFunction find_callback(std::string_view name, unsigned int num_args) const {
+    if (auto ptr = get(name, num_args)) {
       return ptr->function;
-    else
-      return nullptr;
+    }
+    return nullptr;
   }
 
  private:
   struct FunctionData {
-    unsigned int numArgs = 0;
-    Bytecode::Op op = Bytecode::Op::Nop; // for builtins
+    unsigned int num_args {0};
+    Bytecode::Op op {Bytecode::Op::Nop}; // for builtins
     CallbackFunction function; // for callbacks
   };
 
-  FunctionData& get_or_new(std::string_view name, unsigned int numArgs) {
+  FunctionData& get_or_new(std::string_view name, unsigned int num_args) {
     auto &vec = m_map[static_cast<std::string>(name)];
     for (auto &i : vec) {
-      if (i.numArgs == numArgs) return i;
+      if (i.num_args == num_args) return i;
     }
     vec.emplace_back();
-    vec.back().numArgs = numArgs;
+    vec.back().num_args = num_args;
     return vec.back();
   }
 
-  const FunctionData* get(std::string_view name, unsigned int numArgs) const {
+  const FunctionData* get(std::string_view name, unsigned int num_args) const {
     auto it = m_map.find(static_cast<std::string>(name));
     if (it == m_map.end()) return nullptr;
     for (auto &&i : it->second) {
-      if (i.numArgs == numArgs) return &i;
+      if (i.num_args == num_args) return &i;
     }
     return nullptr;
   }

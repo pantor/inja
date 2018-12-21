@@ -60,15 +60,15 @@ class ParserStatic {
 
 class Parser {
  public:
-  Parser(const ParserConfig& parserConfig, const LexerConfig& lexerConfig,
-         TemplateStorage& includedTemplates): m_config(parserConfig),
-           m_lexer(lexerConfig),
-           m_includedTemplates(includedTemplates),
+  Parser(const parser_config& parser_config, const lexer_config& lexer_config,
+         TemplateStorage& included_templates): m_config(parser_config),
+           m_lexer(lexer_config),
+           m_included_templates(included_templates),
            m_static(ParserStatic::get_instance()) { }
 
   bool parse_expression(Template& tmpl) {
     if (!parse_expression_and(tmpl)) return false;
-    if (m_tok.kind != Token::kId || m_tok.text != "or") return true;
+    if (m_tok.kind != Token::Kind::Id || m_tok.text != "or") return true;
     get_next_token();
     if (!parse_expression_and(tmpl)) return false;
     append_function(tmpl, Bytecode::Op::Or, 2);
@@ -77,7 +77,7 @@ class Parser {
 
   bool parse_expression_and(Template& tmpl) {
     if (!parse_expression_not(tmpl)) return false;
-    if (m_tok.kind != Token::kId || m_tok.text != "and") return true;
+    if (m_tok.kind != Token::Kind::Id || m_tok.text != "and") return true;
     get_next_token();
     if (!parse_expression_not(tmpl)) return false;
     append_function(tmpl, Bytecode::Op::And, 2);
@@ -85,7 +85,7 @@ class Parser {
   }
 
   bool parse_expression_not(Template& tmpl) {
-    if (m_tok.kind == Token::kId && m_tok.text == "not") {
+    if (m_tok.kind == Token::Kind::Id && m_tok.text == "not") {
       get_next_token();
       if (!parse_expression_not(tmpl)) return false;
       append_function(tmpl, Bytecode::Op::Not, 1);
@@ -99,28 +99,28 @@ class Parser {
     if (!parse_expression_datum(tmpl)) return false;
     Bytecode::Op op;
     switch (m_tok.kind) {
-      case Token::kId:
+      case Token::Kind::Id:
         if (m_tok.text == "in")
           op = Bytecode::Op::In;
         else
           return true;
         break;
-      case Token::kEqual:
+      case Token::Kind::Equal:
         op = Bytecode::Op::Equal;
         break;
-      case Token::kGreaterThan:
+      case Token::Kind::GreaterThan:
         op = Bytecode::Op::Greater;
         break;
-      case Token::kLessThan:
+      case Token::Kind::LessThan:
         op = Bytecode::Op::Less;
         break;
-      case Token::kLessEqual:
+      case Token::Kind::LessEqual:
         op = Bytecode::Op::LessEqual;
         break;
-      case Token::kGreaterEqual:
+      case Token::Kind::GreaterEqual:
         op = Bytecode::Op::GreaterEqual;
         break;
-      case Token::kNotEqual:
+      case Token::Kind::NotEqual:
         op = Bytecode::Op::Different;
         break;
       default:
@@ -139,24 +139,24 @@ class Parser {
 
     for (;;) {
       switch (m_tok.kind) {
-        case Token::kLeftParen: {
+        case Token::Kind::LeftParen: {
           get_next_token();
           if (!parse_expression(tmpl)) return false;
-          if (m_tok.kind != Token::kRightParen) {
+          if (m_tok.kind != Token::Kind::RightParen) {
             inja_throw("parser_error", "unmatched '('");
           }
           get_next_token();
           return true;
         }
-        case Token::kId:
+        case Token::Kind::Id:
           get_peek_token();
-          if (m_peekTok.kind == Token::kLeftParen) {
+          if (m_peek_tok.kind == Token::Kind::LeftParen) {
             // function call, parse arguments
             Token funcTok = m_tok;
             get_next_token();  // id
             get_next_token();  // leftParen
             unsigned int numArgs = 0;
-            if (m_tok.kind == Token::kRightParen) {
+            if (m_tok.kind == Token::Kind::RightParen) {
               // no args
               get_next_token();
             } else {
@@ -165,11 +165,11 @@ class Parser {
                   inja_throw("parser_error", "expected expression, got '" + static_cast<std::string>(m_tok.describe()) + "'");
                 }
                 ++numArgs;
-                if (m_tok.kind == Token::kRightParen) {
+                if (m_tok.kind == Token::Kind::RightParen) {
                   get_next_token();
                   break;
                 }
-                if (m_tok.kind != Token::kComma) {
+                if (m_tok.kind != Token::Kind::Comma) {
                   inja_throw("parser_error", "expected ')' or ',', got '" + static_cast<std::string>(m_tok.describe()) + "'");
                 }
                 get_next_token();
@@ -199,40 +199,40 @@ class Parser {
             // normal literal (json read)
             tmpl.bytecodes.emplace_back(
                 Bytecode::Op::Push, m_tok.text,
-                m_config.notation == ElementNotation::Pointer ? Bytecode::kFlagValueLookupPointer : Bytecode::kFlagValueLookupDot);
+                m_config.notation == ElementNotation::Pointer ? Bytecode::Flag::ValueLookupPointer : Bytecode::Flag::ValueLookupDot);
             get_next_token();
             return true;
           }
         // json passthrough
-        case Token::kNumber:
-        case Token::kString:
+        case Token::Kind::Number:
+        case Token::Kind::String:
           if (braceLevel == 0 && bracketLevel == 0) {
             jsonFirst = m_tok.text;
             goto returnJson;
           }
           break;
-        case Token::kComma:
-        case Token::kColon:
+        case Token::Kind::Comma:
+        case Token::Kind::Colon:
           if (braceLevel == 0 && bracketLevel == 0) {
             inja_throw("parser_error", "unexpected token '" + static_cast<std::string>(m_tok.describe()) + "'");
           }
           break;
-        case Token::kLeftBracket:
+        case Token::Kind::LeftBracket:
           if (braceLevel == 0 && bracketLevel == 0) jsonFirst = m_tok.text;
           ++bracketLevel;
           break;
-        case Token::kLeftBrace:
+        case Token::Kind::LeftBrace:
           if (braceLevel == 0 && bracketLevel == 0) jsonFirst = m_tok.text;
           ++braceLevel;
           break;
-        case Token::kRightBracket:
+        case Token::Kind::RightBracket:
           if (bracketLevel == 0) {
             inja_throw("parser_error", "unexpected ']'");
           }
           --bracketLevel;
           if (braceLevel == 0 && bracketLevel == 0) goto returnJson;
           break;
-        case Token::kRightBrace:
+        case Token::Kind::RightBrace:
           if (braceLevel == 0) {
             inja_throw("parser_error", "unexpected '}'");
           }
@@ -255,13 +255,13 @@ class Parser {
   returnJson:
     // bridge across all intermediate tokens
     std::string_view jsonText(jsonFirst.data(), m_tok.text.data() - jsonFirst.data() + m_tok.text.size());
-    tmpl.bytecodes.emplace_back(Bytecode::Op::Push, json::parse(jsonText), Bytecode::kFlagValueImmediate);
+    tmpl.bytecodes.emplace_back(Bytecode::Op::Push, json::parse(jsonText), Bytecode::Flag::ValueImmediate);
     get_next_token();
     return true;
   }
 
   bool parse_statement(Template& tmpl, std::string_view path) {
-    if (m_tok.kind != Token::kId) return false;
+    if (m_tok.kind != Token::Kind::Id) return false;
 
     if (m_tok.text == "if") {
       get_next_token();
@@ -281,11 +281,11 @@ class Parser {
       get_next_token();
 
       // previous conditional jump jumps here
-      if (ifData.prevCondJump != std::numeric_limits<unsigned int>::max())
-        tmpl.bytecodes[ifData.prevCondJump].args = tmpl.bytecodes.size();
+      if (ifData.prev_cond_jump != std::numeric_limits<unsigned int>::max())
+        tmpl.bytecodes[ifData.prev_cond_jump].args = tmpl.bytecodes.size();
 
       // update all previous unconditional jumps to here
-      for (unsigned int i : ifData.uncondJumps)
+      for (unsigned int i: ifData.uncond_jumps)
         tmpl.bytecodes[i].args = tmpl.bytecodes.size();
 
       // pop if stack
@@ -298,22 +298,22 @@ class Parser {
 
       // end previous block with unconditional jump to endif; destination will be
       // filled in by endif
-      ifData.uncondJumps.push_back(tmpl.bytecodes.size());
+      ifData.uncond_jumps.push_back(tmpl.bytecodes.size());
       tmpl.bytecodes.emplace_back(Bytecode::Op::Jump);
 
       // previous conditional jump jumps here
-      tmpl.bytecodes[ifData.prevCondJump].args = tmpl.bytecodes.size();
-      ifData.prevCondJump = std::numeric_limits<unsigned int>::max();
+      tmpl.bytecodes[ifData.prev_cond_jump].args = tmpl.bytecodes.size();
+      ifData.prev_cond_jump = std::numeric_limits<unsigned int>::max();
 
       // chained else if
-      if (m_tok.kind == Token::kId && m_tok.text == "if") {
+      if (m_tok.kind == Token::Kind::Id && m_tok.text == "if") {
         get_next_token();
 
         // evaluate expression
         if (!parse_expression(tmpl)) return false;
 
         // update "previous jump"
-        ifData.prevCondJump = tmpl.bytecodes.size();
+        ifData.prev_cond_jump = tmpl.bytecodes.size();
 
         // conditional jump; destination will be filled in by else or endif
         tmpl.bytecodes.emplace_back(Bytecode::Op::ConditionalJump);
@@ -322,24 +322,22 @@ class Parser {
       get_next_token();
 
       // options: for a in arr; for a, b in obj
-      if (m_tok.kind != Token::kId)
-        inja_throw("parser_error",
-                   "expected id, got '" + static_cast<std::string>(m_tok.describe()) + "'");
+      if (m_tok.kind != Token::Kind::Id)
+        inja_throw("parser_error", "expected id, got '" + static_cast<std::string>(m_tok.describe()) + "'");
       Token valueTok = m_tok;
       get_next_token();
 
       Token keyTok;
-      if (m_tok.kind == Token::kComma) {
+      if (m_tok.kind == Token::Kind::Comma) {
         get_next_token();
-        if (m_tok.kind != Token::kId)
-          inja_throw("parser_error",
-                     "expected id, got '" + static_cast<std::string>(m_tok.describe()) + "'");
+        if (m_tok.kind != Token::Kind::Id)
+          inja_throw("parser_error", "expected id, got '" + static_cast<std::string>(m_tok.describe()) + "'");
         keyTok = std::move(valueTok);
         valueTok = m_tok;
         get_next_token();
       }
 
-      if (m_tok.kind != Token::kId || m_tok.text != "in")
+      if (m_tok.kind != Token::Kind::Id || m_tok.text != "in")
         inja_throw("parser_error",
                    "expected 'in', got '" + static_cast<std::string>(m_tok.describe()) + "'");
       get_next_token();
@@ -365,7 +363,7 @@ class Parser {
     } else if (m_tok.text == "include") {
       get_next_token();
 
-      if (m_tok.kind != Token::kString)
+      if (m_tok.kind != Token::Kind::String)
         inja_throw("parser_error", "expected string, got '" + static_cast<std::string>(m_tok.describe()) + "'");
 
       // build the relative path
@@ -380,12 +378,12 @@ class Parser {
       // parse it only if it's new
       // TemplateStorage::iterator included;
       // bool is_new {true};
-      // std::tie(included, isNew) = m_includedTemplates.emplace(pathname);
+      // std::tie(included, isNew) = m_included_templates.emplace(pathname);
       // if (is_new) included->second = parse_template(pathname);
-      m_includedTemplates.emplace(std::make_pair(pathname, parse_template(pathname)));
+      m_included_templates.emplace(std::make_pair(pathname, parse_template(pathname)));
 
       // generate a reference bytecode
-      tmpl.bytecodes.emplace_back(Bytecode::Op::Include, json(pathname), Bytecode::kFlagValueImmediate);
+      tmpl.bytecodes.emplace_back(Bytecode::Op::Include, json(pathname), Bytecode::Flag::ValueImmediate);
 
       get_next_token();
     } else {
@@ -414,8 +412,7 @@ class Parser {
     if (!tmpl.bytecodes.empty()) {
       Bytecode& last = tmpl.bytecodes.back();
       if (last.op == Bytecode::Op::Push &&
-          (last.flags & Bytecode::kFlagValueMask) ==
-              Bytecode::kFlagValueImmediate) {
+          (last.flags & Bytecode::Flag::ValueMask) == Bytecode::Flag::ValueImmediate) {
         last.op = Bytecode::Op::Callback;
         last.args = numArgs;
         last.str = name;
@@ -434,43 +431,43 @@ class Parser {
     for (;;) {
       get_next_token();
       switch (m_tok.kind) {
-        case Token::kEof:
+        case Token::Kind::Eof:
           if (!m_ifStack.empty()) inja_throw("parser_error", "unmatched if");
           if (!m_loopStack.empty()) inja_throw("parser_error", "unmatched for");
           return;
-        case Token::kText:
+        case Token::Kind::Text:
           tmpl.bytecodes.emplace_back(Bytecode::Op::PrintText, m_tok.text, 0u);
           break;
-        case Token::kStatementOpen:
+        case Token::Kind::statementOpen:
           get_next_token();
           if (!parse_statement(tmpl, path)) {
             inja_throw("parser_error", "expected statement, got '" + static_cast<std::string>(m_tok.describe()) + "'");
           }
-          if (m_tok.kind != Token::kStatementClose) {
+          if (m_tok.kind != Token::Kind::StatementClose) {
             inja_throw("parser_error", "expected statement close, got '" + static_cast<std::string>(m_tok.describe()) + "'");
           }
           break;
-        case Token::kLineStatementOpen:
+        case Token::Kind::LinestatementOpen:
           get_next_token();
           parse_statement(tmpl, path);
-          if (m_tok.kind != Token::kLineStatementClose &&
-              m_tok.kind != Token::kEof) {
+          if (m_tok.kind != Token::Kind::LineStatementClose &&
+              m_tok.kind != Token::Kind::Eof) {
             inja_throw("parser_error", "expected line statement close, got '" + static_cast<std::string>(m_tok.describe()) + "'");
           }
           break;
-        case Token::kExpressionOpen:
+        case Token::Kind::ExpressionOpen:
           get_next_token();
           if (!parse_expression(tmpl)) {
             inja_throw("parser_error", "expected expression, got '" + static_cast<std::string>(m_tok.describe()) + "'");
           }
           append_function(tmpl, Bytecode::Op::PrintValue, 1);
-          if (m_tok.kind != Token::kExpressionClose) {
+          if (m_tok.kind != Token::Kind::ExpressionClose) {
             inja_throw("parser_error", "expected expression close, got '" + static_cast<std::string>(m_tok.describe()) + "'");
           }
           break;
-        case Token::kCommentOpen:
+        case Token::Kind::CommentOpen:
           get_next_token();
-          if (m_tok.kind != Token::kCommentClose) {
+          if (m_tok.kind != Token::Kind::CommentClose) {
             inja_throw("parser_error", "expected comment close, got '" + static_cast<std::string>(m_tok.describe()) + "'");
           }
           break;
@@ -498,41 +495,43 @@ class Parser {
       result.contents = m_config.loadFile(filename);
       std::string_view path = filename.substr(0, filename.find_last_of("/\\") + 1);
       // StringRef path = sys::path::parent_path(filename);
-      Parser(m_config, m_lexer.get_config(), m_includedTemplates).parse_into(result, path);
+      Parser(m_config, m_lexer.get_config(), m_included_templates).parse_into(result, path);
     }
     return result;
   }
 
  private:
-  const ParserConfig& m_config;
+  const parser_config& m_config;
   Lexer m_lexer;
   Token m_tok;
-  Token m_peekTok;
-  bool m_havePeekTok = false;
-  TemplateStorage& m_includedTemplates;
+  Token m_peek_tok;
+  bool m_have_peek_tok {false};
+  TemplateStorage& m_included_templates;
   const ParserStatic& m_static;
-  struct IfData {
-    unsigned int prevCondJump;
-    std::vector<unsigned int> uncondJumps;
 
-    explicit IfData(unsigned int condJump): prevCondJump(condJump) {}
+  struct IfData {
+    unsigned int prev_cond_jump;
+    std::vector<unsigned int> uncond_jumps;
+
+    explicit IfData(unsigned int condJump): prev_cond_jump(condJump) {}
   };
+
   std::vector<IfData> m_ifStack;
   std::vector<unsigned int> m_loopStack;
 
   void get_next_token() {
-    if (m_havePeekTok) {
-      m_tok = m_peekTok;
-      m_havePeekTok = false;
+    if (m_have_peek_tok) {
+      m_tok = m_peek_tok;
+      m_have_peek_tok = false;
     } else {
       m_tok = m_lexer.scan();
     }
   }
 
   void get_peek_token() {
-    if (!m_havePeekTok) {
-      m_peekTok = m_lexer.scan();
-      m_havePeekTok = true;
+    if (!m_have_peek_tok) {
+      m_peek_tok = m_lexer.scan();
+      m_have_peek_tok = true;
     }
   }
 };

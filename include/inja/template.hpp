@@ -13,13 +13,12 @@ class Template {
   friend class Parser;
   friend class Renderer;
 
+  std::vector<Bytecode> bytecodes;
+  std::string contents;
+
  public:
   Template() {}
-
-  ~Template() {}
-
   Template(const Template& oth): bytecodes(oth.bytecodes), contents(oth.contents) {}
-
   Template(Template&& oth): bytecodes(std::move(oth.bytecodes)), contents(std::move(oth.contents)) {}
 
   Template& operator=(const Template& oth) {
@@ -33,10 +32,6 @@ class Template {
     contents = std::move(oth.contents);
     return *this;
   }
-
- private:
-  std::vector<Bytecode> bytecodes;
-  std::string contents;
 };
 
 using TemplateStorage = std::map<std::string, Template>;

@@ -1,13 +1,17 @@
 #ifndef PANTOR_INJA_ENVIRONMENT_HPP
 #define PANTOR_INJA_ENVIRONMENT_HPP
 
+#include <memory>
 #include <sstream>
+#include <string>
+#include <string_view>
 
 #include <nlohmann/json.hpp>
 
 #include "config.hpp"
 #include "function_storage.hpp"
 #include "parser.hpp"
+#include "polyfill.hpp"
 #include "renderer.hpp"
 #include "template.hpp"
 
@@ -21,12 +25,11 @@ class Environment {
    public:
     std::string path;
 
-    LexerConfig lexerConfig;
-    ParserConfig parserConfig;
+    lexer_config lexer_config;
+    parser_config parser_config;
 
     FunctionStorage callbacks;
-
-    TemplateStorage includedTemplates;
+    TemplateStorage included_templates;
   };
   std::unique_ptr<Impl> m_impl;
 
@@ -37,41 +40,39 @@ class Environment {
     m_impl->path = path;
   }
 
-  ~Environment() { }
-
   void set_statement(const std::string& open, const std::string& close) {
-    m_impl->lexerConfig.statementOpen = open;
-    m_impl->lexerConfig.statementClose = close;
-    m_impl->lexerConfig.update_open_chars();
+    m_impl->lexer_config.statement_open = open;
+    m_impl->lexer_config.statement_close = close;
+    m_impl->lexer_config.update_open_chars();
   }
 
   void set_line_statement(const std::string& open) {
-    m_impl->lexerConfig.lineStatement = open;
-    m_impl->lexerConfig.update_open_chars();
+    m_impl->lexer_config.line_statement = open;
+    m_impl->lexer_config.update_open_chars();
   }
 
   void set_expression(const std::string& open, const std::string& close) {
-    m_impl->lexerConfig.expressionOpen = open;
-    m_impl->lexerConfig.expressionClose = close;
-    m_impl->lexerConfig.update_open_chars();
+    m_impl->lexer_config.expression_open = open;
+    m_impl->lexer_config.expression_close = close;
+    m_impl->lexer_config.update_open_chars();
   }
 
   void set_comment(const std::string& open, const std::string& close) {
-    m_impl->lexerConfig.commentOpen = open;
-    m_impl->lexerConfig.commentClose = close;
-    m_impl->lexerConfig.update_open_chars();
+    m_impl->lexer_config.comment_open = open;
+    m_impl->lexer_config.comment_close = close;
+    m_impl->lexer_config.update_open_chars();
   }
 
   void set_element_notation(ElementNotation notation) {
-    m_impl->parserConfig.notation = notation;
+    m_impl->parser_config.notation = notation;
   }
 
   void set_load_file(std::function<std::string(std::string_view)> loadFile) {
-    m_impl->parserConfig.loadFile = loadFile;
+    m_impl->parser_config.loadFile = loadFile;
   }
 
   Template parse(std::string_view input) {
-    Parser parser(m_impl->parserConfig, m_impl->lexerConfig, m_impl->includedTemplates);
+    Parser parser(m_impl->parser_config, m_impl->lexer_config, m_impl->included_templates);
     return parser.parse(input);
   }
 
@@ -86,7 +87,7 @@ class Environment {
   }
 
   std::stringstream& render_to(std::stringstream& os, const Template& tmpl, const json& data) {
-    Renderer(m_impl->includedTemplates, m_impl->callbacks).render_to(os, tmpl, data);
+    Renderer(m_impl->included_templates, m_impl->callbacks).render_to(os, tmpl, data);
     return os;
   }
 
@@ -95,7 +96,7 @@ class Environment {
   }
 
   void include_template(const std::string& name, const Template& tmpl) {
-    m_impl->includedTemplates[name] = tmpl;
+    m_impl->included_templates[name] = tmpl;
   }
 };
 

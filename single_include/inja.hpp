@@ -16,7 +16,10 @@
 #ifndef PANTOR_INJA_ENVIRONMENT_HPP
 #define PANTOR_INJA_ENVIRONMENT_HPP
 
+#include <memory>
 #include <sstream>
+#include <string>
+#include <string_view>
 
 #include <nlohmann/json.hpp>
 
@@ -36,28 +39,31 @@ enum class ElementNotation {
   Pointer
 };
 
-struct LexerConfig {
-  std::string statementOpen{"{%"};
-  std::string statementClose{"%}"};
-  std::string lineStatement{"##"};
-  std::string expressionOpen{"{{"};
-  std::string expressionClose{"}}"};
-  std::string commentOpen{"{#"};
-  std::string commentClose{"#}"};
-  std::string openChars{"#{"};
+struct lexer_config {
+  std::string statement_open {"{%"};
+  std::string statement_close {"%}"};
+  std::string line_statement {"##"};
+  std::string expression_open {"{{"};
+  std::string expression_close {"}}"};
+  std::string comment_open {"{#"};
+  std::string comment_close {"#}"};
+  std::string open_chars {"#{"};
 
   void update_open_chars() {
-    openChars = "\n";
-    if (openChars.find(statementOpen[0]) == std::string::npos)
-      openChars += statementOpen[0];
-    if (openChars.find(expressionOpen[0]) == std::string::npos)
-      openChars += expressionOpen[0];
-    if (openChars.find(commentOpen[0]) == std::string::npos)
-      openChars += commentOpen[0];
+    open_chars = "\n";
+    if (open_chars.find(statement_open[0]) == std::string::npos) {
+      open_chars += statement_open[0];
+    }
+    if (open_chars.find(expression_open[0]) == std::string::npos) {
+      open_chars += expression_open[0];
+    }
+    if (open_chars.find(comment_open[0]) == std::string::npos) {
+      open_chars += comment_open[0];
+    }
   }
 };
 
-struct ParserConfig {
+struct parser_config {
   ElementNotation notation = ElementNotation::Pointer;
   std::function<std::string(std::string_view filename)> loadFile;
 };
@@ -86,8 +92,7 @@ namespace inja {
 using namespace nlohmann;
 
 
-class Bytecode {
- public:
+struct Bytecode {
   enum class Op : uint8_t {
     Nop,
     // print StringRef (always immediate)
@@ -170,30 +175,30 @@ class Bytecode {
 
     // end a loop
     // args is index of the first bytecode in the loop body
-    EndLoop
+    EndLoop,
   };
 
   enum Flag {
     // location of value for value-taking ops (mask)
-    kFlagValueMask = 0x03,
+    ValueMask = 0x03,
     // pop value off stack
-    kFlagValuePop = 0x00,
+    ValuePop = 0x00,
     // value is immediate rather than on stack
-    kFlagValueImmediate = 0x01,
+    ValueImmediate = 0x01,
     // lookup immediate str (dot notation)
-    kFlagValueLookupDot = 0x02,
+    ValueLookupDot = 0x02,
     // lookup immediate str (json pointer notation)
-    kFlagValueLookupPointer = 0x03
+    ValueLookupPointer = 0x03,
   };
 
-  Op op = Op::Nop;
-  uint32_t args : 30;
-  uint32_t flags : 2;
+  Op op {Op::Nop};
+  uint32_t args: 30;
+  uint32_t flags: 2;
 
   json value;
   std::string_view str;
 
-  Bytecode() : args(0), flags(0) {}
+  Bytecode(): args(0), flags(0) {}
   explicit Bytecode(Op op, unsigned int args = 0): op(op), args(args), flags(0) {}
   Bytecode(Op op, std::string_view str, unsigned int flags): op(op), args(0), flags(flags), str(str) {}
   Bytecode(Op op, json&& value, unsigned int flags): op(op), args(0), flags(flags), value(std::move(value)) {}
@@ -209,56 +214,57 @@ namespace inja {
 
 using namespace nlohmann;
 
-using CallbackFunction = std::function<json(std::vector<const json*>& args, const json& data)>;
+using Arguments = std::vector<const json*>;
+using CallbackFunction = std::function<json(Arguments& args)>;
 
 class FunctionStorage {
  public:
-  void add_builtin(std::string_view name, unsigned int numArgs, Bytecode::Op op) {
-    auto& data = get_or_new(name, numArgs);
+  void add_builtin(std::string_view name, unsigned int num_args, Bytecode::Op op) {
+    auto& data = get_or_new(name, num_args);
     data.op = op;
   }
 
-  void add_callback(std::string_view name, unsigned int numArgs, const CallbackFunction& function) {
-    auto& data = get_or_new(name, numArgs);
+  void add_callback(std::string_view name, unsigned int num_args, const CallbackFunction& function) {
+    auto& data = get_or_new(name, num_args);
     data.function = function;
   }
 
-  Bytecode::Op find_builtin(std::string_view name, unsigned int numArgs) const {
-    if (auto ptr = get(name, numArgs))
+  Bytecode::Op find_builtin(std::string_view name, unsigned int num_args) const {
+    if (auto ptr = get(name, num_args)) {
       return ptr->op;
-    else
-      return Bytecode::Op::Nop;
+    }
+    return Bytecode::Op::Nop;
   }
 
-  CallbackFunction find_callback(std::string_view name, unsigned int numArgs) const {
-    if (auto ptr = get(name, numArgs))
+  CallbackFunction find_callback(std::string_view name, unsigned int num_args) const {
+    if (auto ptr = get(name, num_args)) {
       return ptr->function;
-    else
-      return nullptr;
+    }
+    return nullptr;
   }
 
  private:
   struct FunctionData {
-    unsigned int numArgs = 0;
-    Bytecode::Op op = Bytecode::Op::Nop; // for builtins
+    unsigned int num_args {0};
+    Bytecode::Op op {Bytecode::Op::Nop}; // for builtins
     CallbackFunction function; // for callbacks
   };
 
-  FunctionData& get_or_new(std::string_view name, unsigned int numArgs) {
-    auto &vec = m_map[name.data()];
+  FunctionData& get_or_new(std::string_view name, unsigned int num_args) {
+    auto &vec = m_map[static_cast<std::string>(name)];
     for (auto &i : vec) {
-      if (i.numArgs == numArgs) return i;
+      if (i.num_args == num_args) return i;
     }
     vec.emplace_back();
-    vec.back().numArgs = numArgs;
+    vec.back().num_args = num_args;
     return vec.back();
   }
 
-  const FunctionData* get(std::string_view name, unsigned int numArgs) const {
+  const FunctionData* get(std::string_view name, unsigned int num_args) const {
     auto it = m_map.find(static_cast<std::string>(name));
     if (it == m_map.end()) return nullptr;
     for (auto &&i : it->second) {
-      if (i.numArgs == numArgs) return &i;
+      if (i.num_args == num_args) return &i;
     }
     return nullptr;
   }
@@ -298,64 +304,63 @@ class FunctionStorage {
 namespace inja {
 
 struct Token {
-  enum Kind {
-    kText,
-    kExpressionOpen,      // {{
-    kExpressionClose,     // }}
-    kLineStatementOpen,   // ##
-    kLineStatementClose,  // \n
-    kStatementOpen,       // {%
-    kStatementClose,      // %}
-    kCommentOpen,         // {#
-    kCommentClose,        // #}
-    kId,                  // this, this.foo
-    kNumber,              // 1, 2, -1, 5.2, -5.3
-    kString,              // "this"
-    kComma,               // ,
-    kColon,               // :
-    kLeftParen,           // (
-    kRightParen,          // )
-    kLeftBracket,         // [
-    kRightBracket,        // ]
-    kLeftBrace,           // {
-    kRightBrace,          // }
-    kEqual,               // ==
-    kGreaterThan,         // >
-    kLessThan,            // <
-    kLessEqual,           // <=
-    kGreaterEqual,        // >=
-    kNotEqual,            // !=
-    kUnknown,
-    kEof
-  };
-  Kind kind = kUnknown;
+  enum class Kind {
+    Text,
+    ExpressionOpen,      // {{
+    ExpressionClose,     // }}
+    LinestatementOpen,   // ##
+    LineStatementClose,  // \n
+    statementOpen,       // {%
+    StatementClose,      // %}
+    CommentOpen,         // {#
+    CommentClose,        // #}
+    Id,                  // this, this.foo
+    Number,              // 1, 2, -1, 5.2, -5.3
+    String,              // "this"
+    Comma,               // ,
+    Colon,               // :
+    LeftParen,           // (
+    RightParen,          // )
+    LeftBracket,         // [
+    RightBracket,        // ]
+    LeftBrace,           // {
+    RightBrace,          // }
+    Equal,               // ==
+    GreaterThan,         // >
+    GreaterEqual,        // >=
+    LessThan,            // <
+    LessEqual,           // <=
+    NotEqual,            // !=
+    Unknown,
+    Eof
+  } kind {Kind::Unknown};
+
   std::string_view text;
 
-  Token() = default;
-
-  constexpr Token(Kind kind, std::string_view text) : kind(kind), text(text) {}
+  constexpr Token() = default;
+  constexpr Token(Kind kind, std::string_view text): kind(kind), text(text) {}
 
   std::string_view describe() const {
     switch (kind) {
-      case kText:
+      case Kind::Text:
         return "<text>";
-      case kExpressionOpen:
+      case Kind::ExpressionOpen:
         return "{{";
-      case kExpressionClose:
+      case Kind::ExpressionClose:
         return "}}";
-      case kLineStatementOpen:
+      case Kind::LinestatementOpen:
         return "##";
-      case kLineStatementClose:
+      case Kind::LineStatementClose:
         return "<eol>";
-      case kStatementOpen:
+      case Kind::statementOpen:
         return "{%";
-      case kStatementClose:
+      case Kind::StatementClose:
         return "%}";
-      case kCommentOpen:
+      case Kind::CommentOpen:
         return "{#";
-      case kCommentClose:
+      case Kind::CommentClose:
         return "#}";
-      case kEof:
+      case Kind::Eof:
         return "<eof>";
       default:
         return text;
@@ -381,23 +386,25 @@ inline void inja_throw(const std::string& type, const std::string& message) {
   throw std::runtime_error("[inja.exception." + type + "] " + message);
 }
 
-inline std::string_view string_view_slice(std::string_view view, size_t start, size_t end) {
-  start = std::min(start, view.size());
-  end = std::min(std::max(start, end), view.size());
-  return view.substr(start, end - start); // StringRef(Data + Start, End - Start);
-}
-
-inline std::pair<std::string_view, std::string_view> string_view_split(std::string_view view, char Separator) {
-  size_t idx = view.find(Separator);
-  if (idx == std::string_view::npos) {
-    return std::make_pair(view, std::string_view());
+namespace string_view {
+  inline std::string_view slice(std::string_view view, size_t start, size_t end) {
+    start = std::min(start, view.size());
+    end = std::min(std::max(start, end), view.size());
+    return view.substr(start, end - start); // StringRef(Data + Start, End - Start);
   }
-  return std::make_pair(string_view_slice(view, 0, idx), string_view_slice(view, idx + 1, std::string_view::npos));
-}
 
-inline bool string_view_starts_with(std::string_view view, std::string_view prefix) {
-  return (view.size() >= prefix.size() && view.compare(0, prefix.size(), prefix) == 0);
-}
+  inline std::pair<std::string_view, std::string_view> split(std::string_view view, char Separator) {
+    size_t idx = view.find(Separator);
+    if (idx == std::string_view::npos) {
+      return std::make_pair(view, std::string_view());
+    }
+    return std::make_pair(slice(view, 0, idx), slice(view, idx + 1, std::string_view::npos));
+  }
+
+  inline bool starts_with(std::string_view view, std::string_view prefix) {
+    return (view.size() >= prefix.size() && view.compare(0, prefix.size(), prefix) == 0);
+  }
+} // namespace string
 
 }  // namespace inja
 
@@ -408,162 +415,179 @@ inline bool string_view_starts_with(std::string_view view, std::string_view pref
 namespace inja {
 
 class Lexer {
+  enum class State {
+    Text,
+    ExpressionStart,
+    ExpressionBody,
+    LineStart,
+    LineBody,
+    StatementStart,
+    StatementBody,
+    CommentStart,
+    CommentBody
+  } m_state;
+
+  const lexer_config& m_config;
+  std::string_view m_in;
+  size_t m_tok_start;
+  size_t m_pos;
+
  public:
-  explicit Lexer(const LexerConfig& config) : m_config(config) {}
+  explicit Lexer(const lexer_config& config) : m_config(config) {}
 
   void start(std::string_view in) {
     m_in = in;
-    m_tokStart = 0;
+    m_tok_start = 0;
     m_pos = 0;
     m_state = State::Text;
   }
 
   Token scan() {
-    m_tokStart = m_pos;
+    m_tok_start = m_pos;
 
   again:
-    if (m_tokStart >= m_in.size()) return make_token(Token::kEof);
+    if (m_tok_start >= m_in.size()) return make_token(Token::Kind::Eof);
 
     switch (m_state) {
       default:
       case State::Text: {
         // fast-scan to first open character
-        size_t openStart = m_in.substr(m_pos).find_first_of(m_config.openChars);
+        size_t openStart = m_in.substr(m_pos).find_first_of(m_config.open_chars);
         if (openStart == std::string_view::npos) {
           // didn't find open, return remaining text as text token
           m_pos = m_in.size();
-          return make_token(Token::kText);
+          return make_token(Token::Kind::Text);
         }
         m_pos += openStart;
 
         // try to match one of the opening sequences, and get the close
         std::string_view openStr = m_in.substr(m_pos);
-        if (string_view_starts_with(openStr, m_config.expressionOpen)) {
+        if (string_view::starts_with(openStr, m_config.expression_open)) {
           m_state = State::ExpressionStart;
-        } else if (string_view_starts_with(openStr, m_config.statementOpen)) {
+        } else if (string_view::starts_with(openStr, m_config.statement_open)) {
           m_state = State::StatementStart;
-        } else if (string_view_starts_with(openStr, m_config.commentOpen)) {
+        } else if (string_view::starts_with(openStr, m_config.comment_open)) {
           m_state = State::CommentStart;
         } else if ((m_pos == 0 || m_in[m_pos - 1] == '\n') &&
-                   string_view_starts_with(openStr, m_config.lineStatement)) {
+                   string_view::starts_with(openStr, m_config.line_statement)) {
           m_state = State::LineStart;
         } else {
           ++m_pos; // wasn't actually an opening sequence
           goto again;
         }
-        if (m_pos == m_tokStart) goto again;  // don't generate empty token
-        return make_token(Token::kText);
+        if (m_pos == m_tok_start) goto again;  // don't generate empty token
+        return make_token(Token::Kind::Text);
       }
       case State::ExpressionStart: {
         m_state = State::ExpressionBody;
-        m_pos += m_config.expressionOpen.size();
-        return make_token(Token::kExpressionOpen);
+        m_pos += m_config.expression_open.size();
+        return make_token(Token::Kind::ExpressionOpen);
       }
       case State::LineStart: {
         m_state = State::LineBody;
-        m_pos += m_config.lineStatement.size();
-        return make_token(Token::kLineStatementOpen);
+        m_pos += m_config.line_statement.size();
+        return make_token(Token::Kind::LinestatementOpen);
       }
       case State::StatementStart: {
         m_state = State::StatementBody;
-        m_pos += m_config.statementOpen.size();
-        return make_token(Token::kStatementOpen);
+        m_pos += m_config.statement_open.size();
+        return make_token(Token::Kind::statementOpen);
       }
       case State::CommentStart: {
         m_state = State::CommentBody;
-        m_pos += m_config.commentOpen.size();
-        return make_token(Token::kCommentOpen);
+        m_pos += m_config.comment_open.size();
+        return make_token(Token::Kind::CommentOpen);
       }
       case State::ExpressionBody:
-        return scan_body(m_config.expressionClose, Token::kExpressionClose);
+        return scan_body(m_config.expression_close, Token::Kind::ExpressionClose);
       case State::LineBody:
-        return scan_body("\n", Token::kLineStatementClose);
+        return scan_body("\n", Token::Kind::LineStatementClose);
       case State::StatementBody:
-        return scan_body(m_config.statementClose, Token::kStatementClose);
+        return scan_body(m_config.statement_close, Token::Kind::StatementClose);
       case State::CommentBody: {
         // fast-scan to comment close
-        size_t end = m_in.substr(m_pos).find(m_config.commentClose);
+        size_t end = m_in.substr(m_pos).find(m_config.comment_close);
         if (end == std::string_view::npos) {
           m_pos = m_in.size();
-          return make_token(Token::kEof);
+          return make_token(Token::Kind::Eof);
         }
         // return the entire comment in the close token
         m_state = State::Text;
-        m_pos += end + m_config.commentClose.size();
-        return make_token(Token::kCommentClose);
+        m_pos += end + m_config.comment_close.size();
+        return make_token(Token::Kind::CommentClose);
       }
     }
   }
 
-  const LexerConfig& get_config() const { return m_config; }
+  const lexer_config& get_config() const { return m_config; }
 
  private:
   Token scan_body(std::string_view close, Token::Kind closeKind) {
   again:
     // skip whitespace (except for \n as it might be a close)
-    if (m_tokStart >= m_in.size()) return make_token(Token::kEof);
-    char ch = m_in[m_tokStart];
+    if (m_tok_start >= m_in.size()) return make_token(Token::Kind::Eof);
+    char ch = m_in[m_tok_start];
     if (ch == ' ' || ch == '\t' || ch == '\r') {
-      ++m_tokStart;
+      ++m_tok_start;
       goto again;
     }
 
     // check for close
-    if (string_view_starts_with(m_in.substr(m_tokStart), close)) {
+    if (string_view::starts_with(m_in.substr(m_tok_start), close)) {
       m_state = State::Text;
-      m_pos = m_tokStart + close.size();
+      m_pos = m_tok_start + close.size();
       return make_token(closeKind);
     }
 
     // skip \n
     if (ch == '\n') {
-      ++m_tokStart;
+      ++m_tok_start;
       goto again;
     }
 
-    m_pos = m_tokStart + 1;
+    m_pos = m_tok_start + 1;
     if (std::isalpha(ch)) return scan_id();
     switch (ch) {
       case ',':
-        return make_token(Token::kComma);
+        return make_token(Token::Kind::Comma);
       case ':':
-        return make_token(Token::kColon);
+        return make_token(Token::Kind::Colon);
       case '(':
-        return make_token(Token::kLeftParen);
+        return make_token(Token::Kind::LeftParen);
       case ')':
-        return make_token(Token::kRightParen);
+        return make_token(Token::Kind::RightParen);
       case '[':
-        return make_token(Token::kLeftBracket);
+        return make_token(Token::Kind::LeftBracket);
       case ']':
-        return make_token(Token::kRightBracket);
+        return make_token(Token::Kind::RightBracket);
       case '{':
-        return make_token(Token::kLeftBrace);
+        return make_token(Token::Kind::LeftBrace);
       case '}':
-        return make_token(Token::kRightBrace);
+        return make_token(Token::Kind::RightBrace);
       case '>':
         if (m_pos < m_in.size() && m_in[m_pos] == '=') {
           ++m_pos;
-          return make_token(Token::kGreaterEqual);
+          return make_token(Token::Kind::GreaterEqual);
         }
-        return make_token(Token::kGreaterThan);
+        return make_token(Token::Kind::GreaterThan);
       case '<':
         if (m_pos < m_in.size() && m_in[m_pos] == '=') {
           ++m_pos;
-          return make_token(Token::kLessEqual);
+          return make_token(Token::Kind::LessEqual);
         }
-        return make_token(Token::kLessThan);
+        return make_token(Token::Kind::LessThan);
       case '=':
         if (m_pos < m_in.size() && m_in[m_pos] == '=') {
           ++m_pos;
-          return make_token(Token::kEqual);
+          return make_token(Token::Kind::Equal);
         }
-        return make_token(Token::kUnknown);
+        return make_token(Token::Kind::Unknown);
       case '!':
         if (m_pos < m_in.size() && m_in[m_pos] == '=') {
           ++m_pos;
-          return make_token(Token::kNotEqual);
+          return make_token(Token::Kind::NotEqual);
         }
-        return make_token(Token::kUnknown);
+        return make_token(Token::Kind::Unknown);
       case '\"':
         return scan_string();
       case '0':
@@ -581,7 +605,7 @@ class Lexer {
       case '_':
         return scan_id();
       default:
-        return make_token(Token::kUnknown);
+        return make_token(Token::Kind::Unknown);
     }
   }
 
@@ -592,7 +616,7 @@ class Lexer {
       if (!isalnum(ch) && ch != '.' && ch != '/' && ch != '_' && ch != '-') break;
       ++m_pos;
     }
-    return make_token(Token::kId);
+    return make_token(Token::Kind::Id);
   }
 
   Token scan_number() {
@@ -604,7 +628,7 @@ class Lexer {
         break;
       ++m_pos;
     }
-    return make_token(Token::kNumber);
+    return make_token(Token::Kind::Number);
   }
 
   Token scan_string() {
@@ -614,34 +638,17 @@ class Lexer {
       char ch = m_in[m_pos++];
       if (ch == '\\')
         escape = true;
-      else if (!escape && ch == m_in[m_tokStart])
+      else if (!escape && ch == m_in[m_tok_start])
         break;
       else
         escape = false;
     }
-    return make_token(Token::kString);
+    return make_token(Token::Kind::String);
   }
 
   Token make_token(Token::Kind kind) const {
-    return Token(kind, string_view_slice(m_in, m_tokStart, m_pos));
+    return Token(kind, string_view::slice(m_in, m_tok_start, m_pos));
   }
-
-  const LexerConfig& m_config;
-  std::string_view m_in;
-  size_t m_tokStart;
-  size_t m_pos;
-  enum class State {
-    Text,
-    ExpressionStart,
-    ExpressionBody,
-    LineStart,
-    LineBody,
-    StatementStart,
-    StatementBody,
-    CommentStart,
-    CommentBody
-  };
-  State m_state;
 };
 
 }
@@ -665,13 +672,12 @@ class Template {
   friend class Parser;
   friend class Renderer;
 
+  std::vector<Bytecode> bytecodes;
+  std::string contents;
+
  public:
   Template() {}
-
-  ~Template() {}
-
   Template(const Template& oth): bytecodes(oth.bytecodes), contents(oth.contents) {}
-
   Template(Template&& oth): bytecodes(std::move(oth.bytecodes)), contents(std::move(oth.contents)) {}
 
   Template& operator=(const Template& oth) {
@@ -685,10 +691,6 @@ class Template {
     contents = std::move(oth.contents);
     return *this;
   }
-
- private:
-  std::vector<Bytecode> bytecodes;
-  std::string contents;
 };
 
 using TemplateStorage = std::map<std::string, Template>;
@@ -751,15 +753,15 @@ class ParserStatic {
 
 class Parser {
  public:
-  Parser(const ParserConfig& parserConfig, const LexerConfig& lexerConfig,
-         TemplateStorage& includedTemplates): m_config(parserConfig),
-           m_lexer(lexerConfig),
-           m_includedTemplates(includedTemplates),
+  Parser(const parser_config& parser_config, const lexer_config& lexer_config,
+         TemplateStorage& included_templates): m_config(parser_config),
+           m_lexer(lexer_config),
+           m_included_templates(included_templates),
            m_static(ParserStatic::get_instance()) { }
 
   bool parse_expression(Template& tmpl) {
     if (!parse_expression_and(tmpl)) return false;
-    if (m_tok.kind != Token::kId || m_tok.text != "or") return true;
+    if (m_tok.kind != Token::Kind::Id || m_tok.text != "or") return true;
     get_next_token();
     if (!parse_expression_and(tmpl)) return false;
     append_function(tmpl, Bytecode::Op::Or, 2);
@@ -768,7 +770,7 @@ class Parser {
 
   bool parse_expression_and(Template& tmpl) {
     if (!parse_expression_not(tmpl)) return false;
-    if (m_tok.kind != Token::kId || m_tok.text != "and") return true;
+    if (m_tok.kind != Token::Kind::Id || m_tok.text != "and") return true;
     get_next_token();
     if (!parse_expression_not(tmpl)) return false;
     append_function(tmpl, Bytecode::Op::And, 2);
@@ -776,7 +778,7 @@ class Parser {
   }
 
   bool parse_expression_not(Template& tmpl) {
-    if (m_tok.kind == Token::kId && m_tok.text == "not") {
+    if (m_tok.kind == Token::Kind::Id && m_tok.text == "not") {
       get_next_token();
       if (!parse_expression_not(tmpl)) return false;
       append_function(tmpl, Bytecode::Op::Not, 1);
@@ -790,28 +792,28 @@ class Parser {
     if (!parse_expression_datum(tmpl)) return false;
     Bytecode::Op op;
     switch (m_tok.kind) {
-      case Token::kId:
+      case Token::Kind::Id:
         if (m_tok.text == "in")
           op = Bytecode::Op::In;
         else
           return true;
         break;
-      case Token::kEqual:
+      case Token::Kind::Equal:
         op = Bytecode::Op::Equal;
         break;
-      case Token::kGreaterThan:
+      case Token::Kind::GreaterThan:
         op = Bytecode::Op::Greater;
         break;
-      case Token::kLessThan:
+      case Token::Kind::LessThan:
         op = Bytecode::Op::Less;
         break;
-      case Token::kLessEqual:
+      case Token::Kind::LessEqual:
         op = Bytecode::Op::LessEqual;
         break;
-      case Token::kGreaterEqual:
+      case Token::Kind::GreaterEqual:
         op = Bytecode::Op::GreaterEqual;
         break;
-      case Token::kNotEqual:
+      case Token::Kind::NotEqual:
         op = Bytecode::Op::Different;
         break;
       default:
@@ -830,24 +832,24 @@ class Parser {
 
     for (;;) {
       switch (m_tok.kind) {
-        case Token::kLeftParen: {
+        case Token::Kind::LeftParen: {
           get_next_token();
           if (!parse_expression(tmpl)) return false;
-          if (m_tok.kind != Token::kRightParen) {
+          if (m_tok.kind != Token::Kind::RightParen) {
             inja_throw("parser_error", "unmatched '('");
           }
           get_next_token();
           return true;
         }
-        case Token::kId:
+        case Token::Kind::Id:
           get_peek_token();
-          if (m_peekTok.kind == Token::kLeftParen) {
+          if (m_peek_tok.kind == Token::Kind::LeftParen) {
             // function call, parse arguments
             Token funcTok = m_tok;
             get_next_token();  // id
             get_next_token();  // leftParen
             unsigned int numArgs = 0;
-            if (m_tok.kind == Token::kRightParen) {
+            if (m_tok.kind == Token::Kind::RightParen) {
               // no args
               get_next_token();
             } else {
@@ -856,11 +858,11 @@ class Parser {
                   inja_throw("parser_error", "expected expression, got '" + static_cast<std::string>(m_tok.describe()) + "'");
                 }
                 ++numArgs;
-                if (m_tok.kind == Token::kRightParen) {
+                if (m_tok.kind == Token::Kind::RightParen) {
                   get_next_token();
                   break;
                 }
-                if (m_tok.kind != Token::kComma) {
+                if (m_tok.kind != Token::Kind::Comma) {
                   inja_throw("parser_error", "expected ')' or ',', got '" + static_cast<std::string>(m_tok.describe()) + "'");
                 }
                 get_next_token();
@@ -890,40 +892,40 @@ class Parser {
             // normal literal (json read)
             tmpl.bytecodes.emplace_back(
                 Bytecode::Op::Push, m_tok.text,
-                m_config.notation == ElementNotation::Pointer ? Bytecode::kFlagValueLookupPointer : Bytecode::kFlagValueLookupDot);
+                m_config.notation == ElementNotation::Pointer ? Bytecode::Flag::ValueLookupPointer : Bytecode::Flag::ValueLookupDot);
             get_next_token();
             return true;
           }
         // json passthrough
-        case Token::kNumber:
-        case Token::kString:
+        case Token::Kind::Number:
+        case Token::Kind::String:
           if (braceLevel == 0 && bracketLevel == 0) {
             jsonFirst = m_tok.text;
             goto returnJson;
           }
           break;
-        case Token::kComma:
-        case Token::kColon:
+        case Token::Kind::Comma:
+        case Token::Kind::Colon:
           if (braceLevel == 0 && bracketLevel == 0) {
             inja_throw("parser_error", "unexpected token '" + static_cast<std::string>(m_tok.describe()) + "'");
           }
           break;
-        case Token::kLeftBracket:
+        case Token::Kind::LeftBracket:
           if (braceLevel == 0 && bracketLevel == 0) jsonFirst = m_tok.text;
           ++bracketLevel;
           break;
-        case Token::kLeftBrace:
+        case Token::Kind::LeftBrace:
           if (braceLevel == 0 && bracketLevel == 0) jsonFirst = m_tok.text;
           ++braceLevel;
           break;
-        case Token::kRightBracket:
+        case Token::Kind::RightBracket:
           if (bracketLevel == 0) {
             inja_throw("parser_error", "unexpected ']'");
           }
           --bracketLevel;
           if (braceLevel == 0 && bracketLevel == 0) goto returnJson;
           break;
-        case Token::kRightBrace:
+        case Token::Kind::RightBrace:
           if (braceLevel == 0) {
             inja_throw("parser_error", "unexpected '}'");
           }
@@ -946,13 +948,13 @@ class Parser {
   returnJson:
     // bridge across all intermediate tokens
     std::string_view jsonText(jsonFirst.data(), m_tok.text.data() - jsonFirst.data() + m_tok.text.size());
-    tmpl.bytecodes.emplace_back(Bytecode::Op::Push, json::parse(jsonText), Bytecode::kFlagValueImmediate);
+    tmpl.bytecodes.emplace_back(Bytecode::Op::Push, json::parse(jsonText), Bytecode::Flag::ValueImmediate);
     get_next_token();
     return true;
   }
 
   bool parse_statement(Template& tmpl, std::string_view path) {
-    if (m_tok.kind != Token::kId) return false;
+    if (m_tok.kind != Token::Kind::Id) return false;
 
     if (m_tok.text == "if") {
       get_next_token();
@@ -972,11 +974,11 @@ class Parser {
       get_next_token();
 
       // previous conditional jump jumps here
-      if (ifData.prevCondJump != std::numeric_limits<unsigned int>::max())
-        tmpl.bytecodes[ifData.prevCondJump].args = tmpl.bytecodes.size();
+      if (ifData.prev_cond_jump != std::numeric_limits<unsigned int>::max())
+        tmpl.bytecodes[ifData.prev_cond_jump].args = tmpl.bytecodes.size();
 
       // update all previous unconditional jumps to here
-      for (unsigned int i : ifData.uncondJumps)
+      for (unsigned int i: ifData.uncond_jumps)
         tmpl.bytecodes[i].args = tmpl.bytecodes.size();
 
       // pop if stack
@@ -989,22 +991,22 @@ class Parser {
 
       // end previous block with unconditional jump to endif; destination will be
       // filled in by endif
-      ifData.uncondJumps.push_back(tmpl.bytecodes.size());
+      ifData.uncond_jumps.push_back(tmpl.bytecodes.size());
       tmpl.bytecodes.emplace_back(Bytecode::Op::Jump);
 
       // previous conditional jump jumps here
-      tmpl.bytecodes[ifData.prevCondJump].args = tmpl.bytecodes.size();
-      ifData.prevCondJump = std::numeric_limits<unsigned int>::max();
+      tmpl.bytecodes[ifData.prev_cond_jump].args = tmpl.bytecodes.size();
+      ifData.prev_cond_jump = std::numeric_limits<unsigned int>::max();
 
       // chained else if
-      if (m_tok.kind == Token::kId && m_tok.text == "if") {
+      if (m_tok.kind == Token::Kind::Id && m_tok.text == "if") {
         get_next_token();
 
         // evaluate expression
         if (!parse_expression(tmpl)) return false;
 
         // update "previous jump"
-        ifData.prevCondJump = tmpl.bytecodes.size();
+        ifData.prev_cond_jump = tmpl.bytecodes.size();
 
         // conditional jump; destination will be filled in by else or endif
         tmpl.bytecodes.emplace_back(Bytecode::Op::ConditionalJump);
@@ -1013,24 +1015,22 @@ class Parser {
       get_next_token();
 
       // options: for a in arr; for a, b in obj
-      if (m_tok.kind != Token::kId)
-        inja_throw("parser_error",
-                   "expected id, got '" + static_cast<std::string>(m_tok.describe()) + "'");
+      if (m_tok.kind != Token::Kind::Id)
+        inja_throw("parser_error", "expected id, got '" + static_cast<std::string>(m_tok.describe()) + "'");
       Token valueTok = m_tok;
       get_next_token();
 
       Token keyTok;
-      if (m_tok.kind == Token::kComma) {
+      if (m_tok.kind == Token::Kind::Comma) {
         get_next_token();
-        if (m_tok.kind != Token::kId)
-          inja_throw("parser_error",
-                     "expected id, got '" + static_cast<std::string>(m_tok.describe()) + "'");
+        if (m_tok.kind != Token::Kind::Id)
+          inja_throw("parser_error", "expected id, got '" + static_cast<std::string>(m_tok.describe()) + "'");
         keyTok = std::move(valueTok);
         valueTok = m_tok;
         get_next_token();
       }
 
-      if (m_tok.kind != Token::kId || m_tok.text != "in")
+      if (m_tok.kind != Token::Kind::Id || m_tok.text != "in")
         inja_throw("parser_error",
                    "expected 'in', got '" + static_cast<std::string>(m_tok.describe()) + "'");
       get_next_token();
@@ -1056,23 +1056,27 @@ class Parser {
     } else if (m_tok.text == "include") {
       get_next_token();
 
-      if (m_tok.kind != Token::kString)
+      if (m_tok.kind != Token::Kind::String)
         inja_throw("parser_error", "expected string, got '" + static_cast<std::string>(m_tok.describe()) + "'");
 
       // build the relative path
       json jsonName = json::parse(m_tok.text);
       std::string pathname = static_cast<std::string>(path);
       pathname += jsonName.get_ref<const std::string&>();
+      if (pathname.compare(0, 2, "./") == 0) {
+        pathname.erase(0, 2);
+      }
       // sys::path::remove_dots(pathname, true, sys::path::Style::posix);
 
       // parse it only if it's new
-      TemplateStorage::iterator included;
-      bool is_new {true};
-      // TODO: std::tie(included, isNew) = m_includedTemplates.emplace(pathname);
-      if (is_new) included->second = parse_template(pathname);
+      // TemplateStorage::iterator included;
+      // bool is_new {true};
+      // std::tie(included, isNew) = m_included_templates.emplace(pathname);
+      // if (is_new) included->second = parse_template(pathname);
+      m_included_templates.emplace(std::make_pair(pathname, parse_template(pathname)));
 
       // generate a reference bytecode
-      tmpl.bytecodes.emplace_back(Bytecode::Op::Include, json(pathname), Bytecode::kFlagValueImmediate);
+      tmpl.bytecodes.emplace_back(Bytecode::Op::Include, json(pathname), Bytecode::Flag::ValueImmediate);
 
       get_next_token();
     } else {
@@ -1101,8 +1105,7 @@ class Parser {
     if (!tmpl.bytecodes.empty()) {
       Bytecode& last = tmpl.bytecodes.back();
       if (last.op == Bytecode::Op::Push &&
-          (last.flags & Bytecode::kFlagValueMask) ==
-              Bytecode::kFlagValueImmediate) {
+          (last.flags & Bytecode::Flag::ValueMask) == Bytecode::Flag::ValueImmediate) {
         last.op = Bytecode::Op::Callback;
         last.args = numArgs;
         last.str = name;
@@ -1121,43 +1124,43 @@ class Parser {
     for (;;) {
       get_next_token();
       switch (m_tok.kind) {
-        case Token::kEof:
+        case Token::Kind::Eof:
           if (!m_ifStack.empty()) inja_throw("parser_error", "unmatched if");
           if (!m_loopStack.empty()) inja_throw("parser_error", "unmatched for");
           return;
-        case Token::kText:
+        case Token::Kind::Text:
           tmpl.bytecodes.emplace_back(Bytecode::Op::PrintText, m_tok.text, 0u);
           break;
-        case Token::kStatementOpen:
+        case Token::Kind::statementOpen:
           get_next_token();
           if (!parse_statement(tmpl, path)) {
             inja_throw("parser_error", "expected statement, got '" + static_cast<std::string>(m_tok.describe()) + "'");
           }
-          if (m_tok.kind != Token::kStatementClose) {
+          if (m_tok.kind != Token::Kind::StatementClose) {
             inja_throw("parser_error", "expected statement close, got '" + static_cast<std::string>(m_tok.describe()) + "'");
           }
           break;
-        case Token::kLineStatementOpen:
+        case Token::Kind::LinestatementOpen:
           get_next_token();
           parse_statement(tmpl, path);
-          if (m_tok.kind != Token::kLineStatementClose &&
-              m_tok.kind != Token::kEof) {
+          if (m_tok.kind != Token::Kind::LineStatementClose &&
+              m_tok.kind != Token::Kind::Eof) {
             inja_throw("parser_error", "expected line statement close, got '" + static_cast<std::string>(m_tok.describe()) + "'");
           }
           break;
-        case Token::kExpressionOpen:
+        case Token::Kind::ExpressionOpen:
           get_next_token();
           if (!parse_expression(tmpl)) {
             inja_throw("parser_error", "expected expression, got '" + static_cast<std::string>(m_tok.describe()) + "'");
           }
           append_function(tmpl, Bytecode::Op::PrintValue, 1);
-          if (m_tok.kind != Token::kExpressionClose) {
+          if (m_tok.kind != Token::Kind::ExpressionClose) {
             inja_throw("parser_error", "expected expression close, got '" + static_cast<std::string>(m_tok.describe()) + "'");
           }
           break;
-        case Token::kCommentOpen:
+        case Token::Kind::CommentOpen:
           get_next_token();
-          if (m_tok.kind != Token::kCommentClose) {
+          if (m_tok.kind != Token::Kind::CommentClose) {
             inja_throw("parser_error", "expected comment close, got '" + static_cast<std::string>(m_tok.describe()) + "'");
           }
           break;
@@ -1185,41 +1188,43 @@ class Parser {
       result.contents = m_config.loadFile(filename);
       std::string_view path = filename.substr(0, filename.find_last_of("/\\") + 1);
       // StringRef path = sys::path::parent_path(filename);
-      Parser(m_config, m_lexer.get_config(), m_includedTemplates).parse_into(result, path);
+      Parser(m_config, m_lexer.get_config(), m_included_templates).parse_into(result, path);
     }
     return result;
   }
 
  private:
-  const ParserConfig& m_config;
+  const parser_config& m_config;
   Lexer m_lexer;
   Token m_tok;
-  Token m_peekTok;
-  bool m_havePeekTok = false;
-  TemplateStorage& m_includedTemplates;
+  Token m_peek_tok;
+  bool m_have_peek_tok {false};
+  TemplateStorage& m_included_templates;
   const ParserStatic& m_static;
-  struct IfData {
-    unsigned int prevCondJump;
-    std::vector<unsigned int> uncondJumps;
 
-    explicit IfData(unsigned int condJump): prevCondJump(condJump) {}
+  struct IfData {
+    unsigned int prev_cond_jump;
+    std::vector<unsigned int> uncond_jumps;
+
+    explicit IfData(unsigned int condJump): prev_cond_jump(condJump) {}
   };
+
   std::vector<IfData> m_ifStack;
   std::vector<unsigned int> m_loopStack;
 
   void get_next_token() {
-    if (m_havePeekTok) {
-      m_tok = m_peekTok;
-      m_havePeekTok = false;
+    if (m_have_peek_tok) {
+      m_tok = m_peek_tok;
+      m_have_peek_tok = false;
     } else {
       m_tok = m_lexer.scan();
     }
   }
 
   void get_peek_token() {
-    if (!m_havePeekTok) {
-      m_peekTok = m_lexer.scan();
-      m_havePeekTok = true;
+    if (!m_have_peek_tok) {
+      m_peek_tok = m_lexer.scan();
+      m_have_peek_tok = true;
     }
   }
 };
@@ -1227,6 +1232,53 @@ class Parser {
 }  // namespace inja
 
 #endif  // PANTOR_INJA_PARSER_HPP
+
+// #include "polyfill.hpp"
+#ifndef PANTOR_INJA_POLYFILL_HPP
+#define PANTOR_INJA_POLYFILL_HPP
+
+
+#if __cplusplus < 201402L
+
+#include <cstddef>
+#include <type_traits>
+#include <utility>
+
+namespace std {
+  template<class T> struct _Unique_if {
+    typedef unique_ptr<T> _Single_object;
+  };
+
+  template<class T> struct _Unique_if<T[]> {
+    typedef unique_ptr<T[]> _Unknown_bound;
+  };
+
+  template<class T, size_t N> struct _Unique_if<T[N]> {
+    typedef void _Known_bound;
+  };
+
+  template<class T, class... Args>
+  typename _Unique_if<T>::_Single_object
+  make_unique(Args&&... args) {
+    return unique_ptr<T>(new T(std::forward<Args>(args)...));
+  }
+
+  template<class T>
+  typename _Unique_if<T>::_Unknown_bound
+  make_unique(size_t n) {
+    typedef typename remove_extent<T>::type U;
+    return unique_ptr<T>(new U[n]());
+  }
+
+  template<class T, class... Args>
+  typename _Unique_if<T>::_Known_bound
+  make_unique(Args&&...) = delete;
+}
+
+#endif // memory */
+
+
+#endif // PANTOR_INJA_POLYFILL_HPP
 
 // #include "renderer.hpp"
 #ifndef PANTOR_INJA_RENDERER_HPP
@@ -1268,7 +1320,7 @@ inline std::string_view convert_dot_to_json_pointer(std::string_view dot, std::s
   out.clear();
   do {
     std::string_view part;
-    std::tie(part, dot) = string_view_split(dot, '.');
+    std::tie(part, dot) = string_view::split(dot, '.');
     out.push_back('/');
     out.append(part.begin(), part.end());
   } while (!dot.empty());
@@ -1276,8 +1328,115 @@ inline std::string_view convert_dot_to_json_pointer(std::string_view dot, std::s
 }
 
 class Renderer {
+  std::vector<const json*>& get_args(const Bytecode& bc) {
+    m_tmpArgs.clear();
+
+    bool hasImm = ((bc.flags & Bytecode::Flag::ValueMask) != Bytecode::Flag::ValuePop);
+
+    // get args from stack
+    unsigned int popArgs = bc.args;
+    if (hasImm) --popArgs;
+
+
+    for (auto i = std::prev(m_stack.end(), popArgs); i != m_stack.end(); i++) {
+      m_tmpArgs.push_back(&(*i));
+    }
+
+    // get immediate arg
+    if (hasImm) {
+      m_tmpArgs.push_back(get_imm(bc));
+    }
+
+    return m_tmpArgs;
+  }
+
+  void pop_args(const Bytecode& bc) {
+    unsigned int popArgs = bc.args;
+    if ((bc.flags & Bytecode::Flag::ValueMask) != Bytecode::Flag::ValuePop)
+      --popArgs;
+    for (unsigned int i = 0; i < popArgs; ++i) m_stack.pop_back();
+  }
+
+  const json* get_imm(const Bytecode& bc) {
+    std::string ptrBuf;
+    std::string_view ptr;
+    switch (bc.flags & Bytecode::Flag::ValueMask) {
+      case Bytecode::Flag::ValuePop:
+        return nullptr;
+      case Bytecode::Flag::ValueImmediate:
+        return &bc.value;
+      case Bytecode::Flag::ValueLookupDot:
+        ptr = convert_dot_to_json_pointer(bc.str, ptrBuf);
+        break;
+      case Bytecode::Flag::ValueLookupPointer:
+        ptrBuf += '/';
+        ptrBuf += bc.str;
+        ptr = ptrBuf;
+        break;
+    }
+    try {
+      return &m_data->at(json::json_pointer(ptr.data()));
+    } catch (std::exception&) {
+      // try to evaluate as a no-argument callback
+      if (auto callback = m_callbacks.find_callback(bc.str, 0)) {
+        std::vector<const json*> asdf{};
+        // m_tmpVal = cb(asdf, *m_data);
+        m_tmpVal = callback(asdf);
+        return &m_tmpVal;
+      }
+      inja_throw("render_error", "variable '" + static_cast<std::string>(bc.str) + "' not found");
+      return nullptr;
+    }
+  }
+
+  void update_loop_data()  {
+    LoopLevel& level = m_loopStack.back();
+    if (level.keyName.empty()) {
+      level.data[static_cast<std::string>(level.valueName)] = *level.it;
+      auto& loopData = level.data["loop"];
+      loopData["index"] = level.index;
+      loopData["index1"] = level.index + 1;
+      loopData["is_first"] = (level.index == 0);
+      loopData["is_last"] = (level.index == level.size - 1);
+    } else {
+      level.data[static_cast<std::string>(level.keyName)] = level.mapIt->first;
+      level.data[static_cast<std::string>(level.valueName)] = *level.mapIt->second;
+    }
+  }
+
+  const TemplateStorage& m_included_templates;
+  const FunctionStorage& m_callbacks;
+
+  std::vector<json> m_stack;
+
+  struct LoopLevel {
+    std::string_view keyName;       // variable name for keys
+    std::string_view valueName;     // variable name for values
+    json data;                      // data with loop info added
+
+    json values;                    // values to iterate over
+
+    // loop over list
+    json::iterator it;              // iterator over values
+    size_t index;                   // current list index
+    size_t size;                    // length of list
+
+    // loop over map
+    using KeyValue = std::pair<std::string_view, json*>;
+    using MapValues = std::vector<KeyValue>;
+    MapValues mapValues;            // values to iterate over
+    MapValues::iterator mapIt;      // iterator over values
+  };
+
+  std::vector<LoopLevel> m_loopStack;
+  const json* m_data;
+
+  std::vector<const json*> m_tmpArgs;
+  json m_tmpVal;
+
+
  public:
-  Renderer(const TemplateStorage& includedTemplates, const FunctionStorage& callbacks): m_includedTemplates(includedTemplates), m_callbacks(callbacks) {
+  Renderer(const TemplateStorage& included_templates, const FunctionStorage& callbacks): m_included_templates(included_templates), m_callbacks(callbacks) {
     m_stack.reserve(16);
     m_tmpArgs.reserve(4);
   }
@@ -1359,8 +1518,7 @@ class Renderer {
           double number = args[0]->get<double>();
           int precision = args[1]->get<int>();
           pop_args(bc);
-          m_stack.emplace_back(std::round(number * std::pow(10.0, precision)) /
-                               std::pow(10.0, precision));
+          m_stack.emplace_back(std::round(number * std::pow(10.0, precision)) / std::pow(10.0, precision));
           break;
         }
         case Bytecode::Op::DivisibleBy: {
@@ -1552,13 +1710,14 @@ class Renderer {
           break;
         }
         case Bytecode::Op::Include:
-          Renderer(m_includedTemplates, m_callbacks).render_to(os, m_includedTemplates.find(get_imm(bc)->get_ref<const std::string&>())->second, data);
+          Renderer(m_included_templates, m_callbacks).render_to(os, m_included_templates.find(get_imm(bc)->get_ref<const std::string&>())->second, data);
           break;
         case Bytecode::Op::Callback: {
-          auto cb = m_callbacks.find_callback(bc.str, bc.args);
-          if (!cb)
+          auto callback = m_callbacks.find_callback(bc.str, bc.args);
+          if (!callback) {
             inja_throw("render_error", "function '" + static_cast<std::string>(bc.str) + "' (" + std::to_string(static_cast<unsigned int>(bc.args)) + ") not found");
-          json result = cb(get_args(bc), data);
+          }
+          json result = callback(get_args(bc));
           pop_args(bc);
           m_stack.emplace_back(std::move(result));
           break;
@@ -1597,11 +1756,12 @@ class Renderer {
 
             // sort by key
             for (auto it = level.values.begin(), end = level.values.end();
-                 it != end; ++it)
+                 it != end; ++it) {
               level.mapValues.emplace_back(it.key(), &it.value());
+            }
             std::sort(
                 level.mapValues.begin(), level.mapValues.end(),
-                [](const auto& a, const auto& b) { return a.first < b.first; });
+                [](const LoopLevel::KeyValue& a, const LoopLevel::KeyValue& b) { return a.first < b.first; });
             level.mapIt = level.mapValues.begin();
           } else {
             // list iterator
@@ -1623,8 +1783,9 @@ class Renderer {
           break;
         }
         case Bytecode::Op::EndLoop: {
-          if (m_loopStack.empty())
+          if (m_loopStack.empty()) {
             inja_throw("render_error", "unexpected state in renderer");
+          }
           LoopLevel& level = m_loopStack.back();
 
           bool done;
@@ -1653,117 +1814,12 @@ class Renderer {
           i = bc.args - 1;  // -1 due to ++i in loop
           break;
         }
-        default:
+        default: {
           inja_throw("render_error", "unknown op in renderer: " + std::to_string(static_cast<unsigned int>(bc.op)));
+        }
       }
     }
   }
-
- private:
-  std::vector<const json*>& get_args(const Bytecode& bc) {
-    m_tmpArgs.clear();
-
-    bool hasImm = ((bc.flags & Bytecode::kFlagValueMask) != Bytecode::kFlagValuePop);
-
-    // get args from stack
-    unsigned int popArgs = bc.args;
-    if (hasImm) --popArgs;
-
-
-    for (auto i = std::prev(m_stack.end(), popArgs); i != m_stack.end(); i++) {
-      m_tmpArgs.push_back(&(*i));
-    }
-
-    // get immediate arg
-    if (hasImm) {
-      m_tmpArgs.push_back(get_imm(bc));
-    }
-
-    return m_tmpArgs;
-  }
-
-  void pop_args(const Bytecode& bc) {
-    unsigned int popArgs = bc.args;
-    if ((bc.flags & Bytecode::kFlagValueMask) != Bytecode::kFlagValuePop)
-      --popArgs;
-    for (unsigned int i = 0; i < popArgs; ++i) m_stack.pop_back();
-  }
-
-  const json* get_imm(const Bytecode& bc) {
-    std::string ptrBuf;
-    std::string_view ptr;
-    switch (bc.flags & Bytecode::kFlagValueMask) {
-      case Bytecode::kFlagValuePop:
-        return nullptr;
-      case Bytecode::kFlagValueImmediate:
-        return &bc.value;
-      case Bytecode::kFlagValueLookupDot:
-        ptr = convert_dot_to_json_pointer(bc.str, ptrBuf);
-        break;
-      case Bytecode::kFlagValueLookupPointer:
-        ptrBuf += '/';
-        ptrBuf += bc.str;
-        ptr = ptrBuf;
-        break;
-    }
-    try {
-      return &m_data->at(json::json_pointer(ptr.data()));
-    } catch (std::exception&) {
-      // try to evaluate as a no-argument callback
-      if (auto cb = m_callbacks.find_callback(bc.str, 0)) {
-        std::vector<const json*> asdf{};
-        m_tmpVal = cb(asdf, *m_data);
-        return &m_tmpVal;
-      }
-      inja_throw("render_error", "variable '" + static_cast<std::string>(bc.str) + "' not found");
-      return nullptr;
-    }
-  }
-
-  void update_loop_data()  {
-    LoopLevel& level = m_loopStack.back();
-    if (level.keyName.empty()) {
-      level.data[level.valueName.data()] = *level.it;
-      auto& loopData = level.data["loop"];
-      loopData["index"] = level.index;
-      loopData["index1"] = level.index + 1;
-      loopData["is_first"] = (level.index == 0);
-      loopData["is_last"] = (level.index == level.size - 1);
-    } else {
-      level.data[level.keyName.data()] = level.mapIt->first;
-      level.data[level.valueName.data()] = *level.mapIt->second;
-    }
-  }
-
-  const TemplateStorage& m_includedTemplates;
-  const FunctionStorage& m_callbacks;
-
-  std::vector<json> m_stack;
-
-  struct LoopLevel {
-    std::string_view keyName;       // variable name for keys
-    std::string_view valueName;     // variable name for values
-    json data;                      // data with loop info added
-
-    json values;                    // values to iterate over
-
-    // loop over list
-    json::iterator it;              // iterator over values
-    size_t index;                   // current list index
-    size_t size;                    // length of list
-
-    // loop over map
-    using KeyValue = std::pair<std::string_view, json*>;
-    using MapValues = std::vector<KeyValue>;
-    MapValues mapValues;            // values to iterate over
-    MapValues::iterator mapIt;      // iterator over values
-  };
-
-  std::vector<LoopLevel> m_loopStack;
-  const json* m_data;
-
-  std::vector<const json*> m_tmpArgs;
-  json m_tmpVal;
 };
 
 }  // namespace inja
@@ -1783,12 +1839,11 @@ class Environment {
    public:
     std::string path;
 
-    LexerConfig lexerConfig;
-    ParserConfig parserConfig;
+    lexer_config lexer_config;
+    parser_config parser_config;
 
     FunctionStorage callbacks;
-
-    TemplateStorage includedTemplates;
+    TemplateStorage included_templates;
   };
   std::unique_ptr<Impl> m_impl;
 
@@ -1799,41 +1854,39 @@ class Environment {
     m_impl->path = path;
   }
 
-  ~Environment() { }
-
   void set_statement(const std::string& open, const std::string& close) {
-    m_impl->lexerConfig.statementOpen = open;
-    m_impl->lexerConfig.statementClose = close;
-    m_impl->lexerConfig.update_open_chars();
+    m_impl->lexer_config.statement_open = open;
+    m_impl->lexer_config.statement_close = close;
+    m_impl->lexer_config.update_open_chars();
   }
 
   void set_line_statement(const std::string& open) {
-    m_impl->lexerConfig.lineStatement = open;
-    m_impl->lexerConfig.update_open_chars();
+    m_impl->lexer_config.line_statement = open;
+    m_impl->lexer_config.update_open_chars();
   }
 
   void set_expression(const std::string& open, const std::string& close) {
-    m_impl->lexerConfig.expressionOpen = open;
-    m_impl->lexerConfig.expressionClose = close;
-    m_impl->lexerConfig.update_open_chars();
+    m_impl->lexer_config.expression_open = open;
+    m_impl->lexer_config.expression_close = close;
+    m_impl->lexer_config.update_open_chars();
   }
 
   void set_comment(const std::string& open, const std::string& close) {
-    m_impl->lexerConfig.commentOpen = open;
-    m_impl->lexerConfig.commentClose = close;
-    m_impl->lexerConfig.update_open_chars();
+    m_impl->lexer_config.comment_open = open;
+    m_impl->lexer_config.comment_close = close;
+    m_impl->lexer_config.update_open_chars();
   }
 
   void set_element_notation(ElementNotation notation) {
-    m_impl->parserConfig.notation = notation;
+    m_impl->parser_config.notation = notation;
   }
 
   void set_load_file(std::function<std::string(std::string_view)> loadFile) {
-    m_impl->parserConfig.loadFile = loadFile;
+    m_impl->parser_config.loadFile = loadFile;
   }
 
   Template parse(std::string_view input) {
-    Parser parser(m_impl->parserConfig, m_impl->lexerConfig, m_impl->includedTemplates);
+    Parser parser(m_impl->parser_config, m_impl->lexer_config, m_impl->included_templates);
     return parser.parse(input);
   }
 
@@ -1848,7 +1901,7 @@ class Environment {
   }
 
   std::stringstream& render_to(std::stringstream& os, const Template& tmpl, const json& data) {
-    Renderer(m_impl->includedTemplates, m_impl->callbacks).render_to(os, tmpl, data);
+    Renderer(m_impl->included_templates, m_impl->callbacks).render_to(os, tmpl, data);
     return os;
   }
 
@@ -1857,14 +1910,14 @@ class Environment {
   }
 
   void include_template(const std::string& name, const Template& tmpl) {
-    m_impl->includedTemplates[name] = tmpl;
+    m_impl->included_templates[name] = tmpl;
   }
 };
 
 /*!
 @brief render with default settings
 */
-inline std::string render(const std::string& input, const json& data) {
+inline std::string render(std::string_view input, const json& data) {
   return Environment().render(input, data);
 }
 

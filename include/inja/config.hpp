@@ -13,28 +13,31 @@ enum class ElementNotation {
   Pointer
 };
 
-struct LexerConfig {
-  std::string statementOpen{"{%"};
-  std::string statementClose{"%}"};
-  std::string lineStatement{"##"};
-  std::string expressionOpen{"{{"};
-  std::string expressionClose{"}}"};
-  std::string commentOpen{"{#"};
-  std::string commentClose{"#}"};
-  std::string openChars{"#{"};
+struct lexer_config {
+  std::string statement_open {"{%"};
+  std::string statement_close {"%}"};
+  std::string line_statement {"##"};
+  std::string expression_open {"{{"};
+  std::string expression_close {"}}"};
+  std::string comment_open {"{#"};
+  std::string comment_close {"#}"};
+  std::string open_chars {"#{"};
 
   void update_open_chars() {
-    openChars = "\n";
-    if (openChars.find(statementOpen[0]) == std::string::npos)
-      openChars += statementOpen[0];
-    if (openChars.find(expressionOpen[0]) == std::string::npos)
-      openChars += expressionOpen[0];
-    if (openChars.find(commentOpen[0]) == std::string::npos)
-      openChars += commentOpen[0];
+    open_chars = "\n";
+    if (open_chars.find(statement_open[0]) == std::string::npos) {
+      open_chars += statement_open[0];
+    }
+    if (open_chars.find(expression_open[0]) == std::string::npos) {
+      open_chars += expression_open[0];
+    }
+    if (open_chars.find(comment_open[0]) == std::string::npos) {
+      open_chars += comment_open[0];
+    }
   }
 };
 
-struct ParserConfig {
+struct parser_config {
   ElementNotation notation = ElementNotation::Pointer;
   std::function<std::string(std::string_view filename)> loadFile;
 };

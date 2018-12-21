@@ -11,8 +11,7 @@ namespace inja {
 using namespace nlohmann;
 
 
-class Bytecode {
- public:
+struct Bytecode {
   enum class Op : uint8_t {
     Nop,
     // print StringRef (always immediate)
@@ -95,30 +94,30 @@ class Bytecode {
 
     // end a loop
     // args is index of the first bytecode in the loop body
-    EndLoop
+    EndLoop,
   };
 
   enum Flag {
     // location of value for value-taking ops (mask)
-    kFlagValueMask = 0x03,
+    ValueMask = 0x03,
     // pop value off stack
-    kFlagValuePop = 0x00,
+    ValuePop = 0x00,
     // value is immediate rather than on stack
-    kFlagValueImmediate = 0x01,
+    ValueImmediate = 0x01,
     // lookup immediate str (dot notation)
-    kFlagValueLookupDot = 0x02,
+    ValueLookupDot = 0x02,
     // lookup immediate str (json pointer notation)
-    kFlagValueLookupPointer = 0x03
+    ValueLookupPointer = 0x03,
   };
 
-  Op op = Op::Nop;
-  uint32_t args : 30;
-  uint32_t flags : 2;
+  Op op {Op::Nop};
+  uint32_t args: 30;
+  uint32_t flags: 2;
 
   json value;
   std::string_view str;
 
-  Bytecode() : args(0), flags(0) {}
+  Bytecode(): args(0), flags(0) {}
   explicit Bytecode(Op op, unsigned int args = 0): op(op), args(args), flags(0) {}
   Bytecode(Op op, std::string_view str, unsigned int flags): op(op), args(0), flags(flags), str(str) {}
   Bytecode(Op op, json&& value, unsigned int flags): op(op), args(0), flags(flags), value(std::move(value)) {}

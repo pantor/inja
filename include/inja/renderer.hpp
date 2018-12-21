@@ -34,7 +34,7 @@ inline std::string_view convert_dot_to_json_pointer(std::string_view dot, std::s
   out.clear();
   do {
     std::string_view part;
-    std::tie(part, dot) = string_view_split(dot, '.');
+    std::tie(part, dot) = string_view::split(dot, '.');
     out.push_back('/');
     out.append(part.begin(), part.end());
   } while (!dot.empty());
@@ -42,8 +42,115 @@ inline std::string_view convert_dot_to_json_pointer(std::string_view dot, std::s
 }
 
 class Renderer {
+  std::vector<const json*>& get_args(const Bytecode& bc) {
+    m_tmpArgs.clear();
+
+    bool hasImm = ((bc.flags & Bytecode::Flag::ValueMask) != Bytecode::Flag::ValuePop);
+
+    // get args from stack
+    unsigned int popArgs = bc.args;
+    if (hasImm) --popArgs;
+
+
+    for (auto i = std::prev(m_stack.end(), popArgs); i != m_stack.end(); i++) {
+      m_tmpArgs.push_back(&(*i));
+    }
+
+    // get immediate arg
+    if (hasImm) {
+      m_tmpArgs.push_back(get_imm(bc));
+    }
+
+    return m_tmpArgs;
+  }
+
+  void pop_args(const Bytecode& bc) {
+    unsigned int popArgs = bc.args;
+    if ((bc.flags & Bytecode::Flag::ValueMask) != Bytecode::Flag::ValuePop)
+      --popArgs;
+    for (unsigned int i = 0; i < popArgs; ++i) m_stack.pop_back();
+  }
+
+  const json* get_imm(const Bytecode& bc) {
+    std::string ptrBuf;
+    std::string_view ptr;
+    switch (bc.flags & Bytecode::Flag::ValueMask) {
+      case Bytecode::Flag::ValuePop:
+        return nullptr;
+      case Bytecode::Flag::ValueImmediate:
+        return &bc.value;
+      case Bytecode::Flag::ValueLookupDot:
+        ptr = convert_dot_to_json_pointer(bc.str, ptrBuf);
+        break;
+      case Bytecode::Flag::ValueLookupPointer:
+        ptrBuf += '/';
+        ptrBuf += bc.str;
+        ptr = ptrBuf;
+        break;
+    }
+    try {
+      return &m_data->at(json::json_pointer(ptr.data()));
+    } catch (std::exception&) {
+      // try to evaluate as a no-argument callback
+      if (auto callback = m_callbacks.find_callback(bc.str, 0)) {
+        std::vector<const json*> asdf{};
+        // m_tmpVal = cb(asdf, *m_data);
+        m_tmpVal = callback(asdf);
+        return &m_tmpVal;
+      }
+      inja_throw("render_error", "variable '" + static_cast<std::string>(bc.str) + "' not found");
+      return nullptr;
+    }
+  }
+
+  void update_loop_data()  {
+    LoopLevel& level = m_loopStack.back();
+    if (level.keyName.empty()) {
+      level.data[static_cast<std::string>(level.valueName)] = *level.it;
+      auto& loopData = level.data["loop"];
+      loopData["index"] = level.index;
+      loopData["index1"] = level.index + 1;
+      loopData["is_first"] = (level.index == 0);
+      loopData["is_last"] = (level.index == level.size - 1);
+    } else {
+      level.data[static_cast<std::string>(level.keyName)] = level.mapIt->first;
+      level.data[static_cast<std::string>(level.valueName)] = *level.mapIt->second;
+    }
+  }
+
+  const TemplateStorage& m_included_templates;
+  const FunctionStorage& m_callbacks;
+
+  std::vector<json> m_stack;
+
+  struct LoopLevel {
+    std::string_view keyName;       // variable name for keys
+    std::string_view valueName;     // variable name for values
+    json data;                      // data with loop info added
+
+    json values;                    // values to iterate over
+
+    // loop over list
+    json::iterator it;              // iterator over values
+    size_t index;                   // current list index
+    size_t size;                    // length of list
+
+    // loop over map
+    using KeyValue = std::pair<std::string_view, json*>;
+    using MapValues = std::vector<KeyValue>;
+    MapValues mapValues;            // values to iterate over
+    MapValues::iterator mapIt;      // iterator over values
+  };
+
+  std::vector<LoopLevel> m_loopStack;
+  const json* m_data;
+
+  std::vector<const json*> m_tmpArgs;
+  json m_tmpVal;
+
+
  public:
-  Renderer(const TemplateStorage& includedTemplates, const FunctionStorage& callbacks): m_includedTemplates(includedTemplates), m_callbacks(callbacks) {
+  Renderer(const TemplateStorage& included_templates, const FunctionStorage& callbacks): m_included_templates(included_templates), m_callbacks(callbacks) {
     m_stack.reserve(16);
     m_tmpArgs.reserve(4);
   }
@@ -317,13 +424,14 @@ class Renderer {
           break;
         }
         case Bytecode::Op::Include:
-          Renderer(m_includedTemplates, m_callbacks).render_to(os, m_includedTemplates.find(get_imm(bc)->get_ref<const std::string&>())->second, data);
+          Renderer(m_included_templates, m_callbacks).render_to(os, m_included_templates.find(get_imm(bc)->get_ref<const std::string&>())->second, data);
           break;
         case Bytecode::Op::Callback: {
-          auto cb = m_callbacks.find_callback(bc.str, bc.args);
-          if (!cb)
+          auto callback = m_callbacks.find_callback(bc.str, bc.args);
+          if (!callback) {
             inja_throw("render_error", "function '" + static_cast<std::string>(bc.str) + "' (" + std::to_string(static_cast<unsigned int>(bc.args)) + ") not found");
-          json result = cb(get_args(bc), data);
+          }
+          json result = callback(get_args(bc));
           pop_args(bc);
           m_stack.emplace_back(std::move(result));
           break;
@@ -362,11 +470,12 @@ class Renderer {
 
             // sort by key
             for (auto it = level.values.begin(), end = level.values.end();
-                 it != end; ++it)
+                 it != end; ++it) {
               level.mapValues.emplace_back(it.key(), &it.value());
+            }
             std::sort(
                 level.mapValues.begin(), level.mapValues.end(),
-                [](const auto& a, const auto& b) { return a.first < b.first; });
+                [](const LoopLevel::KeyValue& a, const LoopLevel::KeyValue& b) { return a.first < b.first; });
             level.mapIt = level.mapValues.begin();
           } else {
             // list iterator
@@ -388,8 +497,9 @@ class Renderer {
           break;
         }
         case Bytecode::Op::EndLoop: {
-          if (m_loopStack.empty())
+          if (m_loopStack.empty()) {
             inja_throw("render_error", "unexpected state in renderer");
+          }
           LoopLevel& level = m_loopStack.back();
 
           bool done;
@@ -418,117 +528,12 @@ class Renderer {
           i = bc.args - 1;  // -1 due to ++i in loop
           break;
         }
-        default:
+        default: {
           inja_throw("render_error", "unknown op in renderer: " + std::to_string(static_cast<unsigned int>(bc.op)));
+        }
       }
     }
   }
-
- private:
-  std::vector<const json*>& get_args(const Bytecode& bc) {
-    m_tmpArgs.clear();
-
-    bool hasImm = ((bc.flags & Bytecode::kFlagValueMask) != Bytecode::kFlagValuePop);
-
-    // get args from stack
-    unsigned int popArgs = bc.args;
-    if (hasImm) --popArgs;
-
-
-    for (auto i = std::prev(m_stack.end(), popArgs); i != m_stack.end(); i++) {
-      m_tmpArgs.push_back(&(*i));
-    }
-
-    // get immediate arg
-    if (hasImm) {
-      m_tmpArgs.push_back(get_imm(bc));
-    }
-
-    return m_tmpArgs;
-  }
-
-  void pop_args(const Bytecode& bc) {
-    unsigned int popArgs = bc.args;
-    if ((bc.flags & Bytecode::kFlagValueMask) != Bytecode::kFlagValuePop)
-      --popArgs;
-    for (unsigned int i = 0; i < popArgs; ++i) m_stack.pop_back();
-  }
-
-  const json* get_imm(const Bytecode& bc) {
-    std::string ptrBuf;
-    std::string_view ptr;
-    switch (bc.flags & Bytecode::kFlagValueMask) {
-      case Bytecode::kFlagValuePop:
-        return nullptr;
-      case Bytecode::kFlagValueImmediate:
-        return &bc.value;
-      case Bytecode::kFlagValueLookupDot:
-        ptr = convert_dot_to_json_pointer(bc.str, ptrBuf);
-        break;
-      case Bytecode::kFlagValueLookupPointer:
-        ptrBuf += '/';
-        ptrBuf += bc.str;
-        ptr = ptrBuf;
-        break;
-    }
-    try {
-      return &m_data->at(json::json_pointer(ptr.data()));
-    } catch (std::exception&) {
-      // try to evaluate as a no-argument callback
-      if (auto cb = m_callbacks.find_callback(bc.str, 0)) {
-        std::vector<const json*> asdf{};
-        m_tmpVal = cb(asdf, *m_data);
-        return &m_tmpVal;
-      }
-      inja_throw("render_error", "variable '" + static_cast<std::string>(bc.str) + "' not found");
-      return nullptr;
-    }
-  }
-
-  void update_loop_data()  {
-    LoopLevel& level = m_loopStack.back();
-    if (level.keyName.empty()) {
-      level.data[static_cast<std::string>(level.valueName)] = *level.it;
-      auto& loopData = level.data["loop"];
-      loopData["index"] = level.index;
-      loopData["index1"] = level.index + 1;
-      loopData["is_first"] = (level.index == 0);
-      loopData["is_last"] = (level.index == level.size - 1);
-    } else {
-      level.data[static_cast<std::string>(level.keyName)] = level.mapIt->first;
-      level.data[static_cast<std::string>(level.valueName)] = *level.mapIt->second;
-    }
-  }
-
-  const TemplateStorage& m_includedTemplates;
-  const FunctionStorage& m_callbacks;
-
-  std::vector<json> m_stack;
-
-  struct LoopLevel {
-    std::string_view keyName;       // variable name for keys
-    std::string_view valueName;     // variable name for values
-    json data;                      // data with loop info added
-
-    json values;                    // values to iterate over
-
-    // loop over list
-    json::iterator it;              // iterator over values
-    size_t index;                   // current list index
-    size_t size;                    // length of list
-
-    // loop over map
-    using KeyValue = std::pair<std::string_view, json*>;
-    using MapValues = std::vector<KeyValue>;
-    MapValues mapValues;            // values to iterate over
-    MapValues::iterator mapIt;      // iterator over values
-  };
-
-  std::vector<LoopLevel> m_loopStack;
-  const json* m_data;
-
-  std::vector<const json*> m_tmpArgs;
-  json m_tmpVal;
 };
 
 }  // namespace inja

@@ -7,64 +7,63 @@
 namespace inja {
 
 struct Token {
-  enum Kind {
-    kText,
-    kExpressionOpen,      // {{
-    kExpressionClose,     // }}
-    kLineStatementOpen,   // ##
-    kLineStatementClose,  // \n
-    kStatementOpen,       // {%
-    kStatementClose,      // %}
-    kCommentOpen,         // {#
-    kCommentClose,        // #}
-    kId,                  // this, this.foo
-    kNumber,              // 1, 2, -1, 5.2, -5.3
-    kString,              // "this"
-    kComma,               // ,
-    kColon,               // :
-    kLeftParen,           // (
-    kRightParen,          // )
-    kLeftBracket,         // [
-    kRightBracket,        // ]
-    kLeftBrace,           // {
-    kRightBrace,          // }
-    kEqual,               // ==
-    kGreaterThan,         // >
-    kLessThan,            // <
-    kLessEqual,           // <=
-    kGreaterEqual,        // >=
-    kNotEqual,            // !=
-    kUnknown,
-    kEof
-  };
-  Kind kind = kUnknown;
+  enum class Kind {
+    Text,
+    ExpressionOpen,      // {{
+    ExpressionClose,     // }}
+    LinestatementOpen,   // ##
+    LineStatementClose,  // \n
+    statementOpen,       // {%
+    StatementClose,      // %}
+    CommentOpen,         // {#
+    CommentClose,        // #}
+    Id,                  // this, this.foo
+    Number,              // 1, 2, -1, 5.2, -5.3
+    String,              // "this"
+    Comma,               // ,
+    Colon,               // :
+    LeftParen,           // (
+    RightParen,          // )
+    LeftBracket,         // [
+    RightBracket,        // ]
+    LeftBrace,           // {
+    RightBrace,          // }
+    Equal,               // ==
+    GreaterThan,         // >
+    GreaterEqual,        // >=
+    LessThan,            // <
+    LessEqual,           // <=
+    NotEqual,            // !=
+    Unknown,
+    Eof
+  } kind {Kind::Unknown};
+
   std::string_view text;
 
-  Token() = default;
-
-  constexpr Token(Kind kind, std::string_view text) : kind(kind), text(text) {}
+  constexpr Token() = default;
+  constexpr Token(Kind kind, std::string_view text): kind(kind), text(text) {}
 
   std::string_view describe() const {
     switch (kind) {
-      case kText:
+      case Kind::Text:
         return "<text>";
-      case kExpressionOpen:
+      case Kind::ExpressionOpen:
         return "{{";
-      case kExpressionClose:
+      case Kind::ExpressionClose:
         return "}}";
-      case kLineStatementOpen:
+      case Kind::LinestatementOpen:
         return "##";
-      case kLineStatementClose:
+      case Kind::LineStatementClose:
         return "<eol>";
-      case kStatementOpen:
+      case Kind::statementOpen:
         return "{%";
-      case kStatementClose:
+      case Kind::StatementClose:
         return "%}";
-      case kCommentOpen:
+      case Kind::CommentOpen:
         return "{#";
-      case kCommentClose:
+      case Kind::CommentClose:
         return "#}";
-      case kEof:
+      case Kind::Eof:
         return "<eof>";
       default:
         return text;

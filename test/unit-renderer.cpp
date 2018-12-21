@@ -96,6 +96,7 @@ Yeah!
 	}
 }
 
+
 TEST_CASE("functions") {
 	inja::Environment env = inja::Environment();
 
@@ -245,40 +246,41 @@ TEST_CASE("functions") {
 	}
 }
 
-/* TEST_CASE("callbacks") {
+
+TEST_CASE("callbacks") {
 	inja::Environment env = inja::Environment();
 	json data;
 	data["age"] = 28;
 
-	env.add_callback("double", 1, [&env](inja::Parsed::Arguments args, json data) {
-		int number = env.get_argument<double>(args, 0, data);
+	env.add_callback("double", 1, [](inja::Arguments& args) {
+		int number = args.at(0)->get<double>();
 		return 2 * number;
 	});
 
-	env.add_callback("half", 1, [&env](inja::Parsed::Arguments args, json data) {
-		int number = env.get_argument<double>(args, 0, data);
+	env.add_callback("half", 1, [](inja::Arguments args) {
+		int number = args.at(0)->get<double>();
 		return number / 2;
 	});
 
 	std::string greet = "Hello";
-	env.add_callback("double-greetings", 0, [greet](inja::Parsed::Arguments args, json data) {
+	env.add_callback("double-greetings", 0, [greet](inja::Arguments args) {
 		return greet + " " + greet + "!";
 	});
 
-	env.add_callback("multiply", 2, [&env](inja::Parsed::Arguments args, json data) {
-		double number1 = env.get_argument(args, 0, data);
-		auto number2 = env.get_argument<double>(args, 1, data);
+	env.add_callback("multiply", 2, [](inja::Arguments args) {
+		double number1 = args.at(0)->get<double>();
+		auto number2 = args.at(1)->get<double>();
 		return number1 * number2;
 	});
 
-	env.add_callback("multiply", 3, [&env](inja::Parsed::Arguments args, json data) {
-		double number1 = env.get_argument(args, 0, data);
-		double number2 = env.get_argument(args, 1, data);
-		double number3 = env.get_argument(args, 2, data);
+	env.add_callback("multiply", 3, [](inja::Arguments args) {
+		double number1 = args.at(0)->get<double>();
+		double number2 = args.at(1)->get<double>();
+		double number3 = args.at(2)->get<double>();
 		return number1 * number2 * number3;
 	});
 
-	env.add_callback("multiply", 0, [](inja::Parsed::Arguments args, json data) {
+	env.add_callback("multiply", 0, [](inja::Arguments args) {
 		return 1.0;
 	});
 
@@ -289,7 +291,8 @@ TEST_CASE("functions") {
 	CHECK( env.render("{{ multiply(4, 5) }}", data) == "20.0" );
 	CHECK( env.render("{{ multiply(3, 4, 5) }}", data) == "60.0" );
 	CHECK( env.render("{{ multiply }}", data) == "1.0" );
-} */
+}
+
 
 TEST_CASE("combinations") {
 	inja::Environment env = inja::Environment();
@@ -334,6 +337,7 @@ TEST_CASE("templates") {
 		CHECK( env.render(t2, data) == "Hello Peter!" );
 	}
 }
+
 
 TEST_CASE("other-syntax") {
 	json data;

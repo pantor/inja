@@ -233,8 +233,8 @@ Environment env = Environment();
  * - number of arguments
  * - callback function. Implemented with std::function, you can for example use lambdas.
  */
-env.add_callback("double", 1, [&env](Parsed::Arguments args, json data) {
-	int number = env.get_argument<int>(args, 0, data); // Adapt the type and index of the argument
+env.add_callback("double", 1, [](Arguments& args) {
+	int number = args.at(0)->get<int>(); // Adapt the index and type of the argument
 	return 2 * number;
 });
 
@@ -243,7 +243,7 @@ env.render("{{ double(16) }}", data); // "32"
 
 // A callback without argument can be used like a dynamic variable:
 std::string greet = "Hello";
-env.add_callback("double-greetings", 0, [greet](Parsed::Arguments args, json data) {
+env.add_callback("double-greetings", 0, [greet](Arguments args) {
 	return greet + " " + greet + "!";
 });
 env.render("{{ double-greetings }}", data); // "Hello Hello!"

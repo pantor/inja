@@ -256,7 +256,7 @@ namespace hayai
 #       elif defined(CLOCK_REALTIME)
             clock_gettime(CLOCK_REALTIME, &result);
 #       else
-            clock_gettime((clockid_t)-1, &result);
+            clock_gettime((clocId_t)-1, &result);
 #       endif
             return result;
         }

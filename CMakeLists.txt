@@ -8,7 +8,7 @@ option(BUILD_TESTS "Build the inja unit tests" ON)
 option(BUILD_BENCHMARK "Build the inja benchmark" ON)
 
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 
 # set(CMAKE_BUILD_TYPE Release)
