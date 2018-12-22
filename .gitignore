@@ -40,3 +40,6 @@ dist
 .coveralls.yml
 
 .vscode
+
+doc/html
+doc/latex
