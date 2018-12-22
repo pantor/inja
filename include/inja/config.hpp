@@ -38,7 +38,7 @@ struct LexerConfig {
 };
 
 struct ParserConfig {
-  ElementNotation notation = ElementNotation::Pointer;
+  ElementNotation notation {ElementNotation::Pointer};
 };
 
 }

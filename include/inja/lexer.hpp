@@ -1,7 +1,7 @@
 #ifndef PANTOR_INJA_LEXER_HPP
 #define PANTOR_INJA_LEXER_HPP
 
-#include <cctype>
+#include <locale>
 
 #include "config.hpp"
 #include "token.hpp"
@@ -48,24 +48,24 @@ class Lexer {
       default:
       case State::Text: {
         // fast-scan to first open character
-        size_t openStart = m_in.substr(m_pos).find_first_of(m_config.open_chars);
-        if (openStart == std::string_view::npos) {
+        size_t open_start = m_in.substr(m_pos).find_first_of(m_config.open_chars);
+        if (open_start == std::string_view::npos) {
           // didn't find open, return remaining text as text token
           m_pos = m_in.size();
           return make_token(Token::Kind::Text);
         }
-        m_pos += openStart;
+        m_pos += open_start;
 
         // try to match one of the opening sequences, and get the close
-        std::string_view openStr = m_in.substr(m_pos);
-        if (string_view::starts_with(openStr, m_config.expression_open)) {
+        std::string_view open_str = m_in.substr(m_pos);
+        if (string_view::starts_with(open_str, m_config.expression_open)) {
           m_state = State::ExpressionStart;
-        } else if (string_view::starts_with(openStr, m_config.statement_open)) {
+        } else if (string_view::starts_with(open_str, m_config.statement_open)) {
           m_state = State::StatementStart;
-        } else if (string_view::starts_with(openStr, m_config.comment_open)) {
+        } else if (string_view::starts_with(open_str, m_config.comment_open)) {
           m_state = State::CommentStart;
         } else if ((m_pos == 0 || m_in[m_pos - 1] == '\n') &&
-                   string_view::starts_with(openStr, m_config.line_statement)) {
+                   string_view::starts_with(open_str, m_config.line_statement)) {
           m_state = State::LineStart;
         } else {
           m_pos += 1; // wasn't actually an opening sequence
@@ -209,7 +209,7 @@ class Lexer {
     for (;;) {
       if (m_pos >= m_in.size()) break;
       char ch = m_in[m_pos];
-      if (!isalnum(ch) && ch != '.' && ch != '/' && ch != '_' && ch != '-') break;
+      if (!std::isalnum(ch) && ch != '.' && ch != '/' && ch != '_' && ch != '-') break;
       m_pos += 1;
     }
     return make_token(Token::Kind::Id);
@@ -220,7 +220,7 @@ class Lexer {
       if (m_pos >= m_in.size()) break;
       char ch = m_in[m_pos];
       // be very permissive in lexer (we'll catch errors when conversion happens)
-      if (!isdigit(ch) && ch != '.' && ch != 'e' && ch != 'E' && ch != '+' && ch != '-')
+      if (!std::isdigit(ch) && ch != '.' && ch != 'e' && ch != 'E' && ch != '+' && ch != '-')
         break;
       m_pos += 1;
     }
@@ -228,7 +228,7 @@ class Lexer {
   }
 
   Token scan_string() {
-    bool escape = false;
+    bool escape {false};
     for (;;) {
       if (m_pos >= m_in.size()) break;
       char ch = m_in[m_pos++];

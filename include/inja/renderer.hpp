@@ -13,23 +13,6 @@
 
 namespace inja {
 
-inline bool truthy(const json& var) {
-  if (var.empty()) {
-    return false;
-  } else if (var.is_number()) {
-    return (var != 0);
-  } else if (var.is_string()) {
-    return !var.empty();
-  }
-
-  try {
-    return var.get<bool>();
-  } catch (json::type_error& e) {
-    inja_throw("json_error", e.what());
-    throw;
-  }
-}
-
 inline std::string_view convert_dot_to_json_pointer(std::string_view dot, std::string& out) {
   out.clear();
   do {
@@ -98,6 +81,23 @@ class Renderer {
       }
       inja_throw("render_error", "variable '" + static_cast<std::string>(bc.str) + "' not found");
       return nullptr;
+    }
+  }
+
+  bool truthy(const json& var) const {
+    if (var.empty()) {
+      return false;
+    } else if (var.is_number()) {
+      return (var != 0);
+    } else if (var.is_string()) {
+      return !var.empty();
+    }
+
+    try {
+      return var.get<bool>();
+    } catch (json::type_error& e) {
+      inja_throw("json_error", e.what());
+      throw;
     }
   }
 

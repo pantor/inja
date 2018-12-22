@@ -82,7 +82,7 @@ class Environment {
     return parser.parse(input);
   }
 
-  Template parse_template(std::string_view filename) {
+  Template parse_template(const std::string& filename) {
     Parser parser(m_impl->parser_config, m_impl->lexer_config, m_impl->included_templates);
 		return parser.parse_template(m_impl->input_path + static_cast<std::string>(filename));
 	}

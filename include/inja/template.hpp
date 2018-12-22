@@ -14,22 +14,22 @@ class Template {
   friend class Renderer;
 
   std::vector<Bytecode> bytecodes;
-  std::string contents;
+  std::string content;
 
  public:
   Template() {}
-  Template(const Template& oth): bytecodes(oth.bytecodes), contents(oth.contents) {}
-  Template(Template&& oth): bytecodes(std::move(oth.bytecodes)), contents(std::move(oth.contents)) {}
+  Template(const Template& oth): bytecodes(oth.bytecodes), content(oth.content) {}
+  Template(Template&& oth): bytecodes(std::move(oth.bytecodes)), content(std::move(oth.content)) {}
 
   Template& operator=(const Template& oth) {
     bytecodes = oth.bytecodes;
-    contents = oth.contents;
+    content = oth.content;
     return *this;
   }
 
   Template& operator=(Template&& oth) {
     bytecodes = std::move(oth.bytecodes);
-    contents = std::move(oth.contents);
+    content = std::move(oth.content);
     return *this;
   }
 };

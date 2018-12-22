@@ -29,7 +29,7 @@ namespace string_view {
   inline bool starts_with(std::string_view view, std::string_view prefix) {
     return (view.size() >= prefix.size() && view.compare(0, prefix.size(), prefix) == 0);
   }
-} // namespace string
+}  // namespace string
 
 }  // namespace inja
 
