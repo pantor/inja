@@ -5,6 +5,12 @@
 using json = nlohmann::json;
 
 
+TEST_CASE("dot-to-pointer") {
+	std::string buffer;
+	CHECK( inja::convert_dot_to_json_pointer("person.names.surname", buffer) == "/person/names/surname" );
+	CHECK( inja::convert_dot_to_json_pointer("guests.2", buffer) == "/guests/2" );
+}
+
 TEST_CASE("types") {
 	inja::Environment env = inja::Environment();
 	json data;

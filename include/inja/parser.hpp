@@ -59,7 +59,7 @@ class ParserStatic {
 
 class Parser {
  public:
-  Parser(const ParserConfig& parser_config, const LexerConfig& lexer_config,
+  explicit Parser(const ParserConfig& parser_config, const LexerConfig& lexer_config,
          TemplateStorage& included_templates): m_config(parser_config),
            m_lexer(lexer_config),
            m_included_templates(included_templates),
@@ -132,9 +132,9 @@ class Parser {
   }
 
   bool parse_expression_datum(Template& tmpl) {
-    std::string_view jsonFirst;
-    size_t bracketLevel = 0;
-    size_t braceLevel = 0;
+    std::string_view json_first;
+    size_t bracket_level = 0;
+    size_t brace_level = 0;
 
     for (;;) {
       switch (m_tok.kind) {
@@ -189,8 +189,8 @@ class Parser {
             }
           } else if (m_tok.text == "true" || m_tok.text == "false" || m_tok.text == "null") {
             // true, false, null are json literals
-            if (braceLevel == 0 && bracketLevel == 0) {
-              jsonFirst = m_tok.text;
+            if (brace_level == 0 && bracket_level == 0) {
+              json_first = m_tok.text;
               goto returnJson;
             }
             break;
@@ -205,44 +205,44 @@ class Parser {
         // json passthrough
         case Token::Kind::Number:
         case Token::Kind::String:
-          if (braceLevel == 0 && bracketLevel == 0) {
-            jsonFirst = m_tok.text;
+          if (brace_level == 0 && bracket_level == 0) {
+            json_first = m_tok.text;
             goto returnJson;
           }
           break;
         case Token::Kind::Comma:
         case Token::Kind::Colon:
-          if (braceLevel == 0 && bracketLevel == 0) {
+          if (brace_level == 0 && bracket_level == 0) {
             inja_throw("parser_error", "unexpected token '" + static_cast<std::string>(m_tok.describe()) + "'");
           }
           break;
         case Token::Kind::LeftBracket:
-          if (braceLevel == 0 && bracketLevel == 0) jsonFirst = m_tok.text;
-          ++bracketLevel;
+          if (brace_level == 0 && bracket_level == 0) json_first = m_tok.text;
+          ++bracket_level;
           break;
         case Token::Kind::LeftBrace:
-          if (braceLevel == 0 && bracketLevel == 0) jsonFirst = m_tok.text;
-          ++braceLevel;
+          if (brace_level == 0 && bracket_level == 0) json_first = m_tok.text;
+          ++brace_level;
           break;
         case Token::Kind::RightBracket:
-          if (bracketLevel == 0) {
+          if (bracket_level == 0) {
             inja_throw("parser_error", "unexpected ']'");
           }
-          --bracketLevel;
-          if (braceLevel == 0 && bracketLevel == 0) goto returnJson;
+          --bracket_level;
+          if (brace_level == 0 && bracket_level == 0) goto returnJson;
           break;
         case Token::Kind::RightBrace:
-          if (braceLevel == 0) {
+          if (brace_level == 0) {
             inja_throw("parser_error", "unexpected '}'");
           }
-          --braceLevel;
-          if (braceLevel == 0 && bracketLevel == 0) goto returnJson;
+          --brace_level;
+          if (brace_level == 0 && bracket_level == 0) goto returnJson;
           break;
         default:
-          if (braceLevel != 0) {
+          if (brace_level != 0) {
             inja_throw("parser_error", "unmatched '{'");
           }
-          if (bracketLevel != 0) {
+          if (bracket_level != 0) {
             inja_throw("parser_error", "unmatched '['");
           }
           return false;
@@ -253,7 +253,7 @@ class Parser {
 
   returnJson:
     // bridge across all intermediate tokens
-    std::string_view jsonText(jsonFirst.data(), m_tok.text.data() - jsonFirst.data() + m_tok.text.size());
+    std::string_view jsonText(json_first.data(), m_tok.text.data() - json_first.data() + m_tok.text.size());
     tmpl.bytecodes.emplace_back(Bytecode::Op::Push, json::parse(jsonText), Bytecode::Flag::ValueImmediate);
     get_next_token();
     return true;
@@ -269,14 +269,14 @@ class Parser {
       if (!parse_expression(tmpl)) return false;
 
       // start a new if block on if stack
-      m_ifStack.emplace_back(tmpl.bytecodes.size());
+      m_if_stack.emplace_back(tmpl.bytecodes.size());
 
       // conditional jump; destination will be filled in by else or endif
       tmpl.bytecodes.emplace_back(Bytecode::Op::ConditionalJump);
     } else if (m_tok.text == "endif") {
-      if (m_ifStack.empty())
+      if (m_if_stack.empty())
         inja_throw("parser_error", "endif without matching if");
-      auto& ifData = m_ifStack.back();
+      auto& ifData = m_if_stack.back();
       get_next_token();
 
       // previous conditional jump jumps here
@@ -288,11 +288,11 @@ class Parser {
         tmpl.bytecodes[i].args = tmpl.bytecodes.size();
 
       // pop if stack
-      m_ifStack.pop_back();
+      m_if_stack.pop_back();
     } else if (m_tok.text == "else") {
-      if (m_ifStack.empty())
+      if (m_if_stack.empty())
         inja_throw("parser_error", "else without matching if");
-      auto& ifData = m_ifStack.back();
+      auto& ifData = m_if_stack.back();
       get_next_token();
 
       // end previous block with unconditional jump to endif; destination will be
@@ -343,22 +343,22 @@ class Parser {
 
       if (!parse_expression(tmpl)) return false;
 
-      m_loopStack.push_back(tmpl.bytecodes.size());
+      m_loop_stack.push_back(tmpl.bytecodes.size());
 
       tmpl.bytecodes.emplace_back(Bytecode::Op::StartLoop);
       if (!keyTok.text.empty()) tmpl.bytecodes.back().value = keyTok.text;
       tmpl.bytecodes.back().str = valueTok.text;
     } else if (m_tok.text == "endfor") {
       get_next_token();
-      if (m_loopStack.empty())
+      if (m_loop_stack.empty())
         inja_throw("parser_error", "endfor without matching for");
 
       // update loop with EndLoop index (for empty case)
-      tmpl.bytecodes[m_loopStack.back()].args = tmpl.bytecodes.size();
+      tmpl.bytecodes[m_loop_stack.back()].args = tmpl.bytecodes.size();
 
       tmpl.bytecodes.emplace_back(Bytecode::Op::EndLoop);
-      tmpl.bytecodes.back().args = m_loopStack.back() + 1;  // loop body
-      m_loopStack.pop_back();
+      tmpl.bytecodes.back().args = m_loop_stack.back() + 1;  // loop body
+      m_loop_stack.pop_back();
     } else if (m_tok.text == "include") {
       get_next_token();
 
@@ -366,9 +366,9 @@ class Parser {
         inja_throw("parser_error", "expected string, got '" + static_cast<std::string>(m_tok.describe()) + "'");
 
       // build the relative path
-      json jsonName = json::parse(m_tok.text);
+      json json_name = json::parse(m_tok.text);
       std::string pathname = static_cast<std::string>(path);
-      pathname += jsonName.get_ref<const std::string&>();
+      pathname += json_name.get_ref<const std::string&>();
       if (pathname.compare(0, 2, "./") == 0) {
         pathname.erase(0, 2);
       }
@@ -431,8 +431,8 @@ class Parser {
       get_next_token();
       switch (m_tok.kind) {
         case Token::Kind::Eof:
-          if (!m_ifStack.empty()) inja_throw("parser_error", "unmatched if");
-          if (!m_loopStack.empty()) inja_throw("parser_error", "unmatched for");
+          if (!m_if_stack.empty()) inja_throw("parser_error", "unmatched if");
+          if (!m_loop_stack.empty()) inja_throw("parser_error", "unmatched for");
           return;
         case Token::Kind::Text:
           tmpl.bytecodes.emplace_back(Bytecode::Op::PrintText, m_tok.text, 0u);
@@ -520,8 +520,8 @@ class Parser {
     explicit IfData(unsigned int condJump): prev_cond_jump(condJump) {}
   };
 
-  std::vector<IfData> m_ifStack;
-  std::vector<unsigned int> m_loopStack;
+  std::vector<IfData> m_if_stack;
+  std::vector<unsigned int> m_loop_stack;
 
   void get_next_token() {
     if (m_have_peek_tok) {

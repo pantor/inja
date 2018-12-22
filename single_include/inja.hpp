@@ -17,6 +17,7 @@
 #define PANTOR_INJA_ENVIRONMENT_HPP
 
 #include <memory>
+#include <fstream>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -39,7 +40,7 @@ enum class ElementNotation {
   Pointer
 };
 
-struct lexer_config {
+struct LexerConfig {
   std::string statement_open {"{%"};
   std::string statement_close {"%}"};
   std::string line_statement {"##"};
@@ -63,9 +64,8 @@ struct lexer_config {
   }
 };
 
-struct parser_config {
+struct ParserConfig {
   ElementNotation notation = ElementNotation::Pointer;
-  std::function<std::string(std::string_view filename)> loadFile;
 };
 
 }
@@ -427,13 +427,13 @@ class Lexer {
     CommentBody
   } m_state;
 
-  const lexer_config& m_config;
+  const LexerConfig& m_config;
   std::string_view m_in;
   size_t m_tok_start;
   size_t m_pos;
 
  public:
-  explicit Lexer(const lexer_config& config) : m_config(config) {}
+  explicit Lexer(const LexerConfig& config) : m_config(config) {}
 
   void start(std::string_view in) {
     m_in = in;
@@ -519,7 +519,7 @@ class Lexer {
     }
   }
 
-  const lexer_config& get_config() const { return m_config; }
+  const LexerConfig& get_config() const { return m_config; }
 
  private:
   Token scan_body(std::string_view close, Token::Kind closeKind) {
@@ -710,18 +710,6 @@ using TemplateStorage = std::map<std::string, Template>;
 namespace inja {
 
 class ParserStatic {
- public:
-  ParserStatic(const ParserStatic&) = delete;
-  ParserStatic& operator=(const ParserStatic&) = delete;
-
-  static const ParserStatic& get_instance() {
-    static ParserStatic inst;
-    return inst;
-  }
-
-  FunctionStorage functions;
-
- private:
   ParserStatic() {
     functions.add_builtin("default", 2, Bytecode::Op::Default);
     functions.add_builtin("divisibleBy", 2, Bytecode::Op::DivisibleBy);
@@ -749,11 +737,22 @@ class ParserStatic {
     functions.add_builtin("isArray", 1, Bytecode::Op::IsArray);
     functions.add_builtin("isString", 1, Bytecode::Op::IsString);
   }
+
+ public:
+  ParserStatic(const ParserStatic&) = delete;
+  ParserStatic& operator=(const ParserStatic&) = delete;
+
+  static const ParserStatic& get_instance() {
+    static ParserStatic inst;
+    return inst;
+  }
+
+  FunctionStorage functions;
 };
 
 class Parser {
  public:
-  Parser(const parser_config& parser_config, const lexer_config& lexer_config,
+  Parser(const ParserConfig& parser_config, const LexerConfig& lexer_config,
          TemplateStorage& included_templates): m_config(parser_config),
            m_lexer(lexer_config),
            m_included_templates(included_templates),
@@ -1184,17 +1183,22 @@ class Parser {
 
   Template parse_template(std::string_view filename) {
     Template result;
-    if (m_config.loadFile) {
-      result.contents = m_config.loadFile(filename);
-      std::string_view path = filename.substr(0, filename.find_last_of("/\\") + 1);
+    result.contents = load_file(filename);
+
+    std::string_view path = filename.substr(0, filename.find_last_of("/\\") + 1);
       // StringRef path = sys::path::parent_path(filename);
-      Parser(m_config, m_lexer.get_config(), m_included_templates).parse_into(result, path);
-    }
+    Parser(m_config, m_lexer.get_config(), m_included_templates).parse_into(result, path);
     return result;
   }
 
+  std::string load_file(std::string_view filename) {
+		std::ifstream file(static_cast<std::string>(filename));
+		std::string text((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+		return text;
+	}
+
  private:
-  const parser_config& m_config;
+  const ParserConfig& m_config;
   Lexer m_lexer;
   Token m_tok;
   Token m_peek_tok;
@@ -1837,21 +1841,29 @@ using namespace nlohmann;
 class Environment {
   class Impl {
    public:
-    std::string path;
+    std::string input_path;
+    std::string output_path;
 
-    lexer_config lexer_config;
-    parser_config parser_config;
+    LexerConfig lexer_config;
+    ParserConfig parser_config;
 
     FunctionStorage callbacks;
     TemplateStorage included_templates;
   };
+
   std::unique_ptr<Impl> m_impl;
 
  public:
   Environment(): Environment("./") { }
 
-  explicit Environment(const std::string& path): m_impl(std::make_unique<Impl>()) {
-    m_impl->path = path;
+  explicit Environment(const std::string& global_path): m_impl(std::make_unique<Impl>()) {
+    m_impl->input_path = global_path;
+    m_impl->output_path = global_path;
+  }
+
+  explicit Environment(const std::string& input_path, const std::string& output_path): m_impl(std::make_unique<Impl>()) {
+    m_impl->input_path = input_path;
+    m_impl->output_path = output_path;
   }
 
   void set_statement(const std::string& open, const std::string& close) {
@@ -1881,10 +1893,6 @@ class Environment {
     m_impl->parser_config.notation = notation;
   }
 
-  void set_load_file(std::function<std::string(std::string_view)> loadFile) {
-    m_impl->parser_config.loadFile = loadFile;
-  }
-
 
   Template parse(std::string_view input) {
     Parser parser(m_impl->parser_config, m_impl->lexer_config, m_impl->included_templates);
@@ -1892,7 +1900,8 @@ class Environment {
   }
 
   Template parse_template(std::string_view filename) {
-		return parser.parse_template(m_impl->path + filename);
+    Parser parser(m_impl->parser_config, m_impl->lexer_config, m_impl->included_templates);
+		return parser.parse_template(m_impl->input_path + static_cast<std::string>(filename));
 	}
 
   std::string render(std::string_view input, const json& data) {
@@ -1905,8 +1914,35 @@ class Environment {
     return os.str();
   }
 
-  std::string render_file(std::string_view filename, const json& data) {
+  std::string render_file(const std::string& filename, const json& data) {
 		return render(parse_template(filename), data);
+	}
+
+  std::string render_file_with_json_file(const std::string& filename, const std::string& filename_data) {
+		const json data = load_json(filename_data);
+		return render_file(filename, data);
+	}
+
+  void write(const std::string& filename, const json& data, const std::string& filename_out) {
+		std::ofstream file(m_impl->output_path + filename_out);
+		file << render_file(filename, data);
+		file.close();
+	}
+
+  void write(const Template& temp, const json& data, const std::string& filename_out) {
+		std::ofstream file(m_impl->output_path + filename_out);
+		file << render(temp, data);
+		file.close();
+	}
+
+	void write_with_json_file(const std::string& filename, const std::string& filename_data, const std::string& filename_out) {
+		const json data = load_json(filename_data);
+		write(filename, data, filename_out);
+	}
+
+	void write_with_json_file(const Template& temp, const std::string& filename_data, const std::string& filename_out) {
+		const json data = load_json(filename_data);
+		write(temp, data, filename_out);
 	}
 
   std::stringstream& render_to(std::stringstream& os, const Template& tmpl, const json& data) {
@@ -1914,7 +1950,19 @@ class Environment {
     return os;
   }
 
-  void add_callback(std::string_view name, unsigned int numArgs, const CallbackFunction& callback) {
+  std::string load_file(const std::string& filename) {
+    Parser parser(m_impl->parser_config, m_impl->lexer_config, m_impl->included_templates);
+		return parser.load_file(m_impl->input_path + filename);
+	}
+
+  json load_json(const std::string& filename) {
+		std::ifstream file(m_impl->input_path + filename);
+		json j;
+		file >> j;
+		return j;
+	}
+
+  void add_callback(const std::string& name, unsigned int numArgs, const CallbackFunction& callback) {
     m_impl->callbacks.add_callback(name, numArgs, callback);
   }
 

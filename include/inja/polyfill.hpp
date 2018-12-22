@@ -8,7 +8,7 @@
 #include <type_traits>
 #include <utility>
 
-namespace std {
+namespace stdinja {
   template<class T> struct _Unique_if {
     typedef unique_ptr<T> _Single_object;
   };
@@ -38,6 +38,10 @@ namespace std {
   typename _Unique_if<T>::_Known_bound
   make_unique(Args&&...) = delete;
 }
+
+#else
+
+namespace stdinja = std;
 
 #endif // memory */
 

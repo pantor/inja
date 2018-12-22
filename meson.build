@@ -22,9 +22,8 @@ endif
 inja_test = executable(
   'inja_test',
   'test/unit.cpp',
-  # 'test/unit-files.cpp',
+  'test/unit-files.cpp',
   'test/unit-renderer.cpp',
-  # 'test/unit-string-helper.cpp',
   dependencies: inja_dep
 )
 

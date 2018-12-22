@@ -72,7 +72,7 @@ class Renderer {
   }
 
   const json* get_imm(const Bytecode& bc) {
-    std::string ptrBuf;
+    std::string ptr_buffer;
     std::string_view ptr;
     switch (bc.flags & Bytecode::Flag::ValueMask) {
       case Bytecode::Flag::ValuePop:
@@ -80,12 +80,12 @@ class Renderer {
       case Bytecode::Flag::ValueImmediate:
         return &bc.value;
       case Bytecode::Flag::ValueLookupDot:
-        ptr = convert_dot_to_json_pointer(bc.str, ptrBuf);
+        ptr = convert_dot_to_json_pointer(bc.str, ptr_buffer);
         break;
       case Bytecode::Flag::ValueLookupPointer:
-        ptrBuf += '/';
-        ptrBuf += bc.str;
-        ptr = ptrBuf;
+        ptr_buffer += '/';
+        ptr_buffer += bc.str;
+        ptr = ptr_buffer;
         break;
     }
     try {
@@ -93,9 +93,9 @@ class Renderer {
     } catch (std::exception&) {
       // try to evaluate as a no-argument callback
       if (auto callback = m_callbacks.find_callback(bc.str, 0)) {
-        std::vector<const json*> asdf{};
-        // m_tmpVal = cb(asdf, *m_data);
-        m_tmpVal = callback(asdf);
+        std::vector<const json*> arguments {};
+        // m_tmpVal = cb(arguments, *m_data);
+        m_tmpVal = callback(arguments);
         return &m_tmpVal;
       }
       inja_throw("render_error", "variable '" + static_cast<std::string>(bc.str) + "' not found");
@@ -104,7 +104,7 @@ class Renderer {
   }
 
   void update_loop_data()  {
-    LoopLevel& level = m_loopStack.back();
+    LoopLevel& level = m_loop_stack.back();
     if (level.keyName.empty()) {
       level.data[static_cast<std::string>(level.valueName)] = *level.it;
       auto& loopData = level.data["loop"];
@@ -142,7 +142,7 @@ class Renderer {
     MapValues::iterator mapIt;      // iterator over values
   };
 
-  std::vector<LoopLevel> m_loopStack;
+  std::vector<LoopLevel> m_loop_stack;
   const json* m_data;
 
   std::vector<const json*> m_tmpArgs;
@@ -453,8 +453,8 @@ class Renderer {
             break;
           }
 
-          m_loopStack.emplace_back();
-          LoopLevel& level = m_loopStack.back();
+          m_loop_stack.emplace_back();
+          LoopLevel& level = m_loop_stack.back();
           level.valueName = bc.str;
           level.values = std::move(m_stack.back());
           level.data = data;
@@ -463,7 +463,7 @@ class Renderer {
           if (bc.value.is_string()) {
             // map iterator
             if (!level.values.is_object()) {
-              m_loopStack.pop_back();
+              m_loop_stack.pop_back();
               inja_throw("render_error", "for key, value requires object");
             }
             level.keyName = bc.value.get_ref<const std::string&>();
@@ -497,10 +497,10 @@ class Renderer {
           break;
         }
         case Bytecode::Op::EndLoop: {
-          if (m_loopStack.empty()) {
+          if (m_loop_stack.empty()) {
             inja_throw("render_error", "unexpected state in renderer");
           }
-          LoopLevel& level = m_loopStack.back();
+          LoopLevel& level = m_loop_stack.back();
 
           bool done;
           if (level.keyName.empty()) {
@@ -513,10 +513,10 @@ class Renderer {
           }
 
           if (done) {
-            m_loopStack.pop_back();
+            m_loop_stack.pop_back();
             // set "current" data to outer loop data or main data as appropriate
-            if (!m_loopStack.empty())
-              m_data = &m_loopStack.back().data;
+            if (!m_loop_stack.empty())
+              m_data = &m_loop_stack.back().data;
             else
               m_data = &data;
             break;

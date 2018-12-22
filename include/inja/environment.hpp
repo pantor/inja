@@ -39,12 +39,12 @@ class Environment {
  public:
   Environment(): Environment("./") { }
 
-  explicit Environment(const std::string& global_path): m_impl(std::make_unique<Impl>()) {
+  explicit Environment(const std::string& global_path): m_impl(stdinja::make_unique<Impl>()) {
     m_impl->input_path = global_path;
     m_impl->output_path = global_path;
   }
 
-  explicit Environment(const std::string& input_path, const std::string& output_path): m_impl(std::make_unique<Impl>()) {
+  explicit Environment(const std::string& input_path, const std::string& output_path): m_impl(stdinja::make_unique<Impl>()) {
     m_impl->input_path = input_path;
     m_impl->output_path = output_path;
   }

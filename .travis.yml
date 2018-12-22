@@ -24,7 +24,7 @@ matrix:
       addons:
         apt:
           sources: ubuntu-toolchain-r-test
-          packages: g++-8'
+          packages: g++-8
 
     - os: linux
       compiler: gcc
@@ -34,7 +34,7 @@ matrix:
       addons:
         apt:
           sources: ubuntu-toolchain-r-test
-          packages: g++-8'
+          packages: g++-8
 
     - os: linux
       compiler: clang

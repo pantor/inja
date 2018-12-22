@@ -119,8 +119,8 @@ struct Bytecode {
 
   Bytecode(): args(0), flags(0) {}
   explicit Bytecode(Op op, unsigned int args = 0): op(op), args(args), flags(0) {}
-  Bytecode(Op op, std::string_view str, unsigned int flags): op(op), args(0), flags(flags), str(str) {}
-  Bytecode(Op op, json&& value, unsigned int flags): op(op), args(0), flags(flags), value(std::move(value)) {}
+  explicit Bytecode(Op op, std::string_view str, unsigned int flags): op(op), args(0), flags(flags), str(str) {}
+  explicit Bytecode(Op op, json&& value, unsigned int flags): op(op), args(0), flags(flags), value(std::move(value)) {}
 };
 
 }  // namespace inja

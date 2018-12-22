@@ -1,6 +1,8 @@
 #ifndef PANTOR_INJA_LEXER_HPP
 #define PANTOR_INJA_LEXER_HPP
 
+#include <cctype>
+
 #include "config.hpp"
 #include "token.hpp"
 #include "utils.hpp"

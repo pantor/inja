@@ -23,7 +23,11 @@ execute_process(COMMAND python3 amalgamate/amalgamate.py -c amalgamate/config.js
 
 
 if(BUILD_TESTS)
-  add_executable(inja_test test/unit.cpp test test/unit-files.cpp test/unit-renderer.cpp)
+  add_executable(inja_test
+    test/unit.cpp
+    test/unit-files.cpp
+    test/unit-renderer.cpp
+  )
   target_link_libraries(inja_test PRIVATE inja)
 endif()
 
