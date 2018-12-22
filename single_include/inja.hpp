@@ -419,10 +419,16 @@ namespace inja {
 
 using json = nlohmann::json;
 
+class Environment;
 
 class Renderer {
 public:
-	std::map<Parsed::CallbackSignature, std::function<json(const Parsed::Arguments&, const json&)>> map_callbacks;
+	using CallbackType = std::function<json(Environment &env, const Parsed::Arguments&, const json&)>;
+
+	Environment &environment;
+	std::map<Parsed::CallbackSignature, CallbackType> map_callbacks;
+
+	Renderer(Environment &env) : environment(env) { }
 
 	template<bool>
 	bool eval_expression(const Parsed::ElementExpression& element, const json& data) {
@@ -568,7 +574,7 @@ public:
 			}
 			case Parsed::Function::Callback: {
 				Parsed::CallbackSignature signature = std::make_pair(element.command, element.args.size());
-				return map_callbacks.at(signature)(element.args, data);
+				return map_callbacks.at(signature)(environment, element.args, data);
 			}
 			case Parsed::Function::Exists: {
 				const std::string name = eval_expression<std::string>(element.args[0], data);
@@ -1048,6 +1054,7 @@ public:
 #include <iostream>
 #include <string>
 
+#include <regex.hpp>
 #include <parser.hpp>
 #include <renderer.hpp>
 #include <template.hpp>
@@ -1070,8 +1077,8 @@ class Environment {
 
 public:
 	Environment(): Environment("./") { }
-	explicit Environment(const std::string& global_path): input_path(global_path), output_path(global_path), parser() { }
-	explicit Environment(const std::string& input_path, const std::string& output_path): input_path(input_path), output_path(output_path), parser() { }
+	explicit Environment(const std::string& global_path): input_path(global_path), output_path(global_path), parser(),renderer(*this) { }
+	explicit Environment(const std::string& input_path, const std::string& output_path): input_path(input_path), output_path(output_path), parser(),renderer(*this) { }
 
 	void set_statement(const std::string& open, const std::string& close) {
 		parser.regex_map_delimiters[Parsed::Delimiter::Statement] = Regex{open + "\\s*(.+?)\\s*" + close};
@@ -1151,7 +1158,7 @@ public:
 		return j;
 	}
 
-	void add_callback(std::string name, int number_arguments, const std::function<json(const Parsed::Arguments&, const json&)>& callback) {
+	void add_callback(std::string name, int number_arguments, const Renderer::CallbackType& callback) {
 		const Parsed::CallbackSignature signature = std::make_pair(name, number_arguments);
 		parser.regex_map_callbacks[signature] = Parser::function_regex(name, number_arguments);
 		renderer.map_callbacks[signature] = callback;
