@@ -1,6 +1,7 @@
 #ifndef PANTOR_INJA_BYTECODE_HPP
 #define PANTOR_INJA_BYTECODE_HPP
 
+#include <string_view>
 #include <utility>
 
 #include <nlohmann/json.hpp>
