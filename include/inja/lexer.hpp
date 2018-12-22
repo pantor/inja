@@ -82,12 +82,12 @@ class Lexer {
       case State::LineStart: {
         m_state = State::LineBody;
         m_pos += m_config.line_statement.size();
-        return make_token(Token::Kind::LinestatementOpen);
+        return make_token(Token::Kind::LineStatementOpen);
       }
       case State::StatementStart: {
         m_state = State::StatementBody;
         m_pos += m_config.statement_open.size();
-        return make_token(Token::Kind::statementOpen);
+        return make_token(Token::Kind::StatementOpen);
       }
       case State::CommentStart: {
         m_state = State::CommentBody;

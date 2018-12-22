@@ -161,7 +161,7 @@ class Parser {
             } else {
               for (;;) {
                 if (!parse_expression(tmpl)) {
-                  inja_throw("parser_error", "expected expression, got '" + static_cast<std::string>(m_tok.describe()) + "'");
+                  inja_throw("parser_error", "expected expression, got '" + m_tok.describe() + "'");
                 }
                 ++numArgs;
                 if (m_tok.kind == Token::Kind::RightParen) {
@@ -169,7 +169,7 @@ class Parser {
                   break;
                 }
                 if (m_tok.kind != Token::Kind::Comma) {
-                  inja_throw("parser_error", "expected ')' or ',', got '" + static_cast<std::string>(m_tok.describe()) + "'");
+                  inja_throw("parser_error", "expected ')' or ',', got '" + m_tok.describe() + "'");
                 }
                 get_next_token();
               }
@@ -213,7 +213,7 @@ class Parser {
         case Token::Kind::Comma:
         case Token::Kind::Colon:
           if (brace_level == 0 && bracket_level == 0) {
-            inja_throw("parser_error", "unexpected token '" + static_cast<std::string>(m_tok.describe()) + "'");
+            inja_throw("parser_error", "unexpected token '" + m_tok.describe() + "'");
           }
           break;
         case Token::Kind::LeftBracket:
@@ -322,7 +322,7 @@ class Parser {
 
       // options: for a in arr; for a, b in obj
       if (m_tok.kind != Token::Kind::Id)
-        inja_throw("parser_error", "expected id, got '" + static_cast<std::string>(m_tok.describe()) + "'");
+        inja_throw("parser_error", "expected id, got '" + m_tok.describe() + "'");
       Token valueTok = m_tok;
       get_next_token();
 
@@ -330,7 +330,7 @@ class Parser {
       if (m_tok.kind == Token::Kind::Comma) {
         get_next_token();
         if (m_tok.kind != Token::Kind::Id)
-          inja_throw("parser_error", "expected id, got '" + static_cast<std::string>(m_tok.describe()) + "'");
+          inja_throw("parser_error", "expected id, got '" + m_tok.describe() + "'");
         keyTok = std::move(valueTok);
         valueTok = m_tok;
         get_next_token();
@@ -338,7 +338,7 @@ class Parser {
 
       if (m_tok.kind != Token::Kind::Id || m_tok.text != "in")
         inja_throw("parser_error",
-                   "expected 'in', got '" + static_cast<std::string>(m_tok.describe()) + "'");
+                   "expected 'in', got '" + m_tok.describe() + "'");
       get_next_token();
 
       if (!parse_expression(tmpl)) return false;
@@ -363,7 +363,7 @@ class Parser {
       get_next_token();
 
       if (m_tok.kind != Token::Kind::String)
-        inja_throw("parser_error", "expected string, got '" + static_cast<std::string>(m_tok.describe()) + "'");
+        inja_throw("parser_error", "expected string, got '" + m_tok.describe() + "'");
 
       // build the relative path
       json json_name = json::parse(m_tok.text);
@@ -437,41 +437,41 @@ class Parser {
         case Token::Kind::Text:
           tmpl.bytecodes.emplace_back(Bytecode::Op::PrintText, m_tok.text, 0u);
           break;
-        case Token::Kind::statementOpen:
+        case Token::Kind::StatementOpen:
           get_next_token();
           if (!parse_statement(tmpl, path)) {
-            inja_throw("parser_error", "expected statement, got '" + static_cast<std::string>(m_tok.describe()) + "'");
+            inja_throw("parser_error", "expected statement, got '" + m_tok.describe() + "'");
           }
           if (m_tok.kind != Token::Kind::StatementClose) {
-            inja_throw("parser_error", "expected statement close, got '" + static_cast<std::string>(m_tok.describe()) + "'");
+            inja_throw("parser_error", "expected statement close, got '" + m_tok.describe() + "'");
           }
           break;
-        case Token::Kind::LinestatementOpen:
+        case Token::Kind::LineStatementOpen:
           get_next_token();
           parse_statement(tmpl, path);
           if (m_tok.kind != Token::Kind::LineStatementClose &&
               m_tok.kind != Token::Kind::Eof) {
-            inja_throw("parser_error", "expected line statement close, got '" + static_cast<std::string>(m_tok.describe()) + "'");
+            inja_throw("parser_error", "expected line statement close, got '" + m_tok.describe() + "'");
           }
           break;
         case Token::Kind::ExpressionOpen:
           get_next_token();
           if (!parse_expression(tmpl)) {
-            inja_throw("parser_error", "expected expression, got '" + static_cast<std::string>(m_tok.describe()) + "'");
+            inja_throw("parser_error", "expected expression, got '" + m_tok.describe() + "'");
           }
           append_function(tmpl, Bytecode::Op::PrintValue, 1);
           if (m_tok.kind != Token::Kind::ExpressionClose) {
-            inja_throw("parser_error", "expected expression close, got '" + static_cast<std::string>(m_tok.describe()) + "'");
+            inja_throw("parser_error", "expected expression close, got '" + m_tok.describe() + "'");
           }
           break;
         case Token::Kind::CommentOpen:
           get_next_token();
           if (m_tok.kind != Token::Kind::CommentClose) {
-            inja_throw("parser_error", "expected comment close, got '" + static_cast<std::string>(m_tok.describe()) + "'");
+            inja_throw("parser_error", "expected comment close, got '" + m_tok.describe() + "'");
           }
           break;
         default:
-          inja_throw("parser_error", "unexpected token '" + static_cast<std::string>(m_tok.describe()) + "'");
+          inja_throw("parser_error", "unexpected token '" + m_tok.describe() + "'");
           break;
       }
     }

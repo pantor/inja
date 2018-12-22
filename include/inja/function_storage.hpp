@@ -48,7 +48,7 @@ class FunctionStorage {
 
   FunctionData& get_or_new(std::string_view name, unsigned int num_args) {
     auto &vec = m_map[static_cast<std::string>(name)];
-    for (auto &i : vec) {
+    for (auto &i: vec) {
       if (i.num_args == num_args) return i;
     }
     vec.emplace_back();
@@ -59,7 +59,7 @@ class FunctionStorage {
   const FunctionData* get(std::string_view name, unsigned int num_args) const {
     auto it = m_map.find(static_cast<std::string>(name));
     if (it == m_map.end()) return nullptr;
-    for (auto &&i : it->second) {
+    for (auto &&i: it->second) {
       if (i.num_args == num_args) return &i;
     }
     return nullptr;

@@ -200,8 +200,8 @@ struct Bytecode {
 
   Bytecode(): args(0), flags(0) {}
   explicit Bytecode(Op op, unsigned int args = 0): op(op), args(args), flags(0) {}
-  Bytecode(Op op, std::string_view str, unsigned int flags): op(op), args(0), flags(flags), str(str) {}
-  Bytecode(Op op, json&& value, unsigned int flags): op(op), args(0), flags(flags), value(std::move(value)) {}
+  explicit Bytecode(Op op, std::string_view str, unsigned int flags): op(op), args(0), flags(flags), str(str) {}
+  explicit Bytecode(Op op, json&& value, unsigned int flags): op(op), args(0), flags(flags), value(std::move(value)) {}
 };
 
 }  // namespace inja
@@ -252,7 +252,7 @@ class FunctionStorage {
 
   FunctionData& get_or_new(std::string_view name, unsigned int num_args) {
     auto &vec = m_map[static_cast<std::string>(name)];
-    for (auto &i : vec) {
+    for (auto &i: vec) {
       if (i.num_args == num_args) return i;
     }
     vec.emplace_back();
@@ -263,7 +263,7 @@ class FunctionStorage {
   const FunctionData* get(std::string_view name, unsigned int num_args) const {
     auto it = m_map.find(static_cast<std::string>(name));
     if (it == m_map.end()) return nullptr;
-    for (auto &&i : it->second) {
+    for (auto &&i: it->second) {
       if (i.num_args == num_args) return &i;
     }
     return nullptr;
@@ -292,6 +292,8 @@ class FunctionStorage {
 #ifndef PANTOR_INJA_LEXER_HPP
 #define PANTOR_INJA_LEXER_HPP
 
+#include <cctype>
+
 // #include "config.hpp"
 
 // #include "token.hpp"
@@ -308,9 +310,9 @@ struct Token {
     Text,
     ExpressionOpen,      // {{
     ExpressionClose,     // }}
-    LinestatementOpen,   // ##
+    LineStatementOpen,   // ##
     LineStatementClose,  // \n
-    statementOpen,       // {%
+    StatementOpen,       // {%
     StatementClose,      // %}
     CommentOpen,         // {#
     CommentClose,        // #}
@@ -340,30 +342,16 @@ struct Token {
   constexpr Token() = default;
   constexpr Token(Kind kind, std::string_view text): kind(kind), text(text) {}
 
-  std::string_view describe() const {
+  std::string describe() const {
     switch (kind) {
       case Kind::Text:
         return "<text>";
-      case Kind::ExpressionOpen:
-        return "{{";
-      case Kind::ExpressionClose:
-        return "}}";
-      case Kind::LinestatementOpen:
-        return "##";
       case Kind::LineStatementClose:
         return "<eol>";
-      case Kind::statementOpen:
-        return "{%";
-      case Kind::StatementClose:
-        return "%}";
-      case Kind::CommentOpen:
-        return "{#";
-      case Kind::CommentClose:
-        return "#}";
       case Kind::Eof:
         return "<eof>";
       default:
-        return text;
+        return static_cast<std::string>(text);
     }
   }
 };
@@ -486,12 +474,12 @@ class Lexer {
       case State::LineStart: {
         m_state = State::LineBody;
         m_pos += m_config.line_statement.size();
-        return make_token(Token::Kind::LinestatementOpen);
+        return make_token(Token::Kind::LineStatementOpen);
       }
       case State::StatementStart: {
         m_state = State::StatementBody;
         m_pos += m_config.statement_open.size();
-        return make_token(Token::Kind::statementOpen);
+        return make_token(Token::Kind::StatementOpen);
       }
       case State::CommentStart: {
         m_state = State::CommentBody;
@@ -752,7 +740,7 @@ class ParserStatic {
 
 class Parser {
  public:
-  Parser(const ParserConfig& parser_config, const LexerConfig& lexer_config,
+  explicit Parser(const ParserConfig& parser_config, const LexerConfig& lexer_config,
          TemplateStorage& included_templates): m_config(parser_config),
            m_lexer(lexer_config),
            m_included_templates(included_templates),
@@ -825,9 +813,9 @@ class Parser {
   }
 
   bool parse_expression_datum(Template& tmpl) {
-    std::string_view jsonFirst;
-    size_t bracketLevel = 0;
-    size_t braceLevel = 0;
+    std::string_view json_first;
+    size_t bracket_level = 0;
+    size_t brace_level = 0;
 
     for (;;) {
       switch (m_tok.kind) {
@@ -854,7 +842,7 @@ class Parser {
             } else {
               for (;;) {
                 if (!parse_expression(tmpl)) {
-                  inja_throw("parser_error", "expected expression, got '" + static_cast<std::string>(m_tok.describe()) + "'");
+                  inja_throw("parser_error", "expected expression, got '" + m_tok.describe() + "'");
                 }
                 ++numArgs;
                 if (m_tok.kind == Token::Kind::RightParen) {
@@ -862,7 +850,7 @@ class Parser {
                   break;
                 }
                 if (m_tok.kind != Token::Kind::Comma) {
-                  inja_throw("parser_error", "expected ')' or ',', got '" + static_cast<std::string>(m_tok.describe()) + "'");
+                  inja_throw("parser_error", "expected ')' or ',', got '" + m_tok.describe() + "'");
                 }
                 get_next_token();
               }
@@ -882,8 +870,8 @@ class Parser {
             }
           } else if (m_tok.text == "true" || m_tok.text == "false" || m_tok.text == "null") {
             // true, false, null are json literals
-            if (braceLevel == 0 && bracketLevel == 0) {
-              jsonFirst = m_tok.text;
+            if (brace_level == 0 && bracket_level == 0) {
+              json_first = m_tok.text;
               goto returnJson;
             }
             break;
@@ -898,44 +886,44 @@ class Parser {
         // json passthrough
         case Token::Kind::Number:
         case Token::Kind::String:
-          if (braceLevel == 0 && bracketLevel == 0) {
-            jsonFirst = m_tok.text;
+          if (brace_level == 0 && bracket_level == 0) {
+            json_first = m_tok.text;
             goto returnJson;
           }
           break;
         case Token::Kind::Comma:
         case Token::Kind::Colon:
-          if (braceLevel == 0 && bracketLevel == 0) {
-            inja_throw("parser_error", "unexpected token '" + static_cast<std::string>(m_tok.describe()) + "'");
+          if (brace_level == 0 && bracket_level == 0) {
+            inja_throw("parser_error", "unexpected token '" + m_tok.describe() + "'");
           }
           break;
         case Token::Kind::LeftBracket:
-          if (braceLevel == 0 && bracketLevel == 0) jsonFirst = m_tok.text;
-          ++bracketLevel;
+          if (brace_level == 0 && bracket_level == 0) json_first = m_tok.text;
+          ++bracket_level;
           break;
         case Token::Kind::LeftBrace:
-          if (braceLevel == 0 && bracketLevel == 0) jsonFirst = m_tok.text;
-          ++braceLevel;
+          if (brace_level == 0 && bracket_level == 0) json_first = m_tok.text;
+          ++brace_level;
           break;
         case Token::Kind::RightBracket:
-          if (bracketLevel == 0) {
+          if (bracket_level == 0) {
             inja_throw("parser_error", "unexpected ']'");
           }
-          --bracketLevel;
-          if (braceLevel == 0 && bracketLevel == 0) goto returnJson;
+          --bracket_level;
+          if (brace_level == 0 && bracket_level == 0) goto returnJson;
           break;
         case Token::Kind::RightBrace:
-          if (braceLevel == 0) {
+          if (brace_level == 0) {
             inja_throw("parser_error", "unexpected '}'");
           }
-          --braceLevel;
-          if (braceLevel == 0 && bracketLevel == 0) goto returnJson;
+          --brace_level;
+          if (brace_level == 0 && bracket_level == 0) goto returnJson;
           break;
         default:
-          if (braceLevel != 0) {
+          if (brace_level != 0) {
             inja_throw("parser_error", "unmatched '{'");
           }
-          if (bracketLevel != 0) {
+          if (bracket_level != 0) {
             inja_throw("parser_error", "unmatched '['");
           }
           return false;
@@ -946,7 +934,7 @@ class Parser {
 
   returnJson:
     // bridge across all intermediate tokens
-    std::string_view jsonText(jsonFirst.data(), m_tok.text.data() - jsonFirst.data() + m_tok.text.size());
+    std::string_view jsonText(json_first.data(), m_tok.text.data() - json_first.data() + m_tok.text.size());
     tmpl.bytecodes.emplace_back(Bytecode::Op::Push, json::parse(jsonText), Bytecode::Flag::ValueImmediate);
     get_next_token();
     return true;
@@ -962,14 +950,14 @@ class Parser {
       if (!parse_expression(tmpl)) return false;
 
       // start a new if block on if stack
-      m_ifStack.emplace_back(tmpl.bytecodes.size());
+      m_if_stack.emplace_back(tmpl.bytecodes.size());
 
       // conditional jump; destination will be filled in by else or endif
       tmpl.bytecodes.emplace_back(Bytecode::Op::ConditionalJump);
     } else if (m_tok.text == "endif") {
-      if (m_ifStack.empty())
+      if (m_if_stack.empty())
         inja_throw("parser_error", "endif without matching if");
-      auto& ifData = m_ifStack.back();
+      auto& ifData = m_if_stack.back();
       get_next_token();
 
       // previous conditional jump jumps here
@@ -981,11 +969,11 @@ class Parser {
         tmpl.bytecodes[i].args = tmpl.bytecodes.size();
 
       // pop if stack
-      m_ifStack.pop_back();
+      m_if_stack.pop_back();
     } else if (m_tok.text == "else") {
-      if (m_ifStack.empty())
+      if (m_if_stack.empty())
         inja_throw("parser_error", "else without matching if");
-      auto& ifData = m_ifStack.back();
+      auto& ifData = m_if_stack.back();
       get_next_token();
 
       // end previous block with unconditional jump to endif; destination will be
@@ -1015,7 +1003,7 @@ class Parser {
 
       // options: for a in arr; for a, b in obj
       if (m_tok.kind != Token::Kind::Id)
-        inja_throw("parser_error", "expected id, got '" + static_cast<std::string>(m_tok.describe()) + "'");
+        inja_throw("parser_error", "expected id, got '" + m_tok.describe() + "'");
       Token valueTok = m_tok;
       get_next_token();
 
@@ -1023,7 +1011,7 @@ class Parser {
       if (m_tok.kind == Token::Kind::Comma) {
         get_next_token();
         if (m_tok.kind != Token::Kind::Id)
-          inja_throw("parser_error", "expected id, got '" + static_cast<std::string>(m_tok.describe()) + "'");
+          inja_throw("parser_error", "expected id, got '" + m_tok.describe() + "'");
         keyTok = std::move(valueTok);
         valueTok = m_tok;
         get_next_token();
@@ -1031,37 +1019,37 @@ class Parser {
 
       if (m_tok.kind != Token::Kind::Id || m_tok.text != "in")
         inja_throw("parser_error",
-                   "expected 'in', got '" + static_cast<std::string>(m_tok.describe()) + "'");
+                   "expected 'in', got '" + m_tok.describe() + "'");
       get_next_token();
 
       if (!parse_expression(tmpl)) return false;
 
-      m_loopStack.push_back(tmpl.bytecodes.size());
+      m_loop_stack.push_back(tmpl.bytecodes.size());
 
       tmpl.bytecodes.emplace_back(Bytecode::Op::StartLoop);
       if (!keyTok.text.empty()) tmpl.bytecodes.back().value = keyTok.text;
       tmpl.bytecodes.back().str = valueTok.text;
     } else if (m_tok.text == "endfor") {
       get_next_token();
-      if (m_loopStack.empty())
+      if (m_loop_stack.empty())
         inja_throw("parser_error", "endfor without matching for");
 
       // update loop with EndLoop index (for empty case)
-      tmpl.bytecodes[m_loopStack.back()].args = tmpl.bytecodes.size();
+      tmpl.bytecodes[m_loop_stack.back()].args = tmpl.bytecodes.size();
 
       tmpl.bytecodes.emplace_back(Bytecode::Op::EndLoop);
-      tmpl.bytecodes.back().args = m_loopStack.back() + 1;  // loop body
-      m_loopStack.pop_back();
+      tmpl.bytecodes.back().args = m_loop_stack.back() + 1;  // loop body
+      m_loop_stack.pop_back();
     } else if (m_tok.text == "include") {
       get_next_token();
 
       if (m_tok.kind != Token::Kind::String)
-        inja_throw("parser_error", "expected string, got '" + static_cast<std::string>(m_tok.describe()) + "'");
+        inja_throw("parser_error", "expected string, got '" + m_tok.describe() + "'");
 
       // build the relative path
-      json jsonName = json::parse(m_tok.text);
+      json json_name = json::parse(m_tok.text);
       std::string pathname = static_cast<std::string>(path);
-      pathname += jsonName.get_ref<const std::string&>();
+      pathname += json_name.get_ref<const std::string&>();
       if (pathname.compare(0, 2, "./") == 0) {
         pathname.erase(0, 2);
       }
@@ -1124,47 +1112,47 @@ class Parser {
       get_next_token();
       switch (m_tok.kind) {
         case Token::Kind::Eof:
-          if (!m_ifStack.empty()) inja_throw("parser_error", "unmatched if");
-          if (!m_loopStack.empty()) inja_throw("parser_error", "unmatched for");
+          if (!m_if_stack.empty()) inja_throw("parser_error", "unmatched if");
+          if (!m_loop_stack.empty()) inja_throw("parser_error", "unmatched for");
           return;
         case Token::Kind::Text:
           tmpl.bytecodes.emplace_back(Bytecode::Op::PrintText, m_tok.text, 0u);
           break;
-        case Token::Kind::statementOpen:
+        case Token::Kind::StatementOpen:
           get_next_token();
           if (!parse_statement(tmpl, path)) {
-            inja_throw("parser_error", "expected statement, got '" + static_cast<std::string>(m_tok.describe()) + "'");
+            inja_throw("parser_error", "expected statement, got '" + m_tok.describe() + "'");
           }
           if (m_tok.kind != Token::Kind::StatementClose) {
-            inja_throw("parser_error", "expected statement close, got '" + static_cast<std::string>(m_tok.describe()) + "'");
+            inja_throw("parser_error", "expected statement close, got '" + m_tok.describe() + "'");
           }
           break;
-        case Token::Kind::LinestatementOpen:
+        case Token::Kind::LineStatementOpen:
           get_next_token();
           parse_statement(tmpl, path);
           if (m_tok.kind != Token::Kind::LineStatementClose &&
               m_tok.kind != Token::Kind::Eof) {
-            inja_throw("parser_error", "expected line statement close, got '" + static_cast<std::string>(m_tok.describe()) + "'");
+            inja_throw("parser_error", "expected line statement close, got '" + m_tok.describe() + "'");
           }
           break;
         case Token::Kind::ExpressionOpen:
           get_next_token();
           if (!parse_expression(tmpl)) {
-            inja_throw("parser_error", "expected expression, got '" + static_cast<std::string>(m_tok.describe()) + "'");
+            inja_throw("parser_error", "expected expression, got '" + m_tok.describe() + "'");
           }
           append_function(tmpl, Bytecode::Op::PrintValue, 1);
           if (m_tok.kind != Token::Kind::ExpressionClose) {
-            inja_throw("parser_error", "expected expression close, got '" + static_cast<std::string>(m_tok.describe()) + "'");
+            inja_throw("parser_error", "expected expression close, got '" + m_tok.describe() + "'");
           }
           break;
         case Token::Kind::CommentOpen:
           get_next_token();
           if (m_tok.kind != Token::Kind::CommentClose) {
-            inja_throw("parser_error", "expected comment close, got '" + static_cast<std::string>(m_tok.describe()) + "'");
+            inja_throw("parser_error", "expected comment close, got '" + m_tok.describe() + "'");
           }
           break;
         default:
-          inja_throw("parser_error", "unexpected token '" + static_cast<std::string>(m_tok.describe()) + "'");
+          inja_throw("parser_error", "unexpected token '" + m_tok.describe() + "'");
           break;
       }
     }
@@ -1213,8 +1201,8 @@ class Parser {
     explicit IfData(unsigned int condJump): prev_cond_jump(condJump) {}
   };
 
-  std::vector<IfData> m_ifStack;
-  std::vector<unsigned int> m_loopStack;
+  std::vector<IfData> m_if_stack;
+  std::vector<unsigned int> m_loop_stack;
 
   void get_next_token() {
     if (m_have_peek_tok) {
@@ -1248,7 +1236,8 @@ class Parser {
 #include <type_traits>
 #include <utility>
 
-namespace std {
+
+namespace stdinja {
   template<class T> struct _Unique_if {
     typedef unique_ptr<T> _Single_object;
   };
@@ -1278,6 +1267,10 @@ namespace std {
   typename _Unique_if<T>::_Known_bound
   make_unique(Args&&...) = delete;
 }
+
+#else
+
+namespace stdinja = std;
 
 #endif // memory */
 
@@ -1362,7 +1355,7 @@ class Renderer {
   }
 
   const json* get_imm(const Bytecode& bc) {
-    std::string ptrBuf;
+    std::string ptr_buffer;
     std::string_view ptr;
     switch (bc.flags & Bytecode::Flag::ValueMask) {
       case Bytecode::Flag::ValuePop:
@@ -1370,12 +1363,12 @@ class Renderer {
       case Bytecode::Flag::ValueImmediate:
         return &bc.value;
       case Bytecode::Flag::ValueLookupDot:
-        ptr = convert_dot_to_json_pointer(bc.str, ptrBuf);
+        ptr = convert_dot_to_json_pointer(bc.str, ptr_buffer);
         break;
       case Bytecode::Flag::ValueLookupPointer:
-        ptrBuf += '/';
-        ptrBuf += bc.str;
-        ptr = ptrBuf;
+        ptr_buffer += '/';
+        ptr_buffer += bc.str;
+        ptr = ptr_buffer;
         break;
     }
     try {
@@ -1383,9 +1376,9 @@ class Renderer {
     } catch (std::exception&) {
       // try to evaluate as a no-argument callback
       if (auto callback = m_callbacks.find_callback(bc.str, 0)) {
-        std::vector<const json*> asdf{};
-        // m_tmpVal = cb(asdf, *m_data);
-        m_tmpVal = callback(asdf);
+        std::vector<const json*> arguments {};
+        // m_tmpVal = cb(arguments, *m_data);
+        m_tmpVal = callback(arguments);
         return &m_tmpVal;
       }
       inja_throw("render_error", "variable '" + static_cast<std::string>(bc.str) + "' not found");
@@ -1394,7 +1387,7 @@ class Renderer {
   }
 
   void update_loop_data()  {
-    LoopLevel& level = m_loopStack.back();
+    LoopLevel& level = m_loop_stack.back();
     if (level.keyName.empty()) {
       level.data[static_cast<std::string>(level.valueName)] = *level.it;
       auto& loopData = level.data["loop"];
@@ -1432,7 +1425,7 @@ class Renderer {
     MapValues::iterator mapIt;      // iterator over values
   };
 
-  std::vector<LoopLevel> m_loopStack;
+  std::vector<LoopLevel> m_loop_stack;
   const json* m_data;
 
   std::vector<const json*> m_tmpArgs;
@@ -1743,8 +1736,8 @@ class Renderer {
             break;
           }
 
-          m_loopStack.emplace_back();
-          LoopLevel& level = m_loopStack.back();
+          m_loop_stack.emplace_back();
+          LoopLevel& level = m_loop_stack.back();
           level.valueName = bc.str;
           level.values = std::move(m_stack.back());
           level.data = data;
@@ -1753,7 +1746,7 @@ class Renderer {
           if (bc.value.is_string()) {
             // map iterator
             if (!level.values.is_object()) {
-              m_loopStack.pop_back();
+              m_loop_stack.pop_back();
               inja_throw("render_error", "for key, value requires object");
             }
             level.keyName = bc.value.get_ref<const std::string&>();
@@ -1787,10 +1780,10 @@ class Renderer {
           break;
         }
         case Bytecode::Op::EndLoop: {
-          if (m_loopStack.empty()) {
+          if (m_loop_stack.empty()) {
             inja_throw("render_error", "unexpected state in renderer");
           }
-          LoopLevel& level = m_loopStack.back();
+          LoopLevel& level = m_loop_stack.back();
 
           bool done;
           if (level.keyName.empty()) {
@@ -1803,10 +1796,10 @@ class Renderer {
           }
 
           if (done) {
-            m_loopStack.pop_back();
+            m_loop_stack.pop_back();
             // set "current" data to outer loop data or main data as appropriate
-            if (!m_loopStack.empty())
-              m_data = &m_loopStack.back().data;
+            if (!m_loop_stack.empty())
+              m_data = &m_loop_stack.back().data;
             else
               m_data = &data;
             break;
@@ -1856,12 +1849,12 @@ class Environment {
  public:
   Environment(): Environment("./") { }
 
-  explicit Environment(const std::string& global_path): m_impl(std::make_unique<Impl>()) {
+  explicit Environment(const std::string& global_path): m_impl(stdinja::make_unique<Impl>()) {
     m_impl->input_path = global_path;
     m_impl->output_path = global_path;
   }
 
-  explicit Environment(const std::string& input_path, const std::string& output_path): m_impl(std::make_unique<Impl>()) {
+  explicit Environment(const std::string& input_path, const std::string& output_path): m_impl(stdinja::make_unique<Impl>()) {
     m_impl->input_path = input_path;
     m_impl->output_path = output_path;
   }

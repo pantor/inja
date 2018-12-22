@@ -11,9 +11,9 @@ struct Token {
     Text,
     ExpressionOpen,      // {{
     ExpressionClose,     // }}
-    LinestatementOpen,   // ##
+    LineStatementOpen,   // ##
     LineStatementClose,  // \n
-    statementOpen,       // {%
+    StatementOpen,       // {%
     StatementClose,      // %}
     CommentOpen,         // {#
     CommentClose,        // #}
@@ -43,30 +43,16 @@ struct Token {
   constexpr Token() = default;
   constexpr Token(Kind kind, std::string_view text): kind(kind), text(text) {}
 
-  std::string_view describe() const {
+  std::string describe() const {
     switch (kind) {
       case Kind::Text:
         return "<text>";
-      case Kind::ExpressionOpen:
-        return "{{";
-      case Kind::ExpressionClose:
-        return "}}";
-      case Kind::LinestatementOpen:
-        return "##";
       case Kind::LineStatementClose:
         return "<eol>";
-      case Kind::statementOpen:
-        return "{%";
-      case Kind::StatementClose:
-        return "%}";
-      case Kind::CommentOpen:
-        return "{#";
-      case Kind::CommentClose:
-        return "#}";
       case Kind::Eof:
         return "<eof>";
       default:
-        return text;
+        return static_cast<std::string>(text);
     }
   }
 };
