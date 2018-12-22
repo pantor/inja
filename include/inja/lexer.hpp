@@ -68,7 +68,7 @@ class Lexer {
                    string_view::starts_with(openStr, m_config.line_statement)) {
           m_state = State::LineStart;
         } else {
-          ++m_pos; // wasn't actually an opening sequence
+          m_pos += 1; // wasn't actually an opening sequence
           goto again;
         }
         if (m_pos == m_tok_start) goto again;  // don't generate empty token
@@ -124,7 +124,7 @@ class Lexer {
     if (m_tok_start >= m_in.size()) return make_token(Token::Kind::Eof);
     char ch = m_in[m_tok_start];
     if (ch == ' ' || ch == '\t' || ch == '\r') {
-      ++m_tok_start;
+      m_tok_start += 1;
       goto again;
     }
 
@@ -137,7 +137,7 @@ class Lexer {
 
     // skip \n
     if (ch == '\n') {
-      ++m_tok_start;
+      m_tok_start += 1;
       goto again;
     }
 
@@ -162,25 +162,25 @@ class Lexer {
         return make_token(Token::Kind::RightBrace);
       case '>':
         if (m_pos < m_in.size() && m_in[m_pos] == '=') {
-          ++m_pos;
+          m_pos += 1;
           return make_token(Token::Kind::GreaterEqual);
         }
         return make_token(Token::Kind::GreaterThan);
       case '<':
         if (m_pos < m_in.size() && m_in[m_pos] == '=') {
-          ++m_pos;
+          m_pos += 1;
           return make_token(Token::Kind::LessEqual);
         }
         return make_token(Token::Kind::LessThan);
       case '=':
         if (m_pos < m_in.size() && m_in[m_pos] == '=') {
-          ++m_pos;
+          m_pos += 1;
           return make_token(Token::Kind::Equal);
         }
         return make_token(Token::Kind::Unknown);
       case '!':
         if (m_pos < m_in.size() && m_in[m_pos] == '=') {
-          ++m_pos;
+          m_pos += 1;
           return make_token(Token::Kind::NotEqual);
         }
         return make_token(Token::Kind::Unknown);
@@ -210,7 +210,7 @@ class Lexer {
       if (m_pos >= m_in.size()) break;
       char ch = m_in[m_pos];
       if (!isalnum(ch) && ch != '.' && ch != '/' && ch != '_' && ch != '-') break;
-      ++m_pos;
+      m_pos += 1;
     }
     return make_token(Token::Kind::Id);
   }
@@ -222,7 +222,7 @@ class Lexer {
       // be very permissive in lexer (we'll catch errors when conversion happens)
       if (!isdigit(ch) && ch != '.' && ch != 'e' && ch != 'E' && ch != '+' && ch != '-')
         break;
-      ++m_pos;
+      m_pos += 1;
     }
     return make_token(Token::Kind::Number);
   }

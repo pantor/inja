@@ -59,11 +59,7 @@ class ParserStatic {
 
 class Parser {
  public:
-  explicit Parser(const ParserConfig& parser_config, const LexerConfig& lexer_config,
-         TemplateStorage& included_templates): m_config(parser_config),
-           m_lexer(lexer_config),
-           m_included_templates(included_templates),
-           m_static(ParserStatic::get_instance()) { }
+  explicit Parser(const ParserConfig& parser_config, const LexerConfig& lexer_config, TemplateStorage& included_templates): m_config(parser_config), m_lexer(lexer_config), m_included_templates(included_templates), m_static(ParserStatic::get_instance()) { }
 
   bool parse_expression(Template& tmpl) {
     if (!parse_expression_and(tmpl)) return false;
@@ -163,7 +159,7 @@ class Parser {
                 if (!parse_expression(tmpl)) {
                   inja_throw("parser_error", "expected expression, got '" + m_tok.describe() + "'");
                 }
-                ++numArgs;
+                numArgs += 1;
                 if (m_tok.kind == Token::Kind::RightParen) {
                   get_next_token();
                   break;
@@ -218,11 +214,11 @@ class Parser {
           break;
         case Token::Kind::LeftBracket:
           if (brace_level == 0 && bracket_level == 0) json_first = m_tok.text;
-          ++bracket_level;
+          bracket_level += 1;
           break;
         case Token::Kind::LeftBrace:
           if (brace_level == 0 && bracket_level == 0) json_first = m_tok.text;
-          ++brace_level;
+          brace_level += 1;
           break;
         case Token::Kind::RightBracket:
           if (bracket_level == 0) {
@@ -253,8 +249,8 @@ class Parser {
 
   returnJson:
     // bridge across all intermediate tokens
-    std::string_view jsonText(json_first.data(), m_tok.text.data() - json_first.data() + m_tok.text.size());
-    tmpl.bytecodes.emplace_back(Bytecode::Op::Push, json::parse(jsonText), Bytecode::Flag::ValueImmediate);
+    std::string_view json_text(json_first.data(), m_tok.text.data() - json_first.data() + m_tok.text.size());
+    tmpl.bytecodes.emplace_back(Bytecode::Op::Push, json::parse(json_text), Bytecode::Flag::ValueImmediate);
     get_next_token();
     return true;
   }
@@ -362,8 +358,9 @@ class Parser {
     } else if (m_tok.text == "include") {
       get_next_token();
 
-      if (m_tok.kind != Token::Kind::String)
+      if (m_tok.kind != Token::Kind::String) {
         inja_throw("parser_error", "expected string, got '" + m_tok.describe() + "'");
+      }
 
       // build the relative path
       json json_name = json::parse(m_tok.text);
@@ -377,9 +374,11 @@ class Parser {
       // parse it only if it's new
       // TemplateStorage::iterator included;
       // bool is_new {true};
-      // std::tie(included, isNew) = m_included_templates.emplace(pathname);
+      // std::tie(included, is_new) = m_included_templates.emplace(pathname);
       // if (is_new) included->second = parse_template(pathname);
-      m_included_templates.emplace(std::make_pair(pathname, parse_template(pathname)));
+
+      Template include_template = parse_template(pathname);
+      m_included_templates.emplace(pathname, include_template);
 
       // generate a reference bytecode
       tmpl.bytecodes.emplace_back(Bytecode::Op::Include, json(pathname), Bytecode::Flag::ValueImmediate);

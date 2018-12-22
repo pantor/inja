@@ -43,25 +43,24 @@ inline std::string_view convert_dot_to_json_pointer(std::string_view dot, std::s
 
 class Renderer {
   std::vector<const json*>& get_args(const Bytecode& bc) {
-    m_tmpArgs.clear();
+    m_tmp_args.clear();
 
     bool hasImm = ((bc.flags & Bytecode::Flag::ValueMask) != Bytecode::Flag::ValuePop);
 
     // get args from stack
-    unsigned int popArgs = bc.args;
-    if (hasImm) --popArgs;
+    unsigned int pop_args = bc.args;
+    if (hasImm) --pop_args;
 
-
-    for (auto i = std::prev(m_stack.end(), popArgs); i != m_stack.end(); i++) {
-      m_tmpArgs.push_back(&(*i));
+    for (auto i = std::prev(m_stack.end(), pop_args); i != m_stack.end(); i++) {
+      m_tmp_args.push_back(&(*i));
     }
 
     // get immediate arg
     if (hasImm) {
-      m_tmpArgs.push_back(get_imm(bc));
+      m_tmp_args.push_back(get_imm(bc));
     }
 
-    return m_tmpArgs;
+    return m_tmp_args;
   }
 
   void pop_args(const Bytecode& bc) {
@@ -94,9 +93,8 @@ class Renderer {
       // try to evaluate as a no-argument callback
       if (auto callback = m_callbacks.find_callback(bc.str, 0)) {
         std::vector<const json*> arguments {};
-        // m_tmpVal = cb(arguments, *m_data);
-        m_tmpVal = callback(arguments);
-        return &m_tmpVal;
+        m_tmp_val = callback(arguments);
+        return &m_tmp_val;
       }
       inja_throw("render_error", "variable '" + static_cast<std::string>(bc.str) + "' not found");
       return nullptr;
@@ -105,16 +103,25 @@ class Renderer {
 
   void update_loop_data()  {
     LoopLevel& level = m_loop_stack.back();
-    if (level.keyName.empty()) {
-      level.data[static_cast<std::string>(level.valueName)] = *level.it;
+
+    if (m_loop_stack.size() > 1) {
+      for (int i = m_loop_stack.size() - 2; i >= 0; i--) {
+        auto& level_it = m_loop_stack.at(i);
+
+        level.data[static_cast<std::string>(level_it.value_name)] = level_it.values.at(level_it.index);
+      }
+    }
+
+    if (level.key_name.empty()) {
+      level.data[static_cast<std::string>(level.value_name)] = level.values.at(level.index); // *level.it;
       auto& loopData = level.data["loop"];
       loopData["index"] = level.index;
       loopData["index1"] = level.index + 1;
       loopData["is_first"] = (level.index == 0);
       loopData["is_last"] = (level.index == level.size - 1);
     } else {
-      level.data[static_cast<std::string>(level.keyName)] = level.mapIt->first;
-      level.data[static_cast<std::string>(level.valueName)] = *level.mapIt->second;
+      level.data[static_cast<std::string>(level.key_name)] = level.map_it->first;
+      level.data[static_cast<std::string>(level.value_name)] = *level.map_it->second;
     }
   }
 
@@ -124,8 +131,8 @@ class Renderer {
   std::vector<json> m_stack;
 
   struct LoopLevel {
-    std::string_view keyName;       // variable name for keys
-    std::string_view valueName;     // variable name for values
+    std::string_view key_name;       // variable name for keys
+    std::string_view value_name;     // variable name for values
     json data;                      // data with loop info added
 
     json values;                    // values to iterate over
@@ -138,21 +145,21 @@ class Renderer {
     // loop over map
     using KeyValue = std::pair<std::string_view, json*>;
     using MapValues = std::vector<KeyValue>;
-    MapValues mapValues;            // values to iterate over
-    MapValues::iterator mapIt;      // iterator over values
+    MapValues map_values;            // values to iterate over
+    MapValues::iterator map_it;      // iterator over values
   };
 
   std::vector<LoopLevel> m_loop_stack;
   const json* m_data;
 
-  std::vector<const json*> m_tmpArgs;
-  json m_tmpVal;
+  std::vector<const json*> m_tmp_args;
+  json m_tmp_val;
 
 
  public:
   Renderer(const TemplateStorage& included_templates, const FunctionStorage& callbacks): m_included_templates(included_templates), m_callbacks(callbacks) {
     m_stack.reserve(16);
-    m_tmpArgs.reserve(4);
+    m_tmp_args.reserve(4);
   }
 
   void render_to(std::stringstream& os, const Template& tmpl, const json& data) {
@@ -440,8 +447,9 @@ class Renderer {
           i = bc.args - 1;  // -1 due to ++i in loop
           break;
         case Bytecode::Op::ConditionalJump: {
-          if (!truthy(m_stack.back()))
+          if (!truthy(m_stack.back())) {
             i = bc.args - 1;  // -1 due to ++i in loop
+          }
           m_stack.pop_back();
           break;
         }
@@ -455,7 +463,7 @@ class Renderer {
 
           m_loop_stack.emplace_back();
           LoopLevel& level = m_loop_stack.back();
-          level.valueName = bc.str;
+          level.value_name = bc.str;
           level.values = std::move(m_stack.back());
           level.data = data;
           m_stack.pop_back();
@@ -466,18 +474,20 @@ class Renderer {
               m_loop_stack.pop_back();
               inja_throw("render_error", "for key, value requires object");
             }
-            level.keyName = bc.value.get_ref<const std::string&>();
+            level.key_name = bc.value.get_ref<const std::string&>();
 
             // sort by key
-            for (auto it = level.values.begin(), end = level.values.end();
-                 it != end; ++it) {
-              level.mapValues.emplace_back(it.key(), &it.value());
+            for (auto it = level.values.begin(), end = level.values.end(); it != end; ++it) {
+              level.map_values.emplace_back(it.key(), &it.value());
             }
-            std::sort(
-                level.mapValues.begin(), level.mapValues.end(),
-                [](const LoopLevel::KeyValue& a, const LoopLevel::KeyValue& b) { return a.first < b.first; });
-            level.mapIt = level.mapValues.begin();
+            std::sort(level.map_values.begin(), level.map_values.end(), [](const LoopLevel::KeyValue& a, const LoopLevel::KeyValue& b) { return a.first < b.first; });
+            level.map_it = level.map_values.begin();
           } else {
+            if (!level.values.is_array()) {
+              m_loop_stack.pop_back();
+              inja_throw("render_error", "type must be array");
+            }
+
             // list iterator
             level.it = level.values.begin();
             level.index = 0;
@@ -485,10 +495,10 @@ class Renderer {
           }
 
           // provide parent access in nested loop
-          auto parentLoopIt = level.data.find("loop");
-          if (parentLoopIt != level.data.end()) {
-            json loopCopy = *parentLoopIt;
-            (*parentLoopIt)["parent"] = std::move(loopCopy);
+          auto parent_loop_it = level.data.find("loop");
+          if (parent_loop_it != level.data.end()) {
+            json loop_copy = *parent_loop_it;
+            (*parent_loop_it)["parent"] = std::move(loop_copy);
           }
 
           // set "current" data to loop data
@@ -503,22 +513,24 @@ class Renderer {
           LoopLevel& level = m_loop_stack.back();
 
           bool done;
-          if (level.keyName.empty()) {
-            ++level.it;
-            ++level.index;
-            done = (level.it == level.values.end());
+          if (level.key_name.empty()) {
+            level.it += 1;
+            level.index += 1;
+            // done = (level.it == level.values.end());
+            done = (level.index == level.values.size());
           } else {
-            ++level.mapIt;
-            done = (level.mapIt == level.mapValues.end());
+            level.map_it += 1;
+            done = (level.map_it == level.map_values.end());
           }
 
           if (done) {
             m_loop_stack.pop_back();
             // set "current" data to outer loop data or main data as appropriate
-            if (!m_loop_stack.empty())
+            if (!m_loop_stack.empty()) {
               m_data = &m_loop_stack.back().data;
-            else
+            } else {
               m_data = &data;
+            }
             break;
           }
 
