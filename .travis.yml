@@ -14,8 +14,27 @@ matrix:
       env: COMPILER=g++-7
       addons:
         apt:
-          sources: ['ubuntu-toolchain-r-test']
+          sources: ubuntu-toolchain-r-test
           packages: g++-7
+
+    - os: linux
+      compiler: gcc
+      env:
+        - COMPILER=g++-8
+      addons:
+        apt:
+          sources: ubuntu-toolchain-r-test
+          packages: g++-8'
+
+    - os: linux
+      compiler: gcc
+      env:
+        - COMPILER=g++-8
+        - CXXFLAGS=-std=c++17
+      addons:
+        apt:
+          sources: ubuntu-toolchain-r-test
+          packages: g++-8'
 
     - os: linux
       compiler: clang
@@ -27,6 +46,9 @@ matrix:
 
     - os: osx
       osx_image: xcode9
+
+    - os: osx
+      osx_image: xcode10
 
 
 script:
