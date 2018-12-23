@@ -65,7 +65,7 @@ struct LexerConfig {
 };
 
 struct ParserConfig {
-  ElementNotation notation = ElementNotation::Pointer;
+  ElementNotation notation {ElementNotation::Dot};
 };
 
 }
@@ -293,7 +293,7 @@ class FunctionStorage {
 #ifndef PANTOR_INJA_LEXER_HPP
 #define PANTOR_INJA_LEXER_HPP
 
-#include <cctype>
+#include <locale>
 
 // #include "config.hpp"
 
@@ -393,7 +393,7 @@ namespace string_view {
   inline bool starts_with(std::string_view view, std::string_view prefix) {
     return (view.size() >= prefix.size() && view.compare(0, prefix.size(), prefix) == 0);
   }
-} // namespace string
+}  // namespace string
 
 }  // namespace inja
 
@@ -441,24 +441,24 @@ class Lexer {
       default:
       case State::Text: {
         // fast-scan to first open character
-        size_t openStart = m_in.substr(m_pos).find_first_of(m_config.open_chars);
-        if (openStart == std::string_view::npos) {
+        size_t open_start = m_in.substr(m_pos).find_first_of(m_config.open_chars);
+        if (open_start == std::string_view::npos) {
           // didn't find open, return remaining text as text token
           m_pos = m_in.size();
           return make_token(Token::Kind::Text);
         }
-        m_pos += openStart;
+        m_pos += open_start;
 
         // try to match one of the opening sequences, and get the close
-        std::string_view openStr = m_in.substr(m_pos);
-        if (string_view::starts_with(openStr, m_config.expression_open)) {
+        std::string_view open_str = m_in.substr(m_pos);
+        if (string_view::starts_with(open_str, m_config.expression_open)) {
           m_state = State::ExpressionStart;
-        } else if (string_view::starts_with(openStr, m_config.statement_open)) {
+        } else if (string_view::starts_with(open_str, m_config.statement_open)) {
           m_state = State::StatementStart;
-        } else if (string_view::starts_with(openStr, m_config.comment_open)) {
+        } else if (string_view::starts_with(open_str, m_config.comment_open)) {
           m_state = State::CommentStart;
         } else if ((m_pos == 0 || m_in[m_pos - 1] == '\n') &&
-                   string_view::starts_with(openStr, m_config.line_statement)) {
+                   string_view::starts_with(open_str, m_config.line_statement)) {
           m_state = State::LineStart;
         } else {
           m_pos += 1; // wasn't actually an opening sequence
@@ -602,7 +602,7 @@ class Lexer {
     for (;;) {
       if (m_pos >= m_in.size()) break;
       char ch = m_in[m_pos];
-      if (!isalnum(ch) && ch != '.' && ch != '/' && ch != '_' && ch != '-') break;
+      if (!std::isalnum(ch) && ch != '.' && ch != '/' && ch != '_' && ch != '-') break;
       m_pos += 1;
     }
     return make_token(Token::Kind::Id);
@@ -613,7 +613,7 @@ class Lexer {
       if (m_pos >= m_in.size()) break;
       char ch = m_in[m_pos];
       // be very permissive in lexer (we'll catch errors when conversion happens)
-      if (!isdigit(ch) && ch != '.' && ch != 'e' && ch != 'E' && ch != '+' && ch != '-')
+      if (!std::isdigit(ch) && ch != '.' && ch != 'e' && ch != 'E' && ch != '+' && ch != '-')
         break;
       m_pos += 1;
     }
@@ -621,7 +621,7 @@ class Lexer {
   }
 
   Token scan_string() {
-    bool escape = false;
+    bool escape {false};
     for (;;) {
       if (m_pos >= m_in.size()) break;
       char ch = m_in[m_pos++];
@@ -662,22 +662,22 @@ class Template {
   friend class Renderer;
 
   std::vector<Bytecode> bytecodes;
-  std::string contents;
+  std::string content;
 
  public:
   Template() {}
-  Template(const Template& oth): bytecodes(oth.bytecodes), contents(oth.contents) {}
-  Template(Template&& oth): bytecodes(std::move(oth.bytecodes)), contents(std::move(oth.contents)) {}
+  Template(const Template& oth): bytecodes(oth.bytecodes), content(oth.content) {}
+  Template(Template&& oth): bytecodes(std::move(oth.bytecodes)), content(std::move(oth.content)) {}
 
   Template& operator=(const Template& oth) {
     bytecodes = oth.bytecodes;
-    contents = oth.contents;
+    content = oth.content;
     return *this;
   }
 
   Template& operator=(Template&& oth) {
     bytecodes = std::move(oth.bytecodes);
-    contents = std::move(oth.contents);
+    content = std::move(oth.content);
     return *this;
   }
 };
@@ -829,10 +829,10 @@ class Parser {
           get_peek_token();
           if (m_peek_tok.kind == Token::Kind::LeftParen) {
             // function call, parse arguments
-            Token funcTok = m_tok;
+            Token func_token = m_tok;
             get_next_token();  // id
             get_next_token();  // leftParen
-            unsigned int numArgs = 0;
+            unsigned int num_args = 0;
             if (m_tok.kind == Token::Kind::RightParen) {
               // no args
               get_next_token();
@@ -841,7 +841,7 @@ class Parser {
                 if (!parse_expression(tmpl)) {
                   inja_throw("parser_error", "expected expression, got '" + m_tok.describe() + "'");
                 }
-                numArgs += 1;
+                num_args += 1;
                 if (m_tok.kind == Token::Kind::RightParen) {
                   get_next_token();
                   break;
@@ -853,16 +853,16 @@ class Parser {
               }
             }
 
-            auto op = m_static.functions.find_builtin(funcTok.text, numArgs);
+            auto op = m_static.functions.find_builtin(func_token.text, num_args);
 
             if (op != Bytecode::Op::Nop) {
               // swap arguments for default(); see comment in RenderTo()
               if (op == Bytecode::Op::Default)
                 std::swap(tmpl.bytecodes.back(), *(tmpl.bytecodes.rbegin() + 1));
-              append_function(tmpl, op, numArgs);
+              append_function(tmpl, op, num_args);
               return true;
             } else {
-              append_callback(tmpl, funcTok.text, numArgs);
+              append_callback(tmpl, func_token.text, num_args);
               return true;
             }
           } else if (m_tok.text == "true" || m_tok.text == "false" || m_tok.text == "null") {
@@ -895,11 +895,15 @@ class Parser {
           }
           break;
         case Token::Kind::LeftBracket:
-          if (brace_level == 0 && bracket_level == 0) json_first = m_tok.text;
+          if (brace_level == 0 && bracket_level == 0) {
+            json_first = m_tok.text;
+          }
           bracket_level += 1;
           break;
         case Token::Kind::LeftBrace:
-          if (brace_level == 0 && bracket_level == 0) json_first = m_tok.text;
+          if (brace_level == 0 && bracket_level == 0) {
+            json_first = m_tok.text;
+          }
           brace_level += 1;
           break;
         case Token::Kind::RightBracket:
@@ -952,35 +956,38 @@ class Parser {
       // conditional jump; destination will be filled in by else or endif
       tmpl.bytecodes.emplace_back(Bytecode::Op::ConditionalJump);
     } else if (m_tok.text == "endif") {
-      if (m_if_stack.empty())
+      if (m_if_stack.empty()) {
         inja_throw("parser_error", "endif without matching if");
-      auto& ifData = m_if_stack.back();
+      }
+      auto& if_data = m_if_stack.back();
       get_next_token();
 
       // previous conditional jump jumps here
-      if (ifData.prev_cond_jump != std::numeric_limits<unsigned int>::max())
-        tmpl.bytecodes[ifData.prev_cond_jump].args = tmpl.bytecodes.size();
+      if (if_data.prev_cond_jump != std::numeric_limits<unsigned int>::max()) {
+        tmpl.bytecodes[if_data.prev_cond_jump].args = tmpl.bytecodes.size();
+      }
 
       // update all previous unconditional jumps to here
-      for (unsigned int i: ifData.uncond_jumps)
+      for (unsigned int i: if_data.uncond_jumps) {
         tmpl.bytecodes[i].args = tmpl.bytecodes.size();
+      }
 
       // pop if stack
       m_if_stack.pop_back();
     } else if (m_tok.text == "else") {
       if (m_if_stack.empty())
         inja_throw("parser_error", "else without matching if");
-      auto& ifData = m_if_stack.back();
+      auto& if_data = m_if_stack.back();
       get_next_token();
 
       // end previous block with unconditional jump to endif; destination will be
       // filled in by endif
-      ifData.uncond_jumps.push_back(tmpl.bytecodes.size());
+      if_data.uncond_jumps.push_back(tmpl.bytecodes.size());
       tmpl.bytecodes.emplace_back(Bytecode::Op::Jump);
 
       // previous conditional jump jumps here
-      tmpl.bytecodes[ifData.prev_cond_jump].args = tmpl.bytecodes.size();
-      ifData.prev_cond_jump = std::numeric_limits<unsigned int>::max();
+      tmpl.bytecodes[if_data.prev_cond_jump].args = tmpl.bytecodes.size();
+      if_data.prev_cond_jump = std::numeric_limits<unsigned int>::max();
 
       // chained else if
       if (m_tok.kind == Token::Kind::Id && m_tok.text == "if") {
@@ -990,7 +997,7 @@ class Parser {
         if (!parse_expression(tmpl)) return false;
 
         // update "previous jump"
-        ifData.prev_cond_jump = tmpl.bytecodes.size();
+        if_data.prev_cond_jump = tmpl.bytecodes.size();
 
         // conditional jump; destination will be filled in by else or endif
         tmpl.bytecodes.emplace_back(Bytecode::Op::ConditionalJump);
@@ -1001,16 +1008,16 @@ class Parser {
       // options: for a in arr; for a, b in obj
       if (m_tok.kind != Token::Kind::Id)
         inja_throw("parser_error", "expected id, got '" + m_tok.describe() + "'");
-      Token valueTok = m_tok;
+      Token value_token = m_tok;
       get_next_token();
 
-      Token keyTok;
+      Token key_token;
       if (m_tok.kind == Token::Kind::Comma) {
         get_next_token();
         if (m_tok.kind != Token::Kind::Id)
           inja_throw("parser_error", "expected id, got '" + m_tok.describe() + "'");
-        keyTok = std::move(valueTok);
-        valueTok = m_tok;
+        key_token = std::move(value_token);
+        value_token = m_tok;
         get_next_token();
       }
 
@@ -1024,12 +1031,15 @@ class Parser {
       m_loop_stack.push_back(tmpl.bytecodes.size());
 
       tmpl.bytecodes.emplace_back(Bytecode::Op::StartLoop);
-      if (!keyTok.text.empty()) tmpl.bytecodes.back().value = keyTok.text;
-      tmpl.bytecodes.back().str = valueTok.text;
+      if (!key_token.text.empty()) {
+        tmpl.bytecodes.back().value = key_token.text;
+      }
+      tmpl.bytecodes.back().str = value_token.text;
     } else if (m_tok.text == "endfor") {
       get_next_token();
-      if (m_loop_stack.empty())
+      if (m_loop_stack.empty()) {
         inja_throw("parser_error", "endfor without matching for");
+      }
 
       // update loop with EndLoop index (for empty case)
       tmpl.bytecodes[m_loop_stack.back()].args = tmpl.bytecodes.size();
@@ -1072,41 +1082,41 @@ class Parser {
     return true;
   }
 
-  void append_function(Template& tmpl, Bytecode::Op op, unsigned int numArgs) {
+  void append_function(Template& tmpl, Bytecode::Op op, unsigned int num_args) {
     // we can merge with back-to-back push
     if (!tmpl.bytecodes.empty()) {
       Bytecode& last = tmpl.bytecodes.back();
       if (last.op == Bytecode::Op::Push) {
         last.op = op;
-        last.args = numArgs;
+        last.args = num_args;
         return;
       }
     }
 
     // otherwise just add it to the end
-    tmpl.bytecodes.emplace_back(op, numArgs);
+    tmpl.bytecodes.emplace_back(op, num_args);
   }
 
-  void append_callback(Template& tmpl, std::string_view name, unsigned int numArgs) {
+  void append_callback(Template& tmpl, std::string_view name, unsigned int num_args) {
     // we can merge with back-to-back push value (not lookup)
     if (!tmpl.bytecodes.empty()) {
       Bytecode& last = tmpl.bytecodes.back();
       if (last.op == Bytecode::Op::Push &&
           (last.flags & Bytecode::Flag::ValueMask) == Bytecode::Flag::ValueImmediate) {
         last.op = Bytecode::Op::Callback;
-        last.args = numArgs;
+        last.args = num_args;
         last.str = name;
         return;
       }
     }
 
     // otherwise just add it to the end
-    tmpl.bytecodes.emplace_back(Bytecode::Op::Callback, numArgs);
+    tmpl.bytecodes.emplace_back(Bytecode::Op::Callback, num_args);
     tmpl.bytecodes.back().str = name;
   }
 
   void parse_into(Template& tmpl, std::string_view path) {
-    m_lexer.start(tmpl.contents);
+    m_lexer.start(tmpl.content);
 
     for (;;) {
       get_next_token();
@@ -1160,7 +1170,7 @@ class Parser {
 
   Template parse(std::string_view input, std::string_view path) {
     Template result;
-    result.contents = input;
+    result.content = input;
     parse_into(result, path);
     return result;
   }
@@ -1171,7 +1181,7 @@ class Parser {
 
   Template parse_template(std::string_view filename) {
     Template result;
-    result.contents = load_file(filename);
+    result.content = load_file(filename);
 
     std::string_view path = filename.substr(0, filename.find_last_of("/\\") + 1);
       // StringRef path = sys::path::parent_path(filename);
@@ -1904,7 +1914,7 @@ class Environment {
     return parser.parse(input);
   }
 
-  Template parse_template(std::string_view filename) {
+  Template parse_template(const std::string& filename) {
     Parser parser(m_impl->parser_config, m_impl->lexer_config, m_impl->included_templates);
 		return parser.parse_template(m_impl->input_path + static_cast<std::string>(filename));
 	}

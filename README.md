@@ -87,9 +87,9 @@ Environment env = Environment("../path/templates/");
 // With global path where to save rendered files
 Environment env = Environment("../path/templates/", "../path/results/");
 
-// Choose between JSON pointer or dot notation to access elements
-env.set_element_notation(ElementNotation::Pointer); // (default) e.g. time/start
-env.set_element_notation(ElementNotation::Dot); // e.g. time.start
+// Choose between dot notation and JSON pointer to access elements
+env.set_element_notation(ElementNotation::Dot); // (default) e.g. time.start
+env.set_element_notation(ElementNotation::Pointer); // e.g. time/start
 
 // With other opening and closing strings (here the defaults)
 env.set_expression("{{", "}}"); // Expressions
@@ -109,10 +109,10 @@ data["time"]["start"] = 16;
 data["time"]["end"] = 22;
 
 // Indexing in array
-render("{{ guests/1 }}", data); // "Tom"
+render("{{ guests.1 }}", data); // "Tom"
 
 // Objects
-render("{{ time/start }} to {{ time/end }}pm", data); // "16 to 22pm"
+render("{{ time.start }} to {{ time.end }}pm", data); // "16 to 22pm"
 ```
 In general, the variables can be fetched using the [JSON Pointer](https://tools.ietf.org/html/rfc6901) syntax. For convenience, the leading `/` can be ommited. If no variable is found, valid JSON is printed directly, otherwise an error is thrown.
 
@@ -127,7 +127,7 @@ Statements can be written either with the `{% ... %}` syntax or the `##` syntax 
 // Combining loops and line statements
 render(R"(Guest List:
 ## for guest in guests
-	{{ loop/index1 }}: {{ guest }}
+	{{ loop.index1 }}: {{ guest }}
 ## endfor )", data)
 
 /* Guest List:
@@ -142,7 +142,7 @@ In a loop, the special variables `loop/index (number)`, `loop/index1 (number)`, 
 Conditions support the typical if, else if and else statements. Following conditions are for example possible:
 ```c++
 // Standard comparisons with variable
-render("{% if time/hour >= 18 %}…{% endif %}", data); // True
+render("{% if time.hour >= 18 %}…{% endif %}", data); // True
 
 // Variable in list
 render("{% if neighbour in guests %}…{% endif %}", data); // True
@@ -175,7 +175,7 @@ render("Hello {{ upper(neighbour) }}!", data); // "Hello PETER!"
 render("Hello {{ lower(neighbour) }}!", data); // "Hello peter!"
 
 // Range function, useful for loops
-render("{% for i in range(4) %}{{ loop/index1 }}{% endfor %}", data); // "1234"
+render("{% for i in range(4) %}{{ loop.index1 }}{% endfor %}", data); // "1234"
 
 // Length function (please don't combine with range, use list directly...)
 render("I count {{ length(guests) }} guests.", data); // "I count 3 guests."

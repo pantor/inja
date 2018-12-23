@@ -40,9 +40,9 @@ TEST_CASE("types") {
 		CHECK( env.render("{{name}}", data) == "Peter" );
 		CHECK( env.render("{{ name }} is {{ age }} years old.", data) == "Peter is 29 years old." );
 		CHECK( env.render("Hello {{ name }}! I come from {{ city }}.", data) == "Hello Peter! I come from Brunswick." );
-		CHECK( env.render("Hello {{ names/1 }}!", data) == "Hello Seb!" );
-		CHECK( env.render("Hello {{ brother/name }}!", data) == "Hello Chris!" );
-		CHECK( env.render("Hello {{ brother/daughter0/name }}!", data) == "Hello Maria!" );
+		CHECK( env.render("Hello {{ names.1 }}!", data) == "Hello Seb!" );
+		CHECK( env.render("Hello {{ brother.name }}!", data) == "Hello Chris!" );
+		CHECK( env.render("Hello {{ brother.daughter0.name }}!", data) == "Hello Maria!" );
 
 		CHECK_THROWS_WITH( env.render("{{unknown}}", data), "[inja.exception.render_error] variable 'unknown' not found" );
 	}
@@ -55,11 +55,11 @@ TEST_CASE("types") {
 	SECTION("loops") {
 		CHECK( env.render("{% for name in names %}a{% endfor %}", data) == "aa" );
 		CHECK( env.render("Hello {% for name in names %}{{ name }} {% endfor %}!", data) == "Hello Jeff Seb !" );
-		CHECK( env.render("Hello {% for name in names %}{{ loop/index }}: {{ name }}, {% endfor %}!", data) == "Hello 0: Jeff, 1: Seb, !" );
+		CHECK( env.render("Hello {% for name in names %}{{ loop.index }}: {{ name }}, {% endfor %}!", data) == "Hello 0: Jeff, 1: Seb, !" );
 		CHECK( env.render("{% for type, name in relatives %}{{ type }}: {{ name }}, {% endfor %}", data) == "brother: Chris, mother: Maria, sister: Jenny, " );
 		CHECK( env.render("{% for v in vars %}{% if v > 0 %}+{% endif %}{% endfor %}", data) == "+++" );
-		CHECK( env.render("{% for name in names %}{{ loop/index }}: {{ name }}{% if not loop/is_last %}, {% endif %}{% endfor %}!", data) == "0: Jeff, 1: Seb!" );
-		CHECK( env.render("{% for name in names %}{{ loop/index }}: {{ name }}{% if loop/is_last == false %}, {% endif %}{% endfor %}!", data) == "0: Jeff, 1: Seb!" );
+		CHECK( env.render("{% for name in names %}{{ loop.index }}: {{ name }}{% if not loop.is_last %}, {% endif %}{% endfor %}!", data) == "0: Jeff, 1: Seb!" );
+		CHECK( env.render("{% for name in names %}{{ loop.index }}: {{ name }}{% if loop.is_last == false %}, {% endif %}{% endfor %}!", data) == "0: Jeff, 1: Seb!" );
 
 		data["empty_loop"] = {};
 		CHECK( env.render("{% for name in empty_loop %}a{% endfor %}", data) == "" );
@@ -314,7 +314,7 @@ TEST_CASE("combinations") {
 
 	CHECK( env.render("{% if upper(\"Peter\") == \"PETER\" %}TRUE{% endif %}", data) == "TRUE" );
 	CHECK( env.render("{% if lower(upper(name)) == \"peter\" %}TRUE{% endif %}", data) == "TRUE" );
-	CHECK( env.render("{% for i in range(4) %}{{ loop/index1 }}{% endfor %}", data) == "1234" );
+	CHECK( env.render("{% for i in range(4) %}{{ loop.index1 }}{% endfor %}", data) == "1234" );
 }
 
 TEST_CASE("templates") {
@@ -358,14 +358,14 @@ TEST_CASE("other-syntax") {
 
 	SECTION("variables") {
 		inja::Environment env = inja::Environment();
-		env.set_element_notation(inja::ElementNotation::Dot);
+		env.set_element_notation(inja::ElementNotation::Pointer);
 
 		CHECK( env.render("{{ name }}", data) == "Peter" );
-		CHECK( env.render("Hello {{ names.1 }}!", data) == "Hello Seb!" );
-		CHECK( env.render("Hello {{ brother.name }}!", data) == "Hello Chris!" );
-		CHECK( env.render("Hello {{ brother.daughter0.name }}!", data) == "Hello Maria!" );
+		CHECK( env.render("Hello {{ names/1 }}!", data) == "Hello Seb!" );
+		CHECK( env.render("Hello {{ brother/name }}!", data) == "Hello Chris!" );
+		CHECK( env.render("Hello {{ brother/daughter0/name }}!", data) == "Hello Maria!" );
 
-		CHECK_THROWS_WITH( env.render("{{unknown.name}}", data), "[inja.exception.render_error] variable 'unknown.name' not found" );
+		CHECK_THROWS_WITH( env.render("{{unknown/name}}", data), "[inja.exception.render_error] variable 'unknown/name' not found" );
 	}
 
 	SECTION("other expression syntax") {
