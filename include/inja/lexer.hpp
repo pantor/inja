@@ -1,6 +1,7 @@
 #ifndef PANTOR_INJA_LEXER_HPP
 #define PANTOR_INJA_LEXER_HPP
 
+#include <cctype>
 #include <locale>
 
 #include "config.hpp"

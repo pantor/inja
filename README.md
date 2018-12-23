@@ -10,7 +10,7 @@
 [![GitHub License](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/pantor/inja/master/LICENSE)
 
 
-Inja is a template engine for modern C++, loosely inspired by [jinja](http://jinja.pocoo.org) for python. It has an easy and yet powerful template syntax with all variables, loops, conditions, includes, callbacks, comments you need, nested and combined as you like. Inja uses the wonderful [json](https://github.com/nlohmann/json) library by nlohmann for data input and handling. Most importantly, *inja* needs only two header files, which is (nearly) as trivial as integration in C++ can get. Of course, everything is tested on all relevant compilers. Have a look what it looks like:
+Inja is a template engine for modern C++, loosely inspired by [jinja](http://jinja.pocoo.org) for python. It has an easy and yet powerful template syntax with all variables, loops, conditions, includes, callbacks, comments you need, nested and combined as you like. Inja uses the wonderful [json](https://github.com/nlohmann/json) library by nlohmann for data input and handling. Most importantly, *inja* needs only two header files, which is (nearly) as trivial as integration in C++ can get. Of course, everything is tested on all relevant compilers. Here is what it looks like:
 
 ```c++
 json data;
@@ -56,7 +56,7 @@ data["name"] = "world";
 render("Hello {{ name }}!", data); // "Hello world!"
 
 // For more advanced usage, an environment is recommended
-Environment env = Environment();
+Environment env;
 
 // Render a string with json data
 std::string result = env.render("Hello {{ name }}!", data); // "Hello world!"
@@ -79,15 +79,15 @@ env.write("./template.txt", "./data.json", "./result.txt")
 The environment class can be configured to your needs.
 ```c++
 // With default settings
-Environment env_default = Environment();
+Environment env_default;
 
-// With global path to template files
-Environment env = Environment("../path/templates/");
+// With global path to template files and where files will be saved
+Environment env_1 = Environment("../path/templates/");
 
-// With global path where to save rendered files
-Environment env = Environment("../path/templates/", "../path/results/");
+// With separate input and output path
+Environment env_2 = Environment("../path/templates/", "../path/results/");
 
-// Choose between dot notation and JSON pointer to access elements
+// Choose between dot notation (like Jinja2) and JSON pointer to access elements
 env.set_element_notation(ElementNotation::Dot); // (default) e.g. time.start
 env.set_element_notation(ElementNotation::Pointer); // e.g. time/start
 
@@ -225,7 +225,7 @@ render("{{ isArray(guests) }}", data); // "true"
 
 You can create your own and more complex functions with callbacks.
 ```c++
-Environment env = Environment();
+Environment env;
 
 /*
  * Callbacks are defined by its:
@@ -260,7 +260,7 @@ render("Hello{# Todo #}!", data); // "Hello!"
 
 ## Supported compilers
 
-Currently, the following compilers are tested:
+Inja uses `string_view` from C++17, everything else should work with C++11. Currently, the following compilers are tested:
 
 - GCC 7.0 - 8.0 (and possibly later)
 - Clang 6.0 (and possibly later)

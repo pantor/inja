@@ -49,29 +49,34 @@ class Environment {
     m_impl->output_path = output_path;
   }
 
+  /// Sets the opener and closer for template statements
   void set_statement(const std::string& open, const std::string& close) {
     m_impl->lexer_config.statement_open = open;
     m_impl->lexer_config.statement_close = close;
     m_impl->lexer_config.update_open_chars();
   }
 
+  /// Sets the opener for template line statements
   void set_line_statement(const std::string& open) {
     m_impl->lexer_config.line_statement = open;
     m_impl->lexer_config.update_open_chars();
   }
 
+  /// Sets the opener and closer for template expressions
   void set_expression(const std::string& open, const std::string& close) {
     m_impl->lexer_config.expression_open = open;
     m_impl->lexer_config.expression_close = close;
     m_impl->lexer_config.update_open_chars();
   }
 
+  /// Sets the opener and closer for template comments
   void set_comment(const std::string& open, const std::string& close) {
     m_impl->lexer_config.comment_open = open;
     m_impl->lexer_config.comment_close = close;
     m_impl->lexer_config.update_open_chars();
   }
 
+  /// Sets the element notation syntax
   void set_element_notation(ElementNotation notation) {
     m_impl->parser_config.notation = notation;
   }
@@ -149,6 +154,10 @@ class Environment {
     m_impl->callbacks.add_callback(name, numArgs, callback);
   }
 
+  /** Includes a template with a given name into the environment.
+   * Then, a template can be rendered in another template using the
+   * include "<name>" syntax.
+   */
   void include_template(const std::string& name, const Template& tmpl) {
     m_impl->included_templates[name] = tmpl;
   }

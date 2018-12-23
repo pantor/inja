@@ -12,7 +12,7 @@ TEST_CASE("dot-to-pointer") {
 }
 
 TEST_CASE("types") {
-	inja::Environment env = inja::Environment();
+	inja::Environment env;
 	json data;
 	data["name"] = "Peter";
 	data["city"] = "Brunswick";
@@ -104,7 +104,7 @@ Yeah!
 
 
 TEST_CASE("functions") {
-	inja::Environment env = inja::Environment();
+	inja::Environment env;
 
 	json data;
 	data["name"] = "Peter";
@@ -254,7 +254,7 @@ TEST_CASE("functions") {
 
 
 TEST_CASE("callbacks") {
-	inja::Environment env = inja::Environment();
+	inja::Environment env;
 	json data;
 	data["age"] = 28;
 
@@ -301,7 +301,7 @@ TEST_CASE("callbacks") {
 
 
 TEST_CASE("combinations") {
-	inja::Environment env = inja::Environment();
+	inja::Environment env;
 	json data;
 	data["name"] = "Peter";
 	data["city"] = "Brunswick";
@@ -324,7 +324,7 @@ TEST_CASE("templates") {
 	data["is_happy"] = true;
 
 	SECTION("reuse") {
-		inja::Environment env = inja::Environment();
+		inja::Environment env;
 		inja::Template temp = env.parse("{% if is_happy %}{{ name }}{% else %}{{ city }}{% endif %}");
 
 		CHECK( env.render(temp, data) == "Peter" );
@@ -335,7 +335,7 @@ TEST_CASE("templates") {
 	}
 
 	SECTION("include") {
-		inja::Environment env = inja::Environment();
+		inja::Environment env;
 		inja::Template t1 = env.parse("Hello {{ name }}");
 		env.include_template("greeting", t1);
 
@@ -357,7 +357,7 @@ TEST_CASE("other-syntax") {
 	data["is_happy"] = true;
 
 	SECTION("variables") {
-		inja::Environment env = inja::Environment();
+		inja::Environment env;
 		env.set_element_notation(inja::ElementNotation::Pointer);
 
 		CHECK( env.render("{{ name }}", data) == "Peter" );
@@ -369,7 +369,7 @@ TEST_CASE("other-syntax") {
 	}
 
 	SECTION("other expression syntax") {
-		inja::Environment env = inja::Environment();
+		inja::Environment env;
 
 		CHECK( env.render("Hello {{ name }}!", data) == "Hello Peter!" );
 
@@ -380,7 +380,7 @@ TEST_CASE("other-syntax") {
 	}
 
 	SECTION("other comment syntax") {
-		inja::Environment env = inja::Environment();
+		inja::Environment env;
 		env.set_comment("(&", "&)");
 
 		CHECK( env.render("Hello {# Test #}", data) == "Hello {# Test #}" );
