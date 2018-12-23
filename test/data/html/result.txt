@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Inja works.</title>
+  </head>
+  <body>
+    <h1>Inja works.</h1>
+    <small>Written by Pantor</small>
+
+    <p>Inja is the best and fastest template engine for C++. Period.</p>
+    <small>123 views</small>
+
+    <h5>Tags</h5>
+    <ul>
+      <li>test</li>
+      <li>templates</li>
+    </ul>
+  </body>
+</html>

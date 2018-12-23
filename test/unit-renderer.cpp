@@ -1,12 +1,18 @@
 #include "catch/catch.hpp"
-#include "inja.hpp"
+#include "inja/inja.hpp"
 
 
 using json = nlohmann::json;
 
 
+TEST_CASE("dot-to-pointer") {
+	std::string buffer;
+	CHECK( inja::convert_dot_to_json_pointer("person.names.surname", buffer) == "/person/names/surname" );
+	CHECK( inja::convert_dot_to_json_pointer("guests.2", buffer) == "/guests/2" );
+}
+
 TEST_CASE("types") {
-	inja::Environment env = inja::Environment();
+	inja::Environment env;
 	json data;
 	data["name"] = "Peter";
 	data["city"] = "Brunswick";
@@ -34,11 +40,11 @@ TEST_CASE("types") {
 		CHECK( env.render("{{name}}", data) == "Peter" );
 		CHECK( env.render("{{ name }} is {{ age }} years old.", data) == "Peter is 29 years old." );
 		CHECK( env.render("Hello {{ name }}! I come from {{ city }}.", data) == "Hello Peter! I come from Brunswick." );
-		CHECK( env.render("Hello {{ names/1 }}!", data) == "Hello Seb!" );
-		CHECK( env.render("Hello {{ brother/name }}!", data) == "Hello Chris!" );
-		CHECK( env.render("Hello {{ brother/daughter0/name }}!", data) == "Hello Maria!" );
+		CHECK( env.render("Hello {{ names.1 }}!", data) == "Hello Seb!" );
+		CHECK( env.render("Hello {{ brother.name }}!", data) == "Hello Chris!" );
+		CHECK( env.render("Hello {{ brother.daughter0.name }}!", data) == "Hello Maria!" );
 
-		CHECK_THROWS_WITH( env.render("{{unknown}}", data), "[inja.exception.render_error] variable '/unknown' not found" );
+		CHECK_THROWS_WITH( env.render("{{unknown}}", data), "[inja.exception.render_error] variable 'unknown' not found" );
 	}
 
 	SECTION("comments") {
@@ -49,17 +55,17 @@ TEST_CASE("types") {
 	SECTION("loops") {
 		CHECK( env.render("{% for name in names %}a{% endfor %}", data) == "aa" );
 		CHECK( env.render("Hello {% for name in names %}{{ name }} {% endfor %}!", data) == "Hello Jeff Seb !" );
-		CHECK( env.render("Hello {% for name in names %}{{ loop/index }}: {{ name }}, {% endfor %}!", data) == "Hello 0: Jeff, 1: Seb, !" );
+		CHECK( env.render("Hello {% for name in names %}{{ loop.index }}: {{ name }}, {% endfor %}!", data) == "Hello 0: Jeff, 1: Seb, !" );
 		CHECK( env.render("{% for type, name in relatives %}{{ type }}: {{ name }}, {% endfor %}", data) == "brother: Chris, mother: Maria, sister: Jenny, " );
 		CHECK( env.render("{% for v in vars %}{% if v > 0 %}+{% endif %}{% endfor %}", data) == "+++" );
-		CHECK( env.render("{% for name in names %}{{ loop/index }}: {{ name }}{% if not loop/is_last %}, {% endif %}{% endfor %}!", data) == "0: Jeff, 1: Seb!" );
-		CHECK( env.render("{% for name in names %}{{ loop/index }}: {{ name }}{% if loop/is_last == false %}, {% endif %}{% endfor %}!", data) == "0: Jeff, 1: Seb!" );
+		CHECK( env.render("{% for name in names %}{{ loop.index }}: {{ name }}{% if not loop.is_last %}, {% endif %}{% endfor %}!", data) == "0: Jeff, 1: Seb!" );
+		CHECK( env.render("{% for name in names %}{{ loop.index }}: {{ name }}{% if loop.is_last == false %}, {% endif %}{% endfor %}!", data) == "0: Jeff, 1: Seb!" );
 
 		data["empty_loop"] = {};
 		CHECK( env.render("{% for name in empty_loop %}a{% endfor %}", data) == "" );
 		CHECK( env.render("{% for name in {} %}a{% endfor %}", data) == "" );
 
-		CHECK_THROWS_WITH( env.render("{% for name ins names %}a{% endfor %}", data), "[inja.exception.parser_error] unknown loop statement: for name ins names" );
+		CHECK_THROWS_WITH( env.render("{% for name ins names %}a{% endfor %}", data), "[inja.exception.parser_error] expected 'in', got 'ins'" );
 		// CHECK_THROWS_WITH( env.render("{% for name in relatives %}{{ name }}{% endfor %}", data), "[inja.exception.json_error] [json.exception.type_error.302] type must be array, but is object" );
 	}
 
@@ -77,25 +83,28 @@ TEST_CASE("types") {
 		CHECK( env.render("{% if age == 26 %}26{% else if age == 27 %}27{% else if age == 28 %}28{% else %}29{% endif %}", data) == "29" );
 		CHECK( env.render("{% if age == 25 %}+{% endif %}{% if age == 29 %}+{% else %}-{% endif %}", data) == "+" );
 
-		CHECK_THROWS_WITH( env.render("{% if is_happy %}{% if is_happy %}{% endif %}", data), "[inja.exception.parser_error] misordered if statement" );
-		CHECK_THROWS_WITH( env.render("{% if is_happy %}{% else if is_happy %}{% end if %}", data), "[inja.exception.parser_error] misordered if statement" );
+		CHECK_THROWS_WITH( env.render("{% if is_happy %}{% if is_happy %}{% endif %}", data), "[inja.exception.parser_error] unmatched if" );
+		CHECK_THROWS_WITH( env.render("{% if is_happy %}{% else if is_happy %}{% end if %}", data), "[inja.exception.parser_error] expected statement, got 'end'" );
 	}
 
 	SECTION("line statements") {
 		CHECK( env.render(R"(## if is_happy
 Yeah!
-## endif)", data) == "Yeah!" );
+## endif)", data) == R"(Yeah!
+)" );
 
 		CHECK( env.render(R"(## if is_happy
 ## if is_happy
 Yeah!
 ## endif
-## endif    )", data) == "Yeah!" );
-	}
+## endif    )", data) == R"(Yeah!
+)" );
+}
 }
 
+
 TEST_CASE("functions") {
-	inja::Environment env = inja::Environment();
+	inja::Environment env;
 
 	json data;
 	data["name"] = "Peter";
@@ -206,7 +215,7 @@ TEST_CASE("functions") {
 		CHECK( env.render("{{ default(nothing, 0) }}", data) == "0" );
 		CHECK( env.render("{{ default(name, \"nobody\") }}", data) == "Peter" );
 		CHECK( env.render("{{ default(surname, \"nobody\") }}", data) == "nobody" );
-		CHECK_THROWS_WITH( env.render("{{ default(surname, lastname) }}", data), "[inja.exception.render_error] variable '/lastname' not found" );
+		CHECK_THROWS_WITH( env.render("{{ default(surname, lastname) }}", data), "[inja.exception.render_error] variable 'lastname' not found" );
 	}
 
 	SECTION("exists") {
@@ -221,8 +230,8 @@ TEST_CASE("functions") {
 		CHECK( env.render("{{ existsIn(brother, \"parents\") }}", data) == "false" );
 		CHECK( env.render("{{ existsIn(brother, property) }}", data) == "true" );
 		CHECK( env.render("{{ existsIn(brother, name) }}", data) == "false" );
-		CHECK_THROWS_WITH( env.render("{{ existsIn(sister, \"lastname\") }}", data), "[inja.exception.render_error] variable '/sister' not found" );
-		CHECK_THROWS_WITH( env.render("{{ existsIn(brother, sister) }}", data), "[inja.exception.render_error] variable '/sister' not found" );
+		CHECK_THROWS_WITH( env.render("{{ existsIn(sister, \"lastname\") }}", data), "[inja.exception.render_error] variable 'sister' not found" );
+		CHECK_THROWS_WITH( env.render("{{ existsIn(brother, sister) }}", data), "[inja.exception.render_error] variable 'sister' not found" );
 	}
 
 	SECTION("isType") {
@@ -243,40 +252,41 @@ TEST_CASE("functions") {
 	}
 }
 
+
 TEST_CASE("callbacks") {
-	inja::Environment env = inja::Environment();
+	inja::Environment env;
 	json data;
 	data["age"] = 28;
 
-	env.add_callback("double", 1, [&env](inja::Parsed::Arguments args, json data) {
-		int number = env.get_argument<double>(args, 0, data);
+	env.add_callback("double", 1, [](inja::Arguments& args) {
+		int number = args.at(0)->get<double>();
 		return 2 * number;
 	});
 
-	env.add_callback("half", 1, [&env](inja::Parsed::Arguments args, json data) {
-		int number = env.get_argument<double>(args, 0, data);
+	env.add_callback("half", 1, [](inja::Arguments args) {
+		int number = args.at(0)->get<double>();
 		return number / 2;
 	});
 
 	std::string greet = "Hello";
-	env.add_callback("double-greetings", 0, [greet](inja::Parsed::Arguments args, json data) {
+	env.add_callback("double-greetings", 0, [greet](inja::Arguments args) {
 		return greet + " " + greet + "!";
 	});
 
-	env.add_callback("multiply", 2, [&env](inja::Parsed::Arguments args, json data) {
-		double number1 = env.get_argument(args, 0, data);
-		auto number2 = env.get_argument<double>(args, 1, data);
+	env.add_callback("multiply", 2, [](inja::Arguments args) {
+		double number1 = args.at(0)->get<double>();
+		auto number2 = args.at(1)->get<double>();
 		return number1 * number2;
 	});
 
-	env.add_callback("multiply", 3, [&env](inja::Parsed::Arguments args, json data) {
-		double number1 = env.get_argument(args, 0, data);
-		double number2 = env.get_argument(args, 1, data);
-		double number3 = env.get_argument(args, 2, data);
+	env.add_callback("multiply", 3, [](inja::Arguments args) {
+		double number1 = args.at(0)->get<double>();
+		double number2 = args.at(1)->get<double>();
+		double number3 = args.at(2)->get<double>();
 		return number1 * number2 * number3;
 	});
 
-	env.add_callback("multiply", 0, [](inja::Parsed::Arguments args, json data) {
+	env.add_callback("multiply", 0, [](inja::Arguments args) {
 		return 1.0;
 	});
 
@@ -289,8 +299,9 @@ TEST_CASE("callbacks") {
 	CHECK( env.render("{{ multiply }}", data) == "1.0" );
 }
 
+
 TEST_CASE("combinations") {
-	inja::Environment env = inja::Environment();
+	inja::Environment env;
 	json data;
 	data["name"] = "Peter";
 	data["city"] = "Brunswick";
@@ -303,7 +314,7 @@ TEST_CASE("combinations") {
 
 	CHECK( env.render("{% if upper(\"Peter\") == \"PETER\" %}TRUE{% endif %}", data) == "TRUE" );
 	CHECK( env.render("{% if lower(upper(name)) == \"peter\" %}TRUE{% endif %}", data) == "TRUE" );
-	CHECK( env.render("{% for i in range(4) %}{{ loop/index1 }}{% endfor %}", data) == "1234" );
+	CHECK( env.render("{% for i in range(4) %}{{ loop.index1 }}{% endfor %}", data) == "1234" );
 }
 
 TEST_CASE("templates") {
@@ -313,25 +324,26 @@ TEST_CASE("templates") {
 	data["is_happy"] = true;
 
 	SECTION("reuse") {
-		inja::Environment env = inja::Environment();
+		inja::Environment env;
 		inja::Template temp = env.parse("{% if is_happy %}{{ name }}{% else %}{{ city }}{% endif %}");
 
-		CHECK( env.render_template(temp, data) == "Peter" );
+		CHECK( env.render(temp, data) == "Peter" );
 
 		data["is_happy"] = false;
 
-		CHECK( env.render_template(temp, data) == "Brunswick" );
+		CHECK( env.render(temp, data) == "Brunswick" );
 	}
 
 	SECTION("include") {
-		inja::Environment env = inja::Environment();
+		inja::Environment env;
 		inja::Template t1 = env.parse("Hello {{ name }}");
 		env.include_template("greeting", t1);
 
 		inja::Template t2 = env.parse("{% include \"greeting\" %}!");
-		CHECK( env.render_template(t2, data) == "Hello Peter!" );
+		CHECK( env.render(t2, data) == "Hello Peter!" );
 	}
 }
+
 
 TEST_CASE("other-syntax") {
 	json data;
@@ -345,31 +357,31 @@ TEST_CASE("other-syntax") {
 	data["is_happy"] = true;
 
 	SECTION("variables") {
-		inja::Environment env = inja::Environment();
-		env.set_element_notation(inja::ElementNotation::Dot);
+		inja::Environment env;
+		env.set_element_notation(inja::ElementNotation::Pointer);
 
 		CHECK( env.render("{{ name }}", data) == "Peter" );
-		CHECK( env.render("Hello {{ names.1 }}!", data) == "Hello Seb!" );
-		CHECK( env.render("Hello {{ brother.name }}!", data) == "Hello Chris!" );
-		CHECK( env.render("Hello {{ brother.daughter0.name }}!", data) == "Hello Maria!" );
+		CHECK( env.render("Hello {{ names/1 }}!", data) == "Hello Seb!" );
+		CHECK( env.render("Hello {{ brother/name }}!", data) == "Hello Chris!" );
+		CHECK( env.render("Hello {{ brother/daughter0/name }}!", data) == "Hello Maria!" );
 
-		CHECK_THROWS_WITH( env.render("{{unknown.name}}", data), "[inja.exception.render_error] variable '/unknown/name' not found" );
+		CHECK_THROWS_WITH( env.render("{{unknown/name}}", data), "[inja.exception.render_error] variable 'unknown/name' not found" );
 	}
 
 	SECTION("other expression syntax") {
-		inja::Environment env = inja::Environment();
+		inja::Environment env;
 
 		CHECK( env.render("Hello {{ name }}!", data) == "Hello Peter!" );
 
-		env.set_expression("\\(&", "&\\)");
+		env.set_expression("(&", "&)");
 
 		CHECK( env.render("Hello {{ name }}!", data) == "Hello {{ name }}!" );
 		CHECK( env.render("Hello (& name &)!", data) == "Hello Peter!" );
 	}
 
 	SECTION("other comment syntax") {
-		inja::Environment env = inja::Environment();
-		env.set_comment("\\(&", "&\\)");
+		inja::Environment env;
+		env.set_comment("(&", "&)");
 
 		CHECK( env.render("Hello {# Test #}", data) == "Hello {# Test #}" );
 		CHECK( env.render("Hello (& Test &)", data) == "Hello " );

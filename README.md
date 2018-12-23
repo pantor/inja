@@ -10,7 +10,7 @@
 [![GitHub License](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/pantor/inja/master/LICENSE)
 
 
-Inja is a template engine for modern C++, loosely inspired by [jinja](http://jinja.pocoo.org) for python. It has an easy and yet powerful template syntax with all variables, loops, conditions, includes, callbacks, comments you need, nested and combined as you like. Inja uses the wonderful [json](https://github.com/nlohmann/json) library by nlohmann for data input and handling. Most importantly, *inja* needs only two header files, which is (nearly) as trivial as integration in C++ can get. Of course, everything is tested on all relevant compilers. Have a look what it looks like:
+Inja is a template engine for modern C++, loosely inspired by [jinja](http://jinja.pocoo.org) for python. It has an easy and yet powerful template syntax with all variables, loops, conditions, includes, callbacks, comments you need, nested and combined as you like. Inja uses the wonderful [json](https://github.com/nlohmann/json) library by nlohmann for data input and handling. Most importantly, *inja* needs only two header files, which is (nearly) as trivial as integration in C++ can get. Of course, everything is tested on all relevant compilers. Here is what it looks like:
 
 ```c++
 json data;
@@ -56,17 +56,17 @@ data["name"] = "world";
 render("Hello {{ name }}!", data); // "Hello world!"
 
 // For more advanced usage, an environment is recommended
-Environment env = Environment();
+Environment env;
 
 // Render a string with json data
 std::string result = env.render("Hello {{ name }}!", data); // "Hello world!"
 
 // Or directly read a template file
 Template temp = env.parse_template("./template.txt");
-std::string result = env.render_template(temp, data); // "Hello world!"
+std::string result = env.render(temp, data); // "Hello world!"
 
 data["name"] = "Inja";
-std::string result = env.render_template(temp, data); // "Hello Inja!"
+std::string result = env.render(temp, data); // "Hello Inja!"
 
 // Or read a json file for data directly from the environment
 result = env.render_file("./template.txt", "./data.json");
@@ -79,22 +79,22 @@ env.write("./template.txt", "./data.json", "./result.txt")
 The environment class can be configured to your needs.
 ```c++
 // With default settings
-Environment env_default = Environment();
+Environment env_default;
 
-// With global path to template files
-Environment env = Environment("../path/templates/");
+// With global path to template files and where files will be saved
+Environment env_1 = Environment("../path/templates/");
 
-// With global path where to save rendered files
-Environment env = Environment("../path/templates/", "../path/results/");
+// With separate input and output path
+Environment env_2 = Environment("../path/templates/", "../path/results/");
 
-// Choose between JSON pointer or dot notation to access elements
-env.set_element_notation(ElementNotation::Pointer); // (default) e.g. time/start
-env.set_element_notation(ElementNotation::Dot); // e.g. time.start
+// Choose between dot notation (like Jinja2) and JSON pointer to access elements
+env.set_element_notation(ElementNotation::Dot); // (default) e.g. time.start
+env.set_element_notation(ElementNotation::Pointer); // e.g. time/start
 
-// With other opening and closing strings (here the defaults, as regex)
-env.set_expression("\\{\\{", "\\}\\}"); // Expressions {{ }}
-env.set_comment("\\{#", "#\\}"); // Comments {# #}
-env.set_statement("\\{\\%", "\\%\\}"); // Statements {% %} for many things, see below
+// With other opening and closing strings (here the defaults)
+env.set_expression("{{", "}}"); // Expressions
+env.set_comment("{#", "#}"); // Comments
+env.set_statement("{%", "%}"); // Statements {% %} for many things, see below
 env.set_line_statement("##"); // Line statements ## (just an opener)
 ```
 
@@ -109,10 +109,10 @@ data["time"]["start"] = 16;
 data["time"]["end"] = 22;
 
 // Indexing in array
-render("{{ guests/1 }}", data); // "Tom"
+render("{{ guests.1 }}", data); // "Tom"
 
 // Objects
-render("{{ time/start }} to {{ time/end }}pm", data); // "16 to 22pm"
+render("{{ time.start }} to {{ time.end }}pm", data); // "16 to 22pm"
 ```
 In general, the variables can be fetched using the [JSON Pointer](https://tools.ietf.org/html/rfc6901) syntax. For convenience, the leading `/` can be ommited. If no variable is found, valid JSON is printed directly, otherwise an error is thrown.
 
@@ -127,7 +127,7 @@ Statements can be written either with the `{% ... %}` syntax or the `##` syntax 
 // Combining loops and line statements
 render(R"(Guest List:
 ## for guest in guests
-	{{ loop/index1 }}: {{ guest }}
+	{{ loop.index1 }}: {{ guest }}
 ## endfor )", data)
 
 /* Guest List:
@@ -142,7 +142,7 @@ In a loop, the special variables `loop/index (number)`, `loop/index1 (number)`, 
 Conditions support the typical if, else if and else statements. Following conditions are for example possible:
 ```c++
 // Standard comparisons with variable
-render("{% if time/hour >= 18 %}…{% endif %}", data); // True
+render("{% if time.hour >= 18 %}…{% endif %}", data); // True
 
 // Variable in list
 render("{% if neighbour in guests %}…{% endif %}", data); // True
@@ -175,7 +175,7 @@ render("Hello {{ upper(neighbour) }}!", data); // "Hello PETER!"
 render("Hello {{ lower(neighbour) }}!", data); // "Hello peter!"
 
 // Range function, useful for loops
-render("{% for i in range(4) %}{{ loop/index1 }}{% endfor %}", data); // "1234"
+render("{% for i in range(4) %}{{ loop.index1 }}{% endfor %}", data); // "1234"
 
 // Length function (please don't combine with range, use list directly...)
 render("I count {{ length(guests) }} guests.", data); // "I count 3 guests."
@@ -225,7 +225,7 @@ render("{{ isArray(guests) }}", data); // "true"
 
 You can create your own and more complex functions with callbacks.
 ```c++
-Environment env = Environment();
+Environment env;
 
 /*
  * Callbacks are defined by its:
@@ -233,8 +233,8 @@ Environment env = Environment();
  * - number of arguments
  * - callback function. Implemented with std::function, you can for example use lambdas.
  */
-env.add_callback("double", 1, [&env](Parsed::Arguments args, json data) {
-	int number = env.get_argument<int>(args, 0, data); // Adapt the type and index of the argument
+env.add_callback("double", 1, [](Arguments& args) {
+	int number = args.at(0)->get<int>(); // Adapt the index and type of the argument
 	return 2 * number;
 });
 
@@ -243,7 +243,7 @@ env.render("{{ double(16) }}", data); // "32"
 
 // A callback without argument can be used like a dynamic variable:
 std::string greet = "Hello";
-env.add_callback("double-greetings", 0, [greet](Parsed::Arguments args, json data) {
+env.add_callback("double-greetings", 0, [greet](Arguments args) {
 	return greet + " " + greet + "!";
 });
 env.render("{{ double-greetings }}", data); // "Hello Hello!"
@@ -260,15 +260,8 @@ render("Hello{# Todo #}!", data); // "Hello!"
 
 ## Supported compilers
 
-Currently, the following compilers are tested:
+Inja uses `string_view` from C++17, everything else should work with C++11. Currently, the following compilers are tested:
 
-- GCC 4.9 - 7.1 (and possibly later)
-- Clang 3.6 - 5.0 (and possibly later)
-- Microsoft Visual C++ 2015 / Build Tools 14.0.25123.0 (and possibly later)
+- GCC 7.0 - 8.0 (and possibly later)
+- Clang 6.0 (and possibly later)
 - Microsoft Visual C++ 2017 / Build Tools 15.1.548.43366 (and possibly later)
-
-
-
-## License
-
-Inja is licensed under the [MIT License](https://raw.githubusercontent.com/pantor/inja/master/LICENSE).

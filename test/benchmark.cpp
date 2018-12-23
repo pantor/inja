@@ -1,11 +1,11 @@
 #include "hayai/hayai.hpp"
-#include "inja.hpp"
+#include <inja/inja.hpp>
 
 
 using json = nlohmann::json;
 
 
-inja::Environment env = inja::Environment();
+inja::Environment env;
 
 json data = {{"name", "Peter"}};
 

@@ -9,95 +9,46 @@ sudo: required
 
 matrix:
   include:
-    ### Coveralls ###
-    - os: linux
-      compiler: gcc
-      env: COMPILER=g++-5
-      addons:
-        apt:
-          sources: ['ubuntu-toolchain-r-test']
-          packages: g++-5
-      before_install:
-        - pip install --user cpp-coveralls
-      after_success:
-        - make clean
-        # - coveralls --exclude lib --exclude tests --gcov-options '\-lp'
-
-    - os: linux
-      compiler: gcc
-      env: COMPILER=g++-4.9
-      addons:
-        apt:
-          sources: ['ubuntu-toolchain-r-test']
-          packages: g++-4.9
-
-    - os: linux
-      compiler: gcc
-      env: COMPILER=g++-5
-      addons:
-        apt:
-          sources: ['ubuntu-toolchain-r-test']
-          packages: g++-5
-
-    - os: linux
-      compiler: gcc
-      env: COMPILER=g++-6
-      addons:
-        apt:
-          sources: ['ubuntu-toolchain-r-test']
-          packages: g++-6
-
     - os: linux
       compiler: gcc
       env: COMPILER=g++-7
       addons:
         apt:
-          sources: ['ubuntu-toolchain-r-test']
+          sources: ubuntu-toolchain-r-test
           packages: g++-7
 
     - os: linux
-      compiler: clang
-      env: COMPILER=clang++-3.6
+      compiler: gcc
+      env:
+        - COMPILER=g++-8
       addons:
         apt:
-          sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-precise-3.6']
-          packages: clang-3.6
+          sources: ubuntu-toolchain-r-test
+          packages: g++-8
+
+    - os: linux
+      compiler: gcc
+      env:
+        - COMPILER=g++-8
+        - CXXFLAGS=-std=c++17
+      addons:
+        apt:
+          sources: ubuntu-toolchain-r-test
+          packages: g++-8
 
     - os: linux
       compiler: clang
-      env: COMPILER=clang++-3.7
+      env: COMPILER=clang++-6.0
       addons:
         apt:
-          sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-precise-3.7']
-          packages: clang-3.7
-
-    - os: linux
-      compiler: clang
-      env: COMPILER=clang++-4.0
-      addons:
-        apt:
-          sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-4.0']
-          packages: ['g++-6', 'clang-4.0']
-
-    - os: linux
-      compiler: clang
-      env: COMPILER=clang++-5.0
-      addons:
-        apt:
-          sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-5.0']
-          packages: ['g++-6', 'clang-5.0']
-
-    - os: osx
-      osx_image: xcode7.3
-
-    - os: osx
-      osx_image: xcode8
-
-    - os: osx
-      osx_image: xcode8.3
+          sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-6.0']
+          packages: ['clang-6.0', 'libstdc++-7-dev']
 
     - os: osx
       osx_image: xcode9
+
+    - os: osx
+      osx_image: xcode10
 
 
 script:
@@ -105,7 +56,9 @@ script:
   - uname -a
   - $CXX --version
 
-  - mkdir -p build && cd build
-  - cmake .. && cmake --build . --config Release -- -j4
+  - mkdir -p build
+  - cd build
+  - cmake ..
+  - cmake --build . --config Release -- -j4
   - ctest -C Release -V
   - cd ..
