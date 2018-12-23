@@ -47,6 +47,19 @@ if(BUILD_TESTS)
   target_link_libraries(inja_test PRIVATE inja)
 
   add_test(inja_test ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/inja_test)
+
+
+  add_library(single_inja INTERFACE)
+  target_include_directories(single_inja INTERFACE single_include include)
+
+  add_executable(single_inja_test
+    test/unit.cpp
+    test/unit-files.cpp
+    test/unit-renderer.cpp
+  )
+  target_link_libraries(single_inja_test PRIVATE single_inja)
+
+  add_test(single_inja_test ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/single_inja_test)
 endif()
 
 
