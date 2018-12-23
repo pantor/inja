@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>{{ title }}</title>
+  </head>
+  <body>
+    <h1>{{ title }}</h1>
+    <small>Written by {{ author }}</small>
+
+    <p>{{ content }}</p>
+    <small>{{ views }} views</small>
+
+    <h5>Tags</h5>
+    <ul>
+## for tag in tags
+      <li>{{ tag }}</li>
+## endfor
+    </ul>
+  </body>
+</html>
