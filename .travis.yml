@@ -56,7 +56,9 @@ script:
   - uname -a
   - $CXX --version
 
-  - mkdir -p build && cd build
-  - cmake .. && cmake --build . --config Release -- -j4
+  - mkdir -p build
+  - cd build
+  - cmake ..
+  - cmake --build . --config Release -- -j4
   - ctest -C Release -V
   - cd ..
