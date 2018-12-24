@@ -387,8 +387,11 @@ class Parser {
       // std::tie(included, is_new) = m_included_templates.emplace(pathname);
       // if (is_new) included->second = parse_template(pathname);
 
-      Template include_template = parse_template(pathname);
-      m_included_templates.emplace(pathname, include_template);
+	  auto iter = m_included_templates.find(pathname);
+	  if (iter == m_included_templates.end()) {
+		  m_included_templates.emplace(pathname, Template{});
+		  parse_template(pathname, m_included_templates[pathname]);
+	  }
 
       // generate a reference bytecode
       tmpl.bytecodes.emplace_back(Bytecode::Op::Include, json(pathname), Bytecode::Flag::ValueImmediate);
