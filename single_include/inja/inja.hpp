@@ -1072,7 +1072,6 @@ class Parser {
 
 	  auto iter = m_included_templates.find(pathname);
 	  if (iter == m_included_templates.end()) {
-		  m_included_templates.emplace(pathname, Template{});
 		  parse_template(pathname, m_included_templates[pathname]);
 	  }
 
@@ -1191,6 +1190,14 @@ class Parser {
       // StringRef path = sys::path::parent_path(filename);
     Parser(m_config, m_lexer.get_config(), m_included_templates).parse_into(result, path);
     return result;
+  }
+	
+	  void parse_template(std::string_view filename, Template& result) {
+	  result.content = load_file(filename);
+
+	  std::string_view path = filename.substr(0, filename.find_last_of("/\\") + 1);
+	  // StringRef path = sys::path::parent_path(filename);
+	  Parser(m_config, m_lexer.get_config(), m_included_templates).parse_into(result, path);
   }
 
   std::string load_file(std::string_view filename) {
