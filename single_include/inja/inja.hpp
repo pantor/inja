@@ -1073,6 +1073,9 @@ class Parser {
 	  auto iter = m_included_templates.find(pathname);
 	  if (iter == m_included_templates.end()) {
 		  parse_template(pathname, m_included_templates[pathname]);
+	  }else {
+		  m_included_templates.erase(iter);
+		  parse_template(pathname, m_included_templates[pathname]);
 	  }
 
       // generate a reference bytecode
