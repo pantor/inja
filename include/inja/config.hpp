@@ -22,7 +22,8 @@ struct LexerConfig {
   std::string comment_open {"{#"};
   std::string comment_close {"#}"};
   std::string open_chars {"#{"};
-
+  std::string pre_open{ "#{" };
+  std::string pre_close{ "}#" };
   void update_open_chars() {
     open_chars = "\n";
     if (open_chars.find(statement_open[0]) == std::string::npos) {
@@ -34,6 +35,9 @@ struct LexerConfig {
     if (open_chars.find(comment_open[0]) == std::string::npos) {
       open_chars += comment_open[0];
     }
+	if (open_chars.find(pre_open[0]) == std::string::npos) {
+		open_chars += pre_open[0];
+	}
   }
 };
 

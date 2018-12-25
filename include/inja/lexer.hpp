@@ -21,7 +21,9 @@ class Lexer {
     StatementStart,
     StatementBody,
     CommentStart,
-    CommentBody
+    CommentBody,
+	PreStart,
+	PreBody
   } m_state;
 
   const LexerConfig& m_config;
@@ -68,7 +70,9 @@ class Lexer {
         } else if ((m_pos == 0 || m_in[m_pos - 1] == '\n') &&
                    string_view::starts_with(open_str, m_config.line_statement)) {
           m_state = State::LineStart;
-        } else {
+        }else if (string_view::starts_with(open_str, m_config.pre_open)) {
+			m_state = State::PreStart;
+		} else {
           m_pos += 1; // wasn't actually an opening sequence
           goto again;
         }
@@ -95,6 +99,11 @@ class Lexer {
         m_pos += m_config.comment_open.size();
         return make_token(Token::Kind::CommentOpen);
       }
+      	  case State::PreStart: {
+		  m_state = State::PreBody;
+		  m_pos += m_config.pre_open.size();
+		  return make_token(Token::Kind::PreOpen);
+	  }
       case State::ExpressionBody:
         return scan_body(m_config.expression_close, Token::Kind::ExpressionClose);
       case State::LineBody:
@@ -113,6 +122,19 @@ class Lexer {
         m_pos += end + m_config.comment_close.size();
         return make_token(Token::Kind::CommentClose);
       }
+      	  case State::PreBody: {
+		  size_t end = m_in.substr(m_pos).find(m_config.pre_close);
+		  auto str_v = m_in.substr(m_pos, end);
+		  if (end == std::string_view::npos) {
+			  m_pos = m_in.size();
+			  return make_token(Token::Kind::Eof);
+		  }
+		  m_state = State::Text;
+		  m_pos+= end;
+		  auto token = make_token(Token::Kind::PreClose);
+		  m_pos += m_config.pre_close.size();
+		  return token;
+	  }
     }
   }
 

@@ -484,6 +484,13 @@ class Parser {
             inja_throw("parser_error", "expected comment close, got '" + m_tok.describe() + "'");
           }
           break;
+          		case Token::Kind::PreOpen:
+			get_next_token();
+			if (m_tok.kind != Token::Kind::PreClose) {
+				inja_throw("parser_error", "expected pre close, got '" + m_tok.describe() + "'");
+			}
+			tmpl.bytecodes.emplace_back(Bytecode::Op::PrintText, m_tok.text, 0u);
+		 break;
         default:
           inja_throw("parser_error", "unexpected token '" + m_tok.describe() + "'");
           break;

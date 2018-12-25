@@ -17,6 +17,8 @@ struct Token {
     StatementClose,      // %}
     CommentOpen,         // {#
     CommentClose,        // #}
+	PreOpen,             //#{
+	PreClose,            // }#   
     Id,                  // this, this.foo
     Number,              // 1, 2, -1, 5.2, -5.3
     String,              // "this"

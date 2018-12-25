@@ -49,7 +49,8 @@ struct LexerConfig {
   std::string comment_open {"{#"};
   std::string comment_close {"#}"};
   std::string open_chars {"#{"};
-
+  std::string pre_open{ "#{" };
+  std::string pre_close{ "}#" };
   void update_open_chars() {
     open_chars = "\n";
     if (open_chars.find(statement_open[0]) == std::string::npos) {
@@ -61,6 +62,9 @@ struct LexerConfig {
     if (open_chars.find(comment_open[0]) == std::string::npos) {
       open_chars += comment_open[0];
     }
+	if (open_chars.find(pre_open[0]) == std::string::npos) {
+		open_chars += pre_open[0];
+	}
   }
 };
 
@@ -318,6 +322,8 @@ struct Token {
     StatementClose,      // %}
     CommentOpen,         // {#
     CommentClose,        // #}
+	PreOpen,             //#{
+	PreClose,            // }#   
     Id,                  // this, this.foo
     Number,              // 1, 2, -1, 5.2, -5.3
     String,              // "this"
@@ -414,7 +420,9 @@ class Lexer {
     StatementStart,
     StatementBody,
     CommentStart,
-    CommentBody
+    CommentBody,
+	PreStart,
+	PreBody
   } m_state;
 
   const LexerConfig& m_config;
@@ -461,7 +469,10 @@ class Lexer {
         } else if ((m_pos == 0 || m_in[m_pos - 1] == '\n') &&
                    string_view::starts_with(open_str, m_config.line_statement)) {
           m_state = State::LineStart;
-        } else {
+		}else if (string_view::starts_with(open_str, m_config.pre_open)) {
+			m_state = State::PreStart;
+		}
+		else {
           m_pos += 1; // wasn't actually an opening sequence
           goto again;
         }
@@ -488,6 +499,11 @@ class Lexer {
         m_pos += m_config.comment_open.size();
         return make_token(Token::Kind::CommentOpen);
       }
+	  case State::PreStart: {
+		  m_state = State::PreBody;
+		  m_pos += m_config.pre_open.size();
+		  return make_token(Token::Kind::PreOpen);
+	  }
       case State::ExpressionBody:
         return scan_body(m_config.expression_close, Token::Kind::ExpressionClose);
       case State::LineBody:
@@ -506,6 +522,19 @@ class Lexer {
         m_pos += end + m_config.comment_close.size();
         return make_token(Token::Kind::CommentClose);
       }
+	  case State::PreBody: {
+		  size_t end = m_in.substr(m_pos).find(m_config.pre_close);
+		  auto str_v = m_in.substr(m_pos, end);
+		  if (end == std::string_view::npos) {
+			  m_pos = m_in.size();
+			  return make_token(Token::Kind::Eof);
+		  }
+		  m_state = State::Text;
+		  m_pos+= end;
+		  auto token = make_token(Token::Kind::PreClose);
+		  m_pos += m_config.pre_close.size();
+		  return token;
+	  }
     }
   }
 
@@ -1070,14 +1099,12 @@ class Parser {
       // std::tie(included, is_new) = m_included_templates.emplace(pathname);
       // if (is_new) included->second = parse_template(pathname);
 
+      //Template include_template = parse_template(pathname);
 	  auto iter = m_included_templates.find(pathname);
 	  if (iter == m_included_templates.end()) {
 		  parse_template(pathname, m_included_templates[pathname]);
-	  }else {
-		  m_included_templates.erase(iter);
-		  parse_template(pathname, m_included_templates[pathname]);
 	  }
-
+	  //parse_template(pathname,m_included_templates[pathname);
       // generate a reference bytecode
       tmpl.bytecodes.emplace_back(Bytecode::Op::Include, json(pathname), Bytecode::Flag::ValueImmediate);
 
@@ -1167,6 +1194,13 @@ class Parser {
             inja_throw("parser_error", "expected comment close, got '" + m_tok.describe() + "'");
           }
           break;
+		case Token::Kind::PreOpen:
+			get_next_token();
+			if (m_tok.kind != Token::Kind::PreClose) {
+				inja_throw("parser_error", "expected pre close, got '" + m_tok.describe() + "'");
+			}
+			tmpl.bytecodes.emplace_back(Bytecode::Op::PrintText, m_tok.text, 0u);
+		 break;
         default:
           inja_throw("parser_error", "unexpected token '" + m_tok.describe() + "'");
           break;
@@ -1194,8 +1228,8 @@ class Parser {
     Parser(m_config, m_lexer.get_config(), m_included_templates).parse_into(result, path);
     return result;
   }
-	
-	  void parse_template(std::string_view filename, Template& result) {
+
+  void parse_template(std::string_view filename, Template& result) {
 	  result.content = load_file(filename);
 
 	  std::string_view path = filename.substr(0, filename.find_last_of("/\\") + 1);
@@ -1738,7 +1772,7 @@ class Renderer {
           break;
         }
         case Bytecode::Op::Include:
-          Renderer(m_included_templates, m_callbacks).render_to(os, m_included_templates.find(get_imm(bc)->get_ref<const std::string&>())->second, data);
+			Renderer(m_included_templates, m_callbacks).render_to(os, m_included_templates.find(get_imm(bc)->get_ref<const std::string&>())->second, data);
           break;
         case Bytecode::Op::Callback: {
           auto callback = m_callbacks.find_callback(bc.str, bc.args);
@@ -1920,6 +1954,13 @@ class Environment {
     m_impl->lexer_config.comment_open = open;
     m_impl->lexer_config.comment_close = close;
     m_impl->lexer_config.update_open_chars();
+  }
+
+  void set_precode(std::string const& open, std::string const& close)
+  {
+	  m_impl->lexer_config.pre_open = open;
+	  m_impl->lexer_config.pre_close = close;
+	  m_impl->lexer_config.update_open_chars();
   }
 
   /// Sets the element notation syntax
