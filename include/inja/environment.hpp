@@ -76,6 +76,13 @@ class Environment {
     m_impl->lexer_config.update_open_chars();
   }
 
+    void set_precode(std::string const& open, std::string const& close)
+  {
+	  m_impl->lexer_config.pre_open = open;
+	  m_impl->lexer_config.pre_close = close;
+	  m_impl->lexer_config.update_open_chars();
+  }
+
   /// Sets the element notation syntax
   void set_element_notation(ElementNotation notation) {
     m_impl->parser_config.notation = notation;
