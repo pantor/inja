@@ -695,12 +695,7 @@ class Template {
   std::string content;
 
  public:
- 	 Template()
-#ifdef _MSC_VER 
-	:content(16,'\0')
-#endif 
-	 {
-	 }
+  Template(){}
   Template(const Template& oth): bytecodes(oth.bytecodes), content(oth.content) {}
   Template(Template&& oth): bytecodes(std::move(oth.bytecodes)), content(std::move(oth.content)) {}
 
@@ -1105,10 +1100,12 @@ class Parser {
       // if (is_new) included->second = parse_template(pathname);
 
       //Template include_template = parse_template(pathname);
-	  auto iter = m_included_templates.find(pathname);
-	  if (iter == m_included_templates.end()) {
-		  parse_template(pathname, m_included_templates[pathname]);
-	  }
+	  // auto iter = m_included_templates.find(pathname);
+	  // if (iter == m_included_templates.end()) {
+		//   parse_template(pathname, m_included_templates[pathname]);
+	  // }
+    Template include_template = parse_template(pathname);
+    m_included_templates.emplace(pathname, include_template);
 	  //parse_template(pathname,m_included_templates[pathname);
       // generate a reference bytecode
       tmpl.bytecodes.emplace_back(Bytecode::Op::Include, json(pathname), Bytecode::Flag::ValueImmediate);

@@ -116,7 +116,7 @@ struct Bytecode {
   uint32_t flags: 2;
 
   json value;
-  std::string_view str;
+  std::string str;
 
   Bytecode(): args(0), flags(0) {}
   explicit Bytecode(Op op, unsigned int args = 0): op(op), args(args), flags(0) {}

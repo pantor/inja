@@ -387,13 +387,15 @@ class Parser {
       // std::tie(included, is_new) = m_included_templates.emplace(pathname);
       // if (is_new) included->second = parse_template(pathname);
 
-	  auto iter = m_included_templates.find(pathname);
-	  if (iter == m_included_templates.end()) {
-		  parse_template(pathname, m_included_templates[pathname]);
-	  }else {
-		  m_included_templates.erase(iter);
-		  parse_template(pathname, m_included_templates[pathname]);
-	  }
+	  //auto iter = m_included_templates.find(pathname);
+	  //if (iter == m_included_templates.end()) {
+		 // parse_template(pathname, m_included_templates[pathname]);
+	  //}else {
+		 // m_included_templates.erase(iter);
+		 // parse_template(pathname, m_included_templates[pathname]);
+	  //}
+	  Template include_template = parse_template(pathname);
+	  m_included_templates.emplace(pathname, include_template);
 
       // generate a reference bytecode
       tmpl.bytecodes.emplace_back(Bytecode::Op::Include, json(pathname), Bytecode::Flag::ValueImmediate);
@@ -500,10 +502,6 @@ class Parser {
 
   Template parse(std::string_view input, std::string_view path) {
     Template result;
-//#ifdef _MSC_VER
-//	result.content.resize(16);
-//#endif // _MSC_VER
-
     result.content = input;
     parse_into(result, path);
     return result;
