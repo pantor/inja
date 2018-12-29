@@ -17,7 +17,12 @@ class Template {
   std::string content;
 
  public:
-  Template() {}
+	 Template()
+#ifdef _MSC_VER 
+	:content(16,'\0')
+#endif 
+	 {
+	 }
   Template(const Template& oth): bytecodes(oth.bytecodes), content(oth.content) {}
   Template(Template&& oth): bytecodes(std::move(oth.bytecodes)), content(std::move(oth.content)) {}
 

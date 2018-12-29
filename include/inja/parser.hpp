@@ -500,6 +500,10 @@ class Parser {
 
   Template parse(std::string_view input, std::string_view path) {
     Template result;
+//#ifdef _MSC_VER
+//	result.content.resize(16);
+//#endif // _MSC_VER
+
     result.content = input;
     parse_into(result, path);
     return result;
