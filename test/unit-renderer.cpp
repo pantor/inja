@@ -43,6 +43,7 @@ TEST_CASE("types") {
 		CHECK( env.render("Hello {{ names.1 }}!", data) == "Hello Seb!" );
 		CHECK( env.render("Hello {{ brother.name }}!", data) == "Hello Chris!" );
 		CHECK( env.render("Hello {{ brother.daughter0.name }}!", data) == "Hello Maria!" );
+		CHECK( env.render("{{ \"{{ no_value }}\" }}", data) == "{{ no_value }}" );
 
 		CHECK_THROWS_WITH( env.render("{{unknown}}", data), "[inja.exception.render_error] variable 'unknown' not found" );
 	}
@@ -215,6 +216,7 @@ TEST_CASE("functions") {
 		CHECK( env.render("{{ default(nothing, 0) }}", data) == "0" );
 		CHECK( env.render("{{ default(name, \"nobody\") }}", data) == "Peter" );
 		CHECK( env.render("{{ default(surname, \"nobody\") }}", data) == "nobody" );
+		CHECK( env.render("{{ default(surname, \"{{ surname }}\") }}", data) == "{{ surname }}" );
 		CHECK_THROWS_WITH( env.render("{{ default(surname, lastname) }}", data), "[inja.exception.render_error] variable 'lastname' not found" );
 	}
 

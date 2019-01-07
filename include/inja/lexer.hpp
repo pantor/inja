@@ -208,9 +208,13 @@ class Lexer {
 
   Token scan_id() {
     for (;;) {
-      if (m_pos >= m_in.size()) break;
+      if (m_pos >= m_in.size()) {
+        break;
+      }
       char ch = m_in[m_pos];
-      if (!std::isalnum(ch) && ch != '.' && ch != '/' && ch != '_' && ch != '-') break;
+      if (!std::isalnum(ch) && ch != '.' && ch != '/' && ch != '_' && ch != '-') {
+        break;
+      }
       m_pos += 1;
     }
     return make_token(Token::Kind::Id);
@@ -218,11 +222,14 @@ class Lexer {
 
   Token scan_number() {
     for (;;) {
-      if (m_pos >= m_in.size()) break;
+      if (m_pos >= m_in.size()) {
+        break;
+      }
       char ch = m_in[m_pos];
       // be very permissive in lexer (we'll catch errors when conversion happens)
-      if (!std::isdigit(ch) && ch != '.' && ch != 'e' && ch != 'E' && ch != '+' && ch != '-')
+      if (!std::isdigit(ch) && ch != '.' && ch != 'e' && ch != 'E' && ch != '+' && ch != '-') {
         break;
+      }
       m_pos += 1;
     }
     return make_token(Token::Kind::Number);
@@ -233,12 +240,13 @@ class Lexer {
     for (;;) {
       if (m_pos >= m_in.size()) break;
       char ch = m_in[m_pos++];
-      if (ch == '\\')
+      if (ch == '\\') {
         escape = true;
-      else if (!escape && ch == m_in[m_tok_start])
+      } else if (!escape && ch == m_in[m_tok_start]) {
         break;
-      else
+      } else {
         escape = false;
+      }
     }
     return make_token(Token::Kind::String);
   }

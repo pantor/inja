@@ -28,18 +28,20 @@ class Renderer {
   std::vector<const json*>& get_args(const Bytecode& bc) {
     m_tmp_args.clear();
 
-    bool hasImm = ((bc.flags & Bytecode::Flag::ValueMask) != Bytecode::Flag::ValuePop);
+    bool has_imm = ((bc.flags & Bytecode::Flag::ValueMask) != Bytecode::Flag::ValuePop);
 
     // get args from stack
     unsigned int pop_args = bc.args;
-    if (hasImm) --pop_args;
+    if (has_imm) {
+      pop_args -= 1;
+    }
 
     for (auto i = std::prev(m_stack.end(), pop_args); i != m_stack.end(); i++) {
       m_tmp_args.push_back(&(*i));
     }
 
     // get immediate arg
-    if (hasImm) {
+    if (has_imm) {
       m_tmp_args.push_back(get_imm(bc));
     }
 
@@ -48,9 +50,12 @@ class Renderer {
 
   void pop_args(const Bytecode& bc) {
     unsigned int popArgs = bc.args;
-    if ((bc.flags & Bytecode::Flag::ValueMask) != Bytecode::Flag::ValuePop)
-      --popArgs;
-    for (unsigned int i = 0; i < popArgs; ++i) m_stack.pop_back();
+    if ((bc.flags & Bytecode::Flag::ValueMask) != Bytecode::Flag::ValuePop) {
+      popArgs -= 1;
+    }
+    for (unsigned int i = 0; i < popArgs; ++i) {
+      m_stack.pop_back();
+    }
   }
 
   const json* get_imm(const Bytecode& bc) {
@@ -169,11 +174,13 @@ class Renderer {
       const auto& bc = tmpl.bytecodes[i];
 
       switch (bc.op) {
-        case Bytecode::Op::Nop:
+        case Bytecode::Op::Nop: {
           break;
-        case Bytecode::Op::PrintText:
+        }
+        case Bytecode::Op::PrintText: {
           os << bc.str;
           break;
+        }
         case Bytecode::Op::PrintValue: {
           const json& val = *get_args(bc)[0];
           if (val.is_string())
@@ -184,9 +191,10 @@ class Renderer {
           pop_args(bc);
           break;
         }
-        case Bytecode::Op::Push:
+        case Bytecode::Op::Push: {
           m_stack.emplace_back(*get_imm(bc));
           break;
+        }
         case Bytecode::Op::Upper: {
           auto result = get_args(bc)[0]->get<std::string>();
           std::transform(result.begin(), result.end(), result.begin(), ::toupper);
@@ -443,9 +451,10 @@ class Renderer {
           m_stack.emplace_back(std::move(result));
           break;
         }
-        case Bytecode::Op::Jump:
+        case Bytecode::Op::Jump: {
           i = bc.args - 1;  // -1 due to ++i in loop
           break;
+        }
         case Bytecode::Op::ConditionalJump: {
           if (!truthy(m_stack.back())) {
             i = bc.args - 1;  // -1 due to ++i in loop

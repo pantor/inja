@@ -82,10 +82,10 @@ The environment class can be configured to your needs.
 Environment env_default;
 
 // With global path to template files and where files will be saved
-Environment env_1 = Environment("../path/templates/");
+Environment env_1 {"../path/templates/"};
 
 // With separate input and output path
-Environment env_2 = Environment("../path/templates/", "../path/results/");
+Environment env_2 {"../path/templates/", "../path/results/"};
 
 // Choose between dot notation (like Jinja2) and JSON pointer to access elements
 env.set_element_notation(ElementNotation::Dot); // (default) e.g. time.start
