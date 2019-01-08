@@ -72,8 +72,8 @@ std::string result = env.render(temp, data); // "Hello Inja!"
 result = env.render_file("./template.txt", "./data.json");
 
 // Or write a rendered template file
-env.write(temp, data, "./result.txt")
-env.write("./template.txt", "./data.json", "./result.txt")
+env.write(temp, data, "./result.txt");
+env.write_with_json_file("./template.txt", "./data.json", "./result.txt");
 ```
 
 The environment class can be configured to your needs.
