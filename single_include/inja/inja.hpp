@@ -1443,7 +1443,7 @@ class Renderer {
     m_tmp_args.reserve(4);
   }
 
-  void render_to(std::stringstream& os, const Template& tmpl, const json& data) {
+  void render_to(std::ostream& os, const Template& tmpl, const json& data) {
     m_data = &data;
 
     for (size_t i = 0; i < tmpl.bytecodes.size(); ++i) {
@@ -1957,7 +1957,7 @@ class Environment {
 		write(temp, data, filename_out);
 	}
 
-  std::stringstream& render_to(std::stringstream& os, const Template& tmpl, const json& data) {
+  std::ostream& render_to(std::ostream& os, const Template& tmpl, const json& data) {
     Renderer(m_impl->included_templates, m_impl->callbacks).render_to(os, tmpl, data);
     return os;
   }

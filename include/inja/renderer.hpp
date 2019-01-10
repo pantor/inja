@@ -167,7 +167,7 @@ class Renderer {
     m_tmp_args.reserve(4);
   }
 
-  void render_to(std::stringstream& os, const Template& tmpl, const json& data) {
+  void render_to(std::ostream& os, const Template& tmpl, const json& data) {
     m_data = &data;
 
     for (size_t i = 0; i < tmpl.bytecodes.size(); ++i) {

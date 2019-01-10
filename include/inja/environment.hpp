@@ -133,7 +133,7 @@ class Environment {
 		write(temp, data, filename_out);
 	}
 
-  std::stringstream& render_to(std::stringstream& os, const Template& tmpl, const json& data) {
+  std::ostream& render_to(std::ostream& os, const Template& tmpl, const json& data) {
     Renderer(m_impl->included_templates, m_impl->callbacks).render_to(os, tmpl, data);
     return os;
   }
