@@ -164,10 +164,18 @@ class Environment {
 };
 
 /*!
-@brief render with default settings
+@brief render with default settings to a string
 */
 inline std::string render(std::string_view input, const json& data) {
   return Environment().render(input, data);
+}
+
+/*!
+@brief render with default settings to the given output stream
+*/
+inline void render_to(std::ostream& os, std::string_view input, const json& data) {
+  Environment env;
+  env.render_to(os, env.parse(input), data);
 }
 
 }
