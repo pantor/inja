@@ -19,6 +19,11 @@ data["name"] = "world";
 inja::render("Hello {{ name }}!", data); // Returns "Hello world!"
 ```
 
+`inja::render()` returns a `std::string` but you can also output to a `std::ostream&`, for example:
+
+```c++
+inja::render_to(std::cout, "Hello {{ name }}!", data);
+```
 
 ## Integration
 
