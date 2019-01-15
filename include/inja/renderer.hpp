@@ -110,7 +110,7 @@ class Renderer {
     LoopLevel& level = m_loop_stack.back();
 
     if (m_loop_stack.size() > 1) {
-      for (int i = m_loop_stack.size() - 2; i >= 0; i--) {
+      for (int i = (int)m_loop_stack.size() - 2; i >= 0; i--) {
         auto& level_it = m_loop_stack.at(i);
 
         level.data[static_cast<std::string>(level_it.value_name)] = level_it.values.at(level_it.index);

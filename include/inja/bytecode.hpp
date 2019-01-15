@@ -11,6 +11,8 @@ namespace inja {
 
 using namespace nlohmann;
 
+#define SET_ARGS(x) ((x) & 0x3fffFFFF)
+#define SET_FLAGS(x) ((x) & 0x3)
 
 struct Bytecode {
   enum class Op : uint8_t {
@@ -119,9 +121,9 @@ struct Bytecode {
   std::string str;
 
   Bytecode(): args(0), flags(0) {}
-  explicit Bytecode(Op op, unsigned int args = 0): op(op), args(args), flags(0) {}
-  explicit Bytecode(Op op, std::string_view str, unsigned int flags): op(op), args(0), flags(flags), str(str) {}
-  explicit Bytecode(Op op, json&& value, unsigned int flags): op(op), args(0), flags(flags), value(std::move(value)) {}
+  explicit Bytecode(Op op, unsigned int args = 0): op(op), args(SET_ARGS(args)), flags(0) {}
+  explicit Bytecode(Op op, std::string_view str, unsigned int flags): op(op), args(0), flags(SET_FLAGS(flags)), str(str) {}
+  explicit Bytecode(Op op, json&& value, unsigned int flags): op(op), args(0), flags(SET_FLAGS(flags)), value(std::move(value)) {}
 };
 
 }  // namespace inja
