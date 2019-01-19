@@ -197,7 +197,7 @@ struct Bytecode {
   uint32_t flags: 2;
 
   json value;
-  std::string_view str;
+  std::string str;
 
   Bytecode(): args(0), flags(0) {}
   explicit Bytecode(Op op, unsigned int args = 0): op(op), args(args), flags(0) {}
@@ -601,9 +601,13 @@ class Lexer {
 
   Token scan_id() {
     for (;;) {
-      if (m_pos >= m_in.size()) break;
+      if (m_pos >= m_in.size()) {
+        break;
+      }
       char ch = m_in[m_pos];
-      if (!std::isalnum(ch) && ch != '.' && ch != '/' && ch != '_' && ch != '-') break;
+      if (!std::isalnum(ch) && ch != '.' && ch != '/' && ch != '_' && ch != '-') {
+        break;
+      }
       m_pos += 1;
     }
     return make_token(Token::Kind::Id);
@@ -611,11 +615,14 @@ class Lexer {
 
   Token scan_number() {
     for (;;) {
-      if (m_pos >= m_in.size()) break;
+      if (m_pos >= m_in.size()) {
+        break;
+      }
       char ch = m_in[m_pos];
       // be very permissive in lexer (we'll catch errors when conversion happens)
-      if (!std::isdigit(ch) && ch != '.' && ch != 'e' && ch != 'E' && ch != '+' && ch != '-')
+      if (!std::isdigit(ch) && ch != '.' && ch != 'e' && ch != 'E' && ch != '+' && ch != '-') {
         break;
+      }
       m_pos += 1;
     }
     return make_token(Token::Kind::Number);
@@ -626,12 +633,13 @@ class Lexer {
     for (;;) {
       if (m_pos >= m_in.size()) break;
       char ch = m_in[m_pos++];
-      if (ch == '\\')
+      if (ch == '\\') {
         escape = true;
-      else if (!escape && ch == m_in[m_tok_start])
+      } else if (!escape && ch == m_in[m_tok_start]) {
         break;
-      else
+      } else {
         escape = false;
+      }
     }
     return make_token(Token::Kind::String);
   }
@@ -658,29 +666,9 @@ class Lexer {
 
 namespace inja {
 
-class Template {
-  friend class Parser;
-  friend class Renderer;
-
+struct Template {
   std::vector<Bytecode> bytecodes;
   std::string content;
-
- public:
-  Template() {}
-  Template(const Template& oth): bytecodes(oth.bytecodes), content(oth.content) {}
-  Template(Template&& oth): bytecodes(std::move(oth.bytecodes)), content(std::move(oth.content)) {}
-
-  Template& operator=(const Template& oth) {
-    bytecodes = oth.bytecodes;
-    content = oth.content;
-    return *this;
-  }
-
-  Template& operator=(Template&& oth) {
-    bytecodes = std::move(oth.bytecodes);
-    content = std::move(oth.content);
-    return *this;
-  }
 };
 
 using TemplateStorage = std::map<std::string, Template>;
@@ -1064,12 +1052,6 @@ class Parser {
       }
       // sys::path::remove_dots(pathname, true, sys::path::Style::posix);
 
-      // parse it only if it's new
-      // TemplateStorage::iterator included;
-      // bool is_new {true};
-      // std::tie(included, is_new) = m_included_templates.emplace(pathname);
-      // if (is_new) included->second = parse_template(pathname);
-
       Template include_template = parse_template(pathname);
       m_included_templates.emplace(pathname, include_template);
 
@@ -1322,18 +1304,20 @@ class Renderer {
   std::vector<const json*>& get_args(const Bytecode& bc) {
     m_tmp_args.clear();
 
-    bool hasImm = ((bc.flags & Bytecode::Flag::ValueMask) != Bytecode::Flag::ValuePop);
+    bool has_imm = ((bc.flags & Bytecode::Flag::ValueMask) != Bytecode::Flag::ValuePop);
 
     // get args from stack
     unsigned int pop_args = bc.args;
-    if (hasImm) --pop_args;
+    if (has_imm) {
+      pop_args -= 1;
+    }
 
     for (auto i = std::prev(m_stack.end(), pop_args); i != m_stack.end(); i++) {
       m_tmp_args.push_back(&(*i));
     }
 
     // get immediate arg
-    if (hasImm) {
+    if (has_imm) {
       m_tmp_args.push_back(get_imm(bc));
     }
 
@@ -1342,9 +1326,12 @@ class Renderer {
 
   void pop_args(const Bytecode& bc) {
     unsigned int popArgs = bc.args;
-    if ((bc.flags & Bytecode::Flag::ValueMask) != Bytecode::Flag::ValuePop)
-      --popArgs;
-    for (unsigned int i = 0; i < popArgs; ++i) m_stack.pop_back();
+    if ((bc.flags & Bytecode::Flag::ValueMask) != Bytecode::Flag::ValuePop) {
+      popArgs -= 1;
+    }
+    for (unsigned int i = 0; i < popArgs; ++i) {
+      m_stack.pop_back();
+    }
   }
 
   const json* get_imm(const Bytecode& bc) {
@@ -1456,18 +1443,20 @@ class Renderer {
     m_tmp_args.reserve(4);
   }
 
-  void render_to(std::stringstream& os, const Template& tmpl, const json& data) {
+  void render_to(std::ostream& os, const Template& tmpl, const json& data) {
     m_data = &data;
 
     for (size_t i = 0; i < tmpl.bytecodes.size(); ++i) {
       const auto& bc = tmpl.bytecodes[i];
 
       switch (bc.op) {
-        case Bytecode::Op::Nop:
+        case Bytecode::Op::Nop: {
           break;
-        case Bytecode::Op::PrintText:
+        }
+        case Bytecode::Op::PrintText: {
           os << bc.str;
           break;
+        }
         case Bytecode::Op::PrintValue: {
           const json& val = *get_args(bc)[0];
           if (val.is_string())
@@ -1478,9 +1467,10 @@ class Renderer {
           pop_args(bc);
           break;
         }
-        case Bytecode::Op::Push:
+        case Bytecode::Op::Push: {
           m_stack.emplace_back(*get_imm(bc));
           break;
+        }
         case Bytecode::Op::Upper: {
           auto result = get_args(bc)[0]->get<std::string>();
           std::transform(result.begin(), result.end(), result.begin(), ::toupper);
@@ -1737,9 +1727,10 @@ class Renderer {
           m_stack.emplace_back(std::move(result));
           break;
         }
-        case Bytecode::Op::Jump:
+        case Bytecode::Op::Jump: {
           i = bc.args - 1;  // -1 due to ++i in loop
           break;
+        }
         case Bytecode::Op::ConditionalJump: {
           if (!truthy(m_stack.back())) {
             i = bc.args - 1;  // -1 due to ++i in loop
@@ -1966,7 +1957,7 @@ class Environment {
 		write(temp, data, filename_out);
 	}
 
-  std::stringstream& render_to(std::stringstream& os, const Template& tmpl, const json& data) {
+  std::ostream& render_to(std::ostream& os, const Template& tmpl, const json& data) {
     Renderer(m_impl->included_templates, m_impl->callbacks).render_to(os, tmpl, data);
     return os;
   }
@@ -1997,10 +1988,18 @@ class Environment {
 };
 
 /*!
-@brief render with default settings
+@brief render with default settings to a string
 */
 inline std::string render(std::string_view input, const json& data) {
   return Environment().render(input, data);
+}
+
+/*!
+@brief render with default settings to the given output stream
+*/
+inline void render_to(std::ostream& os, std::string_view input, const json& data) {
+  Environment env;
+  env.render_to(os, env.parse(input), data);
 }
 
 }

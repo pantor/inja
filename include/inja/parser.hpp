@@ -381,12 +381,6 @@ class Parser {
       }
       // sys::path::remove_dots(pathname, true, sys::path::Style::posix);
 
-      // parse it only if it's new
-      // TemplateStorage::iterator included;
-      // bool is_new {true};
-      // std::tie(included, is_new) = m_included_templates.emplace(pathname);
-      // if (is_new) included->second = parse_template(pathname);
-
       Template include_template = parse_template(pathname);
       m_included_templates.emplace(pathname, include_template);
 

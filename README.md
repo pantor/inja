@@ -19,6 +19,11 @@ data["name"] = "world";
 inja::render("Hello {{ name }}!", data); // Returns "Hello world!"
 ```
 
+`inja::render()` returns a `std::string` but you can also output to a `std::ostream&`, for example:
+
+```c++
+inja::render_to(std::cout, "Hello {{ name }}!", data);
+```
 
 ## Integration
 
@@ -72,8 +77,8 @@ std::string result = env.render(temp, data); // "Hello Inja!"
 result = env.render_file("./template.txt", "./data.json");
 
 // Or write a rendered template file
-env.write(temp, data, "./result.txt")
-env.write("./template.txt", "./data.json", "./result.txt")
+env.write(temp, data, "./result.txt");
+env.write_with_json_file("./template.txt", "./data.json", "./result.txt");
 ```
 
 The environment class can be configured to your needs.
@@ -82,10 +87,10 @@ The environment class can be configured to your needs.
 Environment env_default;
 
 // With global path to template files and where files will be saved
-Environment env_1 = Environment("../path/templates/");
+Environment env_1 {"../path/templates/"};
 
 // With separate input and output path
-Environment env_2 = Environment("../path/templates/", "../path/results/");
+Environment env_2 {"../path/templates/", "../path/results/"};
 
 // Choose between dot notation (like Jinja2) and JSON pointer to access elements
 env.set_element_notation(ElementNotation::Dot); // (default) e.g. time.start
