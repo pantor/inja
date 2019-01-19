@@ -6,14 +6,15 @@ matrix:
   include:
     - os: linux
       compiler: gcc
-      env: COMPILER=g++-7
+      env:
+        - COMPILER=g++-7
+        - DOCS="true"
       addons:
         apt:
           sources: ubuntu-toolchain-r-test
           packages:
             - g++-7
             - doxygen
-
     - os: linux
       compiler: gcc
       env:
@@ -60,12 +61,15 @@ script:
   - ctest -C Release -V
   - doxygen Doxyfile
 
-after_success: doxygen doc/Doxyfile
+after_success: |
+    if [ "$DOCS" = "true" ] && [ "$TRAVIS_BRANCH" = "master" ]; then
+      doxygen ./doc/Doxyfile
+    fi
 
 deploy:
   provider: pages
   skip_cleanup: true
-  local_dir: doc/html/
+  local_dir: ./doc/html/
   github_token: $GH_REPO_TOKEN
   on:
     branch: master
