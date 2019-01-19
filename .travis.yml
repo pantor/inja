@@ -1,78 +1,71 @@
-#########################
-# project configuration #
-#########################
-
 language: cpp
-
 dist: trusty
 sudo: required
 
-jobs:
+matrix:
   include:
-    - stage: test
-      matrix:
-        include:
-          - os: linux
-            compiler: gcc
-            env: COMPILER=g++-7
-            addons:
-              apt:
-                sources: ubuntu-toolchain-r-test
-                packages: g++-7
-
-          - os: linux
-            compiler: gcc
-            env: COMPILER=g++-8
-            addons:
-              apt:
-                sources: ubuntu-toolchain-r-test
-                packages: g++-8
-
-          - os: linux
-            compiler: gcc
-            env:
-              - COMPILER=g++-8
-              - CXXFLAGS=-std=c++17
-            addons:
-              apt:
-                sources: ubuntu-toolchain-r-test
-                packages: g++-8
-
-          - os: linux
-            compiler: clang
-            env: COMPILER=clang++-6.0
-            addons:
-              apt:
-                sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-6.0']
-                packages: ['clang-6.0', 'libstdc++-7-dev']
-
-          - os: osx
-            osx_image: xcode9
-
-          - os: osx
-            osx_image: xcode10
-
-
-      script:
-        - if [[ "${COMPILER}" != "" ]]; then export CXX=${COMPILER}; fi
-        - uname -a
-        - $CXX --version
-
-        - mkdir -p build
-        - cd build
-        - cmake ..
-        - cmake --build . --config Release -- -j4
-        - ctest -C Release -V
-
-    - stage: deploy
-      provider: pages
-      skip_cleanup: true
-      local_dir: docs/html
-      github_token: $GH_REPO_TOKEN
-      on:
-        branch: master
-      script: doxygen Doxyfile
+    - os: linux
+      compiler: gcc
+      env: COMPILER=g++-7
       addons:
         apt:
+          sources: ubuntu-toolchain-r-test
           packages:
+            - g++-7
             - doxygen
+
+    - os: linux
+      compiler: gcc
+      env:
+        - COMPILER=g++-8
+      addons:
+        apt:
+          sources: ubuntu-toolchain-r-test
+          packages: g++-8
+
+    - os: linux
+      compiler: gcc
+      env:
+        - COMPILER=g++-8
+        - CXXFLAGS=-std=c++17
+      addons:
+        apt:
+          sources: ubuntu-toolchain-r-test
+          packages: g++-8
+
+    - os: linux
+      compiler: clang
+      env: COMPILER=clang++-6.0
+      addons:
+        apt:
+          sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-6.0']
+          packages: ['clang-6.0', 'libstdc++-7-dev']
+
+    - os: osx
+      osx_image: xcode9
+
+    - os: osx
+      osx_image: xcode10
+
+
+script:
+  - if [[ "${COMPILER}" != "" ]]; then export CXX=${COMPILER}; fi
+  - uname -a
+  - $CXX --version
+
+  - mkdir -p build
+  - cd build
+  - cmake ..
+  - cmake --build . --config Release -- -j4
+  - ctest -C Release -V
+  - doxygen Doxyfile
+
+after_success: doxygen doc/Doxyfile
+
+deploy:
+  provider: pages
+  skip_cleanup: true
+  local_dir: doc/html/
+  github_token: $GH_REPO_TOKEN
+  on:
+    branch: master
