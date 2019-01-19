@@ -59,7 +59,7 @@ script:
   - cmake ..
   - cmake --build . --config Release -- -j4
   - ctest -C Release -V
-  - doxygen Doxyfile
+  - cd ..
 
 after_success: |
     if [ "$DOCS" = "true" ] && [ "$TRAVIS_BRANCH" = "master" ]; then
