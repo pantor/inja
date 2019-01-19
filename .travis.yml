@@ -63,13 +63,14 @@ script:
 
 after_success: |
   if [ "$DOCS" = "true" ] && [ "$TRAVIS_BRANCH" = "master" ]; then
-    doxygen ./doc/Doxyfile
+    cd doc
+    doxygen ./Doxyfile
   fi
 
 deploy:
   provider: pages
   skip_cleanup: true
-  local_dir: ./html/
+  local_dir: ./doc/html/
   github_token: $GH_REPO_TOKEN
   on:
     branch: master
