@@ -54,8 +54,10 @@ data["name"] = "world";
 
 render("Hello {{ name }}!", data); // Returns std::string "Hello world!"
 render_to(std::cout, "Hello {{ name }}!", data); // Prints "Hello world!"
+```
 
-// For more advanced usage, an environment is recommended
+For more advanced usage, an environment is recommended.
+```c++
 Environment env;
 
 // Render a string with json data
