@@ -19,12 +19,6 @@ data["name"] = "world";
 inja::render("Hello {{ name }}!", data); // Returns "Hello world!"
 ```
 
-`inja::render()` returns a `std::string` but you can also output to a `std::ostream&`, for example:
-
-```c++
-inja::render_to(std::cout, "Hello {{ name }}!", data);
-```
-
 ## Integration
 
 Inja is a headers only library, which can be downloaded from the [releases](https://github.com/pantor/inja/releases) or directly from the `include/` or `single_include/` folder. Inja uses `nlohmann/json.hpp` as its single dependency, so make sure it can be included from `inja.hpp`. json can be downloaded [here](https://github.com/nlohmann/json/releases). Then integration is as easy as:
@@ -48,7 +42,7 @@ If you are using [vcpkg](https://github.com/Microsoft/vcpkg) on your project for
 
 ## Tutorial
 
-This tutorial will give you an idea how to use inja. It will explain the most important concepts and give practical advices using examples and executable code.
+This tutorial will give you an idea how to use inja. It will explain the most important concepts and give practical advices using examples and executable code. Beside this tutorial, you may check out the [documentation](https://pantor.github.io/inja).
 
 ### Template Rendering
 
@@ -58,7 +52,8 @@ The basic template rendering takes a template as a `std::string` and a `json` ob
 json data;
 data["name"] = "world";
 
-render("Hello {{ name }}!", data); // "Hello world!"
+render("Hello {{ name }}!", data); // Returns std::string "Hello world!"
+render_to(std::cout, "Hello {{ name }}!", data); // Prints "Hello world!"
 
 // For more advanced usage, an environment is recommended
 Environment env;
