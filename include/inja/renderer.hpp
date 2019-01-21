@@ -13,15 +13,15 @@
 
 namespace inja {
 
-inline std::string_view convert_dot_to_json_pointer(std::string_view dot, std::string& out) {
+inline nonstd::string_view convert_dot_to_json_pointer(nonstd::string_view dot, std::string& out) {
   out.clear();
   do {
-    std::string_view part;
+    nonstd::string_view part;
     std::tie(part, dot) = string_view::split(dot, '.');
     out.push_back('/');
     out.append(part.begin(), part.end());
   } while (!dot.empty());
-  return std::string_view(out.data(), out.size());
+  return nonstd::string_view(out.data(), out.size());
 }
 
 class Renderer {
@@ -60,7 +60,7 @@ class Renderer {
 
   const json* get_imm(const Bytecode& bc) {
     std::string ptr_buffer;
-    std::string_view ptr;
+    nonstd::string_view ptr;
     switch (bc.flags & Bytecode::Flag::ValueMask) {
       case Bytecode::Flag::ValuePop:
         return nullptr;
@@ -136,8 +136,8 @@ class Renderer {
   std::vector<json> m_stack;
 
   struct LoopLevel {
-    std::string_view key_name;       // variable name for keys
-    std::string_view value_name;     // variable name for values
+    nonstd::string_view key_name;       // variable name for keys
+    nonstd::string_view value_name;     // variable name for values
     json data;                      // data with loop info added
 
     json values;                    // values to iterate over
@@ -148,7 +148,7 @@ class Renderer {
     size_t size;                    // length of list
 
     // loop over map
-    using KeyValue = std::pair<std::string_view, json*>;
+    using KeyValue = std::pair<nonstd::string_view, json*>;
     using MapValues = std::vector<KeyValue>;
     MapValues map_values;            // values to iterate over
     MapValues::iterator map_it;      // iterator over values

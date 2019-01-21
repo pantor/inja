@@ -128,7 +128,7 @@ class Parser {
   }
 
   bool parse_expression_datum(Template& tmpl) {
-    std::string_view json_first;
+    nonstd::string_view json_first;
     size_t bracket_level = 0;
     size_t brace_level = 0;
 
@@ -253,13 +253,13 @@ class Parser {
 
   returnJson:
     // bridge across all intermediate tokens
-    std::string_view json_text(json_first.data(), m_tok.text.data() - json_first.data() + m_tok.text.size());
+    nonstd::string_view json_text(json_first.data(), m_tok.text.data() - json_first.data() + m_tok.text.size());
     tmpl.bytecodes.emplace_back(Bytecode::Op::Push, json::parse(json_text), Bytecode::Flag::ValueImmediate);
     get_next_token();
     return true;
   }
 
-  bool parse_statement(Template& tmpl, std::string_view path) {
+  bool parse_statement(Template& tmpl, nonstd::string_view path) {
     if (m_tok.kind != Token::Kind::Id) return false;
 
     if (m_tok.text == "if") {
@@ -352,7 +352,7 @@ class Parser {
       if (!key_token.text.empty()) {
         tmpl.bytecodes.back().value = key_token.text;
       }
-      tmpl.bytecodes.back().str = value_token.text;
+      tmpl.bytecodes.back().str = static_cast<std::string>(value_token.text);
     } else if (m_tok.text == "endfor") {
       get_next_token();
       if (m_loop_stack.empty()) {
@@ -409,7 +409,7 @@ class Parser {
     tmpl.bytecodes.emplace_back(op, num_args);
   }
 
-  void append_callback(Template& tmpl, std::string_view name, unsigned int num_args) {
+  void append_callback(Template& tmpl, nonstd::string_view name, unsigned int num_args) {
     // we can merge with back-to-back push value (not lookup)
     if (!tmpl.bytecodes.empty()) {
       Bytecode& last = tmpl.bytecodes.back();
@@ -417,17 +417,17 @@ class Parser {
           (last.flags & Bytecode::Flag::ValueMask) == Bytecode::Flag::ValueImmediate) {
         last.op = Bytecode::Op::Callback;
         last.args = num_args;
-        last.str = name;
+        last.str = static_cast<std::string>(name);
         return;
       }
     }
 
     // otherwise just add it to the end
     tmpl.bytecodes.emplace_back(Bytecode::Op::Callback, num_args);
-    tmpl.bytecodes.back().str = name;
+    tmpl.bytecodes.back().str = static_cast<std::string>(name);
   }
 
-  void parse_into(Template& tmpl, std::string_view path) {
+  void parse_into(Template& tmpl, nonstd::string_view path) {
     m_lexer.start(tmpl.content);
 
     for (;;) {
@@ -480,28 +480,28 @@ class Parser {
     }
   }
 
-  Template parse(std::string_view input, std::string_view path) {
+  Template parse(nonstd::string_view input, nonstd::string_view path) {
     Template result;
-    result.content = input;
+    result.content = static_cast<std::string>(input);
     parse_into(result, path);
     return result;
   }
 
-  Template parse(std::string_view input) {
+  Template parse(nonstd::string_view input) {
     return parse(input, "./");
   }
 
-  Template parse_template(std::string_view filename) {
+  Template parse_template(nonstd::string_view filename) {
     Template result;
     result.content = load_file(filename);
 
-    std::string_view path = filename.substr(0, filename.find_last_of("/\\") + 1);
+    nonstd::string_view path = filename.substr(0, filename.find_last_of("/\\") + 1);
       // StringRef path = sys::path::parent_path(filename);
     Parser(m_config, m_lexer.get_config(), m_included_templates).parse_into(result, path);
     return result;
   }
 
-  std::string load_file(std::string_view filename) {
+  std::string load_file(nonstd::string_view filename) {
 		std::ifstream file(static_cast<std::string>(filename));
 		std::string text((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 		return text;

@@ -6,6 +6,13 @@ matrix:
   include:
     - os: linux
       compiler: gcc
+      env: COMPILER=g++-6
+      addons:
+        apt:
+          sources: ['ubuntu-toolchain-r-test']
+          packages: g++-6
+    - os: linux
+      compiler: gcc
       env:
         - COMPILER=g++-7
         - DOCS="true"
