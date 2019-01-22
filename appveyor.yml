@@ -2,11 +2,6 @@ version: '{build}'
 
 environment:
   matrix:
-    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
-      platform: x64
-      FLAGS: "/std:c++14"
-      GENERATOR: Visual Studio 14 2015
-
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       platform: x64
       FLAGS: "/permissive- /std:c++17 /utf-8 /Zc:__cplusplus"
