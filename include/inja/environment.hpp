@@ -5,7 +5,6 @@
 #include <fstream>
 #include <sstream>
 #include <string>
-#include <string_view>
 
 #include <nlohmann/json.hpp>
 
@@ -14,6 +13,7 @@
 #include "parser.hpp"
 #include "polyfill.hpp"
 #include "renderer.hpp"
+#include "string_view.hpp"
 #include "template.hpp"
 
 
@@ -82,7 +82,7 @@ class Environment {
   }
 
 
-  Template parse(std::string_view input) {
+  Template parse(nonstd::string_view input) {
     Parser parser(m_impl->parser_config, m_impl->lexer_config, m_impl->included_templates);
     return parser.parse(input);
   }
@@ -92,7 +92,7 @@ class Environment {
 		return parser.parse_template(m_impl->input_path + static_cast<std::string>(filename));
 	}
 
-  std::string render(std::string_view input, const json& data) {
+  std::string render(nonstd::string_view input, const json& data) {
     return render(parse(input), data);
   }
 
@@ -166,14 +166,14 @@ class Environment {
 /*!
 @brief render with default settings to a string
 */
-inline std::string render(std::string_view input, const json& data) {
+inline std::string render(nonstd::string_view input, const json& data) {
   return Environment().render(input, data);
 }
 
 /*!
 @brief render with default settings to the given output stream
 */
-inline void render_to(std::ostream& os, std::string_view input, const json& data) {
+inline void render_to(std::ostream& os, nonstd::string_view input, const json& data) {
   Environment env;
   env.render_to(os, env.parse(input), data);
 }

@@ -261,12 +261,12 @@ TEST_CASE("callbacks") {
 	data["age"] = 28;
 
 	env.add_callback("double", 1, [](inja::Arguments& args) {
-		int number = args.at(0)->get<double>();
+		int number = args.at(0)->get<int>();
 		return 2 * number;
 	});
 
 	env.add_callback("half", 1, [](inja::Arguments args) {
-		int number = args.at(0)->get<double>();
+		int number = args.at(0)->get<int>();
 		return number / 2;
 	});
 

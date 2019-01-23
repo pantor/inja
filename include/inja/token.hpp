@@ -1,7 +1,7 @@
 #ifndef PANTOR_INJA_TOKEN_HPP
 #define PANTOR_INJA_TOKEN_HPP
 
-#include <string_view>
+#include "string_view.hpp"
 
 
 namespace inja {
@@ -38,10 +38,10 @@ struct Token {
     Eof
   } kind {Kind::Unknown};
 
-  std::string_view text;
+  nonstd::string_view text;
 
   constexpr Token() = default;
-  constexpr Token(Kind kind, std::string_view text): kind(kind), text(text) {}
+  constexpr Token(Kind kind, nonstd::string_view text): kind(kind), text(text) {}
 
   std::string describe() const {
     switch (kind) {

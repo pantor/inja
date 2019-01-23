@@ -1,10 +1,11 @@
 #ifndef PANTOR_INJA_BYTECODE_HPP
 #define PANTOR_INJA_BYTECODE_HPP
 
-#include <string_view>
 #include <utility>
 
 #include <nlohmann/json.hpp>
+
+#include "string_view.hpp"
 
 
 namespace inja {
@@ -120,7 +121,7 @@ struct Bytecode {
 
   Bytecode(): args(0), flags(0) {}
   explicit Bytecode(Op op, unsigned int args = 0): op(op), args(args), flags(0) {}
-  explicit Bytecode(Op op, std::string_view str, unsigned int flags): op(op), args(0), flags(flags), str(str) {}
+  explicit Bytecode(Op op, nonstd::string_view str, unsigned int flags): op(op), args(0), flags(flags), str(str) {}
   explicit Bytecode(Op op, json&& value, unsigned int flags): op(op), args(0), flags(flags), value(std::move(value)) {}
 };
 

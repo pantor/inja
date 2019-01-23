@@ -6,6 +6,22 @@ matrix:
   include:
     - os: linux
       compiler: gcc
+      env: COMPILER=g++-5
+      addons:
+        apt:
+          sources: ['ubuntu-toolchain-r-test']
+          packages: g++-5
+
+    - os: linux
+      compiler: gcc
+      env: COMPILER=g++-6
+      addons:
+        apt:
+          sources: ['ubuntu-toolchain-r-test']
+          packages: g++-6
+
+    - os: linux
+      compiler: gcc
       env:
         - COMPILER=g++-7
         - DOCS="true"
@@ -15,6 +31,7 @@ matrix:
           packages:
             - g++-7
             - doxygen
+
     - os: linux
       compiler: gcc
       env:
@@ -33,6 +50,14 @@ matrix:
         apt:
           sources: ubuntu-toolchain-r-test
           packages: g++-8
+
+    - os: linux
+      compiler: clang
+      env: COMPILER=clang++-5.0
+      addons:
+        apt:
+          sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-5.0']
+          packages: ['clang-5.0', 'libstdc++-7-dev']
 
     - os: linux
       compiler: clang

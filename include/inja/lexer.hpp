@@ -25,14 +25,14 @@ class Lexer {
   } m_state;
 
   const LexerConfig& m_config;
-  std::string_view m_in;
+  nonstd::string_view m_in;
   size_t m_tok_start;
   size_t m_pos;
 
  public:
   explicit Lexer(const LexerConfig& config) : m_config(config) {}
 
-  void start(std::string_view in) {
+  void start(nonstd::string_view in) {
     m_in = in;
     m_tok_start = 0;
     m_pos = 0;
@@ -50,7 +50,7 @@ class Lexer {
       case State::Text: {
         // fast-scan to first open character
         size_t open_start = m_in.substr(m_pos).find_first_of(m_config.open_chars);
-        if (open_start == std::string_view::npos) {
+        if (open_start == nonstd::string_view::npos) {
           // didn't find open, return remaining text as text token
           m_pos = m_in.size();
           return make_token(Token::Kind::Text);
@@ -58,15 +58,15 @@ class Lexer {
         m_pos += open_start;
 
         // try to match one of the opening sequences, and get the close
-        std::string_view open_str = m_in.substr(m_pos);
-        if (string_view::starts_with(open_str, m_config.expression_open)) {
+        nonstd::string_view open_str = m_in.substr(m_pos);
+        if (inja::string_view::starts_with(open_str, m_config.expression_open)) {
           m_state = State::ExpressionStart;
-        } else if (string_view::starts_with(open_str, m_config.statement_open)) {
+        } else if (inja::string_view::starts_with(open_str, m_config.statement_open)) {
           m_state = State::StatementStart;
-        } else if (string_view::starts_with(open_str, m_config.comment_open)) {
+        } else if (inja::string_view::starts_with(open_str, m_config.comment_open)) {
           m_state = State::CommentStart;
         } else if ((m_pos == 0 || m_in[m_pos - 1] == '\n') &&
-                   string_view::starts_with(open_str, m_config.line_statement)) {
+                   inja::string_view::starts_with(open_str, m_config.line_statement)) {
           m_state = State::LineStart;
         } else {
           m_pos += 1; // wasn't actually an opening sequence
@@ -104,7 +104,7 @@ class Lexer {
       case State::CommentBody: {
         // fast-scan to comment close
         size_t end = m_in.substr(m_pos).find(m_config.comment_close);
-        if (end == std::string_view::npos) {
+        if (end == nonstd::string_view::npos) {
           m_pos = m_in.size();
           return make_token(Token::Kind::Eof);
         }
@@ -119,7 +119,7 @@ class Lexer {
   const LexerConfig& get_config() const { return m_config; }
 
  private:
-  Token scan_body(std::string_view close, Token::Kind closeKind) {
+  Token scan_body(nonstd::string_view close, Token::Kind closeKind) {
   again:
     // skip whitespace (except for \n as it might be a close)
     if (m_tok_start >= m_in.size()) return make_token(Token::Kind::Eof);
@@ -130,7 +130,7 @@ class Lexer {
     }
 
     // check for close
-    if (string_view::starts_with(m_in.substr(m_tok_start), close)) {
+    if (inja::string_view::starts_with(m_in.substr(m_tok_start), close)) {
       m_state = State::Text;
       m_pos = m_tok_start + close.size();
       return make_token(closeKind);
