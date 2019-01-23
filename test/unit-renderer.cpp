@@ -389,16 +389,16 @@ TEST_CASE("other-syntax") {
 		CHECK( env.render("Hello (& Test &)", data) == "Hello " );
 	}
 
-    SECTION("multiple changes") {
-        inja::Environment env;
-        env.set_line_statement("$$");
-        env.set_expression("<%", "%>");
+	SECTION("multiple changes") {
+		inja::Environment env;
+		env.set_line_statement("$$");
+		env.set_expression("<%", "%>");
 
-        std::string string_template = R"DELIM(Hello <%name%>
+		std::string string_template = R"DELIM(Hello <%name%>
 $$ if name == "Peter"
-    You really are <%name%>
+	You really are <%name%>
 $$ endif
 )DELIM";
-        CHECK( env.render(string_template, data) == "Hello Peter\n    You really are Peter\n");
-    }
+        	CHECK( env.render(string_template, data) == "Hello Peter\n	You really are Peter\n");
+	}
 }
