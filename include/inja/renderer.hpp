@@ -480,7 +480,6 @@ class Renderer {
           }
 
           m_loop_stack.emplace_back();
-          //std::cerr << "StartLoop level " << m_loop_stack.size() << "\n";
           LoopLevel& level = m_loop_stack.back();
           level.value_name = bc.str;
           level.values = std::move(m_stack.back());
@@ -531,7 +530,6 @@ class Renderer {
             inja_throw("render_error", "unexpected state in renderer");
           }
           LoopLevel& level = m_loop_stack.back();
-          //std::cerr << "EndLoop level " << m_loop_stack.size() << "\n";
 
           bool done;
           if (level.loop_type == LoopLevel::Type::Array) {
