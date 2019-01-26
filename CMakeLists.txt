@@ -4,10 +4,14 @@ cmake_minimum_required(VERSION 3.5)
 project(inja LANGUAGES CXX VERSION 2.0.0)
 
 
+option(INJA_USE_EMBEDDED_JSON "Use the shipped json header if not available on the system" ON)
+option(INJA_INSTALL "Generate install targets for inja" ON)
+option(INJA_EXPORT "Export the current build tree to the package registry" ON)
 option(BUILD_TESTS "Build the inja unit tests" ON)
 option(BUILD_BENCHMARK "Build the inja benchmark" ON)
 option(COVERALLS "Generate coveralls data" OFF)
 
+set(INJA_INSTALL_INCLUDE_DIR "include")
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
@@ -25,8 +29,43 @@ endif()
 
 
 add_library(inja INTERFACE)
-target_include_directories(inja INTERFACE include)
+add_library(pantor::inja ALIAS inja)
 
+target_include_directories(inja INTERFACE
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:${INJA_INSTALL_INCLUDE_DIR}>
+)
+
+target_compile_features(inja INTERFACE cxx_std_11)
+
+set(INJA_PACKAGE_USE_EMBEDDED_JSON OFF)
+
+if(INJA_USE_EMBEDDED_JSON)
+  find_package(nlohmann_json QUIET)
+  if (NOT nlohmann_json_FOUND)
+    set(INJA_PACKAGE_USE_EMBEDDED_JSON ON)
+    add_library(nlohmann_json INTERFACE)
+    add_library(pantor::nlohmann_json ALIAS nlohmann_json)
+
+    target_include_directories(nlohmann_json INTERFACE
+      $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/third_party/include>
+      $<INSTALL_INTERFACE:${INJA_INSTALL_INCLUDE_DIR}/inja/json/include>
+    )
+
+    target_compile_features(nlohmann_json INTERFACE cxx_std_11)
+
+    install(TARGETS nlohmann_json EXPORT injaTargets)
+
+    set(INJA_SELECTED_JSON_LIBRARY "pantor::nlohmann_json")
+  else()
+    set(INJA_SELECTED_JSON_LIBRARY "nlohmann_json::nlohmann_json")
+  endif()
+else()
+  find_package(nlohmann_json REQUIRED)
+  set(INJA_SELECTED_JSON_LIBRARY "nlohmann_json::nlohmann_json")
+endif()
+
+target_link_libraries(inja INTERFACE ${INJA_SELECTED_JSON_LIBRARY})
 
 execute_process(COMMAND python3 amalgamate/amalgamate.py -c amalgamate/config.json -s include WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
 
@@ -57,7 +96,7 @@ if(BUILD_TESTS)
 
 
   add_library(single_inja INTERFACE)
-  target_include_directories(single_inja INTERFACE single_include include)
+  target_include_directories(single_inja INTERFACE single_include include third_party/include)
 
   add_executable(single_inja_test
     test/unit.cpp
@@ -73,4 +112,70 @@ endif()
 if(BUILD_BENCHMARK)
   add_executable(inja_benchmark test/benchmark.cpp)
   target_link_libraries(inja_benchmark PRIVATE inja)
+endif()
+
+include(CMakePackageConfigHelpers)
+
+write_basic_package_version_file(
+  "${CMAKE_CURRENT_BINARY_DIR}/injaConfigVersion.cmake"
+  VERSION ${PROJECT_VERSION}
+  COMPATIBILITY SameMajorVersion
+)
+
+# build tree package config
+configure_file(
+  cmake/config/injaBuildConfig.cmake.in
+  injaConfig.cmake
+  @ONLY
+)
+
+install(TARGETS inja EXPORT injaTargets)
+
+export(
+  EXPORT injaTargets
+  NAMESPACE pantor::
+  FILE "${CMAKE_CURRENT_BINARY_DIR}/injaTargets.cmake"
+)
+  
+# build tree package config
+configure_file(
+  cmake/config/injaBuildConfig.cmake.in
+  injaConfig.cmake
+  @ONLY
+)
+
+if (INJA_INSTALL)
+  set(INJA_CONFIG_PATH "lib/cmake/inja")
+
+  # install tree package config
+  configure_package_config_file(
+    cmake/config/injaConfig.cmake.in
+    ${INJA_CONFIG_PATH}/injaConfig.cmake
+    INSTALL_DESTINATION ${INJA_CONFIG_PATH}
+    NO_CHECK_REQUIRED_COMPONENTS_MACRO
+  )
+
+  install(DIRECTORY include/inja DESTINATION ${INJA_INSTALL_INCLUDE_DIR} FILES_MATCHING PATTERN "*.hpp")
+  install(FILES
+    "${CMAKE_CURRENT_SOURCE_DIR}/third_party/include/nlohmann/json.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/third_party/include/nlohmann/LICENSE.MIT"
+    DESTINATION "${INJA_INSTALL_INCLUDE_DIR}/inja/json/include/nlohmann"
+  )
+
+  install(
+    FILES 
+      "${CMAKE_CURRENT_BINARY_DIR}/${INJA_CONFIG_PATH}/injaConfig.cmake"
+      "${CMAKE_CURRENT_BINARY_DIR}/injaConfigVersion.cmake"
+    DESTINATION ${INJA_CONFIG_PATH}
+  )
+
+  install(
+    EXPORT injaTargets FILE injaTargets.cmake
+    NAMESPACE pantor::
+    DESTINATION ${INJA_CONFIG_PATH}
+  )
+endif()
+
+if (INJA_EXPORT)
+  export(PACKAGE inja)
 endif()
