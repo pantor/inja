@@ -10,6 +10,20 @@ inja_dep = declare_dependency(
 )
 
 
+
+amalg_script = files('scripts/update_single_include.sh')
+
+amalg_files = files(
+    'include/inja/inja.hpp',
+	'include/inja/renderer.hpp',
+	'include/inja/environment.hpp',
+	)
+
+amalg_tgt = run_target( 'amalg', 
+	command: amalg_script
+	)
+
+
 inja_test = executable(
   'inja_test',
   'test/unit.cpp',
@@ -17,6 +31,16 @@ inja_test = executable(
   'test/unit-renderer.cpp',
   dependencies: inja_dep
 )
+
+inja_single_test = executable(
+  'inja_single_test',
+  'test/unit.cpp',
+  'test/unit-files.cpp',
+  'test/unit-renderer.cpp',
+  'single_include/inja/inja.hpp',
+  dependencies: [inja_dep]
+)
+
 
 inja_benchmark = executable(
   'inja_benchmark',
@@ -26,3 +50,4 @@ inja_benchmark = executable(
 
 
 test('Inja unit test', inja_test)
+test('Inja single include test', inja_single_test)
