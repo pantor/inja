@@ -106,18 +106,22 @@ class Renderer {
     }
   }
 
-  void update_loop_data()  {
+  void update_loop_data(bool link = true)  {
     LoopLevel& level = m_loop_stack.back();
 
-    if (m_loop_stack.size() > 1) {
+    if (link && (m_loop_stack.size() > 1)) {
       for (int i = m_loop_stack.size() - 2; i >= 0; i--) {
         auto& level_it = m_loop_stack.at(i);
 
-        level.data[static_cast<std::string>(level_it.value_name)] = level_it.values.at(level_it.index);
+        if (level_it.loop_type == LoopLevel::Type::Array) {
+          level.data[static_cast<std::string>(level_it.value_name)] = level_it.values.at(level_it.index);
+        } else {
+          level.data[static_cast<std::string>(level_it.value_name)] = *level_it.map_it->second;
+        }
       }
     }
 
-    if (level.key_name.empty()) {
+    if (level.loop_type == LoopLevel::Type::Array) {
       level.data[static_cast<std::string>(level.value_name)] = level.values.at(level.index); // *level.it;
       auto& loopData = level.data["loop"];
       loopData["index"] = level.index;
@@ -135,7 +139,11 @@ class Renderer {
 
   std::vector<json> m_stack;
 
+
   struct LoopLevel {
+    enum class Type { Map, Array };
+
+    Type loop_type;
     nonstd::string_view key_name;       // variable name for keys
     nonstd::string_view value_name;     // variable name for values
     json data;                      // data with loop info added
@@ -143,7 +151,6 @@ class Renderer {
     json values;                    // values to iterate over
 
     // loop over list
-    json::iterator it;              // iterator over values
     size_t index;                   // current list index
     size_t size;                    // length of list
 
@@ -152,6 +159,7 @@ class Renderer {
     using MapValues = std::vector<KeyValue>;
     MapValues map_values;            // values to iterate over
     MapValues::iterator map_it;      // iterator over values
+
   };
 
   std::vector<LoopLevel> m_loop_stack;
@@ -165,6 +173,7 @@ class Renderer {
   Renderer(const TemplateStorage& included_templates, const FunctionStorage& callbacks): m_included_templates(included_templates), m_callbacks(callbacks) {
     m_stack.reserve(16);
     m_tmp_args.reserve(4);
+    m_loop_stack.reserve(16);
   }
 
   void render_to(std::ostream& os, const Template& tmpl, const json& data) {
@@ -474,7 +483,7 @@ class Renderer {
           LoopLevel& level = m_loop_stack.back();
           level.value_name = bc.str;
           level.values = std::move(m_stack.back());
-          level.data = data;
+          level.data = (*m_data);
           m_stack.pop_back();
 
           if (bc.value.is_string()) {
@@ -483,6 +492,7 @@ class Renderer {
               m_loop_stack.pop_back();
               inja_throw("render_error", "for key, value requires object");
             }
+            level.loop_type = LoopLevel::Type::Map;
             level.key_name = bc.value.get_ref<const std::string&>();
 
             // sort by key
@@ -498,7 +508,7 @@ class Renderer {
             }
 
             // list iterator
-            level.it = level.values.begin();
+            level.loop_type = LoopLevel::Type::Array;
             level.index = 0;
             level.size = level.values.size();
           }
@@ -522,10 +532,8 @@ class Renderer {
           LoopLevel& level = m_loop_stack.back();
 
           bool done;
-          if (level.key_name.empty()) {
-            level.it += 1;
+          if (level.loop_type == LoopLevel::Type::Array) {
             level.index += 1;
-            // done = (level.it == level.values.end());
             done = (level.index == level.values.size());
           } else {
             level.map_it += 1;
@@ -543,7 +551,7 @@ class Renderer {
             break;
           }
 
-          update_loop_data();
+          update_loop_data(false);
 
           // jump back to start of loop
           i = bc.args - 1;  // -1 due to ++i in loop
