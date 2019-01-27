@@ -70,6 +70,34 @@ TEST_CASE("types") {
 		// CHECK_THROWS_WITH( env.render("{% for name in relatives %}{{ name }}{% endfor %}", data), "[inja.exception.json_error] [json.exception.type_error.302] type must be array, but is object" );
 	}
 
+	SECTION("nested loops") {
+		auto ldata = json::parse(
+R"DELIM(
+{ "outer" : [ 
+	{ "inner" : [
+		{ "in2" : [ 1, 2 ] },
+		{ "in2" : []},
+		{ "in2" : []}
+		]
+	},
+	{ "inner" : [] },
+	{ "inner" : [
+		{ "in2" : [ 3, 4 ] },
+		{ "in2" : [ 5, 6 ] }
+		]
+	}
+	]
+}
+)DELIM"
+				);
+		CHECK(env.render(R"DELIM(
+{% for o in outer %}{% for i in o.inner %}{{loop.parent.index}}:{{loop.index}}::{{loop.parent.is_last}}
+{% for ii in i.in2%}{{ii}},{%endfor%}
+{%endfor%}{%endfor%}
+)DELIM",
+					ldata) == "\n0:0::false\n1,2,\n0:1::false\n\n0:2::false\n\n2:0::true\n3,4,\n2:1::true\n5,6,\n\n");
+	}
+
 	SECTION("conditionals") {
 		CHECK( env.render("{% if is_happy %}Yeah!{% endif %}", data) == "Yeah!" );
 		CHECK( env.render("{% if is_sad %}Yeah!{% endif %}", data) == "" );
