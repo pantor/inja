@@ -67,7 +67,7 @@ endif()
 
 target_link_libraries(inja INTERFACE ${INJA_SELECTED_JSON_LIBRARY})
 
-execute_process(COMMAND python3 amalgamate/amalgamate.py -c amalgamate/config.json -s include WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+execute_process(COMMAND scripts/update_single_include.sh WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
 
 
 if (COVERALLS)
