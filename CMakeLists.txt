@@ -8,8 +8,7 @@ option(INJA_USE_EMBEDDED_JSON "Use the shipped json header if not available on t
 option(INJA_INSTALL "Generate install targets for inja" ON)
 option(INJA_EXPORT "Export the current build tree to the package registry" ON)
 option(BUILD_TESTING "Build unit tests" ON)
-option(BUILD_TESTS "Build the inja unit tests" ${BUILD_TESTING})
-option(BUILD_BENCHMARK "Build the inja benchmark" ON)
+option(BUILD_BENCHMARK "Build benchmark" ON)
 option(COVERALLS "Generate coveralls data" OFF)
 
 set(INJA_INSTALL_INCLUDE_DIR "include")
@@ -83,7 +82,7 @@ if (COVERALLS)
 endif()
 
 
-if(BUILD_TESTS)
+if(BUILD_TESTING)
   enable_testing()
 
   add_executable(inja_test
@@ -115,6 +114,7 @@ if(BUILD_BENCHMARK)
   target_link_libraries(inja_benchmark PRIVATE inja)
 endif()
 
+
 include(CMakePackageConfigHelpers)
 
 write_basic_package_version_file(
@@ -123,6 +123,7 @@ write_basic_package_version_file(
   COMPATIBILITY SameMajorVersion
 )
 
+
 # build tree package config
 configure_file(
   cmake/config/injaBuildConfig.cmake.in
@@ -130,20 +131,23 @@ configure_file(
   @ONLY
 )
 
+
 install(TARGETS inja EXPORT injaTargets)
+
 
 export(
   EXPORT injaTargets
   NAMESPACE pantor::
   FILE "${CMAKE_CURRENT_BINARY_DIR}/injaTargets.cmake"
 )
-  
+
 # build tree package config
 configure_file(
   cmake/config/injaBuildConfig.cmake.in
   injaConfig.cmake
   @ONLY
 )
+
 
 if (INJA_INSTALL)
   set(INJA_CONFIG_PATH "lib/cmake/inja")
@@ -164,7 +168,7 @@ if (INJA_INSTALL)
   )
 
   install(
-    FILES 
+    FILES
       "${CMAKE_CURRENT_BINARY_DIR}/${INJA_CONFIG_PATH}/injaConfig.cmake"
       "${CMAKE_CURRENT_BINARY_DIR}/injaConfigVersion.cmake"
     DESTINATION ${INJA_CONFIG_PATH}
@@ -176,6 +180,7 @@ if (INJA_INSTALL)
     DESTINATION ${INJA_CONFIG_PATH}
   )
 endif()
+
 
 if (INJA_EXPORT)
   export(PACKAGE inja)
