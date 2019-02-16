@@ -14,14 +14,14 @@ inja_dep = declare_dependency(
 amalg_script = files('scripts/update_single_include.sh')
 
 amalg_files = files(
-    'include/inja/inja.hpp',
+  'include/inja/inja.hpp',
 	'include/inja/renderer.hpp',
 	'include/inja/environment.hpp',
-	)
+)
 
-amalg_tgt = run_target( 'amalg', 
+amalg_tgt = run_target( 'amalg',
 	command: amalg_script
-	)
+)
 
 
 inja_test = executable(
