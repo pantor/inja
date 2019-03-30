@@ -2062,7 +2062,7 @@ class Parser {
 
   bool parse_expression(Template& tmpl) {
     if (!parse_expression_and(tmpl)) return false;
-    if (m_tok.kind != Token::Kind::Id || m_tok.text != "or") return true;
+    if (m_tok.kind != Token::Kind::Id || m_tok.text != static_cast<decltype(m_tok.text)>("or")) return true;
     get_next_token();
     if (!parse_expression_and(tmpl)) return false;
     append_function(tmpl, Bytecode::Op::Or, 2);
@@ -2071,7 +2071,7 @@ class Parser {
 
   bool parse_expression_and(Template& tmpl) {
     if (!parse_expression_not(tmpl)) return false;
-    if (m_tok.kind != Token::Kind::Id || m_tok.text != "and") return true;
+    if (m_tok.kind != Token::Kind::Id || m_tok.text != static_cast<decltype(m_tok.text)>("and")) return true;
     get_next_token();
     if (!parse_expression_not(tmpl)) return false;
     append_function(tmpl, Bytecode::Op::And, 2);
@@ -2079,7 +2079,7 @@ class Parser {
   }
 
   bool parse_expression_not(Template& tmpl) {
-    if (m_tok.kind == Token::Kind::Id && m_tok.text == "not") {
+    if (m_tok.kind == Token::Kind::Id && m_tok.text == static_cast<decltype(m_tok.text)>("not")) {
       get_next_token();
       if (!parse_expression_not(tmpl)) return false;
       append_function(tmpl, Bytecode::Op::Not, 1);
@@ -2094,7 +2094,7 @@ class Parser {
     Bytecode::Op op;
     switch (m_tok.kind) {
       case Token::Kind::Id:
-        if (m_tok.text == "in")
+        if (m_tok.text == static_cast<decltype(m_tok.text)>("in"))
           op = Bytecode::Op::In;
         else
           return true;
@@ -2182,7 +2182,9 @@ class Parser {
               append_callback(tmpl, func_token.text, num_args);
               return true;
             }
-          } else if (m_tok.text == "true" || m_tok.text == "false" || m_tok.text == "null") {
+          } else if (m_tok.text == static_cast<decltype(m_tok.text)>("true") || 
+              m_tok.text == static_cast<decltype(m_tok.text)>("false") || 
+              m_tok.text == static_cast<decltype(m_tok.text)>("null")) {
             // true, false, null are json literals
             if (brace_level == 0 && bracket_level == 0) {
               json_first = m_tok.text;
@@ -2261,7 +2263,7 @@ class Parser {
   bool parse_statement(Template& tmpl, nonstd::string_view path) {
     if (m_tok.kind != Token::Kind::Id) return false;
 
-    if (m_tok.text == "if") {
+    if (m_tok.text == static_cast<decltype(m_tok.text)>("if")) {
       get_next_token();
 
       // evaluate expression
@@ -2272,7 +2274,7 @@ class Parser {
 
       // conditional jump; destination will be filled in by else or endif
       tmpl.bytecodes.emplace_back(Bytecode::Op::ConditionalJump);
-    } else if (m_tok.text == "endif") {
+    } else if (m_tok.text == static_cast<decltype(m_tok.text)>("endif")) {
       if (m_if_stack.empty()) {
         inja_throw("parser_error", "endif without matching if");
       }
@@ -2291,7 +2293,7 @@ class Parser {
 
       // pop if stack
       m_if_stack.pop_back();
-    } else if (m_tok.text == "else") {
+    } else if (m_tok.text == static_cast<decltype(m_tok.text)>("else")) {
       if (m_if_stack.empty())
         inja_throw("parser_error", "else without matching if");
       auto& if_data = m_if_stack.back();
@@ -2307,7 +2309,7 @@ class Parser {
       if_data.prev_cond_jump = std::numeric_limits<unsigned int>::max();
 
       // chained else if
-      if (m_tok.kind == Token::Kind::Id && m_tok.text == "if") {
+      if (m_tok.kind == Token::Kind::Id && m_tok.text == static_cast<decltype(m_tok.text)>("if")) {
         get_next_token();
 
         // evaluate expression
@@ -2319,7 +2321,7 @@ class Parser {
         // conditional jump; destination will be filled in by else or endif
         tmpl.bytecodes.emplace_back(Bytecode::Op::ConditionalJump);
       }
-    } else if (m_tok.text == "for") {
+    } else if (m_tok.text == static_cast<decltype(m_tok.text)>("for")) {
       get_next_token();
 
       // options: for a in arr; for a, b in obj
@@ -2338,7 +2340,7 @@ class Parser {
         get_next_token();
       }
 
-      if (m_tok.kind != Token::Kind::Id || m_tok.text != "in")
+      if (m_tok.kind != Token::Kind::Id || m_tok.text != static_cast<decltype(m_tok.text)>("in"))
         inja_throw("parser_error",
                    "expected 'in', got '" + m_tok.describe() + "'");
       get_next_token();
@@ -2352,7 +2354,7 @@ class Parser {
         tmpl.bytecodes.back().value = key_token.text;
       }
       tmpl.bytecodes.back().str = static_cast<std::string>(value_token.text);
-    } else if (m_tok.text == "endfor") {
+    } else if (m_tok.text == static_cast<decltype(m_tok.text)>("endfor")) {
       get_next_token();
       if (m_loop_stack.empty()) {
         inja_throw("parser_error", "endfor without matching for");
@@ -2364,7 +2366,7 @@ class Parser {
       tmpl.bytecodes.emplace_back(Bytecode::Op::EndLoop);
       tmpl.bytecodes.back().args = m_loop_stack.back() + 1;  // loop body
       m_loop_stack.pop_back();
-    } else if (m_tok.text == "include") {
+    } else if (m_tok.text == static_cast<decltype(m_tok.text)>("include")) {
       get_next_token();
 
       if (m_tok.kind != Token::Kind::String) {
