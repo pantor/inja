@@ -207,13 +207,16 @@ class Lexer {
   }
 
   Token scan_id() {
+    bool escape {false};
     for (;;) {
-      if (m_pos >= m_in.size()) {
-        break;
-      }
+      if (m_pos >= m_in.size()) break;
       char ch = m_in[m_pos];
-      if (!std::isalnum(ch) && ch != '.' && ch != '/' && ch != '_' && ch != '-') {
+      if (ch == '\\') {
+        escape = true;
+      } else if (!escape && !std::isalnum(ch) && ch != '.' && ch != '/' && ch != '_' && ch != '-') {
         break;
+      } else {
+        escape = false;
       }
       m_pos += 1;
     }

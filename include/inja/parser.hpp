@@ -194,8 +194,12 @@ class Parser {
             break;
           } else {
             // normal literal (json read)
+            std::string token_text(m_tok.text);
+            token_text.erase(std::find(token_text.begin(), token_text.end(), '\\'));
+            nonstd::string_view token_view(token_text);
+
             tmpl.bytecodes.emplace_back(
-                Bytecode::Op::Push, m_tok.text,
+                Bytecode::Op::Push, token_view,
                 m_config.notation == ElementNotation::Pointer ? Bytecode::Flag::ValueLookupPointer : Bytecode::Flag::ValueLookupDot);
             get_next_token();
             return true;
