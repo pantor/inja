@@ -195,7 +195,7 @@ class Parser {
           } else {
             // normal literal (json read)
             std::string token_text(m_tok.text);
-            token_text.erase(std::find(token_text.begin(), token_text.end(), '\\'));
+            token_text.erase(std::remove(token_text.begin(), token_text.end(), '\\'), token_text.end());
             nonstd::string_view token_view(token_text);
 
             tmpl.bytecodes.emplace_back(
