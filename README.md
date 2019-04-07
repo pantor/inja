@@ -181,6 +181,7 @@ render("Hello {{ lower(neighbour) }}!", data); // "Hello peter!"
 
 // Range function, useful for loops
 render("{% for i in range(4) %}{{ loop.index1 }}{% endfor %}", data); // "1234"
+render("{% for i in range(3) %}{{ at(guests, i) }} {% endfor %}", data); // "Jeff Tom Patrick "
 
 // Length function (please don't combine with range, use list directly...)
 render("I count {{ length(guests) }} guests.", data); // "I count 3 guests."

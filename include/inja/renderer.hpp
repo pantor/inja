@@ -132,8 +132,8 @@ class Renderer {
     enum class Type { Map, Array };
 
     Type loop_type;
-    nonstd::string_view key_name;       // variable name for keys
-    nonstd::string_view value_name;     // variable name for values
+    nonstd::string_view key_name;   // variable name for keys
+    nonstd::string_view value_name; // variable name for values
     json data;                      // data with loop info added
 
     json values;                    // values to iterate over
@@ -145,8 +145,8 @@ class Renderer {
     // loop over map
     using KeyValue = std::pair<nonstd::string_view, json*>;
     using MapValues = std::vector<KeyValue>;
-    MapValues map_values;            // values to iterate over
-    MapValues::iterator map_it;      // iterator over values
+    MapValues map_values;           // values to iterate over
+    MapValues::iterator map_it;     // iterator over values
 
   };
 
@@ -233,6 +233,13 @@ class Renderer {
           std::sort(result.begin(), result.end());
           pop_args(bc);
           m_stack.emplace_back(std::move(result));
+          break;
+        }
+        case Bytecode::Op::At: {
+          auto args = get_args(bc);
+          auto result = args[0]->at(args[1]->get<int>());
+          pop_args(bc);
+          m_stack.emplace_back(result);
           break;
         }
         case Bytecode::Op::First: {

@@ -18,6 +18,7 @@ namespace inja {
 
 class ParserStatic {
   ParserStatic() {
+    functions.add_builtin("at", 2, Bytecode::Op::At);
     functions.add_builtin("default", 2, Bytecode::Op::Default);
     functions.add_builtin("divisibleBy", 2, Bytecode::Op::DivisibleBy);
     functions.add_builtin("even", 1, Bytecode::Op::Even);
@@ -183,8 +184,8 @@ class Parser {
               append_callback(tmpl, func_token.text, num_args);
               return true;
             }
-          } else if (m_tok.text == static_cast<decltype(m_tok.text)>("true") || 
-              m_tok.text == static_cast<decltype(m_tok.text)>("false") || 
+          } else if (m_tok.text == static_cast<decltype(m_tok.text)>("true") ||
+              m_tok.text == static_cast<decltype(m_tok.text)>("false") ||
               m_tok.text == static_cast<decltype(m_tok.text)>("null")) {
             // true, false, null are json literals
             if (brace_level == 0 && bracket_level == 0) {

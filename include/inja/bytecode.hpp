@@ -38,6 +38,7 @@ struct Bytecode {
     GreaterEqual,
     Less,
     LessEqual,
+    At,
     Different,
     DivisibleBy,
     Even,

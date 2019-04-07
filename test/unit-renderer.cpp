@@ -62,11 +62,10 @@ TEST_CASE("types") {
 		CHECK( env.render("{% for name in names %}{{ loop.index }}: {{ name }}{% if not loop.is_last %}, {% endif %}{% endfor %}!", data) == "0: Jeff, 1: Seb!" );
 		CHECK( env.render("{% for name in names %}{{ loop.index }}: {{ name }}{% if loop.is_last == false %}, {% endif %}{% endfor %}!", data) == "0: Jeff, 1: Seb!" );
 
-		data["empty_loop"] = {};
-		CHECK( env.render("{% for name in empty_loop %}a{% endfor %}", data) == "" );
 		CHECK( env.render("{% for name in {} %}a{% endfor %}", data) == "" );
 
 		CHECK_THROWS_WITH( env.render("{% for name ins names %}a{% endfor %}", data), "[inja.exception.parser_error] expected 'in', got 'ins'" );
+		CHECK_THROWS_WITH( env.render("{% for name in empty_loop %}a{% endfor %}", data), "[inja.exception.render_error] variable 'empty_loop' not found" );
 		// CHECK_THROWS_WITH( env.render("{% for name in relatives %}{{ name }}{% endfor %}", data), "[inja.exception.json_error] [json.exception.type_error.302] type must be array, but is object" );
 	}
 
@@ -144,6 +143,7 @@ TEST_CASE("functions") {
 	data["brother"]["daughters"] = {"Maria", "Helen"};
 	data["property"] = "name";
 	data["age"] = 29;
+	data["i"] = 1;
 	data["is_happy"] = true;
 	data["is_sad"] = false;
 	data["vars"] = {2, 3, 4, 0, -1, -2, -3};
@@ -180,6 +180,11 @@ TEST_CASE("functions") {
 		CHECK( env.render("{{ sort([3, 2, 1]) }}", data) == "[1,2,3]" );
 		CHECK( env.render("{{ sort([\"bob\", \"charlie\", \"alice\"]) }}", data) == "[\"alice\",\"bob\",\"charlie\"]" );
 		// CHECK_THROWS_WITH( env.render("{{ sort(5) }}", data), "[inja.exception.json_error] [json.exception.type_error.302] type must be array, but is number" );
+	}
+
+	SECTION("at") {
+		CHECK( env.render("{{ at(names, 0) }}", data) == "Jeff" );
+		CHECK( env.render("{{ at(names, i) }}", data) == "Seb" );
 	}
 
 	SECTION("first") {
