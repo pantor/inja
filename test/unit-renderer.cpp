@@ -73,7 +73,7 @@ TEST_CASE("types") {
 	SECTION("nested loops") {
 		auto ldata = json::parse(
 R"DELIM(
-{ "outer" : [ 
+{ "outer" : [
 	{ "inner" : [
 		{ "in2" : [ 1, 2 ] },
 		{ "in2" : []},
@@ -170,7 +170,9 @@ TEST_CASE("functions") {
 	}
 
 	SECTION("length") {
-		CHECK( env.render("{{ length(names) }}", data) == "4" );
+		CHECK( env.render("{{ length(names) }}", data) == "4" ); // Length of array
+		CHECK( env.render("{{ length(name) }}", data) == "5" ); // Length of string
+
 		// CHECK_THROWS_WITH( env.render("{{ length(5) }}", data), "[inja.exception.json_error] [json.exception.type_error.302] type must be array, but is number" );
 	}
 

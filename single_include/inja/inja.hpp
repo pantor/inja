@@ -2786,11 +2786,11 @@ class Renderer {
         }
         case Bytecode::Op::PrintValue: {
           const json& val = *get_args(bc)[0];
-          if (val.is_string())
+          if (val.is_string()) {
             os << val.get_ref<const std::string&>();
-          else
+          } else {
             os << val.dump();
-            // val.dump(os);
+          }
           pop_args(bc);
           break;
         }
@@ -2821,7 +2821,15 @@ class Renderer {
           break;
         }
         case Bytecode::Op::Length: {
-          auto result = get_args(bc)[0]->size();
+          const json& val = *get_args(bc)[0];
+
+          int result;
+          if (val.is_string()) {
+            result = val.get_ref<const std::string&>().length();
+          } else {
+            result = val.size();
+          }
+
           pop_args(bc);
           m_stack.emplace_back(result);
           break;
