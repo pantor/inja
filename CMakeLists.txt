@@ -19,11 +19,11 @@ set(CMAKE_BUILD_TYPE Debug)
 # set(CMAKE_BUILD_TYPE Release)
 # set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 
-if (CMAKE_COMPILER_IS_GNUCC)
+if(CMAKE_COMPILER_IS_GNUCC)
   set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wall")
 endif()
 
-if (MSVC)
+if(MSVC)
   set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} /W4")
 endif()
 
@@ -42,7 +42,7 @@ set(INJA_PACKAGE_USE_EMBEDDED_JSON OFF)
 
 if(INJA_USE_EMBEDDED_JSON)
   find_package(nlohmann_json QUIET)
-  if (NOT nlohmann_json_FOUND)
+  if(NOT nlohmann_json_FOUND)
     set(INJA_PACKAGE_USE_EMBEDDED_JSON ON)
     add_library(nlohmann_json INTERFACE)
     add_library(pantor::nlohmann_json ALIAS nlohmann_json)
@@ -61,25 +61,18 @@ if(INJA_USE_EMBEDDED_JSON)
     set(INJA_SELECTED_JSON_LIBRARY "nlohmann_json::nlohmann_json")
   endif()
 else()
-  find_package(nlohmann_json REQUIRED)
-  set(INJA_SELECTED_JSON_LIBRARY "nlohmann_json::nlohmann_json")
+  # If target already exists, e.g. by git submodules
+  if(TARGET nlohmann_json)
+    set(INJA_SELECTED_JSON_LIBRARY "nlohmann_json::nlohmann_json")
+  else()
+    find_package(nlohmann_json REQUIRED)
+    set(INJA_SELECTED_JSON_LIBRARY "nlohmann_json::nlohmann_json")
+  endif()
 endif()
 
 target_link_libraries(inja INTERFACE ${INJA_SELECTED_JSON_LIBRARY})
 
 execute_process(COMMAND scripts/update_single_include.sh WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
-
-
-if (COVERALLS)
-  include(Coveralls)
-  coveralls_turn_on_coverage()
-
-  file(GLOB_RECURSE COVERAGE_SRCS include/inja/*.hpp)
-
-  # set(COVERAGE_SRCS test/unit.cpp test/unit-renderer.cpp include/inja)
-
-  coveralls_setup("${COVERAGE_SRCS}" OFF) # If we should upload.
-endif()
 
 
 if(BUILD_TESTING)
@@ -112,6 +105,18 @@ endif()
 if(BUILD_BENCHMARK)
   add_executable(inja_benchmark test/benchmark.cpp)
   target_link_libraries(inja_benchmark PRIVATE inja)
+endif()
+
+
+if(COVERALLS)
+  include(Coveralls)
+  coveralls_turn_on_coverage()
+
+  file(GLOB_RECURSE COVERAGE_SRCS include/inja/*.hpp)
+
+  # set(COVERAGE_SRCS test/unit.cpp test/unit-renderer.cpp include/inja)
+
+  coveralls_setup("${COVERAGE_SRCS}" OFF) # If we should upload.
 endif()
 
 
@@ -149,7 +154,7 @@ configure_file(
 )
 
 
-if (INJA_INSTALL)
+if(INJA_INSTALL)
   set(INJA_CONFIG_PATH "lib/cmake/inja")
 
   # install tree package config
@@ -182,6 +187,6 @@ if (INJA_INSTALL)
 endif()
 
 
-if (INJA_EXPORT)
+if(INJA_EXPORT)
   export(PACKAGE inja)
 endif()
