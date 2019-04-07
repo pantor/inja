@@ -37,7 +37,7 @@ class Environment {
   std::unique_ptr<Impl> m_impl;
 
  public:
-  Environment(): Environment("./") { }
+  Environment(): Environment("") { }
 
   explicit Environment(const std::string& global_path): m_impl(stdinja::make_unique<Impl>()) {
     m_impl->input_path = global_path;
