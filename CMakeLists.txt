@@ -85,7 +85,7 @@ if(BUILD_TESTING)
   )
   target_link_libraries(inja_test PRIVATE inja)
 
-  add_test(inja_test ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/inja_test)
+  add_test(inja_test ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/inja_test  --reporter=xml -s --out=${CMAKE_CURRENT_BINARY_DIR}/inja_test.xml)
 
 
   add_library(single_inja INTERFACE)
@@ -98,7 +98,7 @@ if(BUILD_TESTING)
   )
   target_link_libraries(single_inja_test PRIVATE single_inja)
 
-  add_test(single_inja_test ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/single_inja_test)
+  add_test(single_inja_test ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/single_inja_test --reporter=xml -s --out=${CMAKE_CURRENT_BINARY_DIR}/single_inja_test.xml)
 endif()
 
 

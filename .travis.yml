@@ -92,6 +92,8 @@ after_success: |
     doxygen ./Doxyfile
   fi
 
+  python <(curl https://report.ci/upload.py) --name "Travis-Ci [ $TRAVIS_OS_NAME, $TRAVIS_OSX_IMAGE $COMPILER ] build"
+
 deploy:
   provider: pages
   skip_cleanup: true
