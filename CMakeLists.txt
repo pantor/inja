@@ -13,7 +13,7 @@ option(COVERALLS "Generate coveralls data" OFF)
 
 set(INJA_INSTALL_INCLUDE_DIR "include")
 
-set(CMAKE_CXX_STANDARD 17)
+# set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
 set(CMAKE_BUILD_TYPE Debug)
 # set(CMAKE_BUILD_TYPE Release)
@@ -36,7 +36,7 @@ target_include_directories(inja INTERFACE
   $<INSTALL_INTERFACE:${INJA_INSTALL_INCLUDE_DIR}>
 )
 
-target_compile_features(inja INTERFACE cxx_std_11)
+# target_compile_features(inja INTERFACE cxx_std_11)
 
 set(INJA_PACKAGE_USE_EMBEDDED_JSON OFF)
 
