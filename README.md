@@ -119,7 +119,7 @@ render("{{ guests.1 }}", data); // "Tom"
 // Objects
 render("{{ time.start }} to {{ time.end }}pm", data); // "16 to 22pm"
 ```
-In general, the variables can be fetched using the [JSON Pointer](https://tools.ietf.org/html/rfc6901) syntax. For convenience, the leading `/` can be ommited. If no variable is found, valid JSON is printed directly, otherwise an error is thrown.
+In general, the variables can be fetched using the [JSON Pointer](https://tools.ietf.org/html/rfc6901) syntax. For convenience, the leading `/` can be omitted. If no variable is found, valid JSON is printed directly, otherwise an error is thrown.
 
 
 ### Statements
@@ -162,13 +162,14 @@ render("{% if not guest_count %}…{% endif %}", data); // True
 #### Includes
 
 You can either include other template files or already parsed templates.
-```
+```c++
 // Other template files are included relative from the current file location
-render({% include "footer.html" %}, data);
+render("{% include \"footer.html\" %}", data);
 
 // To include in-memory templates, add them to the environment first
-env.include_template("footer", temp);
-render({% include "footer" %}, data);
+inja::Template content_template = env.parse("Hello {{ neighbour }}!");
+env.include_template("content", content_template);
+render("Content: {% include \"content\" %}", data); // "Content: Hello Peter!"
 ```
 
 ### Functions
