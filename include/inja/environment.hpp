@@ -76,6 +76,16 @@ class Environment {
     m_impl->lexer_config.update_open_chars();
   }
 
+  /// Sets whether to remove the first newline after a block
+  void set_trim_blocks(bool trim_blocks) {
+    m_impl->lexer_config.trim_blocks = trim_blocks;
+  }
+
+  /// Sets whether to strip the spaces and tabs from the start of a line to a block
+  void set_lstrip_blocks(bool lstrip_blocks) {
+    m_impl->lexer_config.lstrip_blocks = lstrip_blocks;
+  }
+
   /// Sets the element notation syntax
   void set_element_notation(ElementNotation notation) {
     m_impl->parser_config.notation = notation;

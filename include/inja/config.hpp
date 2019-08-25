@@ -24,6 +24,9 @@ struct LexerConfig {
   std::string comment_close {"#}"};
   std::string open_chars {"#{"};
 
+  bool trim_blocks {false};
+  bool lstrip_blocks {false};
+
   void update_open_chars() {
     open_chars = "";
     if (open_chars.find(line_statement[0]) == std::string::npos) {
