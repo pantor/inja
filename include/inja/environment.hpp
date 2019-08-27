@@ -15,6 +15,7 @@
 #include "renderer.hpp"
 #include "string_view.hpp"
 #include "template.hpp"
+#include "utils.hpp"
 
 
 namespace inja {
@@ -144,7 +145,7 @@ class Environment {
 	}
 
   json load_json(const std::string& filename) {
-		std::ifstream file(m_impl->input_path + filename);
+		std::ifstream file = open_file_or_throw(m_impl->input_path + filename);
 		json j;
 		file >> j;
 		return j;

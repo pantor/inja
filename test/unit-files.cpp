@@ -23,6 +23,12 @@ TEST_CASE("loading") {
 	SECTION("File includes should be rendered") {
 		CHECK( env.render_file(test_file_directory + "include.txt", data) == "Answer: Hello Jeff." );
 	}
+
+	SECTION("File error should throw") {
+		std::string path(test_file_directory + "does-not-exist");
+		CHECK_THROWS_WITH( env.load_file(path), "[inja.exception.file_error] failed accessing file at '" + path + "'" );
+		CHECK_THROWS_WITH( env.load_json(path), "[inja.exception.file_error] failed accessing file at '" + path + "'" );
+	}
 }
 
 TEST_CASE("complete-files") {

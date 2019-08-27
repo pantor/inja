@@ -1693,6 +1693,7 @@ struct Token {
 #ifndef PANTOR_INJA_UTILS_HPP
 #define PANTOR_INJA_UTILS_HPP
 
+#include <fstream>
 #include <stdexcept>
 
 // #include "string_view.hpp"
@@ -1703,6 +1704,21 @@ namespace inja {
 
 inline void inja_throw(const std::string& type, const std::string& message) {
   throw std::runtime_error("[inja.exception." + type + "] " + message);
+}
+
+inline std::ifstream open_file_or_throw(const std::string& path)
+{
+  std::ifstream file;
+  file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+  try
+  {
+    file.open(path);
+  }
+  catch( const std::ios_base::failure& e )
+  {
+    inja_throw("file_error", "failed accessing file at '" + path + "'");
+  }
+  return file;
 }
 
 namespace string_view {
@@ -2384,8 +2400,10 @@ class Parser {
       }
       // sys::path::remove_dots(pathname, true, sys::path::Style::posix);
 
-      Template include_template = parse_template(pathname);
-      m_included_templates.emplace(pathname, include_template);
+      if (m_included_templates.find(pathname) == m_included_templates.end()) {
+        Template include_template = parse_template(pathname);
+        m_included_templates.emplace(pathname, include_template);
+      }
 
       // generate a reference bytecode
       tmpl.bytecodes.emplace_back(Bytecode::Op::Include, json(pathname), Bytecode::Flag::ValueImmediate);
@@ -2505,7 +2523,7 @@ class Parser {
   }
 
   std::string load_file(nonstd::string_view filename) {
-		std::ifstream file(static_cast<std::string>(filename));
+		std::ifstream file = open_file_or_throw(static_cast<std::string>(filename));
 		std::string text((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 		return text;
 	}
@@ -3184,6 +3202,8 @@ class Renderer {
 
 // #include "template.hpp"
 
+// #include "utils.hpp"
+
 
 
 namespace inja {
@@ -3313,7 +3333,7 @@ class Environment {
 	}
 
   json load_json(const std::string& filename) {
-		std::ifstream file(m_impl->input_path + filename);
+		std::ifstream file = open_file_or_throw(m_impl->input_path + filename);
 		json j;
 		file >> j;
 		return j;
