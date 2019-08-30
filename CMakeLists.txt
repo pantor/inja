@@ -36,7 +36,7 @@ target_include_directories(inja INTERFACE
   $<INSTALL_INTERFACE:${INJA_INSTALL_INCLUDE_DIR}>
 )
 
-# target_compile_features(inja INTERFACE cxx_std_11)
+target_compile_features(inja INTERFACE cxx_std_11)
 
 set(INJA_PACKAGE_USE_EMBEDDED_JSON OFF)
 
