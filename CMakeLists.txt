@@ -89,6 +89,7 @@ if(BUILD_TESTING)
 
 
   add_library(single_inja INTERFACE)
+  target_compile_features(single_inja INTERFACE cxx_std_11)
   target_include_directories(single_inja INTERFACE single_include include third_party/include)
 
   add_executable(single_inja_test
