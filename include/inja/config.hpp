@@ -14,6 +14,9 @@ enum class ElementNotation {
   Pointer
 };
 
+/*!
+ * \brief Class for lexer configuration.
+ */
 struct LexerConfig {
   std::string statement_open {"{%"};
   std::string statement_close {"%}"};
@@ -44,6 +47,9 @@ struct LexerConfig {
   }
 };
 
+/*!
+ * \brief Class for parser configuration.
+ */
 struct ParserConfig {
   ElementNotation notation {ElementNotation::Dot};
 };

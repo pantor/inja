@@ -58,6 +58,9 @@ class ParserStatic {
   FunctionStorage functions;
 };
 
+/*!
+ * \brief Class for parsing an inja Template.
+ */
 class Parser {
  public:
   explicit Parser(const ParserConfig& parser_config, const LexerConfig& lexer_config, TemplateStorage& included_templates): m_config(parser_config), m_lexer(lexer_config), m_included_templates(included_templates), m_static(ParserStatic::get_instance()) { }

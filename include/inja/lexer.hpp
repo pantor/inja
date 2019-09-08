@@ -11,6 +11,9 @@
 
 namespace inja {
 
+/*!
+ * \brief Class for lexing an inja Template.
+ */
 class Lexer {
   enum class State {
     Text,

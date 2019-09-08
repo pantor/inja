@@ -9,6 +9,9 @@
 
 namespace inja {
 
+/*!
+ * \brief The main inja Template.
+ */
 struct Template {
   std::vector<Bytecode> bytecodes;
   std::string content;

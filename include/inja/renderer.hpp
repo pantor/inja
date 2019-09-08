@@ -24,6 +24,9 @@ inline nonstd::string_view convert_dot_to_json_pointer(nonstd::string_view dot, 
   return nonstd::string_view(out.data(), out.size());
 }
 
+/*!
+ * \brief Class for rendering a Template with data.
+ */
 class Renderer {
   std::vector<const json*>& get_args(const Bytecode& bc) {
     m_tmp_args.clear();

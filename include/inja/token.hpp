@@ -6,6 +6,9 @@
 
 namespace inja {
 
+/*!
+ * \brief Helper-class for the inja Parser.
+ */
 struct Token {
   enum class Kind {
     Text,

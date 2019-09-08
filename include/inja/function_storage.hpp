@@ -12,6 +12,9 @@ using namespace nlohmann;
 using Arguments = std::vector<const json*>;
 using CallbackFunction = std::function<json(Arguments& args)>;
 
+/*!
+ * \brief Class for builtin functions and user-defined callbacks.
+ */
 class FunctionStorage {
  public:
   void add_builtin(nonstd::string_view name, unsigned int num_args, Bytecode::Op op) {

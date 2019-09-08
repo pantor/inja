@@ -22,6 +22,9 @@ namespace inja {
 
 using namespace nlohmann;
 
+/*!
+ * \brief Class for changing the configuration.
+ */
 class Environment {
   class Impl {
    public:
