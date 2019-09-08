@@ -384,8 +384,10 @@ class Parser {
       }
       // sys::path::remove_dots(pathname, true, sys::path::Style::posix);
 
-      Template include_template = parse_template(pathname);
-      m_included_templates.emplace(pathname, include_template);
+      if (m_included_templates.find(pathname) == m_included_templates.end()) {
+        Template include_template = parse_template(pathname);
+        m_included_templates.emplace(pathname, include_template);
+      }
 
       // generate a reference bytecode
       tmpl.bytecodes.emplace_back(Bytecode::Op::Include, json(pathname), Bytecode::Flag::ValueImmediate);
@@ -505,7 +507,7 @@ class Parser {
   }
 
   std::string load_file(nonstd::string_view filename) {
-		std::ifstream file(static_cast<std::string>(filename));
+		std::ifstream file = open_file_or_throw(static_cast<std::string>(filename));
 		std::string text((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 		return text;
 	}

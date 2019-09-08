@@ -378,6 +378,7 @@ TEST_CASE("templates") {
 
 		inja::Template t2 = env.parse("{% include \"greeting\" %}!");
 		CHECK( env.render(t2, data) == "Hello Peter!" );
+		CHECK_THROWS_WITH( env.parse("{% include \"does-not-exist\" %}!"), "[inja.exception.file_error] failed accessing file at 'does-not-exist'" );
 	}
 }
 
