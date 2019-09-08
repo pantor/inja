@@ -11,10 +11,10 @@ jobs:
     steps:
     - uses: actions/checkout@master
     
-    - name: depedencies
+    - name: dependencies
       env:
         dependency_packages: doxygen
-      run: apt-get update && apt-get -y install ${dependency_packages}
+      run: sudo apt-get update && sudo apt-get -y install ${dependency_packages}
 
     - name: build
       run: cd doc && doxygen ./Doxyfile
