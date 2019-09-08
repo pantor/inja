@@ -7,8 +7,9 @@ using json = nlohmann::json;
 
 TEST_CASE("dot-to-pointer") {
 	std::string buffer;
-	CHECK( inja::convert_dot_to_json_pointer("person.names.surname", buffer) == "/person/names/surname" );
+	CHECK( inja::convert_dot_to_json_pointer("test", buffer) == "/test" );
 	CHECK( inja::convert_dot_to_json_pointer("guests.2", buffer) == "/guests/2" );
+	CHECK( inja::convert_dot_to_json_pointer("person.names.surname", buffer) == "/person/names/surname" );
 }
 
 TEST_CASE("types") {
@@ -172,7 +173,6 @@ TEST_CASE("functions") {
 	SECTION("length") {
 		CHECK( env.render("{{ length(names) }}", data) == "4" ); // Length of array
 		CHECK( env.render("{{ length(name) }}", data) == "5" ); // Length of string
-
 		// CHECK_THROWS_WITH( env.render("{{ length(5) }}", data), "[inja.exception.json_error] [json.exception.type_error.302] type must be array, but is number" );
 	}
 

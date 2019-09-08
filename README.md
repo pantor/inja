@@ -228,6 +228,18 @@ render("{{ isArray(guests) }}", data); // "true"
 // Implemented type checks: isArray, isBoolean, isFloat, isInteger, isNumber, isObject, isString,
 ```
 
+### Whitespace Control
+
+In the default configuration, no whitespace is removed while rendering the file. To support a more readable template style, you can configure the environment to control whitespaces before and after a statement automatically. While enabling `set_trim` removes the first newline after a statement, `set_lstrip` strips tabs and spaces from the beginning of a line to the start of a block.
+
+```c++
+Environment env;
+env.set_trim(true);
+env.set_lstrip(true);
+```
+
+With both `trim` and `lstrip` enabled, you can put statements on their own lines.
+
 ### Callbacks
 
 You can create your own and more complex functions with callbacks.

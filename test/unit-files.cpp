@@ -41,6 +41,18 @@ TEST_CASE("complete-files") {
 	}
 }
 
+TEST_CASE("complete-files-whitespace-control") {
+	inja::Environment env {test_file_directory};
+	env.set_trim_blocks(true);
+	env.set_lstrip_blocks(true);
+	
+	for (std::string test_name : {"nested-whitespace"}) {
+		SECTION(test_name) {
+			CHECK( env.render_file_with_json_file(test_name + "/template.txt", test_name + "/data.json") == env.load_file(test_name + "/result.txt") );
+		}
+	}
+}
+
 TEST_CASE("global-path") {
 	inja::Environment env {test_file_directory, "./"};
 	inja::Environment env_result {"./"};
