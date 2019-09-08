@@ -10,12 +10,14 @@ jobs:
     runs-on: ubuntu-18.04
     steps:
     - uses: actions/checkout@master
+    
+    - name: depedencies
+      env:
+        dependency_packages: doxygen
+      run: apt-get update && apt-get -y install ${dependency_packages}
 
     - name: build
-      run: |
-        apt -y install doxygen
-        cd doc
-        doxygen ./Doxyfile
+      run: cd doc && doxygen ./Doxyfile
 
     - name: deploy
       uses: peaceiris/actions-gh-pages@v2.2.0
