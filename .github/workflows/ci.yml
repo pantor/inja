@@ -1,0 +1,24 @@
+name: C++ CI
+
+on: push
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+
+    - name: Install Dependencies
+      env:
+        dependency_packages: build-essential g++-5
+      run: apt-get update && apt-get -y install ${dependency_packages}
+
+    - name: Build
+      run: |
+        mkdir -p build && cd build
+        cmake ..
+        cmake --build . --config Release -- -j4
+
+    - name: Run Tests
+      run: ctest -C Release -V
