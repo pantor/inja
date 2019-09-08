@@ -28,9 +28,7 @@ matrix:
       addons:
         apt:
           sources: ubuntu-toolchain-r-test
-          packages:
-            - g++-7
-            - doxygen
+          packages: g++-7
 
     - os: linux
       compiler: gcc
@@ -85,18 +83,3 @@ script:
   - cmake --build . --config Release -- -j4
   - ctest -C Release -V
   - cd ..
-
-after_success: |
-  if [ "$DOCS" = "true" ] && [ "$TRAVIS_BRANCH" = "master" ]; then
-    cd doc
-    doxygen ./Doxyfile
-  fi
-
-deploy:
-  provider: pages
-  skip_cleanup: true
-  local_dir: ./doc/html/
-  github_token: $GH_REPO_TOKEN
-  on:
-    branch: master
-    condition: $DOCS = true
