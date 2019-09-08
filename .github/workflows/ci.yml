@@ -3,7 +3,7 @@ name: C++ CI
 on: push
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
 
     steps:
@@ -12,7 +12,7 @@ jobs:
     - name: Install Dependencies
       env:
         dependency_packages: build-essential g++-5
-      run: apt-get update && apt-get -y install ${dependency_packages}
+      run: sudo apt-get update && sudo apt-get -y install ${dependency_packages}
 
     - name: Build
       run: |
@@ -20,5 +20,5 @@ jobs:
         cmake ..
         cmake --build . --config Release -- -j4
 
-    - name: Run Tests
+    - name: Test
       run: ctest -C Release -V
