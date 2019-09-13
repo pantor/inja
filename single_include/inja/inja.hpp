@@ -1360,6 +1360,9 @@ enum class ElementNotation {
   Pointer
 };
 
+/*!
+ * \brief Class for lexer configuration.
+ */
 struct LexerConfig {
   std::string statement_open {"{%"};
   std::string statement_close {"%}"};
@@ -1390,6 +1393,9 @@ struct LexerConfig {
   }
 };
 
+/*!
+ * \brief Class for parser configuration.
+ */
 struct ParserConfig {
   ElementNotation notation {ElementNotation::Dot};
 };
@@ -1547,6 +1553,9 @@ using namespace nlohmann;
 using Arguments = std::vector<const json*>;
 using CallbackFunction = std::function<json(Arguments& args)>;
 
+/*!
+ * \brief Class for builtin functions and user-defined callbacks.
+ */
 class FunctionStorage {
  public:
   void add_builtin(nonstd::string_view name, unsigned int num_args, Bytecode::Op op) {
@@ -1637,6 +1646,9 @@ class FunctionStorage {
 
 namespace inja {
 
+/*!
+ * \brief Helper-class for the inja Parser.
+ */
 struct Token {
   enum class Kind {
     Text,
@@ -1748,6 +1760,9 @@ namespace string_view {
 
 namespace inja {
 
+/*!
+ * \brief Class for lexing an inja Template.
+ */
 class Lexer {
   enum class State {
     Text,
@@ -2052,6 +2067,9 @@ class Lexer {
 
 namespace inja {
 
+/*!
+ * \brief The main inja Template.
+ */
 struct Template {
   std::vector<Bytecode> bytecodes;
   std::string content;
@@ -2115,6 +2133,9 @@ class ParserStatic {
   FunctionStorage functions;
 };
 
+/*!
+ * \brief Class for parsing an inja Template.
+ */
 class Parser {
  public:
   explicit Parser(const ParserConfig& parser_config, const LexerConfig& lexer_config, TemplateStorage& included_templates): m_config(parser_config), m_lexer(lexer_config), m_included_templates(included_templates), m_static(ParserStatic::get_instance()) { }
@@ -2691,6 +2712,9 @@ inline nonstd::string_view convert_dot_to_json_pointer(nonstd::string_view dot, 
   return nonstd::string_view(out.data(), out.size());
 }
 
+/*!
+ * \brief Class for rendering a Template with data.
+ */
 class Renderer {
   std::vector<const json*>& get_args(const Bytecode& bc) {
     m_tmp_args.clear();
@@ -3251,6 +3275,9 @@ namespace inja {
 
 using namespace nlohmann;
 
+/*!
+ * \brief Class for changing the configuration.
+ */
 class Environment {
   class Impl {
    public:
