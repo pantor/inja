@@ -380,6 +380,16 @@ TEST_CASE("templates") {
 		CHECK( env.render(t2, data) == "Hello Peter!" );
 		CHECK_THROWS_WITH( env.parse("{% include \"does-not-exist\" %}!"), "[inja.exception.file_error] failed accessing file at 'does-not-exist'" );
 	}
+
+	SECTION("include-in-loop") {
+		json loop_data;
+		loop_data["cities"] = json::array({{{"name", "Munich"}}, {{"name", "New York"}}});
+
+		inja::Environment env;
+		env.include_template("city.tpl", env.parse("{{ loop.index }}:{{ city.name }};"));
+
+		CHECK( env.render("{% for city in cities %}{% include \"city.tpl\" %}{% endfor %}", loop_data) == "0:Munich;1:New York;" );
+	}
 }
 
 
