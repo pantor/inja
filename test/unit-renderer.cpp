@@ -445,6 +445,6 @@ $$ if name == "Peter"
     You really are <%name%>
 $$ endif
 )DELIM";
-            CHECK( env.render(string_template, data) == "Hello Peter\n	You really are Peter\n");
+            CHECK( env.render(string_template, data) == "Hello Peter\n    You really are Peter\n");
     }
 }
