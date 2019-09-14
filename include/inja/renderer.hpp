@@ -1,8 +1,13 @@
-#ifndef PANTOR_INJA_RENDERER_HPP
-#define PANTOR_INJA_RENDERER_HPP
+// Copyright (c) 2019 Pantor. All rights reserved.
+
+#ifndef INCLUDE_INJA_RENDERER_HPP_
+#define INCLUDE_INJA_RENDERER_HPP_
 
 #include <algorithm>
 #include <numeric>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include <nlohmann/json.hpp>
 
@@ -113,7 +118,7 @@ class Renderer {
     LoopLevel& level = m_loop_stack.back();
 
     if (level.loop_type == LoopLevel::Type::Array) {
-      level.data[static_cast<std::string>(level.value_name)] = level.values.at(level.index); // *level.it;
+      level.data[static_cast<std::string>(level.value_name)] = level.values.at(level.index);  // *level.it;
       auto& loopData = level.data["loop"];
       loopData["index"] = level.index;
       loopData["index1"] = level.index + 1;
@@ -135,22 +140,21 @@ class Renderer {
     enum class Type { Map, Array };
 
     Type loop_type;
-    nonstd::string_view key_name;   // variable name for keys
-    nonstd::string_view value_name; // variable name for values
-    json data;                      // data with loop info added
+    nonstd::string_view key_name;    // variable name for keys
+    nonstd::string_view value_name;  // variable name for values
+    json data;                       // data with loop info added
 
-    json values;                    // values to iterate over
+    json values;                     // values to iterate over
 
     // loop over list
-    size_t index;                   // current list index
-    size_t size;                    // length of list
+    size_t index;                    // current list index
+    size_t size;                     // length of list
 
     // loop over map
     using KeyValue = std::pair<nonstd::string_view, json*>;
     using MapValues = std::vector<KeyValue>;
-    MapValues map_values;           // values to iterate over
-    MapValues::iterator map_it;     // iterator over values
-
+    MapValues map_values;            // values to iterate over
+    MapValues::iterator map_it;      // iterator over values
   };
 
   std::vector<LoopLevel> m_loop_stack;
@@ -573,4 +577,4 @@ class Renderer {
 
 }  // namespace inja
 
-#endif  // PANTOR_INJA_RENDERER_HPP
+#endif  // INCLUDE_INJA_RENDERER_HPP_

@@ -1,5 +1,9 @@
-#ifndef PANTOR_INJA_FUNCTION_STORAGE_HPP
-#define PANTOR_INJA_FUNCTION_STORAGE_HPP
+// Copyright (c) 2019 Pantor. All rights reserved.
+
+#ifndef INCLUDE_INJA_FUNCTION_STORAGE_HPP_
+#define INCLUDE_INJA_FUNCTION_STORAGE_HPP_
+
+#include <vector>
 
 #include "bytecode.hpp"
 #include "string_view.hpp"
@@ -7,7 +11,7 @@
 
 namespace inja {
 
-using namespace nlohmann;
+using json = nlohmann::json;
 
 using Arguments = std::vector<const json*>;
 using CallbackFunction = std::function<json(Arguments& args)>;
@@ -72,4 +76,4 @@ class FunctionStorage {
 
 }
 
-#endif // PANTOR_INJA_FUNCTION_STORAGE_HPP
+#endif  // INCLUDE_INJA_FUNCTION_STORAGE_HPP_

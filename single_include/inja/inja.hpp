@@ -1408,10 +1408,13 @@ struct ParserConfig {
 #ifndef PANTOR_INJA_FUNCTION_STORAGE_HPP
 #define PANTOR_INJA_FUNCTION_STORAGE_HPP
 
+#include <vector>
+
 // #include "bytecode.hpp"
 #ifndef PANTOR_INJA_BYTECODE_HPP
 #define PANTOR_INJA_BYTECODE_HPP
 
+#include <string>
 #include <utility>
 
 #include <nlohmann/json.hpp>
@@ -1422,7 +1425,7 @@ struct ParserConfig {
 
 namespace inja {
 
-using namespace nlohmann;
+using json = nlohmann::json;
 
 
 struct Bytecode {
@@ -1620,6 +1623,9 @@ class FunctionStorage {
 #define PANTOR_INJA_PARSER_HPP
 
 #include <limits>
+#include <string>
+#include <utility> 
+#include <vector>
 
 // #include "bytecode.hpp"
 
@@ -1639,6 +1645,8 @@ class FunctionStorage {
 // #include "token.hpp"
 #ifndef PANTOR_INJA_TOKEN_HPP
 #define PANTOR_INJA_TOKEN_HPP
+
+#include <string>
 
 // #include "string_view.hpp"
 
@@ -1702,14 +1710,17 @@ struct Token {
 
 }
 
-#endif // PANTOR_INJA_TOKEN_HPP
+#endif  // PANTOR_INJA_TOKEN_HPP
 
 // #include "utils.hpp"
 #ifndef PANTOR_INJA_UTILS_HPP
 #define PANTOR_INJA_UTILS_HPP
 
+#include <algorithm>
 #include <fstream>
 #include <stdexcept>
+#include <string>
+#include <utility>
 
 // #include "string_view.hpp"
 
@@ -1736,7 +1747,7 @@ namespace string_view {
   inline nonstd::string_view slice(nonstd::string_view view, size_t start, size_t end) {
     start = std::min(start, view.size());
     end = std::min(std::max(start, end), view.size());
-    return view.substr(start, end - start); // StringRef(Data + Start, End - Start);
+    return view.substr(start, end - start);  // StringRef(Data + Start, End - Start);
   }
 
   inline std::pair<nonstd::string_view, nonstd::string_view> split(nonstd::string_view view, char Separator) {
@@ -2058,6 +2069,7 @@ class Lexer {
 #ifndef PANTOR_INJA_TEMPLATE_HPP
 #define PANTOR_INJA_TEMPLATE_HPP
 
+#include <map>
 #include <string>
 #include <vector>
 
@@ -2079,7 +2091,7 @@ using TemplateStorage = std::map<std::string, Template>;
 
 }
 
-#endif // PANTOR_INJA_TEMPLATE_HPP
+#endif  // PANTOR_INJA_TEMPLATE_HPP
 
 // #include "token.hpp"
 
@@ -2585,10 +2597,10 @@ class Parser {
   }
 
   std::string load_file(nonstd::string_view filename) {
-		std::ifstream file = open_file_or_throw(static_cast<std::string>(filename));
-		std::string text((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-		return text;
-	}
+    std::ifstream file = open_file_or_throw(static_cast<std::string>(filename));
+    std::string text((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+    return text;
+  }
 
  private:
   const ParserConfig& m_config;
@@ -2638,6 +2650,7 @@ class Parser {
 #if __cplusplus < 201402L
 
 #include <cstddef>
+#include <memory>
 #include <type_traits>
 #include <utility>
 
@@ -2688,6 +2701,9 @@ namespace stdinja = std;
 
 #include <algorithm>
 #include <numeric>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include <nlohmann/json.hpp>
 
@@ -2801,7 +2817,7 @@ class Renderer {
     LoopLevel& level = m_loop_stack.back();
 
     if (level.loop_type == LoopLevel::Type::Array) {
-      level.data[static_cast<std::string>(level.value_name)] = level.values.at(level.index); // *level.it;
+      level.data[static_cast<std::string>(level.value_name)] = level.values.at(level.index);  // *level.it;
       auto& loopData = level.data["loop"];
       loopData["index"] = level.index;
       loopData["index1"] = level.index + 1;

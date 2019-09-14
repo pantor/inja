@@ -1,6 +1,9 @@
-#ifndef PANTOR_INJA_BYTECODE_HPP
-#define PANTOR_INJA_BYTECODE_HPP
+// Copyright (c) 2019 Pantor. All rights reserved.
 
+#ifndef INCLUDE_INJA_BYTECODE_HPP_
+#define INCLUDE_INJA_BYTECODE_HPP_
+
+#include <string>
 #include <utility>
 
 #include <nlohmann/json.hpp>
@@ -10,7 +13,7 @@
 
 namespace inja {
 
-using namespace nlohmann;
+using json = nlohmann::json;
 
 
 struct Bytecode {
@@ -128,4 +131,4 @@ struct Bytecode {
 
 }  // namespace inja
 
-#endif  // PANTOR_INJA_BYTECODE_HPP
+#endif  // INCLUDE_INJA_BYTECODE_HPP_

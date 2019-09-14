@@ -1,5 +1,7 @@
-#ifndef PANTOR_INJA_CONFIG_HPP
-#define PANTOR_INJA_CONFIG_HPP
+// Copyright (c) 2019 Pantor. All rights reserved.
+
+#ifndef INCLUDE_INJA_CONFIG_HPP_
+#define INCLUDE_INJA_CONFIG_HPP_
 
 #include <functional>
 #include <string>
@@ -54,6 +56,6 @@ struct ParserConfig {
   ElementNotation notation {ElementNotation::Dot};
 };
 
-}
+}  // namespace inja
 
-#endif // PANTOR_INJA_CONFIG_HPP
+#endif  // INCLUDE_INJA_CONFIG_HPP_

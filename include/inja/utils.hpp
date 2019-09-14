@@ -1,8 +1,13 @@
-#ifndef PANTOR_INJA_UTILS_HPP
-#define PANTOR_INJA_UTILS_HPP
+// Copyright (c) 2019 Pantor. All rights reserved.
 
+#ifndef INCLUDE_INJA_UTILS_HPP_
+#define INCLUDE_INJA_UTILS_HPP_
+
+#include <algorithm>
 #include <fstream>
 #include <stdexcept>
+#include <string>
+#include <utility>
 
 #include "string_view.hpp"
 
@@ -28,7 +33,7 @@ namespace string_view {
   inline nonstd::string_view slice(nonstd::string_view view, size_t start, size_t end) {
     start = std::min(start, view.size());
     end = std::min(std::max(start, end), view.size());
-    return view.substr(start, end - start); // StringRef(Data + Start, End - Start);
+    return view.substr(start, end - start);  // StringRef(Data + Start, End - Start);
   }
 
   inline std::pair<nonstd::string_view, nonstd::string_view> split(nonstd::string_view view, char Separator) {
@@ -42,8 +47,8 @@ namespace string_view {
   inline bool starts_with(nonstd::string_view view, nonstd::string_view prefix) {
     return (view.size() >= prefix.size() && view.compare(0, prefix.size(), prefix) == 0);
   }
-}  // namespace string
+}  // namespace string_view
 
 }  // namespace inja
 
-#endif  // PANTOR_INJA_UTILS_HPP
+#endif  // INCLUDE_INJA_UTILS_HPP_

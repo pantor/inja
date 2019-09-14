@@ -1,7 +1,12 @@
-#ifndef PANTOR_INJA_PARSER_HPP
-#define PANTOR_INJA_PARSER_HPP
+// Copyright (c) 2019 Pantor. All rights reserved.
+
+#ifndef INCLUDE_INJA_PARSER_HPP_
+#define INCLUDE_INJA_PARSER_HPP_
 
 #include <limits>
+#include <string>
+#include <utility> 
+#include <vector>
 
 #include "bytecode.hpp"
 #include "config.hpp"
@@ -510,10 +515,10 @@ class Parser {
   }
 
   std::string load_file(nonstd::string_view filename) {
-		std::ifstream file = open_file_or_throw(static_cast<std::string>(filename));
-		std::string text((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-		return text;
-	}
+    std::ifstream file = open_file_or_throw(static_cast<std::string>(filename));
+    std::string text((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+    return text;
+  }
 
  private:
   const ParserConfig& m_config;
@@ -553,4 +558,4 @@ class Parser {
 
 }  // namespace inja
 
-#endif  // PANTOR_INJA_PARSER_HPP
+#endif  // INCLUDE_INJA_PARSER_HPP_

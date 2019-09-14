@@ -1,5 +1,7 @@
-#ifndef PANTOR_INJA_LEXER_HPP
-#define PANTOR_INJA_LEXER_HPP
+// Copyright (c) 2019 Pantor. All rights reserved.
+
+#ifndef INCLUDE_INJA_LEXER_HPP_
+#define INCLUDE_INJA_LEXER_HPP_
 
 #include <cctype>
 #include <locale>
@@ -75,7 +77,7 @@ class Lexer {
                    inja::string_view::starts_with(open_str, m_config.line_statement)) {
           m_state = State::LineStart;
         } else {
-          m_pos += 1; // wasn't actually an opening sequence
+          m_pos += 1;  // wasn't actually an opening sequence
           goto again;
         }
 
@@ -303,4 +305,4 @@ class Lexer {
 
 }
 
-#endif // PANTOR_INJA_LEXER_HPP
+#endif  // INCLUDE_INJA_LEXER_HPP_

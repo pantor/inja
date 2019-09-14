@@ -1,5 +1,9 @@
-#ifndef PANTOR_INJA_TOKEN_HPP
-#define PANTOR_INJA_TOKEN_HPP
+// Copyright (c) 2019 Pantor. All rights reserved.
+
+#ifndef INCLUDE_INJA_TOKEN_HPP_
+#define INCLUDE_INJA_TOKEN_HPP_
+
+#include <string>
 
 #include "string_view.hpp"
 
@@ -62,4 +66,4 @@ struct Token {
 
 }
 
-#endif // PANTOR_INJA_TOKEN_HPP
+#endif  // INCLUDE_INJA_TOKEN_HPP_

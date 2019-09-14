@@ -1,5 +1,7 @@
-#ifndef PANTOR_INJA_ENVIRONMENT_HPP
-#define PANTOR_INJA_ENVIRONMENT_HPP
+// Copyright (c) 2019 Pantor. All rights reserved.
+
+#ifndef INCLUDE_INJA_ENVIRONMENT_HPP_
+#define INCLUDE_INJA_ENVIRONMENT_HPP_
 
 #include <memory>
 #include <fstream>
@@ -20,7 +22,7 @@
 
 namespace inja {
 
-using namespace nlohmann;
+using json = nlohmann::json;
 
 /*!
  * \brief Class for changing the configuration.
@@ -103,8 +105,8 @@ class Environment {
 
   Template parse_template(const std::string& filename) {
     Parser parser(m_impl->parser_config, m_impl->lexer_config, m_impl->included_templates);
-		return parser.parse_template(m_impl->input_path + static_cast<std::string>(filename));
-	}
+    return parser.parse_template(m_impl->input_path + static_cast<std::string>(filename));
+  }
 
   std::string render(nonstd::string_view input, const json& data) {
     return render(parse(input), data);
@@ -117,35 +119,35 @@ class Environment {
   }
 
   std::string render_file(const std::string& filename, const json& data) {
-		return render(parse_template(filename), data);
-	}
+    return render(parse_template(filename), data);
+  }
 
   std::string render_file_with_json_file(const std::string& filename, const std::string& filename_data) {
-		const json data = load_json(filename_data);
-		return render_file(filename, data);
-	}
+    const json data = load_json(filename_data);
+    return render_file(filename, data);
+  }
 
   void write(const std::string& filename, const json& data, const std::string& filename_out) {
-		std::ofstream file(m_impl->output_path + filename_out);
-		file << render_file(filename, data);
-		file.close();
-	}
+    std::ofstream file(m_impl->output_path + filename_out);
+    file << render_file(filename, data);
+    file.close();
+  }
 
   void write(const Template& temp, const json& data, const std::string& filename_out) {
-		std::ofstream file(m_impl->output_path + filename_out);
-		file << render(temp, data);
-		file.close();
-	}
+    std::ofstream file(m_impl->output_path + filename_out);
+    file << render(temp, data);
+    file.close();
+  }
 
-	void write_with_json_file(const std::string& filename, const std::string& filename_data, const std::string& filename_out) {
-		const json data = load_json(filename_data);
-		write(filename, data, filename_out);
-	}
+  void write_with_json_file(const std::string& filename, const std::string& filename_data, const std::string& filename_out) {
+    const json data = load_json(filename_data);
+    write(filename, data, filename_out);
+  }
 
-	void write_with_json_file(const Template& temp, const std::string& filename_data, const std::string& filename_out) {
-		const json data = load_json(filename_data);
-		write(temp, data, filename_out);
-	}
+  void write_with_json_file(const Template& temp, const std::string& filename_data, const std::string& filename_out) {
+    const json data = load_json(filename_data);
+    write(temp, data, filename_out);
+  }
 
   std::ostream& render_to(std::ostream& os, const Template& tmpl, const json& data) {
     Renderer(m_impl->included_templates, m_impl->callbacks).render_to(os, tmpl, data);
@@ -154,15 +156,15 @@ class Environment {
 
   std::string load_file(const std::string& filename) {
     Parser parser(m_impl->parser_config, m_impl->lexer_config, m_impl->included_templates);
-		return parser.load_file(m_impl->input_path + filename);
-	}
+    return parser.load_file(m_impl->input_path + filename);
+  }
 
   json load_json(const std::string& filename) {
-		std::ifstream file = open_file_or_throw(m_impl->input_path + filename);
-		json j;
-		file >> j;
-		return j;
-	}
+    std::ifstream file = open_file_or_throw(m_impl->input_path + filename);
+    json j;
+    file >> j;
+    return j;
+  }
 
   void add_callback(const std::string& name, unsigned int numArgs, const CallbackFunction& callback) {
     m_impl->callbacks.add_callback(name, numArgs, callback);
@@ -194,4 +196,4 @@ inline void render_to(std::ostream& os, nonstd::string_view input, const json& d
 
 }
 
-#endif // PANTOR_INJA_ENVIRONMENT_HPP
+#endif  // INCLUDE_INJA_ENVIRONMENT_HPP_

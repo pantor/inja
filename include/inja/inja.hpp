@@ -1,5 +1,7 @@
-#ifndef PANTOR_INJA_HPP
-#define PANTOR_INJA_HPP
+// Copyright (c) 2019 Pantor. All rights reserved.
+
+#ifndef INCLUDE_INJA_INJA_HPP_
+#define INCLUDE_INJA_INJA_HPP_
 
 #include <functional>
 #include <iostream>
@@ -18,4 +20,4 @@
 #include "renderer.hpp"
 
 
-#endif  // PANTOR_INJA_HPP
+#endif  // INCLUDE_INJA_INJA_HPP_
