@@ -509,7 +509,8 @@ class Renderer {
             for (auto it = level.values.begin(), end = level.values.end(); it != end; ++it) {
               level.map_values.emplace_back(it.key(), &it.value());
             }
-            std::sort(level.map_values.begin(), level.map_values.end(), [](const LoopLevel::KeyValue& a, const LoopLevel::KeyValue& b) { return a.first < b.first; });
+            auto sort_lambda = [](const LoopLevel::KeyValue& a, const LoopLevel::KeyValue& b) { return a.first < b.first; };
+            std::sort(level.map_values.begin(), level.map_values.end(), sort_lambda);
             level.map_it = level.map_values.begin();
           } else {
             if (!level.values.is_array()) {
