@@ -2362,7 +2362,7 @@ class Parser {
       if (!parse_expression(tmpl)) return false;
 
       // start a new if block on if stack
-      m_if_stack.emplace_back(tmpl.bytecodes.size());
+      m_if_stack.emplace_back(static_cast<decltype(m_if_stack)::value_type::jump_t>(tmpl.bytecodes.size()));
 
       // conditional jump; destination will be filled in by else or endif
       tmpl.bytecodes.emplace_back(Bytecode::Op::ConditionalJump);
@@ -2612,10 +2612,14 @@ class Parser {
   const ParserStatic& m_static;
 
   struct IfData {
-    unsigned int prev_cond_jump;
-    std::vector<unsigned int> uncond_jumps;
+    using jump_t = unsigned int;
+    jump_t prev_cond_jump;
+    std::vector<jump_t> uncond_jumps;
 
-    explicit IfData(unsigned int condJump): prev_cond_jump(condJump) {}
+    explicit IfData(jump_t condJump)
+      : prev_cond_jump(condJump)
+    {
+    }
   };
 
   std::vector<IfData> m_if_stack;
