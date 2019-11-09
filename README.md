@@ -168,7 +168,7 @@ render("{% include \"footer.html\" %}", data);
 // To include in-memory templates, add them to the environment first
 inja::Template content_template = env.parse("Hello {{ neighbour }}!");
 env.include_template("content", content_template);
-render("Content: {% include \"content\" %}", data); // "Content: Hello Peter!"
+env.render("Content: {% include \"content\" %}", data); // "Content: Hello Peter!"
 ```
 
 ### Functions
