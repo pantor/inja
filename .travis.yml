@@ -79,7 +79,7 @@ script:
 
   - mkdir -p build
   - cd build
-  - cmake ..
-  - cmake --build . --config Release -- -j4
-  - ctest -C Release -V
+  - cmake -DCMAKE_BUILD_TYPE=Release ..
+  - cmake --build . -- VERBOSE=1 -j4
+  - ctest -V
   - cd ..
