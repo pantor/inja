@@ -1,5 +1,7 @@
-#ifndef PANTOR_INJA_HPP
-#define PANTOR_INJA_HPP
+// Copyright (c) 2019 Pantor. All rights reserved.
+
+#ifndef INCLUDE_INJA_INJA_HPP_
+#define INCLUDE_INJA_INJA_HPP_
 
 #include <functional>
 #include <iostream>
@@ -12,8 +14,10 @@
 #include <nlohmann/json.hpp>
 
 // #include "environment.hpp"
-#ifndef PANTOR_INJA_ENVIRONMENT_HPP
-#define PANTOR_INJA_ENVIRONMENT_HPP
+// Copyright (c) 2019 Pantor. All rights reserved.
+
+#ifndef INCLUDE_INJA_ENVIRONMENT_HPP_
+#define INCLUDE_INJA_ENVIRONMENT_HPP_
 
 #include <memory>
 #include <fstream>
@@ -23,8 +27,10 @@
 #include <nlohmann/json.hpp>
 
 // #include "config.hpp"
-#ifndef PANTOR_INJA_CONFIG_HPP
-#define PANTOR_INJA_CONFIG_HPP
+// Copyright (c) 2019 Pantor. All rights reserved.
+
+#ifndef INCLUDE_INJA_CONFIG_HPP_
+#define INCLUDE_INJA_CONFIG_HPP_
 
 #include <functional>
 #include <string>
@@ -1400,19 +1406,23 @@ struct ParserConfig {
   ElementNotation notation {ElementNotation::Dot};
 };
 
-}
+}  // namespace inja
 
-#endif // PANTOR_INJA_CONFIG_HPP
+#endif  // INCLUDE_INJA_CONFIG_HPP_
 
 // #include "function_storage.hpp"
-#ifndef PANTOR_INJA_FUNCTION_STORAGE_HPP
-#define PANTOR_INJA_FUNCTION_STORAGE_HPP
+// Copyright (c) 2019 Pantor. All rights reserved.
+
+#ifndef INCLUDE_INJA_FUNCTION_STORAGE_HPP_
+#define INCLUDE_INJA_FUNCTION_STORAGE_HPP_
 
 #include <vector>
 
 // #include "bytecode.hpp"
-#ifndef PANTOR_INJA_BYTECODE_HPP
-#define PANTOR_INJA_BYTECODE_HPP
+// Copyright (c) 2019 Pantor. All rights reserved.
+
+#ifndef INCLUDE_INJA_BYTECODE_HPP_
+#define INCLUDE_INJA_BYTECODE_HPP_
 
 #include <string>
 #include <utility>
@@ -1543,7 +1553,7 @@ struct Bytecode {
 
 }  // namespace inja
 
-#endif  // PANTOR_INJA_BYTECODE_HPP
+#endif  // INCLUDE_INJA_BYTECODE_HPP_
 
 // #include "string_view.hpp"
 
@@ -1551,7 +1561,7 @@ struct Bytecode {
 
 namespace inja {
 
-using namespace nlohmann;
+using json = nlohmann::json;
 
 using Arguments = std::vector<const json*>;
 using CallbackFunction = std::function<json(Arguments& args)>;
@@ -1616,11 +1626,13 @@ class FunctionStorage {
 
 }
 
-#endif // PANTOR_INJA_FUNCTION_STORAGE_HPP
+#endif  // INCLUDE_INJA_FUNCTION_STORAGE_HPP_
 
 // #include "parser.hpp"
-#ifndef PANTOR_INJA_PARSER_HPP
-#define PANTOR_INJA_PARSER_HPP
+// Copyright (c) 2019 Pantor. All rights reserved.
+
+#ifndef INCLUDE_INJA_PARSER_HPP_
+#define INCLUDE_INJA_PARSER_HPP_
 
 #include <limits>
 #include <string>
@@ -1634,8 +1646,10 @@ class FunctionStorage {
 // #include "function_storage.hpp"
 
 // #include "lexer.hpp"
-#ifndef PANTOR_INJA_LEXER_HPP
-#define PANTOR_INJA_LEXER_HPP
+// Copyright (c) 2019 Pantor. All rights reserved.
+
+#ifndef INCLUDE_INJA_LEXER_HPP_
+#define INCLUDE_INJA_LEXER_HPP_
 
 #include <cctype>
 #include <locale>
@@ -1643,8 +1657,10 @@ class FunctionStorage {
 // #include "config.hpp"
 
 // #include "token.hpp"
-#ifndef PANTOR_INJA_TOKEN_HPP
-#define PANTOR_INJA_TOKEN_HPP
+// Copyright (c) 2019 Pantor. All rights reserved.
+
+#ifndef INCLUDE_INJA_TOKEN_HPP_
+#define INCLUDE_INJA_TOKEN_HPP_
 
 #include <string>
 
@@ -1710,11 +1726,13 @@ struct Token {
 
 }
 
-#endif  // PANTOR_INJA_TOKEN_HPP
+#endif  // INCLUDE_INJA_TOKEN_HPP_
 
 // #include "utils.hpp"
-#ifndef PANTOR_INJA_UTILS_HPP
-#define PANTOR_INJA_UTILS_HPP
+// Copyright (c) 2019 Pantor. All rights reserved.
+
+#ifndef INCLUDE_INJA_UTILS_HPP_
+#define INCLUDE_INJA_UTILS_HPP_
 
 #include <algorithm>
 #include <fstream>
@@ -1761,11 +1779,11 @@ namespace string_view {
   inline bool starts_with(nonstd::string_view view, nonstd::string_view prefix) {
     return (view.size() >= prefix.size() && view.compare(0, prefix.size(), prefix) == 0);
   }
-}  // namespace string
+}  // namespace string_view
 
 }  // namespace inja
 
-#endif  // PANTOR_INJA_UTILS_HPP
+#endif  // INCLUDE_INJA_UTILS_HPP_
 
 
 
@@ -1835,7 +1853,7 @@ class Lexer {
                    inja::string_view::starts_with(open_str, m_config.line_statement)) {
           m_state = State::LineStart;
         } else {
-          m_pos += 1; // wasn't actually an opening sequence
+          m_pos += 1;  // wasn't actually an opening sequence
           goto again;
         }
 
@@ -2063,11 +2081,13 @@ class Lexer {
 
 }
 
-#endif // PANTOR_INJA_LEXER_HPP
+#endif  // INCLUDE_INJA_LEXER_HPP_
 
 // #include "template.hpp"
-#ifndef PANTOR_INJA_TEMPLATE_HPP
-#define PANTOR_INJA_TEMPLATE_HPP
+// Copyright (c) 2019 Pantor. All rights reserved.
+
+#ifndef INCLUDE_INJA_TEMPLATE_HPP_
+#define INCLUDE_INJA_TEMPLATE_HPP_
 
 #include <map>
 #include <string>
@@ -2089,9 +2109,9 @@ struct Template {
 
 using TemplateStorage = std::map<std::string, Template>;
 
-}
+}  // namespace inja
 
-#endif  // PANTOR_INJA_TEMPLATE_HPP
+#endif  // INCLUDE_INJA_TEMPLATE_HPP_
 
 // #include "token.hpp"
 
@@ -2644,11 +2664,13 @@ class Parser {
 
 }  // namespace inja
 
-#endif  // PANTOR_INJA_PARSER_HPP
+#endif  // INCLUDE_INJA_PARSER_HPP_
 
 // #include "polyfill.hpp"
-#ifndef PANTOR_INJA_POLYFILL_HPP
-#define PANTOR_INJA_POLYFILL_HPP
+// Copyright (c) 2019 Pantor. All rights reserved.
+
+#ifndef INCLUDE_INJA_POLYFILL_HPP_
+#define INCLUDE_INJA_POLYFILL_HPP_
 
 
 #if __cplusplus < 201402L
@@ -2660,48 +2682,51 @@ class Parser {
 
 
 namespace stdinja {
-  template<class T> struct _Unique_if {
-    typedef std::unique_ptr<T> _Single_object;
-  };
 
-  template<class T> struct _Unique_if<T[]> {
-    typedef std::unique_ptr<T[]> _Unknown_bound;
-  };
+template<class T> struct _Unique_if {
+  typedef std::unique_ptr<T> _Single_object;
+};
 
-  template<class T, size_t N> struct _Unique_if<T[N]> {
-    typedef void _Known_bound;
-  };
+template<class T> struct _Unique_if<T[]> {
+  typedef std::unique_ptr<T[]> _Unknown_bound;
+};
 
-  template<class T, class... Args>
-  typename _Unique_if<T>::_Single_object
-  make_unique(Args&&... args) {
-    return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
-  }
+template<class T, size_t N> struct _Unique_if<T[N]> {
+  typedef void _Known_bound;
+};
 
-  template<class T>
-  typename _Unique_if<T>::_Unknown_bound
-  make_unique(size_t n) {
-    typedef typename std::remove_extent<T>::type U;
-    return std::unique_ptr<T>(new U[n]());
-  }
-
-  template<class T, class... Args>
-  typename _Unique_if<T>::_Known_bound
-  make_unique(Args&&...) = delete;
+template<class T, class... Args>
+typename _Unique_if<T>::_Single_object
+make_unique(Args&&... args) {
+  return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
 }
+
+template<class T>
+typename _Unique_if<T>::_Unknown_bound
+make_unique(size_t n) {
+  typedef typename std::remove_extent<T>::type U;
+  return std::unique_ptr<T>(new U[n]());
+}
+
+template<class T, class... Args>
+typename _Unique_if<T>::_Known_bound
+make_unique(Args&&...) = delete;
+
+}  // namespace stdinja
 
 #else
 
 namespace stdinja = std;
 
-#endif // memory */
+#endif  // memory */
 
-
-#endif // PANTOR_INJA_POLYFILL_HPP
+#endif  // INCLUDE_INJA_POLYFILL_HPP_
 
 // #include "renderer.hpp"
-#ifndef PANTOR_INJA_RENDERER_HPP
-#define PANTOR_INJA_RENDERER_HPP
+// Copyright (c) 2019 Pantor. All rights reserved.
+
+#ifndef INCLUDE_INJA_RENDERER_HPP_
+#define INCLUDE_INJA_RENDERER_HPP_
 
 #include <algorithm>
 #include <numeric>
@@ -2843,22 +2868,21 @@ class Renderer {
     enum class Type { Map, Array };
 
     Type loop_type;
-    nonstd::string_view key_name;   // variable name for keys
-    nonstd::string_view value_name; // variable name for values
-    json data;                      // data with loop info added
+    nonstd::string_view key_name;    // variable name for keys
+    nonstd::string_view value_name;  // variable name for values
+    json data;                       // data with loop info added
 
-    json values;                    // values to iterate over
+    json values;                     // values to iterate over
 
     // loop over list
-    size_t index;                   // current list index
-    size_t size;                    // length of list
+    size_t index;                    // current list index
+    size_t size;                     // length of list
 
     // loop over map
     using KeyValue = std::pair<nonstd::string_view, json*>;
     using MapValues = std::vector<KeyValue>;
-    MapValues map_values;           // values to iterate over
-    MapValues::iterator map_it;     // iterator over values
-
+    MapValues map_values;            // values to iterate over
+    MapValues::iterator map_it;      // iterator over values
   };
 
   std::vector<LoopLevel> m_loop_stack;
@@ -3213,7 +3237,8 @@ class Renderer {
             for (auto it = level.values.begin(), end = level.values.end(); it != end; ++it) {
               level.map_values.emplace_back(it.key(), &it.value());
             }
-            std::sort(level.map_values.begin(), level.map_values.end(), [](const LoopLevel::KeyValue& a, const LoopLevel::KeyValue& b) { return a.first < b.first; });
+            auto sort_lambda = [](const LoopLevel::KeyValue& a, const LoopLevel::KeyValue& b) { return a.first < b.first; };
+            std::sort(level.map_values.begin(), level.map_values.end(), sort_lambda);
             level.map_it = level.map_values.begin();
           } else {
             if (!level.values.is_array()) {
@@ -3281,7 +3306,7 @@ class Renderer {
 
 }  // namespace inja
 
-#endif  // PANTOR_INJA_RENDERER_HPP
+#endif  // INCLUDE_INJA_RENDERER_HPP_
 
 // #include "string_view.hpp"
 
@@ -3293,7 +3318,7 @@ class Renderer {
 
 namespace inja {
 
-using namespace nlohmann;
+using json = nlohmann::json;
 
 /*!
  * \brief Class for changing the configuration.
@@ -3376,8 +3401,8 @@ class Environment {
 
   Template parse_template(const std::string& filename) {
     Parser parser(m_impl->parser_config, m_impl->lexer_config, m_impl->included_templates);
-		return parser.parse_template(m_impl->input_path + static_cast<std::string>(filename));
-	}
+    return parser.parse_template(m_impl->input_path + static_cast<std::string>(filename));
+  }
 
   std::string render(nonstd::string_view input, const json& data) {
     return render(parse(input), data);
@@ -3390,35 +3415,35 @@ class Environment {
   }
 
   std::string render_file(const std::string& filename, const json& data) {
-		return render(parse_template(filename), data);
-	}
+    return render(parse_template(filename), data);
+  }
 
   std::string render_file_with_json_file(const std::string& filename, const std::string& filename_data) {
-		const json data = load_json(filename_data);
-		return render_file(filename, data);
-	}
+    const json data = load_json(filename_data);
+    return render_file(filename, data);
+  }
 
   void write(const std::string& filename, const json& data, const std::string& filename_out) {
-		std::ofstream file(m_impl->output_path + filename_out);
-		file << render_file(filename, data);
-		file.close();
-	}
+    std::ofstream file(m_impl->output_path + filename_out);
+    file << render_file(filename, data);
+    file.close();
+  }
 
   void write(const Template& temp, const json& data, const std::string& filename_out) {
-		std::ofstream file(m_impl->output_path + filename_out);
-		file << render(temp, data);
-		file.close();
-	}
+    std::ofstream file(m_impl->output_path + filename_out);
+    file << render(temp, data);
+    file.close();
+  }
 
-	void write_with_json_file(const std::string& filename, const std::string& filename_data, const std::string& filename_out) {
-		const json data = load_json(filename_data);
-		write(filename, data, filename_out);
-	}
+  void write_with_json_file(const std::string& filename, const std::string& filename_data, const std::string& filename_out) {
+    const json data = load_json(filename_data);
+    write(filename, data, filename_out);
+  }
 
-	void write_with_json_file(const Template& temp, const std::string& filename_data, const std::string& filename_out) {
-		const json data = load_json(filename_data);
-		write(temp, data, filename_out);
-	}
+  void write_with_json_file(const Template& temp, const std::string& filename_data, const std::string& filename_out) {
+    const json data = load_json(filename_data);
+    write(temp, data, filename_out);
+  }
 
   std::ostream& render_to(std::ostream& os, const Template& tmpl, const json& data) {
     Renderer(m_impl->included_templates, m_impl->callbacks).render_to(os, tmpl, data);
@@ -3427,15 +3452,15 @@ class Environment {
 
   std::string load_file(const std::string& filename) {
     Parser parser(m_impl->parser_config, m_impl->lexer_config, m_impl->included_templates);
-		return parser.load_file(m_impl->input_path + filename);
-	}
+    return parser.load_file(m_impl->input_path + filename);
+  }
 
   json load_json(const std::string& filename) {
-		std::ifstream file = open_file_or_throw(m_impl->input_path + filename);
-		json j;
-		file >> j;
-		return j;
-	}
+    std::ifstream file = open_file_or_throw(m_impl->input_path + filename);
+    json j;
+    file >> j;
+    return j;
+  }
 
   void add_callback(const std::string& name, unsigned int numArgs, const CallbackFunction& callback) {
     m_impl->callbacks.add_callback(name, numArgs, callback);
@@ -3467,7 +3492,7 @@ inline void render_to(std::ostream& os, nonstd::string_view input, const json& d
 
 }
 
-#endif // PANTOR_INJA_ENVIRONMENT_HPP
+#endif  // INCLUDE_INJA_ENVIRONMENT_HPP_
 
 // #include "string_view.hpp"
 
@@ -3479,4 +3504,4 @@ inline void render_to(std::ostream& os, nonstd::string_view input, const json& d
 
 
 
-#endif  // PANTOR_INJA_HPP
+#endif  // INCLUDE_INJA_INJA_HPP_
