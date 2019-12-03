@@ -8,7 +8,7 @@ platform:
   - x64
 
 configuration:
-#  - Debug
+  - Debug
   - Release
 
 environment:
@@ -34,7 +34,7 @@ init:
 before_build:
   - mkdir -p build
   - cd build
-  - cmake .. -A %PLATFORM% -T %TOOLCHAIN% -DCMAKE_CXX_STANDARD=%STD% -DCMAKE_CXX_FLAGS="/permissive- /utf-8 /Zc:__cplusplus"
+  - cmake .. -A %PLATFORM% -T %TOOLCHAIN% -DCMAKE_CXX_STANDARD=%STD%
 
 build_script:
   - cmake --build . --config %CONFIGURATION% -- -verbosity:n
