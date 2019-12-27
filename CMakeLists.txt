@@ -16,11 +16,11 @@ set(INJA_INSTALL_INCLUDE_DIR "include")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
 
 if(CMAKE_COMPILER_IS_GNUCC)
-  set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wall")
+  add_compile_options(-Wall)
 endif()
 
 if(MSVC)
-  set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} /W4")
+  add_compile_options(/W4 /permissive- /utf-8 /Zc:__cplusplus)
 endif()
 
 
