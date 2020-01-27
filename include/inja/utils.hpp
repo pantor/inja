@@ -23,7 +23,7 @@ inline std::ifstream open_file_or_throw(const std::string& path) {
   file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
   try {
     file.open(path);
-  } catch(const std::ios_base::failure& e) {
+  } catch(const std::ios_base::failure& /*e*/) {
     inja_throw("file_error", "failed accessing file at '" + path + "'");
   }
   return file;
