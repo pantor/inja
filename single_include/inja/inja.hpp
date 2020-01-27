@@ -1945,7 +1945,7 @@ inline std::ifstream open_file_or_throw(const std::string& path) {
   file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
   try {
     file.open(path);
-  } catch(const std::ios_base::failure& e) {
+  } catch(const std::ios_base::failure& /*e*/) {
     inja_throw("file_error", "failed accessing file at '" + path + "'");
   }
   return file;
@@ -2589,7 +2589,7 @@ class Parser {
       }
 
       // update all previous unconditional jumps to here
-      for (unsigned int i: if_data.uncond_jumps) {
+      for (size_t i: if_data.uncond_jumps) {
         tmpl.bytecodes[i].args = tmpl.bytecodes.size();
       }
 
@@ -2822,7 +2822,7 @@ class Parser {
   const ParserStatic& m_static;
 
   struct IfData {
-    using jump_t = unsigned int;
+    using jump_t = size_t;
     jump_t prev_cond_jump;
     std::vector<jump_t> uncond_jumps;
 
@@ -2833,7 +2833,7 @@ class Parser {
   };
 
   std::vector<IfData> m_if_stack;
-  std::vector<unsigned int> m_loop_stack;
+  std::vector<size_t> m_loop_stack;
 
   void get_next_token() {
     if (m_have_peek_tok) {
@@ -3142,7 +3142,7 @@ class Renderer {
         case Bytecode::Op::Length: {
           const json& val = *get_args(bc)[0];
 
-          int result;
+          size_t result;
           if (val.is_string()) {
             result = val.get_ref<const std::string&>().length();
           } else {
