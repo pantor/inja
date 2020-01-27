@@ -224,7 +224,7 @@ class Renderer {
         case Bytecode::Op::Length: {
           const json& val = *get_args(bc)[0];
 
-          int result;
+          size_t result;
           if (val.is_string()) {
             result = val.get_ref<const std::string&>().length();
           } else {
