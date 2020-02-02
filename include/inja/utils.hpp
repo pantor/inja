@@ -14,6 +14,17 @@
 
 namespace inja {
 
+class parser_error : public std::runtime_error
+{
+    size_t pos_{};
+
+    public:
+    parser_error(std::string what, size_t pos = 0) :
+        std::runtime_error(what), pos_(pos) {}
+
+    size_t error_location() { return pos_; }
+};
+
 inline void inja_throw(const std::string& type, const std::string& message) {
   throw std::runtime_error("[inja.exception." + type + "] " + message);
 }
