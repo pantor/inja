@@ -1936,6 +1936,17 @@ struct Token {
 
 namespace inja {
 
+class parser_error : public std::runtime_error
+{
+    size_t pos_{};
+
+    public:
+    parser_error(std::string what, size_t pos = 0) :
+        std::runtime_error(what), pos_(pos) {}
+
+    size_t error_location() { return pos_; }
+};
+
 inline void inja_throw(const std::string& type, const std::string& message) {
   throw std::runtime_error("[inja.exception." + type + "] " + message);
 }
@@ -2002,6 +2013,8 @@ class Lexer {
 
  public:
   explicit Lexer(const LexerConfig& config) : m_config(config) {}
+
+  size_t current_position() const { return m_tok_start; }
 
   void start(nonstd::string_view in) {
     m_in = in;
@@ -2439,7 +2452,7 @@ class Parser {
           get_next_token();
           if (!parse_expression(tmpl)) return false;
           if (m_tok.kind != Token::Kind::RightParen) {
-            inja_throw("parser_error", "unmatched '('");
+            throw_parser_error("unmatched '('");
           }
           get_next_token();
           return true;
@@ -2458,7 +2471,7 @@ class Parser {
             } else {
               for (;;) {
                 if (!parse_expression(tmpl)) {
-                  inja_throw("parser_error", "expected expression, got '" + m_tok.describe() + "'");
+                  throw_parser_error("expected expression, got '" + m_tok.describe() + "'");
                 }
                 num_args += 1;
                 if (m_tok.kind == Token::Kind::RightParen) {
@@ -2466,7 +2479,7 @@ class Parser {
                   break;
                 }
                 if (m_tok.kind != Token::Kind::Comma) {
-                  inja_throw("parser_error", "expected ')' or ',', got '" + m_tok.describe() + "'");
+                  throw_parser_error("expected ')' or ',', got '" + m_tok.describe() + "'");
                 }
                 get_next_token();
               }
@@ -2512,7 +2525,7 @@ class Parser {
         case Token::Kind::Comma:
         case Token::Kind::Colon:
           if (brace_level == 0 && bracket_level == 0) {
-            inja_throw("parser_error", "unexpected token '" + m_tok.describe() + "'");
+            throw_parser_error("unexpected token '" + m_tok.describe() + "'");
           }
           break;
         case Token::Kind::LeftBracket:
@@ -2529,24 +2542,24 @@ class Parser {
           break;
         case Token::Kind::RightBracket:
           if (bracket_level == 0) {
-            inja_throw("parser_error", "unexpected ']'");
+            throw_parser_error("unexpected ']'");
           }
           --bracket_level;
           if (brace_level == 0 && bracket_level == 0) goto returnJson;
           break;
         case Token::Kind::RightBrace:
           if (brace_level == 0) {
-            inja_throw("parser_error", "unexpected '}'");
+            throw_parser_error("unexpected '}'");
           }
           --brace_level;
           if (brace_level == 0 && bracket_level == 0) goto returnJson;
           break;
         default:
           if (brace_level != 0) {
-            inja_throw("parser_error", "unmatched '{'");
+            throw_parser_error("unmatched '{'");
           }
           if (bracket_level != 0) {
-            inja_throw("parser_error", "unmatched '['");
+            throw_parser_error("unmatched '['");
           }
           return false;
       }
@@ -2578,7 +2591,7 @@ class Parser {
       tmpl.bytecodes.emplace_back(Bytecode::Op::ConditionalJump);
     } else if (m_tok.text == static_cast<decltype(m_tok.text)>("endif")) {
       if (m_if_stack.empty()) {
-        inja_throw("parser_error", "endif without matching if");
+        throw_parser_error("endif without matching if");
       }
       auto& if_data = m_if_stack.back();
       get_next_token();
@@ -2597,7 +2610,7 @@ class Parser {
       m_if_stack.pop_back();
     } else if (m_tok.text == static_cast<decltype(m_tok.text)>("else")) {
       if (m_if_stack.empty())
-        inja_throw("parser_error", "else without matching if");
+        throw_parser_error("else without matching if");
       auto& if_data = m_if_stack.back();
       get_next_token();
 
@@ -2628,7 +2641,7 @@ class Parser {
 
       // options: for a in arr; for a, b in obj
       if (m_tok.kind != Token::Kind::Id)
-        inja_throw("parser_error", "expected id, got '" + m_tok.describe() + "'");
+        throw_parser_error("expected id, got '" + m_tok.describe() + "'");
       Token value_token = m_tok;
       get_next_token();
 
@@ -2636,14 +2649,14 @@ class Parser {
       if (m_tok.kind == Token::Kind::Comma) {
         get_next_token();
         if (m_tok.kind != Token::Kind::Id)
-          inja_throw("parser_error", "expected id, got '" + m_tok.describe() + "'");
+          throw_parser_error("expected id, got '" + m_tok.describe() + "'");
         key_token = std::move(value_token);
         value_token = m_tok;
         get_next_token();
       }
 
       if (m_tok.kind != Token::Kind::Id || m_tok.text != static_cast<decltype(m_tok.text)>("in"))
-        inja_throw("parser_error",
+        throw_parser_error(
                    "expected 'in', got '" + m_tok.describe() + "'");
       get_next_token();
 
@@ -2659,7 +2672,7 @@ class Parser {
     } else if (m_tok.text == static_cast<decltype(m_tok.text)>("endfor")) {
       get_next_token();
       if (m_loop_stack.empty()) {
-        inja_throw("parser_error", "endfor without matching for");
+        throw_parser_error("endfor without matching for");
       }
 
       // update loop with EndLoop index (for empty case)
@@ -2672,7 +2685,7 @@ class Parser {
       get_next_token();
 
       if (m_tok.kind != Token::Kind::String) {
-        inja_throw("parser_error", "expected string, got '" + m_tok.describe() + "'");
+        throw_parser_error("expected string, got '" + m_tok.describe() + "'");
       }
 
       // build the relative path
@@ -2739,8 +2752,8 @@ class Parser {
       get_next_token();
       switch (m_tok.kind) {
         case Token::Kind::Eof:
-          if (!m_if_stack.empty()) inja_throw("parser_error", "unmatched if");
-          if (!m_loop_stack.empty()) inja_throw("parser_error", "unmatched for");
+          if (!m_if_stack.empty()) throw_parser_error("unmatched if");
+          if (!m_loop_stack.empty()) throw_parser_error("unmatched for");
           return;
         case Token::Kind::Text:
           tmpl.bytecodes.emplace_back(Bytecode::Op::PrintText, m_tok.text, 0u);
@@ -2748,10 +2761,10 @@ class Parser {
         case Token::Kind::StatementOpen:
           get_next_token();
           if (!parse_statement(tmpl, path)) {
-            inja_throw("parser_error", "expected statement, got '" + m_tok.describe() + "'");
+            throw_parser_error("expected statement, got '" + m_tok.describe() + "'");
           }
           if (m_tok.kind != Token::Kind::StatementClose) {
-            inja_throw("parser_error", "expected statement close, got '" + m_tok.describe() + "'");
+            throw_parser_error("expected statement close, got '" + m_tok.describe() + "'");
           }
           break;
         case Token::Kind::LineStatementOpen:
@@ -2759,27 +2772,27 @@ class Parser {
           parse_statement(tmpl, path);
           if (m_tok.kind != Token::Kind::LineStatementClose &&
               m_tok.kind != Token::Kind::Eof) {
-            inja_throw("parser_error", "expected line statement close, got '" + m_tok.describe() + "'");
+            throw_parser_error("expected line statement close, got '" + m_tok.describe() + "'");
           }
           break;
         case Token::Kind::ExpressionOpen:
           get_next_token();
           if (!parse_expression(tmpl)) {
-            inja_throw("parser_error", "expected expression, got '" + m_tok.describe() + "'");
+            throw_parser_error("expected expression, got '" + m_tok.describe() + "'");
           }
           append_function(tmpl, Bytecode::Op::PrintValue, 1);
           if (m_tok.kind != Token::Kind::ExpressionClose) {
-            inja_throw("parser_error", "expected expression close, got '" + m_tok.describe() + "'");
+            throw_parser_error("expected expression close, got '" + m_tok.describe() + "'");
           }
           break;
         case Token::Kind::CommentOpen:
           get_next_token();
           if (m_tok.kind != Token::Kind::CommentClose) {
-            inja_throw("parser_error", "expected comment close, got '" + m_tok.describe() + "'");
+            throw_parser_error("expected comment close, got '" + m_tok.describe() + "'");
           }
           break;
         default:
-          inja_throw("parser_error", "unexpected token '" + m_tok.describe() + "'");
+          throw_parser_error("unexpected token '" + m_tok.describe() + "'");
           break;
       }
     }
@@ -2834,6 +2847,12 @@ class Parser {
 
   std::vector<IfData> m_if_stack;
   std::vector<size_t> m_loop_stack;
+
+  void throw_parser_error(const std::string& message)
+  {
+    throw parser_error("[inja.exception.parser_error] " + message,
+            m_lexer.current_position());
+  }
 
   void get_next_token() {
     if (m_have_peek_tok) {
