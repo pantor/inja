@@ -37,6 +37,8 @@ class Lexer {
  public:
   explicit Lexer(const LexerConfig& config) : m_config(config) {}
 
+  size_t current_position() const { return m_tok_start; }
+
   void start(nonstd::string_view in) {
     m_in = in;
     m_tok_start = 0;
