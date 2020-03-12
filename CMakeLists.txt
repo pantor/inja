@@ -8,6 +8,7 @@ option(INJA_USE_EMBEDDED_JSON "Use the shipped json header if not available on t
 option(INJA_INSTALL "Generate install targets for inja" ON)
 option(INJA_EXPORT "Export the current build tree to the package registry" ON)
 option(BUILD_TESTING "Build unit tests" ON)
+option(INJA_BUILD_TESTS "Build unit tests when BUILD_TESTING is enabled." ON)
 option(BUILD_BENCHMARK "Build benchmark" ON)
 option(COVERALLS "Generate coveralls data" OFF)
 
@@ -71,7 +72,7 @@ target_link_libraries(inja INTERFACE ${INJA_SELECTED_JSON_LIBRARY})
 execute_process(COMMAND scripts/update_single_include.sh WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
 
 
-if(BUILD_TESTING)
+if(BUILD_TESTING AND INJA_BUILD_TESTS)
   enable_testing()
 
   add_executable(inja_test
