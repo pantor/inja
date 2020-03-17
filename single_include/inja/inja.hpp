@@ -1936,19 +1936,22 @@ struct Token {
 
 namespace inja {
 
-class parser_error : public std::runtime_error
-{
-    size_t pos_{};
+struct TextPosition {
+  size_t line;
+  size_t offset;
+};
 
-    public:
-    parser_error(std::string what, size_t pos = 0) :
-        std::runtime_error(what), pos_(pos) {}
-
-    size_t error_location() { return pos_; }
+struct InjaError : public std::runtime_error {
+  InjaError(const std::string& type, const std::string& message)
+    : std::runtime_error("[inja.exception." + type + "] " + message) { }
 };
 
 inline void inja_throw(const std::string& type, const std::string& message) {
-  throw std::runtime_error("[inja.exception." + type + "] " + message);
+  throw InjaError(type, message);
+}
+
+inline void inja_throw(const std::string& type, const std::string& message, TextPosition pos) {
+  throw InjaError(type, "(at " + std::to_string(pos.line) + ":" + std::to_string(pos.offset) + ") " + message);
 }
 
 inline std::ifstream open_file_or_throw(const std::string& path) {
@@ -2014,7 +2017,25 @@ class Lexer {
  public:
   explicit Lexer(const LexerConfig& config) : m_config(config) {}
 
-  size_t current_position() const { return m_tok_start; }
+  TextPosition current_position() const {
+    // Get line and offset position (starts at 1:1)
+    auto sliced = string_view::slice(m_in, 0, m_tok_start);
+    std::size_t last_newline = sliced.rfind("\n");
+
+    if (last_newline == nonstd::string_view::npos) {
+      return {1, sliced.length() + 1};
+    }
+
+    // Count newlines
+    size_t count_lines = 0;
+    size_t search_start = 0;
+    while (search_start < sliced.size()) {
+      search_start = sliced.find("\n", search_start + 1);
+      count_lines += 1;
+    }
+    
+    return {count_lines + 1, sliced.length() - last_newline + 1};
+  }
 
   void start(nonstd::string_view in) {
     m_in = in;
@@ -2266,8 +2287,7 @@ class Lexer {
     }
   }
 
-  static nonstd::string_view clear_final_line_if_whitespace(nonstd::string_view text)
-  {
+  static nonstd::string_view clear_final_line_if_whitespace(nonstd::string_view text) {
     nonstd::string_view result = text;
     while (!result.empty()) {
       char ch = result.back();
@@ -2848,10 +2868,8 @@ class Parser {
   std::vector<IfData> m_if_stack;
   std::vector<size_t> m_loop_stack;
 
-  void throw_parser_error(const std::string& message)
-  {
-    throw parser_error("[inja.exception.parser_error] " + message,
-            m_lexer.current_position());
+  void throw_parser_error(const std::string& message) {
+    inja_throw("parser_error", message, m_lexer.current_position());
   }
 
   void get_next_token() {
