@@ -37,7 +37,25 @@ class Lexer {
  public:
   explicit Lexer(const LexerConfig& config) : m_config(config) {}
 
-  size_t current_position() const { return m_tok_start; }
+  TextPosition current_position() const {
+    // Get line and offset position (starts at 1:1)
+    auto sliced = string_view::slice(m_in, 0, m_tok_start);
+    std::size_t last_newline = sliced.rfind("\n");
+
+    if (last_newline == nonstd::string_view::npos) {
+      return {1, sliced.length() + 1};
+    }
+
+    // Count newlines
+    size_t count_lines = 0;
+    size_t search_start = 0;
+    while (search_start < sliced.size()) {
+      search_start = sliced.find("\n", search_start + 1);
+      count_lines += 1;
+    }
+    
+    return {count_lines + 1, sliced.length() - last_newline + 1};
+  }
 
   void start(nonstd::string_view in) {
     m_in = in;
@@ -289,8 +307,7 @@ class Lexer {
     }
   }
 
-  static nonstd::string_view clear_final_line_if_whitespace(nonstd::string_view text)
-  {
+  static nonstd::string_view clear_final_line_if_whitespace(nonstd::string_view text) {
     nonstd::string_view result = text;
     while (!result.empty()) {
       char ch = result.back();

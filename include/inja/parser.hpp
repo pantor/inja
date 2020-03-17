@@ -543,10 +543,8 @@ class Parser {
   std::vector<IfData> m_if_stack;
   std::vector<size_t> m_loop_stack;
 
-  void throw_parser_error(const std::string& message)
-  {
-    throw parser_error("[inja.exception.parser_error] " + message,
-            m_lexer.current_position());
+  void throw_parser_error(const std::string& message) {
+    inja_throw("parser_error", message, m_lexer.current_position());
   }
 
   void get_next_token() {
