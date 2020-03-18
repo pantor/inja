@@ -20,13 +20,19 @@ jobs:
     #    dependency_packages: build-essential g++-5
     #  run: sudo apt-get update && sudo apt-get -y install ${dependency_packages}
 
+    - name: Create Build Environment
+      run: cmake -E make_directory ${{runner.workspace}}/build
+
     - name: Build
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
       run: |
-        mkdir -p build && cd build
         cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE ..
         cmake --build . --config $BUILD_TYPE -j4
 
     - name: Test
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
       run: |
-        cd build
+        ls
         ctest -C $BUILD_TYPE -V
