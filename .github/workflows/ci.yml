@@ -10,7 +10,13 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, ubuntu-16.04, windows-latest, windows-2016, macos-latest]
+        os: [
+          ubuntu-latest,
+          ubuntu-16.04,
+          windows-latest,
+          windows-2016,
+          macos-latest
+        ]
 
     steps:
     - uses: actions/checkout@v1
@@ -21,20 +27,17 @@ jobs:
     #  run: sudo apt-get update && sudo apt-get -y install ${dependency_packages}
 
     - name: Create Build Environment
-      run: cmake -E make_directory ${{runner.workspace}}/build
+      run: cmake -E make_directory ${{runner.workspace}}/inja/build
 
     - name: Build
-      working-directory: ${{runner.workspace}}/build
+      working-directory: ${{runner.workspace}}/inja/build
       shell: bash
       run: |
         cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE
         cmake --build . --config $BUILD_TYPE -j4
 
     - name: Test
-      working-directory: ${{runner.workspace}}/build
+      working-directory: ${{runner.workspace}}/inja/build
       shell: bash
       run: |
-        ls
-        cd ..
-        ls
         ctest -C $BUILD_TYPE -V
