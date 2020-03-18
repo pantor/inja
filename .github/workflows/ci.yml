@@ -2,9 +2,15 @@ name: C++ CI
 
 on: push
 
+env:
+  BUILD_TYPE: Release
+
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest, macOS-latest]
 
     steps:
     - uses: actions/checkout@v1
@@ -17,8 +23,8 @@ jobs:
     - name: Build
       run: |
         mkdir -p build && cd build
-        cmake ..
-        cmake --build . --config Release -- -j4
+        cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE ..
+        cmake --build . --config $BUILD_TYPE -j4
 
     - name: Test
-      run: ctest -C Release -V
+      run: ctest -C $BUILD_TYPE -V
