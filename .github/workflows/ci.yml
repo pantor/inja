@@ -27,4 +27,6 @@ jobs:
         cmake --build . --config $BUILD_TYPE -j4
 
     - name: Test
-      run: ctest -C $BUILD_TYPE -V
+      run: |
+        ls
+        ctest -C $BUILD_TYPE -V
