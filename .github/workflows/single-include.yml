@@ -10,7 +10,6 @@ jobs:
     
     - name: update single include
       run: |
-        ls
         mv single_include/inja/inja.hpp single_include/inja/inja_old.hpp
         bash scripts/update_single_include.sh
 
