@@ -35,4 +35,6 @@ jobs:
       shell: bash
       run: |
         ls
+        cd ..
+        ls
         ctest -C $BUILD_TYPE -V
