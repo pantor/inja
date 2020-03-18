@@ -1,1 +1,1 @@
-nlohmann/json@v3.6.1
+nlohmann/json@v3.7.3

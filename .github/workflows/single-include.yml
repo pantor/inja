@@ -20,5 +20,5 @@ jobs:
 
     - uses: actions/upload-artifact@v1
       with:
-        name: single_include_inja.hpp
+        name: single_include_inja
         path: single_include/inja/inja.hpp
