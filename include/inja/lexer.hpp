@@ -37,7 +37,7 @@ class Lexer {
  public:
   explicit Lexer(const LexerConfig& config) : m_config(config) {}
 
-  TextPosition current_position() const {
+  SourceLocation current_position() const {
     // Get line and offset position (starts at 1:1)
     auto sliced = string_view::slice(m_in, 0, m_tok_start);
     std::size_t last_newline = sliced.rfind("\n");

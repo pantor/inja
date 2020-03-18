@@ -13,6 +13,67 @@
 
 #include <nlohmann/json.hpp>
 
+// #include "exceptions.hpp"
+// Copyright (c) 2020 Pantor. All rights reserved.
+
+#ifndef INCLUDE_INJA_EXCEPTIONS_HPP_
+#define INCLUDE_INJA_EXCEPTIONS_HPP_
+
+#include <stdexcept>
+#include <string>
+
+
+namespace inja {
+
+struct SourceLocation {
+  size_t line;
+  size_t column;
+};
+
+struct InjaError : public std::runtime_error {
+  std::string type;
+  std::string message;
+
+  bool has_location {false};
+  SourceLocation location;
+
+  InjaError(const std::string& type, const std::string& message)
+    : std::runtime_error("[inja.exception." + type + "] " + message), type(type), message(message) { }
+  
+  InjaError(const std::string& type, const std::string& message, SourceLocation location)
+    : std::runtime_error(
+      "[inja.exception." + type + "] (at " + std::to_string(location.line) + ":" + std::to_string(location.column) + ") " + message
+    ), type(type), message(message), has_location(true), location(location) { }
+};
+
+struct ParserError : public InjaError {
+  ParserError(const std::string& message) : InjaError("parser_error", message) { }
+  ParserError(const std::string& message, SourceLocation location)
+    : InjaError("parser_error", message, location) { }
+};
+
+struct RenderError : public InjaError {
+  RenderError(const std::string& message) : InjaError("render_error", message) { }
+  RenderError(const std::string& message, SourceLocation location)
+    : InjaError("render_error", message, location) { }
+};
+
+struct FileError : public InjaError {
+  FileError(const std::string& message) : InjaError("file_error", message) { }
+  FileError(const std::string& message, SourceLocation location)
+    : InjaError("file_error", message, location) { }
+};
+
+struct JsonError : public InjaError {
+  JsonError(const std::string& message) : InjaError("json_error", message) { }
+  JsonError(const std::string& message, SourceLocation location)
+    : InjaError("json_error", message, location) { }
+};
+
+}  // namespace inja
+
+#endif  // INCLUDE_INJA_EXCEPTIONS_HPP_
+
 // #include "environment.hpp"
 // Copyright (c) 2019 Pantor. All rights reserved.
 
@@ -1833,6 +1894,8 @@ class FunctionStorage {
 
 // #include "config.hpp"
 
+// #include "exceptions.hpp"
+
 // #include "function_storage.hpp"
 
 // #include "lexer.hpp"
@@ -1926,9 +1989,10 @@ struct Token {
 
 #include <algorithm>
 #include <fstream>
-#include <stdexcept>
 #include <string>
 #include <utility>
+
+// #include "exceptions.hpp"
 
 // #include "string_view.hpp"
 
@@ -1936,31 +2000,13 @@ struct Token {
 
 namespace inja {
 
-struct TextPosition {
-  size_t line;
-  size_t offset;
-};
-
-struct InjaError : public std::runtime_error {
-  InjaError(const std::string& type, const std::string& message)
-    : std::runtime_error("[inja.exception." + type + "] " + message) { }
-};
-
-inline void inja_throw(const std::string& type, const std::string& message) {
-  throw InjaError(type, message);
-}
-
-inline void inja_throw(const std::string& type, const std::string& message, TextPosition pos) {
-  throw InjaError(type, "(at " + std::to_string(pos.line) + ":" + std::to_string(pos.offset) + ") " + message);
-}
-
 inline std::ifstream open_file_or_throw(const std::string& path) {
   std::ifstream file;
   file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
   try {
     file.open(path);
   } catch(const std::ios_base::failure& /*e*/) {
-    inja_throw("file_error", "failed accessing file at '" + path + "'");
+    throw FileError("failed accessing file at '" + path + "'");
   }
   return file;
 }
@@ -2017,7 +2063,7 @@ class Lexer {
  public:
   explicit Lexer(const LexerConfig& config) : m_config(config) {}
 
-  TextPosition current_position() const {
+  SourceLocation current_position() const {
     // Get line and offset position (starts at 1:1)
     auto sliced = string_view::slice(m_in, 0, m_tok_start);
     std::size_t last_newline = sliced.rfind("\n");
@@ -2869,7 +2915,7 @@ class Parser {
   std::vector<size_t> m_loop_stack;
 
   void throw_parser_error(const std::string& message) {
-    inja_throw("parser_error", message, m_lexer.current_position());
+    throw ParserError(message, m_lexer.current_position());
   }
 
   void get_next_token() {
@@ -2965,6 +3011,8 @@ namespace stdinja = std;
 
 // #include "bytecode.hpp"
 
+// #include "exceptions.hpp"
+
 // #include "template.hpp"
 
 // #include "utils.hpp"
@@ -3047,7 +3095,7 @@ class Renderer {
         m_tmp_val = callback(arguments);
         return &m_tmp_val;
       }
-      inja_throw("render_error", "variable '" + static_cast<std::string>(bc.str) + "' not found");
+      throw RenderError("variable '" + static_cast<std::string>(bc.str) + "' not found");
       return nullptr;
     }
   }
@@ -3064,8 +3112,7 @@ class Renderer {
     try {
       return var.get<bool>();
     } catch (json::type_error& e) {
-      inja_throw("json_error", e.what());
-      throw;
+      throw JsonError(e.what());
     }
   }
 
@@ -3418,7 +3465,7 @@ class Renderer {
         case Bytecode::Op::Callback: {
           auto callback = m_callbacks.find_callback(bc.str, bc.args);
           if (!callback) {
-            inja_throw("render_error", "function '" + static_cast<std::string>(bc.str) + "' (" + std::to_string(static_cast<unsigned int>(bc.args)) + ") not found");
+            throw RenderError("function '" + static_cast<std::string>(bc.str) + "' (" + std::to_string(static_cast<unsigned int>(bc.args)) + ") not found");
           }
           json result = callback(get_args(bc));
           pop_args(bc);
@@ -3455,7 +3502,7 @@ class Renderer {
             // map iterator
             if (!level.values.is_object()) {
               m_loop_stack.pop_back();
-              inja_throw("render_error", "for key, value requires object");
+              throw RenderError("for key, value requires object");
             }
             level.loop_type = LoopLevel::Type::Map;
             level.key_name = bc.value.get_ref<const std::string&>();
@@ -3470,7 +3517,7 @@ class Renderer {
           } else {
             if (!level.values.is_array()) {
               m_loop_stack.pop_back();
-              inja_throw("render_error", "type must be array");
+              throw RenderError("type must be array");
             }
 
             // list iterator
@@ -3493,7 +3540,7 @@ class Renderer {
         }
         case Bytecode::Op::EndLoop: {
           if (m_loop_stack.empty()) {
-            inja_throw("render_error", "unexpected state in renderer");
+            throw RenderError("unexpected state in renderer");
           }
           LoopLevel& level = m_loop_stack.back();
 
@@ -3524,7 +3571,7 @@ class Renderer {
           break;
         }
         default: {
-          inja_throw("render_error", "unknown op in renderer: " + std::to_string(static_cast<unsigned int>(bc.op)));
+          throw RenderError("unknown op in renderer: " + std::to_string(static_cast<unsigned int>(bc.op)));
         }
       }
     }

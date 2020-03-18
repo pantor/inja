@@ -5,32 +5,14 @@
 
 #include <algorithm>
 #include <fstream>
-#include <stdexcept>
 #include <string>
 #include <utility>
 
+#include "exceptions.hpp"
 #include "string_view.hpp"
 
 
 namespace inja {
-
-struct TextPosition {
-  size_t line;
-  size_t offset;
-};
-
-struct InjaError : public std::runtime_error {
-  InjaError(const std::string& type, const std::string& message)
-    : std::runtime_error("[inja.exception." + type + "] " + message) { }
-};
-
-inline void inja_throw(const std::string& type, const std::string& message) {
-  throw InjaError(type, message);
-}
-
-inline void inja_throw(const std::string& type, const std::string& message, TextPosition pos) {
-  throw InjaError(type, "(at " + std::to_string(pos.line) + ":" + std::to_string(pos.offset) + ") " + message);
-}
 
 inline std::ifstream open_file_or_throw(const std::string& path) {
   std::ifstream file;
@@ -38,7 +20,7 @@ inline std::ifstream open_file_or_throw(const std::string& path) {
   try {
     file.open(path);
   } catch(const std::ios_base::failure& /*e*/) {
-    inja_throw("file_error", "failed accessing file at '" + path + "'");
+    throw FileError("failed accessing file at '" + path + "'");
   }
   return file;
 }

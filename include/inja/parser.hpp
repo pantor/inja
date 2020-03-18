@@ -10,6 +10,7 @@
 
 #include "bytecode.hpp"
 #include "config.hpp"
+#include "exceptions.hpp"
 #include "function_storage.hpp"
 #include "lexer.hpp"
 #include "template.hpp"
@@ -544,7 +545,7 @@ class Parser {
   std::vector<size_t> m_loop_stack;
 
   void throw_parser_error(const std::string& message) {
-    inja_throw("parser_error", message, m_lexer.current_position());
+    throw ParserError(message, m_lexer.current_position());
   }
 
   void get_next_token() {

@@ -67,7 +67,7 @@ TEST_CASE("types") {
 
         CHECK( env.render("{% for name in {} %}a{% endfor %}", data) == "");
 
-        CHECK_THROWS_WITH(env.render("{% for name ins names %}a{% endfor %}", data), "[inja.exception.parser_error] expected 'in', got 'ins'");
+        CHECK_THROWS_WITH(env.render("{% for name ins names %}a{% endfor %}", data), "[inja.exception.parser_error] (at 1:13) expected 'in', got 'ins'");
         CHECK_THROWS_WITH(env.render("{% for name in empty_loop %}a{% endfor %}", data), "[inja.exception.render_error] variable 'empty_loop' not found");
         // CHECK_THROWS_WITH( env.render("{% for name in relatives %}{{ name }}{% endfor %}", data), "[inja.exception.json_error] [json.exception.type_error.302] type must be array, but is object" );
     }
@@ -114,8 +114,8 @@ R"DELIM(
         CHECK(env.render("{% if age == 26 %}26{% else if age == 27 %}27{% else if age == 28 %}28{% else %}29{% endif %}", data) == "29");
         CHECK(env.render("{% if age == 25 %}+{% endif %}{% if age == 29 %}+{% else %}-{% endif %}", data) == "+");
 
-        CHECK_THROWS_WITH(env.render("{% if is_happy %}{% if is_happy %}{% endif %}", data), "[inja.exception.parser_error] unmatched if");
-        CHECK_THROWS_WITH(env.render("{% if is_happy %}{% else if is_happy %}{% end if %}", data), "[inja.exception.parser_error] expected statement, got 'end'");
+        CHECK_THROWS_WITH(env.render("{% if is_happy %}{% if is_happy %}{% endif %}", data), "[inja.exception.parser_error] (at 1:46) unmatched if");
+        CHECK_THROWS_WITH(env.render("{% if is_happy %}{% else if is_happy %}{% end if %}", data), "[inja.exception.parser_error] (at 1:43) expected statement, got 'end'");
     }
 
     SUBCASE("line statements") {
