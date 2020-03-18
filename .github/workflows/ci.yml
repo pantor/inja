@@ -10,7 +10,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest, macOS-latest]
+        os: [ubuntu-latest, ubuntu-16.04, windows-latest, windows-2016, macos-latest]
 
     steps:
     - uses: actions/checkout@v1
@@ -28,5 +28,5 @@ jobs:
 
     - name: Test
       run: |
-        ls
+        cd build
         ctest -C $BUILD_TYPE -V
