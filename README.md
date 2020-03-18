@@ -1,12 +1,12 @@
 [<div align="center"><img width="500" src="https://raw.githubusercontent.com/pantor/inja/master/doc/logo.jpg"></div>](https://github.com/pantor/inja/releases)
 
 <p align="center">
-  <a href="https://travis-ci.org/pantor/inja">
-    <img src="https://travis-ci.org/pantor/inja.svg?branch=master" alt="Build Status">
+  <a href="https://github.com/pantor/inja/actions">
+    <img src="https://github.com/pantor/inja/workflows/C++%20CI/badge.svg" alt="CI Status">
   </a>
 
-  <a href="https://ci.appveyor.com/project/pantor/inja">
-    <img src="https://ci.appveyor.com/api/projects/status/qtgniyyg6fn8ich8/branch/master?svg=true" alt="Build Status">
+  <a href="https://github.com/pantor/inja/actions">
+    <img src="https://github.com/pantor/inja/workflows/Documentation/badge.svg" alt="Documentation Status">
   </a>
 
   <a href="https://www.codacy.com/app/pantor/inja?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=pantor/inja&amp;utm_campaign=Badge_Grade">
