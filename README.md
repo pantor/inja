@@ -1,12 +1,30 @@
 [<div align="center"><img width="500" src="https://raw.githubusercontent.com/pantor/inja/master/doc/logo.jpg"></div>](https://github.com/pantor/inja/releases)
 
+<p align="center">
+  <a href="https://travis-ci.org/pantor/inja">
+    <img src="https://travis-ci.org/pantor/inja.svg?branch=master" alt="Build Status">
+  </a>
 
-[![Build Status](https://travis-ci.org/pantor/inja.svg?branch=master)](https://travis-ci.org/pantor/inja)
-[![Build status](https://ci.appveyor.com/api/projects/status/qtgniyyg6fn8ich8/branch/master?svg=true)](https://ci.appveyor.com/project/pantor/inja)
-[![Codacy Status](https://api.codacy.com/project/badge/Grade/aa2041f1e6e648ae83945d29cfa0da17)](https://www.codacy.com/app/pantor/inja?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=pantor/inja&amp;utm_campaign=Badge_Grade)
-[![Github Releases](https://img.shields.io/github/release/pantor/inja.svg)](https://github.com/pantor/inja/releases)
-[![Github Issues](https://img.shields.io/github/issues/pantor/inja.svg)](http://github.com/pantor/inja/issues)
-[![GitHub License](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/pantor/inja/master/LICENSE)
+  <a href="https://ci.appveyor.com/project/pantor/inja">
+    <img src="https://ci.appveyor.com/api/projects/status/qtgniyyg6fn8ich8/branch/master?svg=true" alt="Build Status">
+  </a>
+
+  <a href="https://www.codacy.com/app/pantor/inja?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=pantor/inja&amp;utm_campaign=Badge_Grade">
+    <img src="https://api.codacy.com/project/badge/Grade/aa2041f1e6e648ae83945d29cfa0da17" alt="Codacy Status">
+  </a>
+
+  <a href="https://github.com/pantor/inja/releases">
+    <img src="https://img.shields.io/github/release/pantor/inja.svg" alt="Github Releases">
+  </a>
+
+  <a href="http://github.com/pantor/inja/issues">
+    <img src="https://img.shields.io/github/issues/pantor/inja.svg" alt="Github Issues">
+  </a>
+
+  <a href="https://raw.githubusercontent.com/pantor/inja/master/LICENSE">
+    <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="GitHub License">
+  </a>
+</p>
 
 
 Inja is a template engine for modern C++, loosely inspired by [jinja](http://jinja.pocoo.org) for python. It has an easy and yet powerful template syntax with all variables, loops, conditions, includes, callbacks, comments you need, nested and combined as you like. Inja uses the wonderful [json](https://github.com/nlohmann/json) library by nlohmann for data input and handling. Most importantly, *inja* needs only two header files, which is (nearly) as trivial as integration in C++ can get. Of course, everything is tested on all relevant compilers. Here is what it looks like:
