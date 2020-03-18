@@ -3,14 +3,14 @@ name: Single Include
 on: push
 
 jobs:
-  build-deploy:
+  test:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@master
     
     - name: update single include
       run: |
-        cd inja
+        ls
         mv single_include/inja/inja.hpp single_include/inja/inja_old.hpp
         bash scripts/update_single_include.sh
 
