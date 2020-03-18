@@ -1,0 +1,20 @@
+name: Single Include
+
+on: push
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    
+    - name: update single include
+      run: |
+        cd inja
+        mv single_include/inja/inja.hpp single_include/inja/inja_old.hpp
+        bash scripts/update_single_include.sh
+
+    - name: check if equal
+      working-directory: ${{runner.workspace}}/inja/single_include/
+      shell: bash
+      run: diff inja/inja.hpp inja/inja_old.hpp >/dev/null
