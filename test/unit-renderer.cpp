@@ -1,6 +1,6 @@
 // Copyright (c) 2019 Pantor. All rights reserved.
 
-#include "catch/catch.hpp"
+#include "doctest/doctest.h"
 #include "inja/inja.hpp"
 
 
@@ -32,12 +32,12 @@ TEST_CASE("types") {
     data["vars"] = {2, 3, 4, 0, -1, -2, -3};
 
 
-    SECTION("basic") {
+    SUBCASE("basic") {
         CHECK(env.render("", data) == "");
         CHECK(env.render("Hello World!", data) == "Hello World!");
     }
 
-    SECTION("variables") {
+    SUBCASE("variables") {
         CHECK(env.render("Hello {{ name }}!", data) == "Hello Peter!");
         CHECK(env.render("{{ name }}", data) == "Peter");
         CHECK(env.render("{{name}}", data) == "Peter");
@@ -51,12 +51,12 @@ TEST_CASE("types") {
         CHECK_THROWS_WITH(env.render("{{unknown}}", data), "[inja.exception.render_error] variable 'unknown' not found");
     }
 
-    SECTION("comments") {
+    SUBCASE("comments") {
         CHECK(env.render("Hello{# This is a comment #}!", data) == "Hello!");
         CHECK(env.render("{# --- #Todo --- #}", data) == "");
     }
 
-    SECTION("loops") {
+    SUBCASE("loops") {
         CHECK(env.render("{% for name in names %}a{% endfor %}", data) == "aa");
         CHECK(env.render("Hello {% for name in names %}{{ name }} {% endfor %}!", data) == "Hello Jeff Seb !");
         CHECK(env.render("Hello {% for name in names %}{{ loop.index }}: {{ name }}, {% endfor %}!", data) == "Hello 0: Jeff, 1: Seb, !");
@@ -72,7 +72,7 @@ TEST_CASE("types") {
         // CHECK_THROWS_WITH( env.render("{% for name in relatives %}{{ name }}{% endfor %}", data), "[inja.exception.json_error] [json.exception.type_error.302] type must be array, but is object" );
     }
 
-    SECTION("nested loops") {
+    SUBCASE("nested loops") {
         auto ldata = json::parse(
 R"DELIM(
 { "outer" : [
@@ -100,7 +100,7 @@ R"DELIM(
                     ldata) == "\n0:0::false\n1,2,\n0:1::false\n\n0:2::false\n\n2:0::true\n3,4,\n2:1::true\n5,6,\n\n");
     }
 
-    SECTION("conditionals") {
+    SUBCASE("conditionals") {
         CHECK(env.render("{% if is_happy %}Yeah!{% endif %}", data) == "Yeah!");
         CHECK(env.render("{% if is_sad %}Yeah!{% endif %}", data) == "");
         CHECK(env.render("{% if is_sad %}Yeah!{% else %}Nooo...{% endif %}", data) == "Nooo...");
@@ -118,7 +118,7 @@ R"DELIM(
         CHECK_THROWS_WITH(env.render("{% if is_happy %}{% else if is_happy %}{% end if %}", data), "[inja.exception.parser_error] expected statement, got 'end'");
     }
 
-    SECTION("line statements") {
+    SUBCASE("line statements") {
         CHECK(env.render(R"(## if is_happy
 Yeah!
 ## endif)", data) == R"(Yeah!
@@ -151,7 +151,7 @@ TEST_CASE("functions") {
     data["is_sad"] = false;
     data["vars"] = {2, 3, 4, 0, -1, -2, -3};
 
-    SECTION("upper") {
+    SUBCASE("upper") {
         CHECK(env.render("{{ upper(name) }}", data) == "PETER");
         CHECK(env.render("{{ upper(  name  ) }}", data) == "PETER");
         CHECK(env.render("{{ upper(city) }}", data) == "NEW YORK");
@@ -160,95 +160,95 @@ TEST_CASE("functions") {
         // CHECK_THROWS_WITH( env.render("{{ upper(true) }}", data), "[inja.exception.json_error] [json.exception.type_error.302] type must be string, but is boolean" );
     }
 
-    SECTION("lower") {
+    SUBCASE("lower") {
         CHECK(env.render("{{ lower(name) }}", data) == "peter");
         CHECK(env.render("{{ lower(city) }}", data) == "new york");
         // CHECK_THROWS_WITH( env.render("{{ lower(5.45) }}", data), "[inja.exception.json_error] [json.exception.type_error.302] type must be string, but is number" );
     }
 
-    SECTION("range") {
+    SUBCASE("range") {
         CHECK(env.render("{{ range(2) }}", data) == "[0,1]");
         CHECK(env.render("{{ range(4) }}", data) == "[0,1,2,3]");
         // CHECK_THROWS_WITH( env.render("{{ range(name) }}", data), "[inja.exception.json_error] [json.exception.type_error.302] type must be number, but is string" );
     }
 
-    SECTION("length") {
+    SUBCASE("length") {
         CHECK(env.render("{{ length(names) }}", data) == "4"); // Length of array
         CHECK(env.render("{{ length(name) }}", data) == "5"); // Length of string
         // CHECK_THROWS_WITH( env.render("{{ length(5) }}", data), "[inja.exception.json_error] [json.exception.type_error.302] type must be array, but is number" );
     }
 
-    SECTION("sort") {
+    SUBCASE("sort") {
         CHECK(env.render("{{ sort([3, 2, 1]) }}", data) == "[1,2,3]");
         CHECK(env.render("{{ sort([\"bob\", \"charlie\", \"alice\"]) }}", data) == "[\"alice\",\"bob\",\"charlie\"]");
         // CHECK_THROWS_WITH( env.render("{{ sort(5) }}", data), "[inja.exception.json_error] [json.exception.type_error.302] type must be array, but is number" );
     }
 
-    SECTION("at") {
+    SUBCASE("at") {
         CHECK(env.render("{{ at(names, 0) }}", data) == "Jeff");
         CHECK(env.render("{{ at(names, i) }}", data) == "Seb");
     }
 
-    SECTION("first") {
+    SUBCASE("first") {
         CHECK(env.render("{{ first(names) }}", data) == "Jeff");
         // CHECK_THROWS_WITH( env.render("{{ first(5) }}", data), "[inja.exception.json_error] [json.exception.type_error.302] type must be array, but is number" );
     }
 
-    SECTION("last") {
+    SUBCASE("last") {
         CHECK(env.render("{{ last(names) }}", data) == "Tom");
         // CHECK_THROWS_WITH( env.render("{{ last(5) }}", data), "[inja.exception.json_error] [json.exception.type_error.302] type must be array, but is number" );
     }
 
-    SECTION("round") {
+    SUBCASE("round") {
         CHECK(env.render("{{ round(4, 0) }}", data) == "4.0");
         CHECK(env.render("{{ round(temperature, 2) }}", data) == "25.68");
         // CHECK_THROWS_WITH( env.render("{{ round(name, 2) }}", data), "[inja.exception.json_error] [json.exception.type_error.302] type must be number, but is string" );
     }
 
-    SECTION("divisibleBy") {
+    SUBCASE("divisibleBy") {
         CHECK(env.render("{{ divisibleBy(50, 5) }}", data) == "true");
         CHECK(env.render("{{ divisibleBy(12, 3) }}", data) == "true");
         CHECK(env.render("{{ divisibleBy(11, 3) }}", data) == "false");
         // CHECK_THROWS_WITH( env.render("{{ divisibleBy(name, 2) }}", data), "[inja.exception.json_error] [json.exception.type_error.302] type must be number, but is string" );
     }
 
-    SECTION("odd") {
+    SUBCASE("odd") {
         CHECK(env.render("{{ odd(11) }}", data) == "true");
         CHECK(env.render("{{ odd(12) }}", data) == "false");
         // CHECK_THROWS_WITH( env.render("{{ odd(name) }}", data), "[inja.exception.json_error] [json.exception.type_error.302] type must be number, but is string" );
     }
 
-    SECTION("even") {
+    SUBCASE("even") {
         CHECK(env.render("{{ even(11) }}", data) == "false");
         CHECK(env.render("{{ even(12) }}", data) == "true");
         // CHECK_THROWS_WITH( env.render("{{ even(name) }}", data), "[inja.exception.json_error] [json.exception.type_error.302] type must be number, but is string" );
     }
 
-    SECTION("max") {
+    SUBCASE("max") {
         CHECK(env.render("{{ max([1, 2, 3]) }}", data) == "3");
         CHECK(env.render("{{ max([-5.2, 100.2, 2.4]) }}", data) == "100.2");
         // CHECK_THROWS_WITH( env.render("{{ max(name) }}", data), "[inja.exception.json_error] [json.exception.type_error.302] type must be array, but is string" );
     }
 
-    SECTION("min") {
+    SUBCASE("min") {
         CHECK(env.render("{{ min([1, 2, 3]) }}", data) == "1");
         CHECK(env.render("{{ min([-5.2, 100.2, 2.4]) }}", data) == "-5.2");
         // CHECK_THROWS_WITH( env.render("{{ min(name) }}", data), "[inja.exception.json_error] [json.exception.type_error.302] type must be array, but is string" );
     }
 
-    SECTION("float") {
+    SUBCASE("float") {
         CHECK(env.render("{{ float(\"2.2\") == 2.2 }}", data) == "true");
         CHECK(env.render("{{ float(\"-1.25\") == -1.25 }}", data) == "true");
         // CHECK_THROWS_WITH( env.render("{{ max(name) }}", data), "[inja.exception.json_error] [json.exception.type_error.302] type must be array, but is string" );
     }
 
-    SECTION("int") {
+    SUBCASE("int") {
         CHECK(env.render("{{ int(\"2\") == 2 }}", data) == "true");
         CHECK(env.render("{{ int(\"-1.25\") == -1 }}", data) == "true");
         // CHECK_THROWS_WITH( env.render("{{ max(name) }}", data), "[inja.exception.json_error] [json.exception.type_error.302] type must be array, but is string" );
     }
 
-    SECTION("default") {
+    SUBCASE("default") {
         CHECK(env.render("{{ default(11, 0) }}", data) == "11");
         CHECK(env.render("{{ default(nothing, 0) }}", data) == "0");
         CHECK(env.render("{{ default(name, \"nobody\") }}", data) == "Peter");
@@ -257,14 +257,14 @@ TEST_CASE("functions") {
         CHECK_THROWS_WITH( env.render("{{ default(surname, lastname) }}", data), "[inja.exception.render_error] variable 'lastname' not found");
     }
 
-    SECTION("exists") {
+    SUBCASE("exists") {
         CHECK(env.render("{{ exists(\"name\") }}", data) == "true");
         CHECK(env.render("{{ exists(\"zipcode\") }}", data) == "false");
         CHECK(env.render("{{ exists(name) }}", data) == "false");
         CHECK(env.render("{{ exists(property) }}", data) == "true");
     }
 
-    SECTION("existsIn") {
+    SUBCASE("existsIn") {
         CHECK(env.render("{{ existsIn(brother, \"name\") }}", data) == "true");
         CHECK(env.render("{{ existsIn(brother, \"parents\") }}", data) == "false");
         CHECK(env.render("{{ existsIn(brother, property) }}", data) == "true");
@@ -273,7 +273,7 @@ TEST_CASE("functions") {
         CHECK_THROWS_WITH(env.render("{{ existsIn(brother, sister) }}", data), "[inja.exception.render_error] variable 'sister' not found");
     }
 
-    SECTION("isType") {
+    SUBCASE("isType") {
         CHECK(env.render("{{ isBoolean(is_happy) }}", data) == "true");
         CHECK(env.render("{{ isBoolean(vars) }}", data) == "false");
         CHECK(env.render("{{ isNumber(age) }}", data) == "true");
@@ -362,7 +362,7 @@ TEST_CASE("templates") {
     data["city"] = "Brunswick";
     data["is_happy"] = true;
 
-    SECTION("reuse") {
+    SUBCASE("reuse") {
         inja::Environment env;
         inja::Template temp = env.parse("{% if is_happy %}{{ name }}{% else %}{{ city }}{% endif %}");
 
@@ -373,7 +373,7 @@ TEST_CASE("templates") {
         CHECK(env.render(temp, data) == "Brunswick");
     }
 
-    SECTION("include") {
+    SUBCASE("include") {
         inja::Environment env;
         inja::Template t1 = env.parse("Hello {{ name }}");
         env.include_template("greeting", t1);
@@ -383,7 +383,7 @@ TEST_CASE("templates") {
         CHECK_THROWS_WITH(env.parse("{% include \"does-not-exist\" %}!"), "[inja.exception.file_error] failed accessing file at 'does-not-exist'");
     }
 
-    SECTION("include-in-loop") {
+    SUBCASE("include-in-loop") {
         json loop_data;
         loop_data["cities"] = json::array({{{"name", "Munich"}}, {{"name", "New York"}}});
 
@@ -406,7 +406,7 @@ TEST_CASE("other-syntax") {
     data["brother"]["daughter0"] = { { "name", "Maria" } };
     data["is_happy"] = true;
 
-    SECTION("variables") {
+    SUBCASE("variables") {
         inja::Environment env;
         env.set_element_notation(inja::ElementNotation::Pointer);
 
@@ -418,7 +418,7 @@ TEST_CASE("other-syntax") {
         CHECK_THROWS_WITH(env.render("{{unknown/name}}", data), "[inja.exception.render_error] variable 'unknown/name' not found");
     }
 
-    SECTION("other expression syntax") {
+    SUBCASE("other expression syntax") {
         inja::Environment env;
 
         CHECK(env.render("Hello {{ name }}!", data) == "Hello Peter!");
@@ -429,7 +429,7 @@ TEST_CASE("other-syntax") {
         CHECK(env.render("Hello (& name &)!", data) == "Hello Peter!");
     }
 
-    SECTION("other comment syntax") {
+    SUBCASE("other comment syntax") {
         inja::Environment env;
         env.set_comment("(&", "&)");
 
@@ -437,7 +437,7 @@ TEST_CASE("other-syntax") {
         CHECK(env.render("Hello (& Test &)", data) == "Hello ");
     }
 
-    SECTION("multiple changes") {
+    SUBCASE("multiple changes") {
         inja::Environment env;
         env.set_line_statement("$$");
         env.set_expression("<%", "%>");
