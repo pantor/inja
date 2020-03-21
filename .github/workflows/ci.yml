@@ -1,3 +1,5 @@
+# Based on: https://github.com/onqtam/doctest/blob/master/.github/workflows/main.yml
+
 name: CI
 
 on: push
@@ -13,8 +15,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Github Actions requires a single row to be added to the build matrix.
-        # See https://help.github.com/en/articles/workflow-syntax-for-github-actions.
         name: [
           ubuntu-18.04-gcc-5,
           ubuntu-18.04-gcc-6,
@@ -22,10 +22,7 @@ jobs:
           ubuntu-18.04-gcc-8,
           ubuntu-18.04-gcc-9,
           ubuntu-18.04-clang-3.5,
-          ubuntu-18.04-clang-3.6,
-          ubuntu-18.04-clang-3.7,
           ubuntu-18.04-clang-3.8,
-          ubuntu-18.04-clang-3.9,
           ubuntu-18.04-clang-4.0,
           ubuntu-18.04-clang-5.0,
           ubuntu-18.04-clang-6.0,
@@ -40,9 +37,9 @@ jobs:
           windows-2019-clang-cl,
           windows-2019-clang,
           windows-2019-gcc,
-          macOS-10.14-gcc-7,
-          macOS-10.14-gcc-8,
-          macOS-10.14-gcc-9,
+          macOS-10.15-gcc-7,
+          macOS-10.15-gcc-8,
+          macOS-10.15-gcc-9,
           macOS-latest-xcode-11.0,
           macOS-latest-xcode-11.3,
         ]
@@ -78,25 +75,10 @@ jobs:
             compiler: clang
             version: "3.5"
 
-          - name: ubuntu-18.04-clang-3.6
-            os: ubuntu-18.04
-            compiler: clang
-            version: "3.6"
-
-          - name: ubuntu-18.04-clang-3.7
-            os: ubuntu-18.04
-            compiler: clang
-            version: "3.7"
-
           - name: ubuntu-18.04-clang-3.8
             os: ubuntu-18.04
             compiler: clang
             version: "3.8"
-
-          - name: ubuntu-18.04-clang-3.9
-            os: ubuntu-18.04
-            compiler: clang
-            version: "3.9"
 
           - name: ubuntu-18.04-clang-4.0
             os: ubuntu-18.04
@@ -160,18 +142,18 @@ jobs:
             os: windows-2019
             compiler: gcc
 
-          - name: macOS-10.14-gcc-7
-            os: macOS-10.14
+          - name: macOS-10.15-gcc-7
+            os: macOS-10.15
             compiler: gcc
             version: "7"
 
-          - name: macOS-10.14-gcc-8
-            os: macOS-10.14
+          - name: macOS-10.15-gcc-8
+            os: macOS-10.15
             compiler: gcc
             version: "8"
 
-          - name: macOS-10.14-gcc-9
-            os: macOS-10.14
+          - name: macOS-10.15-gcc-9
+            os: macOS-10.15
             compiler: gcc
             version: "9"
 
