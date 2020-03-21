@@ -2,7 +2,7 @@
 
 <p align="center">
   <a href="https://github.com/pantor/inja/actions">
-    <img src="https://github.com/pantor/inja/workflows/C++%20CI/badge.svg" alt="CI Status">
+    <img src="https://github.com/pantor/inja/workflows/CI/badge.svg" alt="CI Status">
   </a>
 
   <a href="https://github.com/pantor/inja/actions">
