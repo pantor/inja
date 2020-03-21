@@ -5,18 +5,14 @@
 
 #include <algorithm>
 #include <fstream>
-#include <stdexcept>
 #include <string>
 #include <utility>
 
+#include "exceptions.hpp"
 #include "string_view.hpp"
 
 
 namespace inja {
-
-inline void inja_throw(const std::string& type, const std::string& message) {
-  throw std::runtime_error("[inja.exception." + type + "] " + message);
-}
 
 inline std::ifstream open_file_or_throw(const std::string& path) {
   std::ifstream file;
@@ -24,7 +20,7 @@ inline std::ifstream open_file_or_throw(const std::string& path) {
   try {
     file.open(path);
   } catch(const std::ios_base::failure& /*e*/) {
-    inja_throw("file_error", "failed accessing file at '" + path + "'");
+    throw FileError("failed accessing file at '" + path + "'");
   }
   return file;
 }

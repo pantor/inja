@@ -13,6 +13,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include "exceptions.hpp"
 #include "environment.hpp"
 #include "string_view.hpp"
 #include "template.hpp"

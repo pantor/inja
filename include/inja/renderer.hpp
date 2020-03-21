@@ -12,6 +12,7 @@
 #include <nlohmann/json.hpp>
 
 #include "bytecode.hpp"
+#include "exceptions.hpp"
 #include "template.hpp"
 #include "utils.hpp"
 
@@ -92,7 +93,7 @@ class Renderer {
         m_tmp_val = callback(arguments);
         return &m_tmp_val;
       }
-      inja_throw("render_error", "variable '" + static_cast<std::string>(bc.str) + "' not found");
+      throw RenderError("variable '" + static_cast<std::string>(bc.str) + "' not found");
       return nullptr;
     }
   }
@@ -109,8 +110,7 @@ class Renderer {
     try {
       return var.get<bool>();
     } catch (json::type_error& e) {
-      inja_throw("json_error", e.what());
-      throw;
+      throw JsonError(e.what());
     }
   }
 
@@ -463,7 +463,7 @@ class Renderer {
         case Bytecode::Op::Callback: {
           auto callback = m_callbacks.find_callback(bc.str, bc.args);
           if (!callback) {
-            inja_throw("render_error", "function '" + static_cast<std::string>(bc.str) + "' (" + std::to_string(static_cast<unsigned int>(bc.args)) + ") not found");
+            throw RenderError("function '" + static_cast<std::string>(bc.str) + "' (" + std::to_string(static_cast<unsigned int>(bc.args)) + ") not found");
           }
           json result = callback(get_args(bc));
           pop_args(bc);
@@ -500,7 +500,7 @@ class Renderer {
             // map iterator
             if (!level.values.is_object()) {
               m_loop_stack.pop_back();
-              inja_throw("render_error", "for key, value requires object");
+              throw RenderError("for key, value requires object");
             }
             level.loop_type = LoopLevel::Type::Map;
             level.key_name = bc.value.get_ref<const std::string&>();
@@ -515,7 +515,7 @@ class Renderer {
           } else {
             if (!level.values.is_array()) {
               m_loop_stack.pop_back();
-              inja_throw("render_error", "type must be array");
+              throw RenderError("type must be array");
             }
 
             // list iterator
@@ -538,7 +538,7 @@ class Renderer {
         }
         case Bytecode::Op::EndLoop: {
           if (m_loop_stack.empty()) {
-            inja_throw("render_error", "unexpected state in renderer");
+            throw RenderError("unexpected state in renderer");
           }
           LoopLevel& level = m_loop_stack.back();
 
@@ -569,7 +569,7 @@ class Renderer {
           break;
         }
         default: {
-          inja_throw("render_error", "unknown op in renderer: " + std::to_string(static_cast<unsigned int>(bc.op)));
+          throw RenderError("unknown op in renderer: " + std::to_string(static_cast<unsigned int>(bc.op)));
         }
       }
     }
