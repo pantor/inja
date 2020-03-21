@@ -293,11 +293,12 @@ render("Hello{# Todo #}!", data); // "Hello!"
 ```
 
 
-
 ## Supported compilers
 
 Inja uses `string_view` from C++17, but includes the [polyfill](https://github.com/martinmoene/string-view-lite) from martinmoene. This way, the minimum version is C++11. Currently, the following compilers are tested:
 
-- GCC 5.0 - 8.0 (and possibly later)
-- Clang 5.0 - 6.0 (and possibly later)
-- Microsoft Visual C++ 2015 - 2017 (and possibly later)
+- GCC 5.0 - 9 (and possibly later)
+- Clang 3.5 - 9 (and possibly later)
+- Microsoft Visual C++ 2016 - 2019 (and possibly later)
+
+A complete list of supported compiler / os versions can be found in the [CI definition](https://github.com/pantor/inja/blob/master/.github/workflows/ci.yml).
