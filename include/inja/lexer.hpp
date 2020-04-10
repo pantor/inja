@@ -182,7 +182,10 @@ class Lexer {
     }
 
     m_pos = m_tok_start + 1;
-    if (std::isalpha(ch)) return scan_id();
+    if (std::isalpha(ch)) {
+      return scan_id();
+    }
+    
     switch (ch) {
       case ',':
         return make_token(Token::Kind::Comma);
