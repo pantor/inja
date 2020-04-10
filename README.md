@@ -247,7 +247,7 @@ render("{{ isArray(guests) }}", data); // "true"
 
 ### Whitespace Control
 
-In the default configuration, no whitespace is removed while rendering the file. To support a more readable template style, you can configure the environment to control whitespaces before and after a statement automatically. While enabling `set_trim` removes the first newline after a statement, `set_lstrip` strips tabs and spaces from the beginning of a line to the start of a block.
+In the default configuration, no whitespace is removed while rendering the file. To support a more readable template style, you can configure the environment to control whitespaces before and after a statement automatically. While enabling `set_trim_blocks` removes the first newline after a statement, `set_lstrip_blocks` strips tabs and spaces from the beginning of a line to the start of a block.
 
 ```c++
 Environment env;
@@ -255,7 +255,7 @@ env.set_trim_blocks(true);
 env.set_lstrip_blocks(true);
 ```
 
-With both `trim` and `lstrip` enabled, you can put statements on their own lines.
+With both `trim_blocks` and `lstrip_blocks` enabled, you can put statements on their own lines.
 
 ### Callbacks
 
