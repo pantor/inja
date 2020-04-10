@@ -251,8 +251,8 @@ In the default configuration, no whitespace is removed while rendering the file.
 
 ```c++
 Environment env;
-env.set_trim(true);
-env.set_lstrip(true);
+env.set_trim_blocks(true);
+env.set_lstrip_blocks(true);
 ```
 
 With both `trim` and `lstrip` enabled, you can put statements on their own lines.
