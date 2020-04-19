@@ -1870,8 +1870,11 @@ class FunctionStorage {
     if (it == m_map.end()) {
       return nullptr;
     }
+
     for (auto &&i: it->second) {
-      if (i.num_args == num_args) return &i;
+      if (i.num_args == num_args) {
+        return &i;
+      }
     }
     return nullptr;
   }
@@ -2215,6 +2218,7 @@ class Lexer {
     if (std::isalpha(ch)) {
       return scan_id();
     }
+    
     switch (ch) {
       case ',':
         return make_token(Token::Kind::Comma);

@@ -70,6 +70,7 @@ endif()
 target_link_libraries(inja INTERFACE ${INJA_SELECTED_JSON_LIBRARY})
 
 execute_process(COMMAND scripts/update_single_include.sh WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+# CMake: add_custom_command
 
 
 if(BUILD_TESTING AND INJA_BUILD_TESTS)
