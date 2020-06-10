@@ -1810,6 +1810,8 @@ struct Bytecode {
 
 
 
+#define INJA_VARARGS (unsigned int) (~0) // use special number for VARARGS functions
+
 namespace inja {
 
 using json = nlohmann::json;
@@ -1871,12 +1873,15 @@ class FunctionStorage {
       return nullptr;
     }
 
+    const FunctionData* var_func = nullptr;
     for (auto &&i: it->second) {
       if (i.num_args == num_args) {
-        return &i;
+        return &i; // function with precise number of argument(s) should always be used first
+      } else if (i.num_args == INJA_VARARGS) {
+        var_func = &i; // store the VARARGS function for later use
       }
     }
-    return nullptr;
+    return var_func;
   }
 
   std::map<std::string, std::vector<FunctionData>> m_map;
