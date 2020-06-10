@@ -1817,6 +1817,8 @@ using json = nlohmann::json;
 using Arguments = std::vector<const json*>;
 using CallbackFunction = std::function<json(Arguments& args)>;
 
+#define INJA_VARARGS (unsigned int) (~0) // use special number for VARARGS functions
+
 /*!
  * \brief Class for builtin functions and user-defined callbacks.
  */
@@ -1866,10 +1868,12 @@ class FunctionStorage {
   const FunctionData* get(nonstd::string_view name, unsigned int num_args) const {
     auto it = m_map.find(static_cast<std::string>(name));
     if (it == m_map.end()) return nullptr;
+    const FunctionData* var_func = nullptr;
     for (auto &&i: it->second) {
-      if (i.num_args == num_args) return &i;
+      if (i.num_args == num_args) return &i; // function with precise number of argument(s) should always be used first
+      else if (i.num_args == INJA_VARARGS) var_func = &i; // store the VARARGS function for later use
     }
-    return nullptr;
+    return var_func;
   }
 
   std::map<std::string, std::vector<FunctionData>> m_map;
