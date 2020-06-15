@@ -126,8 +126,8 @@ class Renderer {
     auto &loopData = level.data["loop"];
     loopData["index"] = level.index;
     loopData["index1"] = level.index + 1;
-    loopData["is_first"] = ( level.index == 0 );
-    loopData["is_last"] = ( level.index == level.size - 1 );
+    loopData["is_first"] = (level.index == 0);
+    loopData["is_last"] = (level.index == level.size - 1);
   }
 
   const TemplateStorage& m_included_templates;
