@@ -3096,8 +3096,14 @@ class Renderer {
         ptr = ptr_buffer;
         break;
     }
+    json::json_pointer json_ptr(ptr.data());
     try {
-      return &m_data->at(json::json_pointer(ptr.data()));
+      // first try to evaluate as a loop variable
+      // Using contains() is faster than unsucessful at() and throwing an exception
+      if (m_loop_data && m_loop_data->contains(json_ptr)) {
+        return &m_loop_data->at(json_ptr);
+      }
+      return &m_data->at(json_ptr);
     } catch (std::exception&) {
       // try to evaluate as a no-argument callback
       if (auto callback = m_callbacks.find_callback(bc.str, 0)) {
@@ -3170,6 +3176,7 @@ class Renderer {
   };
 
   std::vector<LoopLevel> m_loop_stack;
+  json* m_loop_data;
   const json* m_data;
 
   std::vector<const json*> m_tmp_args;
@@ -3183,8 +3190,9 @@ class Renderer {
     m_loop_stack.reserve(16);
   }
 
-  void render_to(std::ostream& os, const Template& tmpl, const json& data) {
+  void render_to(std::ostream& os, const Template& tmpl, const json& data, json* loop_data = nullptr) {
     m_data = &data;
+    m_loop_data = loop_data;
 
     for (size_t i = 0; i < tmpl.bytecodes.size(); ++i) {
       const auto& bc = tmpl.bytecodes[i];
@@ -3470,7 +3478,7 @@ class Renderer {
           break;
         }
         case Bytecode::Op::Include:
-          Renderer(m_included_templates, m_callbacks).render_to(os, m_included_templates.find(get_imm(bc)->get_ref<const std::string&>())->second, *m_data);
+          Renderer(m_included_templates, m_callbacks).render_to(os, m_included_templates.find(get_imm(bc)->get_ref<const std::string&>())->second, *m_data, m_loop_data);
           break;
         case Bytecode::Op::Callback: {
           auto callback = m_callbacks.find_callback(bc.str, bc.args);
@@ -3505,7 +3513,9 @@ class Renderer {
           LoopLevel& level = m_loop_stack.back();
           level.value_name = bc.str;
           level.values = std::move(m_stack.back());
-          level.data = (*m_data);
+          if (m_loop_data) {
+            level.data = *m_loop_data;
+          }
           level.index = 0;
           m_stack.pop_back();
 
@@ -3544,8 +3554,8 @@ class Renderer {
             (*parent_loop_it)["parent"] = std::move(loop_copy);
           }
 
-          // set "current" data to loop data
-          m_data = &level.data;
+          // set "current" loop data to this level
+          m_loop_data = &level.data;
           update_loop_data();
           break;
         }
@@ -3568,9 +3578,9 @@ class Renderer {
             m_loop_stack.pop_back();
             // set "current" data to outer loop data or main data as appropriate
             if (!m_loop_stack.empty()) {
-              m_data = &m_loop_stack.back().data;
+              m_loop_data = &m_loop_stack.back().data;
             } else {
-              m_data = &data;
+              m_loop_data = loop_data;
             }
             break;
           }
