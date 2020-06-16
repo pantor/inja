@@ -9,7 +9,6 @@
 
 #include "bytecode.hpp"
 
-
 namespace inja {
 
 /*!
@@ -22,6 +21,6 @@ struct Template {
 
 using TemplateStorage = std::map<std::string, Template>;
 
-}  // namespace inja
+} // namespace inja
 
-#endif  // INCLUDE_INJA_TEMPLATE_HPP_
+#endif // INCLUDE_INJA_TEMPLATE_HPP_

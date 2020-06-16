@@ -1,0 +1,7 @@
+---
+Language:        Cpp
+
+BasedOnStyle: LLVM
+ColumnLimit: 120
+SpaceBeforeCpp11BracedList: true
+...

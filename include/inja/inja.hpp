@@ -13,12 +13,11 @@
 
 #include <nlohmann/json.hpp>
 
-#include "exceptions.hpp"
 #include "environment.hpp"
-#include "string_view.hpp"
-#include "template.hpp"
+#include "exceptions.hpp"
 #include "parser.hpp"
 #include "renderer.hpp"
+#include "string_view.hpp"
+#include "template.hpp"
 
-
-#endif  // INCLUDE_INJA_INJA_HPP_
+#endif // INCLUDE_INJA_INJA_HPP_
