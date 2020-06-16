@@ -8,13 +8,9 @@
 
 #include "string_view.hpp"
 
-
 namespace inja {
 
-enum class ElementNotation {
-  Dot,
-  Pointer
-};
+enum class ElementNotation { Dot, Pointer };
 
 /*!
  * \brief Class for lexer configuration.
@@ -56,6 +52,6 @@ struct ParserConfig {
   ElementNotation notation {ElementNotation::Dot};
 };
 
-}  // namespace inja
+} // namespace inja
 
-#endif  // INCLUDE_INJA_CONFIG_HPP_
+#endif // INCLUDE_INJA_CONFIG_HPP_

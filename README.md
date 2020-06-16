@@ -164,13 +164,13 @@ In a loop, the special variables `loop/index (number)`, `loop/index1 (number)`, 
 Conditions support the typical if, else if and else statements. Following conditions are for example possible:
 ```c++
 // Standard comparisons with variable
-render("{% if time.hour >= 18 %}…{% endif %}", data); // True
+render("{% if time.hour >= 20 %}…{% else if time.hour >= 18 %}…{% endif %}", data); // True
 
 // Variable in list
 render("{% if neighbour in guests %}…{% endif %}", data); // True
 
 // Logical operations
-render("{% if guest_count < 5 and all_tired %}…{% endif %}", data); // True
+render("{% if guest_count < 5 and all_tired %}…{% else %}…{% endif %}", data); // True
 
 // Negations
 render("{% if not guest_count %}…{% endif %}", data); // True

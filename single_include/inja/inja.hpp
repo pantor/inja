@@ -13,75 +13,14 @@
 
 #include <nlohmann/json.hpp>
 
-// #include "exceptions.hpp"
-// Copyright (c) 2020 Pantor. All rights reserved.
-
-#ifndef INCLUDE_INJA_EXCEPTIONS_HPP_
-#define INCLUDE_INJA_EXCEPTIONS_HPP_
-
-#include <stdexcept>
-#include <string>
-
-
-namespace inja {
-
-struct SourceLocation {
-  size_t line;
-  size_t column;
-};
-
-struct InjaError : public std::runtime_error {
-  std::string type;
-  std::string message;
-
-  bool has_location {false};
-  SourceLocation location;
-
-  InjaError(const std::string& type, const std::string& message)
-    : std::runtime_error("[inja.exception." + type + "] " + message), type(type), message(message) { }
-  
-  InjaError(const std::string& type, const std::string& message, SourceLocation location)
-    : std::runtime_error(
-      "[inja.exception." + type + "] (at " + std::to_string(location.line) + ":" + std::to_string(location.column) + ") " + message
-    ), type(type), message(message), has_location(true), location(location) { }
-};
-
-struct ParserError : public InjaError {
-  ParserError(const std::string& message) : InjaError("parser_error", message) { }
-  ParserError(const std::string& message, SourceLocation location)
-    : InjaError("parser_error", message, location) { }
-};
-
-struct RenderError : public InjaError {
-  RenderError(const std::string& message) : InjaError("render_error", message) { }
-  RenderError(const std::string& message, SourceLocation location)
-    : InjaError("render_error", message, location) { }
-};
-
-struct FileError : public InjaError {
-  FileError(const std::string& message) : InjaError("file_error", message) { }
-  FileError(const std::string& message, SourceLocation location)
-    : InjaError("file_error", message, location) { }
-};
-
-struct JsonError : public InjaError {
-  JsonError(const std::string& message) : InjaError("json_error", message) { }
-  JsonError(const std::string& message, SourceLocation location)
-    : InjaError("json_error", message, location) { }
-};
-
-}  // namespace inja
-
-#endif  // INCLUDE_INJA_EXCEPTIONS_HPP_
-
 // #include "environment.hpp"
 // Copyright (c) 2019 Pantor. All rights reserved.
 
 #ifndef INCLUDE_INJA_ENVIRONMENT_HPP_
 #define INCLUDE_INJA_ENVIRONMENT_HPP_
 
-#include <memory>
 #include <fstream>
+#include <memory>
 #include <sstream>
 #include <string>
 
@@ -110,94 +49,98 @@ struct JsonError : public InjaError {
 #ifndef NONSTD_SV_LITE_H_INCLUDED
 #define NONSTD_SV_LITE_H_INCLUDED
 
-#define string_view_lite_MAJOR  1
-#define string_view_lite_MINOR  4
-#define string_view_lite_PATCH  0
+#define string_view_lite_MAJOR 1
+#define string_view_lite_MINOR 4
+#define string_view_lite_PATCH 0
 
-#define string_view_lite_VERSION  nssv_STRINGIFY(string_view_lite_MAJOR) "." nssv_STRINGIFY(string_view_lite_MINOR) "." nssv_STRINGIFY(string_view_lite_PATCH)
+#define string_view_lite_VERSION                                                                                       \
+  nssv_STRINGIFY(string_view_lite_MAJOR) "." nssv_STRINGIFY(string_view_lite_MINOR) "." nssv_STRINGIFY(                \
+      string_view_lite_PATCH)
 
-#define nssv_STRINGIFY(  x )  nssv_STRINGIFY_( x )
-#define nssv_STRINGIFY_( x )  #x
+#define nssv_STRINGIFY(x) nssv_STRINGIFY_(x)
+#define nssv_STRINGIFY_(x) #x
 
 // string-view lite configuration:
 
-#define nssv_STRING_VIEW_DEFAULT  0
-#define nssv_STRING_VIEW_NONSTD   1
-#define nssv_STRING_VIEW_STD      2
+#define nssv_STRING_VIEW_DEFAULT 0
+#define nssv_STRING_VIEW_NONSTD 1
+#define nssv_STRING_VIEW_STD 2
 
-#if !defined( nssv_CONFIG_SELECT_STRING_VIEW )
-# define nssv_CONFIG_SELECT_STRING_VIEW  ( nssv_HAVE_STD_STRING_VIEW ? nssv_STRING_VIEW_STD : nssv_STRING_VIEW_NONSTD )
+#if !defined(nssv_CONFIG_SELECT_STRING_VIEW)
+#define nssv_CONFIG_SELECT_STRING_VIEW (nssv_HAVE_STD_STRING_VIEW ? nssv_STRING_VIEW_STD : nssv_STRING_VIEW_NONSTD)
 #endif
 
-#if defined( nssv_CONFIG_SELECT_STD_STRING_VIEW ) || defined( nssv_CONFIG_SELECT_NONSTD_STRING_VIEW )
-# error nssv_CONFIG_SELECT_STD_STRING_VIEW and nssv_CONFIG_SELECT_NONSTD_STRING_VIEW are deprecated and removed, please use nssv_CONFIG_SELECT_STRING_VIEW=nssv_STRING_VIEW_...
+#if defined(nssv_CONFIG_SELECT_STD_STRING_VIEW) || defined(nssv_CONFIG_SELECT_NONSTD_STRING_VIEW)
+#error nssv_CONFIG_SELECT_STD_STRING_VIEW and nssv_CONFIG_SELECT_NONSTD_STRING_VIEW are deprecated and removed, please use nssv_CONFIG_SELECT_STRING_VIEW=nssv_STRING_VIEW_...
 #endif
 
-#ifndef  nssv_CONFIG_STD_SV_OPERATOR
-# define nssv_CONFIG_STD_SV_OPERATOR  0
+#ifndef nssv_CONFIG_STD_SV_OPERATOR
+#define nssv_CONFIG_STD_SV_OPERATOR 0
 #endif
 
-#ifndef  nssv_CONFIG_USR_SV_OPERATOR
-# define nssv_CONFIG_USR_SV_OPERATOR  1
+#ifndef nssv_CONFIG_USR_SV_OPERATOR
+#define nssv_CONFIG_USR_SV_OPERATOR 1
 #endif
 
-#ifdef   nssv_CONFIG_CONVERSION_STD_STRING
-# define nssv_CONFIG_CONVERSION_STD_STRING_CLASS_METHODS   nssv_CONFIG_CONVERSION_STD_STRING
-# define nssv_CONFIG_CONVERSION_STD_STRING_FREE_FUNCTIONS  nssv_CONFIG_CONVERSION_STD_STRING
+#ifdef nssv_CONFIG_CONVERSION_STD_STRING
+#define nssv_CONFIG_CONVERSION_STD_STRING_CLASS_METHODS nssv_CONFIG_CONVERSION_STD_STRING
+#define nssv_CONFIG_CONVERSION_STD_STRING_FREE_FUNCTIONS nssv_CONFIG_CONVERSION_STD_STRING
 #endif
 
-#ifndef  nssv_CONFIG_CONVERSION_STD_STRING_CLASS_METHODS
-# define nssv_CONFIG_CONVERSION_STD_STRING_CLASS_METHODS  1
+#ifndef nssv_CONFIG_CONVERSION_STD_STRING_CLASS_METHODS
+#define nssv_CONFIG_CONVERSION_STD_STRING_CLASS_METHODS 1
 #endif
 
-#ifndef  nssv_CONFIG_CONVERSION_STD_STRING_FREE_FUNCTIONS
-# define nssv_CONFIG_CONVERSION_STD_STRING_FREE_FUNCTIONS  1
+#ifndef nssv_CONFIG_CONVERSION_STD_STRING_FREE_FUNCTIONS
+#define nssv_CONFIG_CONVERSION_STD_STRING_FREE_FUNCTIONS 1
 #endif
 
 // Control presence of exception handling (try and auto discover):
 
 #ifndef nssv_CONFIG_NO_EXCEPTIONS
-# if defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND)
-#  define nssv_CONFIG_NO_EXCEPTIONS  0
-# else
-#  define nssv_CONFIG_NO_EXCEPTIONS  1
-# endif
+#if defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND)
+#define nssv_CONFIG_NO_EXCEPTIONS 0
+#else
+#define nssv_CONFIG_NO_EXCEPTIONS 1
+#endif
 #endif
 
 // C++ language version detection (C++20 is speculative):
 // Note: VC14.0/1900 (VS2015) lacks too much from C++14.
 
-#ifndef   nssv_CPLUSPLUS
-# if defined(_MSVC_LANG ) && !defined(__clang__)
-#  define nssv_CPLUSPLUS  (_MSC_VER == 1900 ? 201103L : _MSVC_LANG )
-# else
-#  define nssv_CPLUSPLUS  __cplusplus
-# endif
+#ifndef nssv_CPLUSPLUS
+#if defined(_MSVC_LANG) && !defined(__clang__)
+#define nssv_CPLUSPLUS (_MSC_VER == 1900 ? 201103L : _MSVC_LANG)
+#else
+#define nssv_CPLUSPLUS __cplusplus
+#endif
 #endif
 
-#define nssv_CPP98_OR_GREATER  ( nssv_CPLUSPLUS >= 199711L )
-#define nssv_CPP11_OR_GREATER  ( nssv_CPLUSPLUS >= 201103L )
-#define nssv_CPP11_OR_GREATER_ ( nssv_CPLUSPLUS >= 201103L )
-#define nssv_CPP14_OR_GREATER  ( nssv_CPLUSPLUS >= 201402L )
-#define nssv_CPP17_OR_GREATER  ( nssv_CPLUSPLUS >= 201703L )
-#define nssv_CPP20_OR_GREATER  ( nssv_CPLUSPLUS >= 202000L )
+#define nssv_CPP98_OR_GREATER (nssv_CPLUSPLUS >= 199711L)
+#define nssv_CPP11_OR_GREATER (nssv_CPLUSPLUS >= 201103L)
+#define nssv_CPP11_OR_GREATER_ (nssv_CPLUSPLUS >= 201103L)
+#define nssv_CPP14_OR_GREATER (nssv_CPLUSPLUS >= 201402L)
+#define nssv_CPP17_OR_GREATER (nssv_CPLUSPLUS >= 201703L)
+#define nssv_CPP20_OR_GREATER (nssv_CPLUSPLUS >= 202000L)
 
 // use C++17 std::string_view if available and requested:
 
-#if nssv_CPP17_OR_GREATER && defined(__has_include )
-# if __has_include( <string_view> )
-#  define nssv_HAVE_STD_STRING_VIEW  1
-# else
-#  define nssv_HAVE_STD_STRING_VIEW  0
-# endif
+#if nssv_CPP17_OR_GREATER && defined(__has_include)
+#if __has_include(<string_view> )
+#define nssv_HAVE_STD_STRING_VIEW 1
 #else
-# define  nssv_HAVE_STD_STRING_VIEW  0
+#define nssv_HAVE_STD_STRING_VIEW 0
+#endif
+#else
+#define nssv_HAVE_STD_STRING_VIEW 0
 #endif
 
-#define  nssv_USES_STD_STRING_VIEW  ( (nssv_CONFIG_SELECT_STRING_VIEW == nssv_STRING_VIEW_STD) || ((nssv_CONFIG_SELECT_STRING_VIEW == nssv_STRING_VIEW_DEFAULT) && nssv_HAVE_STD_STRING_VIEW) )
+#define nssv_USES_STD_STRING_VIEW                                                                                      \
+  ((nssv_CONFIG_SELECT_STRING_VIEW == nssv_STRING_VIEW_STD) ||                                                         \
+   ((nssv_CONFIG_SELECT_STRING_VIEW == nssv_STRING_VIEW_DEFAULT) && nssv_HAVE_STD_STRING_VIEW))
 
-#define nssv_HAVE_STARTS_WITH ( nssv_CPP20_OR_GREATER || !nssv_USES_STD_STRING_VIEW )
-#define nssv_HAVE_ENDS_WITH     nssv_HAVE_STARTS_WITH
+#define nssv_HAVE_STARTS_WITH (nssv_CPP20_OR_GREATER || !nssv_USES_STD_STRING_VIEW)
+#define nssv_HAVE_ENDS_WITH nssv_HAVE_STARTS_WITH
 
 //
 // Use C++17 std::string_view:
@@ -213,18 +156,15 @@ struct JsonError : public InjaError {
 
 namespace nonstd {
 
-template< class CharT, class Traits, class Allocator = std::allocator<CharT> >
-std::basic_string<CharT, Traits, Allocator>
-to_string( std::basic_string_view<CharT, Traits> v, Allocator const & a = Allocator() )
-{
-    return std::basic_string<CharT,Traits, Allocator>( v.begin(), v.end(), a );
+template <class CharT, class Traits, class Allocator = std::allocator<CharT>>
+std::basic_string<CharT, Traits, Allocator> to_string(std::basic_string_view<CharT, Traits> v,
+                                                      Allocator const &a = Allocator()) {
+  return std::basic_string<CharT, Traits, Allocator>(v.begin(), v.end(), a);
 }
 
-template< class CharT, class Traits, class Allocator >
-std::basic_string_view<CharT, Traits>
-to_string_view( std::basic_string<CharT, Traits, Allocator> const & s )
-{
-    return std::basic_string_view<CharT, Traits>( s.data(), s.size() );
+template <class CharT, class Traits, class Allocator>
+std::basic_string_view<CharT, Traits> to_string_view(std::basic_string<CharT, Traits, Allocator> const &s) {
+  return std::basic_string_view<CharT, Traits>(s.data(), s.size());
 }
 
 // Literal operators sv and _sv:
@@ -240,28 +180,28 @@ using namespace std::literals::string_view_literals;
 inline namespace literals {
 inline namespace string_view_literals {
 
-
-constexpr std::string_view operator "" _sv( const char* str, size_t len ) noexcept  // (1)
+constexpr std::string_view operator"" _sv(const char *str, size_t len) noexcept // (1)
 {
-    return std::string_view{ str, len };
+  return std::string_view {str, len};
 }
 
-constexpr std::u16string_view operator "" _sv( const char16_t* str, size_t len ) noexcept  // (2)
+constexpr std::u16string_view operator"" _sv(const char16_t *str, size_t len) noexcept // (2)
 {
-    return std::u16string_view{ str, len };
+  return std::u16string_view {str, len};
 }
 
-constexpr std::u32string_view operator "" _sv( const char32_t* str, size_t len ) noexcept  // (3)
+constexpr std::u32string_view operator"" _sv(const char32_t *str, size_t len) noexcept // (3)
 {
-    return std::u32string_view{ str, len };
+  return std::u32string_view {str, len};
 }
 
-constexpr std::wstring_view operator "" _sv( const wchar_t* str, size_t len ) noexcept  // (4)
+constexpr std::wstring_view operator"" _sv(const wchar_t *str, size_t len) noexcept // (4)
 {
-    return std::wstring_view{ str, len };
+  return std::wstring_view {str, len};
 }
 
-}} // namespace literals::string_view_literals
+} // namespace string_view_literals
+} // namespace literals
 
 #endif // nssv_CONFIG_USR_SV_OPERATOR
 
@@ -271,11 +211,11 @@ constexpr std::wstring_view operator "" _sv( const wchar_t* str, size_t len ) no
 
 namespace nonstd {
 
+using std::basic_string_view;
 using std::string_view;
-using std::wstring_view;
 using std::u16string_view;
 using std::u32string_view;
-using std::basic_string_view;
+using std::wstring_view;
 
 // literal "sv" and "_sv", see above
 
@@ -309,117 +249,117 @@ using std::operator<<;
 // MSVC++ 14.0 _MSC_VER == 1900 (Visual Studio 2015)
 // MSVC++ 14.1 _MSC_VER >= 1910 (Visual Studio 2017)
 
-#if defined(_MSC_VER ) && !defined(__clang__)
-# define nssv_COMPILER_MSVC_VER      (_MSC_VER )
-# define nssv_COMPILER_MSVC_VERSION  (_MSC_VER / 10 - 10 * ( 5 + (_MSC_VER < 1900 ) ) )
+#if defined(_MSC_VER) && !defined(__clang__)
+#define nssv_COMPILER_MSVC_VER (_MSC_VER)
+#define nssv_COMPILER_MSVC_VERSION (_MSC_VER / 10 - 10 * (5 + (_MSC_VER < 1900)))
 #else
-# define nssv_COMPILER_MSVC_VER      0
-# define nssv_COMPILER_MSVC_VERSION  0
+#define nssv_COMPILER_MSVC_VER 0
+#define nssv_COMPILER_MSVC_VERSION 0
 #endif
 
-#define nssv_COMPILER_VERSION( major, minor, patch )  ( 10 * ( 10 * (major) + (minor) ) + (patch) )
+#define nssv_COMPILER_VERSION(major, minor, patch) (10 * (10 * (major) + (minor)) + (patch))
 
 #if defined(__clang__)
-# define nssv_COMPILER_CLANG_VERSION  nssv_COMPILER_VERSION(__clang_major__, __clang_minor__, __clang_patchlevel__)
+#define nssv_COMPILER_CLANG_VERSION nssv_COMPILER_VERSION(__clang_major__, __clang_minor__, __clang_patchlevel__)
 #else
-# define nssv_COMPILER_CLANG_VERSION    0
+#define nssv_COMPILER_CLANG_VERSION 0
 #endif
 
 #if defined(__GNUC__) && !defined(__clang__)
-# define nssv_COMPILER_GNUC_VERSION  nssv_COMPILER_VERSION(__GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__)
+#define nssv_COMPILER_GNUC_VERSION nssv_COMPILER_VERSION(__GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__)
 #else
-# define nssv_COMPILER_GNUC_VERSION    0
+#define nssv_COMPILER_GNUC_VERSION 0
 #endif
 
 // half-open range [lo..hi):
-#define nssv_BETWEEN( v, lo, hi ) ( (lo) <= (v) && (v) < (hi) )
+#define nssv_BETWEEN(v, lo, hi) ((lo) <= (v) && (v) < (hi))
 
 // Presence of language and library features:
 
 #ifdef _HAS_CPP0X
-# define nssv_HAS_CPP0X  _HAS_CPP0X
+#define nssv_HAS_CPP0X _HAS_CPP0X
 #else
-# define nssv_HAS_CPP0X  0
+#define nssv_HAS_CPP0X 0
 #endif
 
 // Unless defined otherwise below, consider VC14 as C++11 for variant-lite:
 
 #if nssv_COMPILER_MSVC_VER >= 1900
-# undef  nssv_CPP11_OR_GREATER
-# define nssv_CPP11_OR_GREATER  1
+#undef nssv_CPP11_OR_GREATER
+#define nssv_CPP11_OR_GREATER 1
 #endif
 
-#define nssv_CPP11_90   (nssv_CPP11_OR_GREATER_ || nssv_COMPILER_MSVC_VER >= 1500)
-#define nssv_CPP11_100  (nssv_CPP11_OR_GREATER_ || nssv_COMPILER_MSVC_VER >= 1600)
-#define nssv_CPP11_110  (nssv_CPP11_OR_GREATER_ || nssv_COMPILER_MSVC_VER >= 1700)
-#define nssv_CPP11_120  (nssv_CPP11_OR_GREATER_ || nssv_COMPILER_MSVC_VER >= 1800)
-#define nssv_CPP11_140  (nssv_CPP11_OR_GREATER_ || nssv_COMPILER_MSVC_VER >= 1900)
-#define nssv_CPP11_141  (nssv_CPP11_OR_GREATER_ || nssv_COMPILER_MSVC_VER >= 1910)
+#define nssv_CPP11_90 (nssv_CPP11_OR_GREATER_ || nssv_COMPILER_MSVC_VER >= 1500)
+#define nssv_CPP11_100 (nssv_CPP11_OR_GREATER_ || nssv_COMPILER_MSVC_VER >= 1600)
+#define nssv_CPP11_110 (nssv_CPP11_OR_GREATER_ || nssv_COMPILER_MSVC_VER >= 1700)
+#define nssv_CPP11_120 (nssv_CPP11_OR_GREATER_ || nssv_COMPILER_MSVC_VER >= 1800)
+#define nssv_CPP11_140 (nssv_CPP11_OR_GREATER_ || nssv_COMPILER_MSVC_VER >= 1900)
+#define nssv_CPP11_141 (nssv_CPP11_OR_GREATER_ || nssv_COMPILER_MSVC_VER >= 1910)
 
-#define nssv_CPP14_000  (nssv_CPP14_OR_GREATER)
-#define nssv_CPP17_000  (nssv_CPP17_OR_GREATER)
+#define nssv_CPP14_000 (nssv_CPP14_OR_GREATER)
+#define nssv_CPP17_000 (nssv_CPP17_OR_GREATER)
 
 // Presence of C++11 language features:
 
-#define nssv_HAVE_CONSTEXPR_11          nssv_CPP11_140
-#define nssv_HAVE_EXPLICIT_CONVERSION   nssv_CPP11_140
-#define nssv_HAVE_INLINE_NAMESPACE      nssv_CPP11_140
-#define nssv_HAVE_NOEXCEPT              nssv_CPP11_140
-#define nssv_HAVE_NULLPTR               nssv_CPP11_100
-#define nssv_HAVE_REF_QUALIFIER         nssv_CPP11_140
-#define nssv_HAVE_UNICODE_LITERALS      nssv_CPP11_140
+#define nssv_HAVE_CONSTEXPR_11 nssv_CPP11_140
+#define nssv_HAVE_EXPLICIT_CONVERSION nssv_CPP11_140
+#define nssv_HAVE_INLINE_NAMESPACE nssv_CPP11_140
+#define nssv_HAVE_NOEXCEPT nssv_CPP11_140
+#define nssv_HAVE_NULLPTR nssv_CPP11_100
+#define nssv_HAVE_REF_QUALIFIER nssv_CPP11_140
+#define nssv_HAVE_UNICODE_LITERALS nssv_CPP11_140
 #define nssv_HAVE_USER_DEFINED_LITERALS nssv_CPP11_140
-#define nssv_HAVE_WCHAR16_T             nssv_CPP11_100
-#define nssv_HAVE_WCHAR32_T             nssv_CPP11_100
+#define nssv_HAVE_WCHAR16_T nssv_CPP11_100
+#define nssv_HAVE_WCHAR32_T nssv_CPP11_100
 
-#if ! ( ( nssv_CPP11_OR_GREATER && nssv_COMPILER_CLANG_VERSION ) || nssv_BETWEEN( nssv_COMPILER_CLANG_VERSION, 300, 400 ) )
-# define nssv_HAVE_STD_DEFINED_LITERALS  nssv_CPP11_140
+#if !((nssv_CPP11_OR_GREATER && nssv_COMPILER_CLANG_VERSION) || nssv_BETWEEN(nssv_COMPILER_CLANG_VERSION, 300, 400))
+#define nssv_HAVE_STD_DEFINED_LITERALS nssv_CPP11_140
 #else
-# define nssv_HAVE_STD_DEFINED_LITERALS  0
+#define nssv_HAVE_STD_DEFINED_LITERALS 0
 #endif
 
 // Presence of C++14 language features:
 
-#define nssv_HAVE_CONSTEXPR_14          nssv_CPP14_000
+#define nssv_HAVE_CONSTEXPR_14 nssv_CPP14_000
 
 // Presence of C++17 language features:
 
-#define nssv_HAVE_NODISCARD             nssv_CPP17_000
+#define nssv_HAVE_NODISCARD nssv_CPP17_000
 
 // Presence of C++ library features:
 
-#define nssv_HAVE_STD_HASH              nssv_CPP11_120
+#define nssv_HAVE_STD_HASH nssv_CPP11_120
 
 // C++ feature usage:
 
 #if nssv_HAVE_CONSTEXPR_11
-# define nssv_constexpr  constexpr
+#define nssv_constexpr constexpr
 #else
-# define nssv_constexpr  /*constexpr*/
+#define nssv_constexpr /*constexpr*/
 #endif
 
-#if  nssv_HAVE_CONSTEXPR_14
-# define nssv_constexpr14  constexpr
+#if nssv_HAVE_CONSTEXPR_14
+#define nssv_constexpr14 constexpr
 #else
-# define nssv_constexpr14  /*constexpr*/
+#define nssv_constexpr14 /*constexpr*/
 #endif
 
 #if nssv_HAVE_EXPLICIT_CONVERSION
-# define nssv_explicit  explicit
+#define nssv_explicit explicit
 #else
-# define nssv_explicit  /*explicit*/
+#define nssv_explicit /*explicit*/
 #endif
 
 #if nssv_HAVE_INLINE_NAMESPACE
-# define nssv_inline_ns  inline
+#define nssv_inline_ns inline
 #else
-# define nssv_inline_ns  /*inline*/
+#define nssv_inline_ns /*inline*/
 #endif
 
 #if nssv_HAVE_NOEXCEPT
-# define nssv_noexcept  noexcept
+#define nssv_noexcept noexcept
 #else
-# define nssv_noexcept  /*noexcept*/
+#define nssv_noexcept /*noexcept*/
 #endif
 
 //#if nssv_HAVE_REF_QUALIFIER
@@ -431,15 +371,15 @@ using std::operator<<;
 //#endif
 
 #if nssv_HAVE_NULLPTR
-# define nssv_nullptr  nullptr
+#define nssv_nullptr nullptr
 #else
-# define nssv_nullptr  NULL
+#define nssv_nullptr NULL
 #endif
 
 #if nssv_HAVE_NODISCARD
-# define nssv_nodiscard  [[nodiscard]]
+#define nssv_nodiscard [[nodiscard]]
 #else
-# define nssv_nodiscard  /*[[nodiscard]]*/
+#define nssv_nodiscard /*[[nodiscard]]*/
 #endif
 
 // Additional includes:
@@ -449,45 +389,45 @@ using std::operator<<;
 #include <iterator>
 #include <limits>
 #include <ostream>
-#include <string>   // std::char_traits<>
+#include <string> // std::char_traits<>
 
-#if ! nssv_CONFIG_NO_EXCEPTIONS
-# include <stdexcept>
+#if !nssv_CONFIG_NO_EXCEPTIONS
+#include <stdexcept>
 #endif
 
 #if nssv_CPP11_OR_GREATER
-# include <type_traits>
+#include <type_traits>
 #endif
 
 // Clang, GNUC, MSVC warning suppression macros:
 
 #if defined(__clang__)
-# pragma clang diagnostic ignored "-Wreserved-user-defined-literal"
-# pragma clang diagnostic push
-# pragma clang diagnostic ignored "-Wuser-defined-literals"
+#pragma clang diagnostic ignored "-Wreserved-user-defined-literal"
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wuser-defined-literals"
 #elif defined(__GNUC__)
-# pragma  GCC  diagnostic push
-# pragma  GCC  diagnostic ignored "-Wliteral-suffix"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wliteral-suffix"
 #endif // __clang__
 
 #if nssv_COMPILER_MSVC_VERSION >= 140
-# define nssv_SUPPRESS_MSGSL_WARNING(expr)        [[gsl::suppress(expr)]]
-# define nssv_SUPPRESS_MSVC_WARNING(code, descr)  __pragma(warning(suppress: code) )
-# define nssv_DISABLE_MSVC_WARNINGS(codes)        __pragma(warning(push))  __pragma(warning(disable: codes))
+#define nssv_SUPPRESS_MSGSL_WARNING(expr) [[gsl::suppress(expr)]]
+#define nssv_SUPPRESS_MSVC_WARNING(code, descr) __pragma(warning(suppress : code))
+#define nssv_DISABLE_MSVC_WARNINGS(codes) __pragma(warning(push)) __pragma(warning(disable : codes))
 #else
-# define nssv_SUPPRESS_MSGSL_WARNING(expr)
-# define nssv_SUPPRESS_MSVC_WARNING(code, descr)
-# define nssv_DISABLE_MSVC_WARNINGS(codes)
+#define nssv_SUPPRESS_MSGSL_WARNING(expr)
+#define nssv_SUPPRESS_MSVC_WARNING(code, descr)
+#define nssv_DISABLE_MSVC_WARNINGS(codes)
 #endif
 
 #if defined(__clang__)
-# define nssv_RESTORE_WARNINGS()  _Pragma("clang diagnostic pop")
+#define nssv_RESTORE_WARNINGS() _Pragma("clang diagnostic pop")
 #elif defined(__GNUC__)
-# define nssv_RESTORE_WARNINGS()  _Pragma("GCC diagnostic pop")
+#define nssv_RESTORE_WARNINGS() _Pragma("GCC diagnostic pop")
 #elif nssv_COMPILER_MSVC_VERSION >= 140
-# define nssv_RESTORE_WARNINGS()  __pragma(warning(pop ))
+#define nssv_RESTORE_WARNINGS() __pragma(warning(pop))
 #else
-# define nssv_RESTORE_WARNINGS()
+#define nssv_RESTORE_WARNINGS()
 #endif
 
 // Suppress the following MSVC (GSL) warnings:
@@ -497,446 +437,409 @@ using std::operator<<;
 //                      use brace initialization, gsl::narrow_cast or gsl::narow
 // - C26481: gsl::b.1 : don't use pointer arithmetic. Use span instead
 
-nssv_DISABLE_MSVC_WARNINGS( 4455 26481 26472 )
-//nssv_DISABLE_CLANG_WARNINGS( "-Wuser-defined-literals" )
-//nssv_DISABLE_GNUC_WARNINGS( -Wliteral-suffix )
+nssv_DISABLE_MSVC_WARNINGS(4455 26481 26472)
+    // nssv_DISABLE_CLANG_WARNINGS( "-Wuser-defined-literals" )
+    // nssv_DISABLE_GNUC_WARNINGS( -Wliteral-suffix )
 
-namespace nonstd { namespace sv_lite {
+    namespace nonstd {
+  namespace sv_lite {
 
 #if nssv_CPP11_OR_GREATER
 
-namespace detail {
+  namespace detail {
 
-// Expect tail call optimization to make length() non-recursive:
+  // Expect tail call optimization to make length() non-recursive:
 
-template< typename CharT >
-inline constexpr std::size_t length( CharT * s, std::size_t result = 0 )
-{
-    return *s == '\0' ? result : length( s + 1, result + 1 );
-}
+  template <typename CharT> inline constexpr std::size_t length(CharT *s, std::size_t result = 0) {
+    return *s == '\0' ? result : length(s + 1, result + 1);
+  }
 
-} // namespace detail
+  } // namespace detail
 
 #endif // nssv_CPP11_OR_GREATER
 
-template
-<
-    class CharT,
-    class Traits = std::char_traits<CharT>
->
-class basic_string_view;
+  template <class CharT, class Traits = std::char_traits<CharT>> class basic_string_view;
 
-//
-// basic_string_view:
-//
+  //
+  // basic_string_view:
+  //
 
-template
-<
-    class CharT,
-    class Traits /* = std::char_traits<CharT> */
->
-class basic_string_view
-{
-public:
+  template <class CharT, class Traits /* = std::char_traits<CharT> */
+            >
+  class basic_string_view {
+  public:
     // Member types:
 
     typedef Traits traits_type;
-    typedef CharT  value_type;
+    typedef CharT value_type;
 
-    typedef CharT       * pointer;
-    typedef CharT const * const_pointer;
-    typedef CharT       & reference;
-    typedef CharT const & const_reference;
+    typedef CharT *pointer;
+    typedef CharT const *const_pointer;
+    typedef CharT &reference;
+    typedef CharT const &const_reference;
 
     typedef const_pointer iterator;
     typedef const_pointer const_iterator;
-    typedef std::reverse_iterator< const_iterator > reverse_iterator;
-    typedef	std::reverse_iterator< const_iterator > const_reverse_iterator;
+    typedef std::reverse_iterator<const_iterator> reverse_iterator;
+    typedef std::reverse_iterator<const_iterator> const_reverse_iterator;
 
-    typedef std::size_t     size_type;
-    typedef std::ptrdiff_t  difference_type;
+    typedef std::size_t size_type;
+    typedef std::ptrdiff_t difference_type;
 
     // 24.4.2.1 Construction and assignment:
 
-    nssv_constexpr basic_string_view() nssv_noexcept
-        : data_( nssv_nullptr )
-        , size_( 0 )
-    {}
+    nssv_constexpr basic_string_view() nssv_noexcept : data_(nssv_nullptr), size_(0) {}
 
 #if nssv_CPP11_OR_GREATER
-    nssv_constexpr basic_string_view( basic_string_view const & other ) nssv_noexcept = default;
+    nssv_constexpr basic_string_view(basic_string_view const &other) nssv_noexcept = default;
 #else
-    nssv_constexpr basic_string_view( basic_string_view const & other ) nssv_noexcept
-        : data_( other.data_)
-        , size_( other.size_)
-    {}
+    nssv_constexpr basic_string_view(basic_string_view const &other) nssv_noexcept : data_(other.data_),
+                                                                                     size_(other.size_) {}
 #endif
 
-    nssv_constexpr basic_string_view( CharT const * s, size_type count ) nssv_noexcept // non-standard noexcept
-        : data_( s )
-        , size_( count )
-    {}
+    nssv_constexpr basic_string_view(CharT const *s, size_type count) nssv_noexcept // non-standard noexcept
+        : data_(s),
+          size_(count) {}
 
-    nssv_constexpr basic_string_view( CharT const * s) nssv_noexcept // non-standard noexcept
-        : data_( s )
+    nssv_constexpr basic_string_view(CharT const *s) nssv_noexcept // non-standard noexcept
+        : data_(s)
 #if nssv_CPP17_OR_GREATER
-        , size_( Traits::length(s) )
+        ,
+          size_(Traits::length(s))
 #elif nssv_CPP11_OR_GREATER
-        , size_( detail::length(s) )
+        ,
+          size_(detail::length(s))
 #else
-        , size_( Traits::length(s) )
+        ,
+          size_(Traits::length(s))
 #endif
-    {}
+    {
+    }
 
     // Assignment:
 
 #if nssv_CPP11_OR_GREATER
-    nssv_constexpr14 basic_string_view & operator=( basic_string_view const & other ) nssv_noexcept = default;
+    nssv_constexpr14 basic_string_view &operator=(basic_string_view const &other) nssv_noexcept = default;
 #else
-    nssv_constexpr14 basic_string_view & operator=( basic_string_view const & other ) nssv_noexcept
-    {
-        data_ = other.data_;
-        size_ = other.size_;
-        return *this;
+    nssv_constexpr14 basic_string_view &operator=(basic_string_view const &other) nssv_noexcept {
+      data_ = other.data_;
+      size_ = other.size_;
+      return *this;
     }
 #endif
 
     // 24.4.2.2 Iterator support:
 
-    nssv_constexpr const_iterator begin()  const nssv_noexcept { return data_;         }
-    nssv_constexpr const_iterator end()    const nssv_noexcept { return data_ + size_; }
+    nssv_constexpr const_iterator begin() const nssv_noexcept { return data_; }
+    nssv_constexpr const_iterator end() const nssv_noexcept { return data_ + size_; }
 
     nssv_constexpr const_iterator cbegin() const nssv_noexcept { return begin(); }
-    nssv_constexpr const_iterator cend()   const nssv_noexcept { return end();   }
+    nssv_constexpr const_iterator cend() const nssv_noexcept { return end(); }
 
-    nssv_constexpr const_reverse_iterator rbegin()  const nssv_noexcept { return const_reverse_iterator( end() );   }
-    nssv_constexpr const_reverse_iterator rend()    const nssv_noexcept { return const_reverse_iterator( begin() ); }
+    nssv_constexpr const_reverse_iterator rbegin() const nssv_noexcept { return const_reverse_iterator(end()); }
+    nssv_constexpr const_reverse_iterator rend() const nssv_noexcept { return const_reverse_iterator(begin()); }
 
     nssv_constexpr const_reverse_iterator crbegin() const nssv_noexcept { return rbegin(); }
-    nssv_constexpr const_reverse_iterator crend()   const nssv_noexcept { return rend();   }
+    nssv_constexpr const_reverse_iterator crend() const nssv_noexcept { return rend(); }
 
     // 24.4.2.3 Capacity:
 
-    nssv_constexpr size_type size()     const nssv_noexcept { return size_; }
-    nssv_constexpr size_type length()   const nssv_noexcept { return size_; }
-    nssv_constexpr size_type max_size() const nssv_noexcept { return (std::numeric_limits< size_type >::max)(); }
+    nssv_constexpr size_type size() const nssv_noexcept { return size_; }
+    nssv_constexpr size_type length() const nssv_noexcept { return size_; }
+    nssv_constexpr size_type max_size() const nssv_noexcept { return (std::numeric_limits<size_type>::max)(); }
 
     // since C++20
-    nssv_nodiscard nssv_constexpr bool empty() const nssv_noexcept
-    {
-        return 0 == size_;
-    }
+    nssv_nodiscard nssv_constexpr bool empty() const nssv_noexcept { return 0 == size_; }
 
     // 24.4.2.4 Element access:
 
-    nssv_constexpr const_reference operator[]( size_type pos ) const
-    {
-        return data_at( pos );
-    }
+    nssv_constexpr const_reference operator[](size_type pos) const { return data_at(pos); }
 
-    nssv_constexpr14 const_reference at( size_type pos ) const
-    {
+    nssv_constexpr14 const_reference at(size_type pos) const {
 #if nssv_CONFIG_NO_EXCEPTIONS
-        assert( pos < size() );
+      assert(pos < size());
 #else
-        if ( pos >= size() )
-        {
-            throw std::out_of_range("nonstd::string_view::at()");
-        }
+      if (pos >= size()) {
+        throw std::out_of_range("nonstd::string_view::at()");
+      }
 #endif
-        return data_at( pos );
+      return data_at(pos);
     }
 
-    nssv_constexpr const_reference front() const { return data_at( 0 );          }
-    nssv_constexpr const_reference back()  const { return data_at( size() - 1 ); }
+    nssv_constexpr const_reference front() const { return data_at(0); }
+    nssv_constexpr const_reference back() const { return data_at(size() - 1); }
 
-    nssv_constexpr const_pointer   data()  const nssv_noexcept { return data_; }
+    nssv_constexpr const_pointer data() const nssv_noexcept { return data_; }
 
     // 24.4.2.5 Modifiers:
 
-    nssv_constexpr14 void remove_prefix( size_type n )
-    {
-        assert( n <= size() );
-        data_ += n;
-        size_ -= n;
+    nssv_constexpr14 void remove_prefix(size_type n) {
+      assert(n <= size());
+      data_ += n;
+      size_ -= n;
     }
 
-    nssv_constexpr14 void remove_suffix( size_type n )
-    {
-        assert( n <= size() );
-        size_ -= n;
+    nssv_constexpr14 void remove_suffix(size_type n) {
+      assert(n <= size());
+      size_ -= n;
     }
 
-    nssv_constexpr14 void swap( basic_string_view & other ) nssv_noexcept
-    {
-        using std::swap;
-        swap( data_, other.data_ );
-        swap( size_, other.size_ );
+    nssv_constexpr14 void swap(basic_string_view &other) nssv_noexcept {
+      using std::swap;
+      swap(data_, other.data_);
+      swap(size_, other.size_);
     }
 
     // 24.4.2.6 String operations:
 
-    size_type copy( CharT * dest, size_type n, size_type pos = 0 ) const
-    {
+    size_type copy(CharT *dest, size_type n, size_type pos = 0) const {
 #if nssv_CONFIG_NO_EXCEPTIONS
-        assert( pos <= size() );
+      assert(pos <= size());
 #else
-        if ( pos > size() )
-        {
-            throw std::out_of_range("nonstd::string_view::copy()");
-        }
+      if (pos > size()) {
+        throw std::out_of_range("nonstd::string_view::copy()");
+      }
 #endif
-        const size_type rlen = (std::min)( n, size() - pos );
+      const size_type rlen = (std::min)(n, size() - pos);
 
-        (void) Traits::copy( dest, data() + pos, rlen );
+      (void)Traits::copy(dest, data() + pos, rlen);
 
-        return rlen;
+      return rlen;
     }
 
-    nssv_constexpr14 basic_string_view substr( size_type pos = 0, size_type n = npos ) const
-    {
+    nssv_constexpr14 basic_string_view substr(size_type pos = 0, size_type n = npos) const {
 #if nssv_CONFIG_NO_EXCEPTIONS
-        assert( pos <= size() );
+      assert(pos <= size());
 #else
-        if ( pos > size() )
-        {
-            throw std::out_of_range("nonstd::string_view::substr()");
-        }
+      if (pos > size()) {
+        throw std::out_of_range("nonstd::string_view::substr()");
+      }
 #endif
-        return basic_string_view( data() + pos, (std::min)( n, size() - pos ) );
+      return basic_string_view(data() + pos, (std::min)(n, size() - pos));
     }
 
     // compare(), 6x:
 
-    nssv_constexpr14 int compare( basic_string_view other ) const nssv_noexcept // (1)
+    nssv_constexpr14 int compare(basic_string_view other) const nssv_noexcept // (1)
     {
-        if ( const int result = Traits::compare( data(), other.data(), (std::min)( size(), other.size() ) ) )
-        {
-            return result;
-        }
+      if (const int result = Traits::compare(data(), other.data(), (std::min)(size(), other.size()))) {
+        return result;
+      }
 
-        return size() == other.size() ? 0 : size() < other.size() ? -1 : 1;
+      return size() == other.size() ? 0 : size() < other.size() ? -1 : 1;
     }
 
-    nssv_constexpr int compare( size_type pos1, size_type n1, basic_string_view other ) const // (2)
+    nssv_constexpr int compare(size_type pos1, size_type n1, basic_string_view other) const // (2)
     {
-        return substr( pos1, n1 ).compare( other );
+      return substr(pos1, n1).compare(other);
     }
 
-    nssv_constexpr int compare( size_type pos1, size_type n1, basic_string_view other, size_type pos2, size_type n2 ) const // (3)
+    nssv_constexpr int compare(size_type pos1, size_type n1, basic_string_view other, size_type pos2,
+                               size_type n2) const // (3)
     {
-        return substr( pos1, n1 ).compare( other.substr( pos2, n2 ) );
+      return substr(pos1, n1).compare(other.substr(pos2, n2));
     }
 
-    nssv_constexpr int compare( CharT const * s ) const // (4)
+    nssv_constexpr int compare(CharT const *s) const // (4)
     {
-        return compare( basic_string_view( s ) );
+      return compare(basic_string_view(s));
     }
 
-    nssv_constexpr int compare( size_type pos1, size_type n1, CharT const * s ) const // (5)
+    nssv_constexpr int compare(size_type pos1, size_type n1, CharT const *s) const // (5)
     {
-        return substr( pos1, n1 ).compare( basic_string_view( s ) );
+      return substr(pos1, n1).compare(basic_string_view(s));
     }
 
-    nssv_constexpr int compare( size_type pos1, size_type n1, CharT const * s, size_type n2 ) const // (6)
+    nssv_constexpr int compare(size_type pos1, size_type n1, CharT const *s, size_type n2) const // (6)
     {
-        return substr( pos1, n1 ).compare( basic_string_view( s, n2 ) );
+      return substr(pos1, n1).compare(basic_string_view(s, n2));
     }
 
     // 24.4.2.7 Searching:
 
     // starts_with(), 3x, since C++20:
 
-    nssv_constexpr bool starts_with( basic_string_view v ) const nssv_noexcept  // (1)
+    nssv_constexpr bool starts_with(basic_string_view v) const nssv_noexcept // (1)
     {
-        return size() >= v.size() && compare( 0, v.size(), v ) == 0;
+      return size() >= v.size() && compare(0, v.size(), v) == 0;
     }
 
-    nssv_constexpr bool starts_with( CharT c ) const nssv_noexcept  // (2)
+    nssv_constexpr bool starts_with(CharT c) const nssv_noexcept // (2)
     {
-        return starts_with( basic_string_view( &c, 1 ) );
+      return starts_with(basic_string_view(&c, 1));
     }
 
-    nssv_constexpr bool starts_with( CharT const * s ) const  // (3)
+    nssv_constexpr bool starts_with(CharT const *s) const // (3)
     {
-        return starts_with( basic_string_view( s ) );
+      return starts_with(basic_string_view(s));
     }
 
     // ends_with(), 3x, since C++20:
 
-    nssv_constexpr bool ends_with( basic_string_view v ) const nssv_noexcept  // (1)
+    nssv_constexpr bool ends_with(basic_string_view v) const nssv_noexcept // (1)
     {
-        return size() >= v.size() && compare( size() - v.size(), npos, v ) == 0;
+      return size() >= v.size() && compare(size() - v.size(), npos, v) == 0;
     }
 
-    nssv_constexpr bool ends_with( CharT c ) const nssv_noexcept  // (2)
+    nssv_constexpr bool ends_with(CharT c) const nssv_noexcept // (2)
     {
-        return ends_with( basic_string_view( &c, 1 ) );
+      return ends_with(basic_string_view(&c, 1));
     }
 
-    nssv_constexpr bool ends_with( CharT const * s ) const  // (3)
+    nssv_constexpr bool ends_with(CharT const *s) const // (3)
     {
-        return ends_with( basic_string_view( s ) );
+      return ends_with(basic_string_view(s));
     }
 
     // find(), 4x:
 
-    nssv_constexpr14 size_type find( basic_string_view v, size_type pos = 0 ) const nssv_noexcept  // (1)
+    nssv_constexpr14 size_type find(basic_string_view v, size_type pos = 0) const nssv_noexcept // (1)
     {
-        return assert( v.size() == 0 || v.data() != nssv_nullptr )
-            , pos >= size()
-            ? npos
-            : to_pos( std::search( cbegin() + pos, cend(), v.cbegin(), v.cend(), Traits::eq ) );
+      return assert(v.size() == 0 || v.data() != nssv_nullptr),
+             pos >= size() ? npos : to_pos(std::search(cbegin() + pos, cend(), v.cbegin(), v.cend(), Traits::eq));
     }
 
-    nssv_constexpr14 size_type find( CharT c, size_type pos = 0 ) const nssv_noexcept  // (2)
+    nssv_constexpr14 size_type find(CharT c, size_type pos = 0) const nssv_noexcept // (2)
     {
-        return find( basic_string_view( &c, 1 ), pos );
+      return find(basic_string_view(&c, 1), pos);
     }
 
-    nssv_constexpr14 size_type find( CharT const * s, size_type pos, size_type n ) const  // (3)
+    nssv_constexpr14 size_type find(CharT const *s, size_type pos, size_type n) const // (3)
     {
-        return find( basic_string_view( s, n ), pos );
+      return find(basic_string_view(s, n), pos);
     }
 
-    nssv_constexpr14 size_type find( CharT const * s, size_type pos = 0 ) const  // (4)
+    nssv_constexpr14 size_type find(CharT const *s, size_type pos = 0) const // (4)
     {
-        return find( basic_string_view( s ), pos );
+      return find(basic_string_view(s), pos);
     }
 
     // rfind(), 4x:
 
-    nssv_constexpr14 size_type rfind( basic_string_view v, size_type pos = npos ) const nssv_noexcept  // (1)
+    nssv_constexpr14 size_type rfind(basic_string_view v, size_type pos = npos) const nssv_noexcept // (1)
     {
-        if ( size() < v.size() )
-        {
-            return npos;
-        }
+      if (size() < v.size()) {
+        return npos;
+      }
 
-        if ( v.empty() )
-        {
-            return (std::min)( size(), pos );
-        }
+      if (v.empty()) {
+        return (std::min)(size(), pos);
+      }
 
-        const_iterator last   = cbegin() + (std::min)( size() - v.size(), pos ) + v.size();
-        const_iterator result = std::find_end( cbegin(), last, v.cbegin(), v.cend(), Traits::eq );
+      const_iterator last = cbegin() + (std::min)(size() - v.size(), pos) + v.size();
+      const_iterator result = std::find_end(cbegin(), last, v.cbegin(), v.cend(), Traits::eq);
 
-        return result != last ? size_type( result - cbegin() ) : npos;
+      return result != last ? size_type(result - cbegin()) : npos;
     }
 
-    nssv_constexpr14 size_type rfind( CharT c, size_type pos = npos ) const nssv_noexcept  // (2)
+    nssv_constexpr14 size_type rfind(CharT c, size_type pos = npos) const nssv_noexcept // (2)
     {
-        return rfind( basic_string_view( &c, 1 ), pos );
+      return rfind(basic_string_view(&c, 1), pos);
     }
 
-    nssv_constexpr14 size_type rfind( CharT const * s, size_type pos, size_type n ) const  // (3)
+    nssv_constexpr14 size_type rfind(CharT const *s, size_type pos, size_type n) const // (3)
     {
-        return rfind( basic_string_view( s, n ), pos );
+      return rfind(basic_string_view(s, n), pos);
     }
 
-    nssv_constexpr14 size_type rfind( CharT const * s, size_type pos = npos ) const  // (4)
+    nssv_constexpr14 size_type rfind(CharT const *s, size_type pos = npos) const // (4)
     {
-        return rfind( basic_string_view( s ), pos );
+      return rfind(basic_string_view(s), pos);
     }
 
     // find_first_of(), 4x:
 
-    nssv_constexpr size_type find_first_of( basic_string_view v, size_type pos = 0 ) const nssv_noexcept  // (1)
+    nssv_constexpr size_type find_first_of(basic_string_view v, size_type pos = 0) const nssv_noexcept // (1)
     {
-        return pos >= size()
-            ? npos
-            : to_pos( std::find_first_of( cbegin() + pos, cend(), v.cbegin(), v.cend(), Traits::eq ) );
+      return pos >= size() ? npos
+                           : to_pos(std::find_first_of(cbegin() + pos, cend(), v.cbegin(), v.cend(), Traits::eq));
     }
 
-    nssv_constexpr size_type find_first_of( CharT c, size_type pos = 0 ) const nssv_noexcept  // (2)
+    nssv_constexpr size_type find_first_of(CharT c, size_type pos = 0) const nssv_noexcept // (2)
     {
-        return find_first_of( basic_string_view( &c, 1 ), pos );
+      return find_first_of(basic_string_view(&c, 1), pos);
     }
 
-    nssv_constexpr size_type find_first_of( CharT const * s, size_type pos, size_type n ) const  // (3)
+    nssv_constexpr size_type find_first_of(CharT const *s, size_type pos, size_type n) const // (3)
     {
-        return find_first_of( basic_string_view( s, n ), pos );
+      return find_first_of(basic_string_view(s, n), pos);
     }
 
-    nssv_constexpr size_type find_first_of(  CharT const * s, size_type pos = 0 ) const  // (4)
+    nssv_constexpr size_type find_first_of(CharT const *s, size_type pos = 0) const // (4)
     {
-        return find_first_of( basic_string_view( s ), pos );
+      return find_first_of(basic_string_view(s), pos);
     }
 
     // find_last_of(), 4x:
 
-    nssv_constexpr size_type find_last_of( basic_string_view v, size_type pos = npos ) const nssv_noexcept  // (1)
+    nssv_constexpr size_type find_last_of(basic_string_view v, size_type pos = npos) const nssv_noexcept // (1)
     {
-        return empty()
-            ? npos
-            : pos >= size()
-            ? find_last_of( v, size() - 1 )
-            : to_pos( std::find_first_of( const_reverse_iterator( cbegin() + pos + 1 ), crend(), v.cbegin(), v.cend(), Traits::eq ) );
+      return empty() ? npos
+                     : pos >= size() ? find_last_of(v, size() - 1)
+                                     : to_pos(std::find_first_of(const_reverse_iterator(cbegin() + pos + 1), crend(),
+                                                                 v.cbegin(), v.cend(), Traits::eq));
     }
 
-    nssv_constexpr size_type find_last_of( CharT c, size_type pos = npos ) const nssv_noexcept  // (2)
+    nssv_constexpr size_type find_last_of(CharT c, size_type pos = npos) const nssv_noexcept // (2)
     {
-        return find_last_of( basic_string_view( &c, 1 ), pos );
+      return find_last_of(basic_string_view(&c, 1), pos);
     }
 
-    nssv_constexpr size_type find_last_of( CharT const * s, size_type pos, size_type count ) const  // (3)
+    nssv_constexpr size_type find_last_of(CharT const *s, size_type pos, size_type count) const // (3)
     {
-        return find_last_of( basic_string_view( s, count ), pos );
+      return find_last_of(basic_string_view(s, count), pos);
     }
 
-    nssv_constexpr size_type find_last_of( CharT const * s, size_type pos = npos ) const  // (4)
+    nssv_constexpr size_type find_last_of(CharT const *s, size_type pos = npos) const // (4)
     {
-        return find_last_of( basic_string_view( s ), pos );
+      return find_last_of(basic_string_view(s), pos);
     }
 
     // find_first_not_of(), 4x:
 
-    nssv_constexpr size_type find_first_not_of( basic_string_view v, size_type pos = 0 ) const nssv_noexcept  // (1)
+    nssv_constexpr size_type find_first_not_of(basic_string_view v, size_type pos = 0) const nssv_noexcept // (1)
     {
-        return pos >= size()
-            ? npos
-            : to_pos( std::find_if( cbegin() + pos, cend(), not_in_view( v ) ) );
+      return pos >= size() ? npos : to_pos(std::find_if(cbegin() + pos, cend(), not_in_view(v)));
     }
 
-    nssv_constexpr size_type find_first_not_of( CharT c, size_type pos = 0 ) const nssv_noexcept  // (2)
+    nssv_constexpr size_type find_first_not_of(CharT c, size_type pos = 0) const nssv_noexcept // (2)
     {
-        return find_first_not_of( basic_string_view( &c, 1 ), pos );
+      return find_first_not_of(basic_string_view(&c, 1), pos);
     }
 
-    nssv_constexpr size_type find_first_not_of( CharT const * s, size_type pos, size_type count ) const  // (3)
+    nssv_constexpr size_type find_first_not_of(CharT const *s, size_type pos, size_type count) const // (3)
     {
-        return find_first_not_of( basic_string_view( s, count ), pos );
+      return find_first_not_of(basic_string_view(s, count), pos);
     }
 
-    nssv_constexpr size_type find_first_not_of( CharT const * s, size_type pos = 0 ) const  // (4)
+    nssv_constexpr size_type find_first_not_of(CharT const *s, size_type pos = 0) const // (4)
     {
-        return find_first_not_of( basic_string_view( s ), pos );
+      return find_first_not_of(basic_string_view(s), pos);
     }
 
     // find_last_not_of(), 4x:
 
-    nssv_constexpr size_type find_last_not_of( basic_string_view v, size_type pos = npos ) const nssv_noexcept  // (1)
+    nssv_constexpr size_type find_last_not_of(basic_string_view v, size_type pos = npos) const nssv_noexcept // (1)
     {
-        return empty()
-            ? npos
-            : pos >= size()
-            ? find_last_not_of( v, size() - 1 )
-            : to_pos( std::find_if( const_reverse_iterator( cbegin() + pos + 1 ), crend(), not_in_view( v ) ) );
+      return empty() ? npos
+                     : pos >= size()
+                           ? find_last_not_of(v, size() - 1)
+                           : to_pos(std::find_if(const_reverse_iterator(cbegin() + pos + 1), crend(), not_in_view(v)));
     }
 
-    nssv_constexpr size_type find_last_not_of( CharT c, size_type pos = npos ) const nssv_noexcept  // (2)
+    nssv_constexpr size_type find_last_not_of(CharT c, size_type pos = npos) const nssv_noexcept // (2)
     {
-        return find_last_not_of( basic_string_view( &c, 1 ), pos );
+      return find_last_not_of(basic_string_view(&c, 1), pos);
     }
 
-    nssv_constexpr size_type find_last_not_of( CharT const * s, size_type pos, size_type count ) const  // (3)
+    nssv_constexpr size_type find_last_not_of(CharT const *s, size_type pos, size_type count) const // (3)
     {
-        return find_last_not_of( basic_string_view( s, count ), pos );
+      return find_last_not_of(basic_string_view(s, count), pos);
     }
 
-    nssv_constexpr size_type find_last_not_of( CharT const * s, size_type pos = npos ) const  // (4)
+    nssv_constexpr size_type find_last_not_of(CharT const *s, size_type pos = npos) const // (4)
     {
-        return find_last_not_of( basic_string_view( s ), pos );
+      return find_last_not_of(basic_string_view(s), pos);
     }
 
     // Constants:
@@ -949,458 +852,418 @@ public:
     enum { npos = size_type(-1) };
 #endif
 
-private:
-    struct not_in_view
-    {
-        const basic_string_view v;
+  private:
+    struct not_in_view {
+      const basic_string_view v;
 
-        nssv_constexpr explicit not_in_view( basic_string_view v ) : v( v ) {}
+      nssv_constexpr explicit not_in_view(basic_string_view v) : v(v) {}
 
-        nssv_constexpr bool operator()( CharT c ) const
-        {
-            return npos == v.find_first_of( c );
-        }
+      nssv_constexpr bool operator()(CharT c) const { return npos == v.find_first_of(c); }
     };
 
-    nssv_constexpr size_type to_pos( const_iterator it ) const
-    {
-        return it == cend() ? npos : size_type( it - cbegin() );
+    nssv_constexpr size_type to_pos(const_iterator it) const { return it == cend() ? npos : size_type(it - cbegin()); }
+
+    nssv_constexpr size_type to_pos(const_reverse_iterator it) const {
+      return it == crend() ? npos : size_type(crend() - it - 1);
     }
 
-    nssv_constexpr size_type to_pos( const_reverse_iterator it ) const
-    {
-        return it == crend() ? npos : size_type( crend() - it - 1 );
-    }
-
-    nssv_constexpr const_reference data_at( size_type pos ) const
-    {
-#if nssv_BETWEEN( nssv_COMPILER_GNUC_VERSION, 1, 500 )
-        return data_[pos];
+    nssv_constexpr const_reference data_at(size_type pos) const {
+#if nssv_BETWEEN(nssv_COMPILER_GNUC_VERSION, 1, 500)
+      return data_[pos];
 #else
-        return assert( pos < size() ), data_[pos];
+      return assert(pos < size()), data_[pos];
 #endif
     }
 
-private:
+  private:
     const_pointer data_;
-    size_type     size_;
+    size_type size_;
 
-public:
+  public:
 #if nssv_CONFIG_CONVERSION_STD_STRING_CLASS_METHODS
 
-    template< class Allocator >
-    basic_string_view( std::basic_string<CharT, Traits, Allocator> const & s ) nssv_noexcept
-        : data_( s.data() )
-        , size_( s.size() )
-    {}
+    template <class Allocator>
+    basic_string_view(std::basic_string<CharT, Traits, Allocator> const &s) nssv_noexcept : data_(s.data()),
+                                                                                            size_(s.size()) {}
 
 #if nssv_HAVE_EXPLICIT_CONVERSION
 
-    template< class Allocator >
-    explicit operator std::basic_string<CharT, Traits, Allocator>() const
-    {
-        return to_string( Allocator() );
+    template <class Allocator> explicit operator std::basic_string<CharT, Traits, Allocator>() const {
+      return to_string(Allocator());
     }
 
 #endif // nssv_HAVE_EXPLICIT_CONVERSION
 
 #if nssv_CPP11_OR_GREATER
 
-    template< class Allocator = std::allocator<CharT> >
-    std::basic_string<CharT, Traits, Allocator>
-    to_string( Allocator const & a = Allocator() ) const
-    {
-        return std::basic_string<CharT, Traits, Allocator>( begin(), end(), a );
+    template <class Allocator = std::allocator<CharT>>
+    std::basic_string<CharT, Traits, Allocator> to_string(Allocator const &a = Allocator()) const {
+      return std::basic_string<CharT, Traits, Allocator>(begin(), end(), a);
     }
 
 #else
 
-    std::basic_string<CharT, Traits>
-    to_string() const
-    {
-        return std::basic_string<CharT, Traits>( begin(), end() );
-    }
+    std::basic_string<CharT, Traits> to_string() const { return std::basic_string<CharT, Traits>(begin(), end()); }
 
-    template< class Allocator >
-    std::basic_string<CharT, Traits, Allocator>
-    to_string( Allocator const & a ) const
-    {
-        return std::basic_string<CharT, Traits, Allocator>( begin(), end(), a );
+    template <class Allocator> std::basic_string<CharT, Traits, Allocator> to_string(Allocator const &a) const {
+      return std::basic_string<CharT, Traits, Allocator>(begin(), end(), a);
     }
 
 #endif // nssv_CPP11_OR_GREATER
 
 #endif // nssv_CONFIG_CONVERSION_STD_STRING_CLASS_METHODS
-};
+  };
 
-//
-// Non-member functions:
-//
+  //
+  // Non-member functions:
+  //
 
-// 24.4.3 Non-member comparison functions:
-// lexicographically compare two string views (function template):
+  // 24.4.3 Non-member comparison functions:
+  // lexicographically compare two string views (function template):
 
-template< class CharT, class Traits >
-nssv_constexpr bool operator== (
-    basic_string_view <CharT, Traits> lhs,
-    basic_string_view <CharT, Traits> rhs ) nssv_noexcept
-{ return lhs.compare( rhs ) == 0 ; }
+  template <class CharT, class Traits>
+  nssv_constexpr bool operator==(basic_string_view<CharT, Traits> lhs,
+                                 basic_string_view<CharT, Traits> rhs) nssv_noexcept {
+    return lhs.compare(rhs) == 0;
+  }
 
-template< class CharT, class Traits >
-nssv_constexpr bool operator!= (
-    basic_string_view <CharT, Traits> lhs,
-    basic_string_view <CharT, Traits> rhs ) nssv_noexcept
-{ return lhs.compare( rhs ) != 0 ; }
+  template <class CharT, class Traits>
+  nssv_constexpr bool operator!=(basic_string_view<CharT, Traits> lhs,
+                                 basic_string_view<CharT, Traits> rhs) nssv_noexcept {
+    return lhs.compare(rhs) != 0;
+  }
 
-template< class CharT, class Traits >
-nssv_constexpr bool operator< (
-    basic_string_view <CharT, Traits> lhs,
-    basic_string_view <CharT, Traits> rhs ) nssv_noexcept
-{ return lhs.compare( rhs ) < 0 ; }
+  template <class CharT, class Traits>
+  nssv_constexpr bool operator<(basic_string_view<CharT, Traits> lhs,
+                                basic_string_view<CharT, Traits> rhs) nssv_noexcept {
+    return lhs.compare(rhs) < 0;
+  }
 
-template< class CharT, class Traits >
-nssv_constexpr bool operator<= (
-    basic_string_view <CharT, Traits> lhs,
-    basic_string_view <CharT, Traits> rhs ) nssv_noexcept
-{ return lhs.compare( rhs ) <= 0 ; }
+  template <class CharT, class Traits>
+  nssv_constexpr bool operator<=(basic_string_view<CharT, Traits> lhs,
+                                 basic_string_view<CharT, Traits> rhs) nssv_noexcept {
+    return lhs.compare(rhs) <= 0;
+  }
 
-template< class CharT, class Traits >
-nssv_constexpr bool operator> (
-    basic_string_view <CharT, Traits> lhs,
-    basic_string_view <CharT, Traits> rhs ) nssv_noexcept
-{ return lhs.compare( rhs ) > 0 ; }
+  template <class CharT, class Traits>
+  nssv_constexpr bool operator>(basic_string_view<CharT, Traits> lhs,
+                                basic_string_view<CharT, Traits> rhs) nssv_noexcept {
+    return lhs.compare(rhs) > 0;
+  }
 
-template< class CharT, class Traits >
-nssv_constexpr bool operator>= (
-    basic_string_view <CharT, Traits> lhs,
-    basic_string_view <CharT, Traits> rhs ) nssv_noexcept
-{ return lhs.compare( rhs ) >= 0 ; }
+  template <class CharT, class Traits>
+  nssv_constexpr bool operator>=(basic_string_view<CharT, Traits> lhs,
+                                 basic_string_view<CharT, Traits> rhs) nssv_noexcept {
+    return lhs.compare(rhs) >= 0;
+  }
 
-// Let S be basic_string_view<CharT, Traits>, and sv be an instance of S.
-// Implementations shall provide sufficient additional overloads marked
-// constexpr and noexcept so that an object t with an implicit conversion
-// to S can be compared according to Table 67.
+  // Let S be basic_string_view<CharT, Traits>, and sv be an instance of S.
+  // Implementations shall provide sufficient additional overloads marked
+  // constexpr and noexcept so that an object t with an implicit conversion
+  // to S can be compared according to Table 67.
 
-#if ! nssv_CPP11_OR_GREATER || nssv_BETWEEN( nssv_COMPILER_MSVC_VERSION, 100, 141 )
+#if !nssv_CPP11_OR_GREATER || nssv_BETWEEN(nssv_COMPILER_MSVC_VERSION, 100, 141)
 
-// accomodate for older compilers:
+  // accomodate for older compilers:
 
-// ==
+  // ==
 
-template< class CharT, class Traits>
-nssv_constexpr bool operator==(
-    basic_string_view<CharT, Traits> lhs,
-    char const * rhs ) nssv_noexcept
-{ return lhs.compare( rhs ) == 0; }
+  template <class CharT, class Traits>
+  nssv_constexpr bool operator==(basic_string_view<CharT, Traits> lhs, char const *rhs) nssv_noexcept {
+    return lhs.compare(rhs) == 0;
+  }
 
-template< class CharT, class Traits>
-nssv_constexpr bool operator==(
-    char const * lhs,
-    basic_string_view<CharT, Traits> rhs ) nssv_noexcept
-{ return rhs.compare( lhs ) == 0; }
+  template <class CharT, class Traits>
+  nssv_constexpr bool operator==(char const *lhs, basic_string_view<CharT, Traits> rhs) nssv_noexcept {
+    return rhs.compare(lhs) == 0;
+  }
 
-template< class CharT, class Traits>
-nssv_constexpr bool operator==(
-    basic_string_view<CharT, Traits> lhs,
-    std::basic_string<CharT, Traits> rhs ) nssv_noexcept
-{ return lhs.size() == rhs.size() && lhs.compare( rhs ) == 0; }
+  template <class CharT, class Traits>
+  nssv_constexpr bool operator==(basic_string_view<CharT, Traits> lhs,
+                                 std::basic_string<CharT, Traits> rhs) nssv_noexcept {
+    return lhs.size() == rhs.size() && lhs.compare(rhs) == 0;
+  }
 
-template< class CharT, class Traits>
-nssv_constexpr bool operator==(
-    std::basic_string<CharT, Traits> rhs,
-    basic_string_view<CharT, Traits> lhs ) nssv_noexcept
-{ return lhs.size() == rhs.size() && lhs.compare( rhs ) == 0; }
+  template <class CharT, class Traits>
+  nssv_constexpr bool operator==(std::basic_string<CharT, Traits> rhs,
+                                 basic_string_view<CharT, Traits> lhs) nssv_noexcept {
+    return lhs.size() == rhs.size() && lhs.compare(rhs) == 0;
+  }
 
-// !=
+  // !=
 
-template< class CharT, class Traits>
-nssv_constexpr bool operator!=(
-    basic_string_view<CharT, Traits> lhs,
-    char const * rhs ) nssv_noexcept
-{ return lhs.compare( rhs ) != 0; }
+  template <class CharT, class Traits>
+  nssv_constexpr bool operator!=(basic_string_view<CharT, Traits> lhs, char const *rhs) nssv_noexcept {
+    return lhs.compare(rhs) != 0;
+  }
 
-template< class CharT, class Traits>
-nssv_constexpr bool operator!=(
-    char const * lhs,
-    basic_string_view<CharT, Traits> rhs ) nssv_noexcept
-{ return rhs.compare( lhs ) != 0; }
+  template <class CharT, class Traits>
+  nssv_constexpr bool operator!=(char const *lhs, basic_string_view<CharT, Traits> rhs) nssv_noexcept {
+    return rhs.compare(lhs) != 0;
+  }
 
-template< class CharT, class Traits>
-nssv_constexpr bool operator!=(
-    basic_string_view<CharT, Traits> lhs,
-    std::basic_string<CharT, Traits> rhs ) nssv_noexcept
-{ return lhs.size() != rhs.size() && lhs.compare( rhs ) != 0; }
+  template <class CharT, class Traits>
+  nssv_constexpr bool operator!=(basic_string_view<CharT, Traits> lhs,
+                                 std::basic_string<CharT, Traits> rhs) nssv_noexcept {
+    return lhs.size() != rhs.size() && lhs.compare(rhs) != 0;
+  }
 
-template< class CharT, class Traits>
-nssv_constexpr bool operator!=(
-    std::basic_string<CharT, Traits> rhs,
-    basic_string_view<CharT, Traits> lhs ) nssv_noexcept
-{ return lhs.size() != rhs.size() || rhs.compare( lhs ) != 0; }
+  template <class CharT, class Traits>
+  nssv_constexpr bool operator!=(std::basic_string<CharT, Traits> rhs,
+                                 basic_string_view<CharT, Traits> lhs) nssv_noexcept {
+    return lhs.size() != rhs.size() || rhs.compare(lhs) != 0;
+  }
 
-// <
+  // <
 
-template< class CharT, class Traits>
-nssv_constexpr bool operator<(
-    basic_string_view<CharT, Traits> lhs,
-    char const * rhs ) nssv_noexcept
-{ return lhs.compare( rhs ) < 0; }
+  template <class CharT, class Traits>
+  nssv_constexpr bool operator<(basic_string_view<CharT, Traits> lhs, char const *rhs) nssv_noexcept {
+    return lhs.compare(rhs) < 0;
+  }
 
-template< class CharT, class Traits>
-nssv_constexpr bool operator<(
-    char const * lhs,
-    basic_string_view<CharT, Traits> rhs ) nssv_noexcept
-{ return rhs.compare( lhs ) > 0; }
+  template <class CharT, class Traits>
+  nssv_constexpr bool operator<(char const *lhs, basic_string_view<CharT, Traits> rhs) nssv_noexcept {
+    return rhs.compare(lhs) > 0;
+  }
 
-template< class CharT, class Traits>
-nssv_constexpr bool operator<(
-    basic_string_view<CharT, Traits> lhs,
-    std::basic_string<CharT, Traits> rhs ) nssv_noexcept
-{ return lhs.compare( rhs ) < 0; }
+  template <class CharT, class Traits>
+  nssv_constexpr bool operator<(basic_string_view<CharT, Traits> lhs,
+                                std::basic_string<CharT, Traits> rhs) nssv_noexcept {
+    return lhs.compare(rhs) < 0;
+  }
 
-template< class CharT, class Traits>
-nssv_constexpr bool operator<(
-    std::basic_string<CharT, Traits> rhs,
-    basic_string_view<CharT, Traits> lhs ) nssv_noexcept
-{ return rhs.compare( lhs ) > 0; }
+  template <class CharT, class Traits>
+  nssv_constexpr bool operator<(std::basic_string<CharT, Traits> rhs,
+                                basic_string_view<CharT, Traits> lhs) nssv_noexcept {
+    return rhs.compare(lhs) > 0;
+  }
 
-// <=
+  // <=
 
-template< class CharT, class Traits>
-nssv_constexpr bool operator<=(
-    basic_string_view<CharT, Traits> lhs,
-    char const * rhs ) nssv_noexcept
-{ return lhs.compare( rhs ) <= 0; }
+  template <class CharT, class Traits>
+  nssv_constexpr bool operator<=(basic_string_view<CharT, Traits> lhs, char const *rhs) nssv_noexcept {
+    return lhs.compare(rhs) <= 0;
+  }
 
-template< class CharT, class Traits>
-nssv_constexpr bool operator<=(
-    char const * lhs,
-    basic_string_view<CharT, Traits> rhs ) nssv_noexcept
-{ return rhs.compare( lhs ) >= 0; }
+  template <class CharT, class Traits>
+  nssv_constexpr bool operator<=(char const *lhs, basic_string_view<CharT, Traits> rhs) nssv_noexcept {
+    return rhs.compare(lhs) >= 0;
+  }
 
-template< class CharT, class Traits>
-nssv_constexpr bool operator<=(
-    basic_string_view<CharT, Traits> lhs,
-    std::basic_string<CharT, Traits> rhs ) nssv_noexcept
-{ return lhs.compare( rhs ) <= 0; }
+  template <class CharT, class Traits>
+  nssv_constexpr bool operator<=(basic_string_view<CharT, Traits> lhs,
+                                 std::basic_string<CharT, Traits> rhs) nssv_noexcept {
+    return lhs.compare(rhs) <= 0;
+  }
 
-template< class CharT, class Traits>
-nssv_constexpr bool operator<=(
-    std::basic_string<CharT, Traits> rhs,
-    basic_string_view<CharT, Traits> lhs ) nssv_noexcept
-{ return rhs.compare( lhs ) >= 0; }
+  template <class CharT, class Traits>
+  nssv_constexpr bool operator<=(std::basic_string<CharT, Traits> rhs,
+                                 basic_string_view<CharT, Traits> lhs) nssv_noexcept {
+    return rhs.compare(lhs) >= 0;
+  }
 
-// >
+  // >
 
-template< class CharT, class Traits>
-nssv_constexpr bool operator>(
-    basic_string_view<CharT, Traits> lhs,
-    char const * rhs ) nssv_noexcept
-{ return lhs.compare( rhs ) > 0; }
+  template <class CharT, class Traits>
+  nssv_constexpr bool operator>(basic_string_view<CharT, Traits> lhs, char const *rhs) nssv_noexcept {
+    return lhs.compare(rhs) > 0;
+  }
 
-template< class CharT, class Traits>
-nssv_constexpr bool operator>(
-    char const * lhs,
-    basic_string_view<CharT, Traits> rhs ) nssv_noexcept
-{ return rhs.compare( lhs ) < 0; }
+  template <class CharT, class Traits>
+  nssv_constexpr bool operator>(char const *lhs, basic_string_view<CharT, Traits> rhs) nssv_noexcept {
+    return rhs.compare(lhs) < 0;
+  }
 
-template< class CharT, class Traits>
-nssv_constexpr bool operator>(
-    basic_string_view<CharT, Traits> lhs,
-    std::basic_string<CharT, Traits> rhs ) nssv_noexcept
-{ return lhs.compare( rhs ) > 0; }
+  template <class CharT, class Traits>
+  nssv_constexpr bool operator>(basic_string_view<CharT, Traits> lhs,
+                                std::basic_string<CharT, Traits> rhs) nssv_noexcept {
+    return lhs.compare(rhs) > 0;
+  }
 
-template< class CharT, class Traits>
-nssv_constexpr bool operator>(
-    std::basic_string<CharT, Traits> rhs,
-    basic_string_view<CharT, Traits> lhs ) nssv_noexcept
-{ return rhs.compare( lhs ) < 0; }
+  template <class CharT, class Traits>
+  nssv_constexpr bool operator>(std::basic_string<CharT, Traits> rhs,
+                                basic_string_view<CharT, Traits> lhs) nssv_noexcept {
+    return rhs.compare(lhs) < 0;
+  }
 
-// >=
+  // >=
 
-template< class CharT, class Traits>
-nssv_constexpr bool operator>=(
-    basic_string_view<CharT, Traits> lhs,
-    char const * rhs ) nssv_noexcept
-{ return lhs.compare( rhs ) >= 0; }
+  template <class CharT, class Traits>
+  nssv_constexpr bool operator>=(basic_string_view<CharT, Traits> lhs, char const *rhs) nssv_noexcept {
+    return lhs.compare(rhs) >= 0;
+  }
 
-template< class CharT, class Traits>
-nssv_constexpr bool operator>=(
-    char const * lhs,
-    basic_string_view<CharT, Traits> rhs ) nssv_noexcept
-{ return rhs.compare( lhs ) <= 0; }
+  template <class CharT, class Traits>
+  nssv_constexpr bool operator>=(char const *lhs, basic_string_view<CharT, Traits> rhs) nssv_noexcept {
+    return rhs.compare(lhs) <= 0;
+  }
 
-template< class CharT, class Traits>
-nssv_constexpr bool operator>=(
-    basic_string_view<CharT, Traits> lhs,
-    std::basic_string<CharT, Traits> rhs ) nssv_noexcept
-{ return lhs.compare( rhs ) >= 0; }
+  template <class CharT, class Traits>
+  nssv_constexpr bool operator>=(basic_string_view<CharT, Traits> lhs,
+                                 std::basic_string<CharT, Traits> rhs) nssv_noexcept {
+    return lhs.compare(rhs) >= 0;
+  }
 
-template< class CharT, class Traits>
-nssv_constexpr bool operator>=(
-    std::basic_string<CharT, Traits> rhs,
-    basic_string_view<CharT, Traits> lhs ) nssv_noexcept
-{ return rhs.compare( lhs ) <= 0; }
+  template <class CharT, class Traits>
+  nssv_constexpr bool operator>=(std::basic_string<CharT, Traits> rhs,
+                                 basic_string_view<CharT, Traits> lhs) nssv_noexcept {
+    return rhs.compare(lhs) <= 0;
+  }
 
 #else // newer compilers:
 
-#define nssv_BASIC_STRING_VIEW_I(T,U)  typename std::decay< basic_string_view<T,U> >::type
+#define nssv_BASIC_STRING_VIEW_I(T, U) typename std::decay<basic_string_view<T, U>>::type
 
-#if nssv_BETWEEN( nssv_COMPILER_MSVC_VERSION, 140, 150 )
-# define nssv_MSVC_ORDER(x)  , int=x
+#if nssv_BETWEEN(nssv_COMPILER_MSVC_VERSION, 140, 150)
+#define nssv_MSVC_ORDER(x) , int = x
 #else
-# define nssv_MSVC_ORDER(x)  /*, int=x*/
+#define nssv_MSVC_ORDER(x) /*, int=x*/
 #endif
 
-// ==
+  // ==
 
-template< class CharT, class Traits  nssv_MSVC_ORDER(1) >
-nssv_constexpr bool operator==(
-         basic_string_view  <CharT, Traits> lhs,
-    nssv_BASIC_STRING_VIEW_I(CharT, Traits) rhs ) nssv_noexcept
-{ return lhs.compare( rhs ) == 0; }
+  template <class CharT, class Traits nssv_MSVC_ORDER(1)>
+  nssv_constexpr bool operator==(basic_string_view<CharT, Traits> lhs,
+                                 nssv_BASIC_STRING_VIEW_I(CharT, Traits) rhs) nssv_noexcept {
+    return lhs.compare(rhs) == 0;
+  }
 
-template< class CharT, class Traits  nssv_MSVC_ORDER(2) >
-nssv_constexpr bool operator==(
-    nssv_BASIC_STRING_VIEW_I(CharT, Traits) lhs,
-         basic_string_view  <CharT, Traits> rhs ) nssv_noexcept
-{ return lhs.size() == rhs.size() && lhs.compare( rhs ) == 0; }
+  template <class CharT, class Traits nssv_MSVC_ORDER(2)>
+  nssv_constexpr bool operator==(nssv_BASIC_STRING_VIEW_I(CharT, Traits) lhs,
+                                 basic_string_view<CharT, Traits> rhs) nssv_noexcept {
+    return lhs.size() == rhs.size() && lhs.compare(rhs) == 0;
+  }
 
-// !=
+  // !=
 
-template< class CharT, class Traits  nssv_MSVC_ORDER(1) >
-nssv_constexpr bool operator!= (
-         basic_string_view  < CharT, Traits > lhs,
-    nssv_BASIC_STRING_VIEW_I( CharT, Traits ) rhs ) nssv_noexcept
-{ return lhs.size() != rhs.size() || lhs.compare( rhs ) != 0 ; }
+  template <class CharT, class Traits nssv_MSVC_ORDER(1)>
+  nssv_constexpr bool operator!=(basic_string_view<CharT, Traits> lhs,
+                                 nssv_BASIC_STRING_VIEW_I(CharT, Traits) rhs) nssv_noexcept {
+    return lhs.size() != rhs.size() || lhs.compare(rhs) != 0;
+  }
 
-template< class CharT, class Traits  nssv_MSVC_ORDER(2) >
-nssv_constexpr bool operator!= (
-    nssv_BASIC_STRING_VIEW_I( CharT, Traits ) lhs,
-         basic_string_view  < CharT, Traits > rhs ) nssv_noexcept
-{ return lhs.compare( rhs ) != 0 ; }
+  template <class CharT, class Traits nssv_MSVC_ORDER(2)>
+  nssv_constexpr bool operator!=(nssv_BASIC_STRING_VIEW_I(CharT, Traits) lhs,
+                                 basic_string_view<CharT, Traits> rhs) nssv_noexcept {
+    return lhs.compare(rhs) != 0;
+  }
 
-// <
+  // <
 
-template< class CharT, class Traits  nssv_MSVC_ORDER(1) >
-nssv_constexpr bool operator< (
-         basic_string_view  < CharT, Traits > lhs,
-    nssv_BASIC_STRING_VIEW_I( CharT, Traits ) rhs ) nssv_noexcept
-{ return lhs.compare( rhs ) < 0 ; }
+  template <class CharT, class Traits nssv_MSVC_ORDER(1)>
+  nssv_constexpr bool operator<(basic_string_view<CharT, Traits> lhs,
+                                nssv_BASIC_STRING_VIEW_I(CharT, Traits) rhs) nssv_noexcept {
+    return lhs.compare(rhs) < 0;
+  }
 
-template< class CharT, class Traits  nssv_MSVC_ORDER(2) >
-nssv_constexpr bool operator< (
-    nssv_BASIC_STRING_VIEW_I( CharT, Traits ) lhs,
-         basic_string_view  < CharT, Traits > rhs ) nssv_noexcept
-{ return lhs.compare( rhs ) < 0 ; }
+  template <class CharT, class Traits nssv_MSVC_ORDER(2)>
+  nssv_constexpr bool operator<(nssv_BASIC_STRING_VIEW_I(CharT, Traits) lhs,
+                                basic_string_view<CharT, Traits> rhs) nssv_noexcept {
+    return lhs.compare(rhs) < 0;
+  }
 
-// <=
+  // <=
 
-template< class CharT, class Traits  nssv_MSVC_ORDER(1) >
-nssv_constexpr bool operator<= (
-         basic_string_view  < CharT, Traits > lhs,
-    nssv_BASIC_STRING_VIEW_I( CharT, Traits ) rhs ) nssv_noexcept
-{ return lhs.compare( rhs ) <= 0 ; }
+  template <class CharT, class Traits nssv_MSVC_ORDER(1)>
+  nssv_constexpr bool operator<=(basic_string_view<CharT, Traits> lhs,
+                                 nssv_BASIC_STRING_VIEW_I(CharT, Traits) rhs) nssv_noexcept {
+    return lhs.compare(rhs) <= 0;
+  }
 
-template< class CharT, class Traits  nssv_MSVC_ORDER(2) >
-nssv_constexpr bool operator<= (
-    nssv_BASIC_STRING_VIEW_I( CharT, Traits ) lhs,
-         basic_string_view  < CharT, Traits > rhs ) nssv_noexcept
-{ return lhs.compare( rhs ) <= 0 ; }
+  template <class CharT, class Traits nssv_MSVC_ORDER(2)>
+  nssv_constexpr bool operator<=(nssv_BASIC_STRING_VIEW_I(CharT, Traits) lhs,
+                                 basic_string_view<CharT, Traits> rhs) nssv_noexcept {
+    return lhs.compare(rhs) <= 0;
+  }
 
-// >
+  // >
 
-template< class CharT, class Traits  nssv_MSVC_ORDER(1) >
-nssv_constexpr bool operator> (
-         basic_string_view  < CharT, Traits > lhs,
-    nssv_BASIC_STRING_VIEW_I( CharT, Traits ) rhs ) nssv_noexcept
-{ return lhs.compare( rhs ) > 0 ; }
+  template <class CharT, class Traits nssv_MSVC_ORDER(1)>
+  nssv_constexpr bool operator>(basic_string_view<CharT, Traits> lhs,
+                                nssv_BASIC_STRING_VIEW_I(CharT, Traits) rhs) nssv_noexcept {
+    return lhs.compare(rhs) > 0;
+  }
 
-template< class CharT, class Traits  nssv_MSVC_ORDER(2) >
-nssv_constexpr bool operator> (
-    nssv_BASIC_STRING_VIEW_I( CharT, Traits ) lhs,
-         basic_string_view  < CharT, Traits > rhs ) nssv_noexcept
-{ return lhs.compare( rhs ) > 0 ; }
+  template <class CharT, class Traits nssv_MSVC_ORDER(2)>
+  nssv_constexpr bool operator>(nssv_BASIC_STRING_VIEW_I(CharT, Traits) lhs,
+                                basic_string_view<CharT, Traits> rhs) nssv_noexcept {
+    return lhs.compare(rhs) > 0;
+  }
 
-// >=
+  // >=
 
-template< class CharT, class Traits  nssv_MSVC_ORDER(1) >
-nssv_constexpr bool operator>= (
-         basic_string_view  < CharT, Traits > lhs,
-    nssv_BASIC_STRING_VIEW_I( CharT, Traits ) rhs ) nssv_noexcept
-{ return lhs.compare( rhs ) >= 0 ; }
+  template <class CharT, class Traits nssv_MSVC_ORDER(1)>
+  nssv_constexpr bool operator>=(basic_string_view<CharT, Traits> lhs,
+                                 nssv_BASIC_STRING_VIEW_I(CharT, Traits) rhs) nssv_noexcept {
+    return lhs.compare(rhs) >= 0;
+  }
 
-template< class CharT, class Traits  nssv_MSVC_ORDER(2) >
-nssv_constexpr bool operator>= (
-    nssv_BASIC_STRING_VIEW_I( CharT, Traits ) lhs,
-         basic_string_view  < CharT, Traits > rhs ) nssv_noexcept
-{ return lhs.compare( rhs ) >= 0 ; }
+  template <class CharT, class Traits nssv_MSVC_ORDER(2)>
+  nssv_constexpr bool operator>=(nssv_BASIC_STRING_VIEW_I(CharT, Traits) lhs,
+                                 basic_string_view<CharT, Traits> rhs) nssv_noexcept {
+    return lhs.compare(rhs) >= 0;
+  }
 
 #undef nssv_MSVC_ORDER
 #undef nssv_BASIC_STRING_VIEW_I
 
 #endif // compiler-dependent approach to comparisons
 
-// 24.4.4 Inserters and extractors:
+  // 24.4.4 Inserters and extractors:
 
-namespace detail {
+  namespace detail {
 
-template< class Stream >
-void write_padding( Stream & os, std::streamsize n )
-{
-    for ( std::streamsize i = 0; i < n; ++i )
-        os.rdbuf()->sputc( os.fill() );
-}
+  template <class Stream> void write_padding(Stream &os, std::streamsize n) {
+    for (std::streamsize i = 0; i < n; ++i)
+      os.rdbuf()->sputc(os.fill());
+  }
 
-template< class Stream, class View >
-Stream & write_to_stream( Stream & os, View const & sv )
-{
-    typename Stream::sentry sentry( os );
+  template <class Stream, class View> Stream &write_to_stream(Stream &os, View const &sv) {
+    typename Stream::sentry sentry(os);
 
-    if ( !os )
-        return os;
+    if (!os)
+      return os;
 
-    const std::streamsize length = static_cast<std::streamsize>( sv.length() );
+    const std::streamsize length = static_cast<std::streamsize>(sv.length());
 
     // Whether, and how, to pad:
-    const bool      pad = ( length < os.width() );
-    const bool left_pad = pad && ( os.flags() & std::ios_base::adjustfield ) == std::ios_base::right;
+    const bool pad = (length < os.width());
+    const bool left_pad = pad && (os.flags() & std::ios_base::adjustfield) == std::ios_base::right;
 
-    if ( left_pad )
-        write_padding( os, os.width() - length );
+    if (left_pad)
+      write_padding(os, os.width() - length);
 
     // Write span characters:
-    os.rdbuf()->sputn( sv.begin(), length );
+    os.rdbuf()->sputn(sv.begin(), length);
 
-    if ( pad && !left_pad )
-        write_padding( os, os.width() - length );
+    if (pad && !left_pad)
+      write_padding(os, os.width() - length);
 
     // Reset output stream width:
-    os.width( 0 );
+    os.width(0);
 
     return os;
-}
+  }
 
-} // namespace detail
+  } // namespace detail
 
-template< class CharT, class Traits >
-std::basic_ostream<CharT, Traits> &
-operator<<(
-    std::basic_ostream<CharT, Traits>& os,
-    basic_string_view <CharT, Traits> sv )
-{
-    return detail::write_to_stream( os, sv );
-}
+  template <class CharT, class Traits>
+  std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &os,
+                                                basic_string_view<CharT, Traits> sv) {
+    return detail::write_to_stream(os, sv);
+  }
 
-// Several typedefs for common character types are provided:
+  // Several typedefs for common character types are provided:
 
-typedef basic_string_view<char>      string_view;
-typedef basic_string_view<wchar_t>   wstring_view;
+  typedef basic_string_view<char> string_view;
+  typedef basic_string_view<wchar_t> wstring_view;
 #if nssv_HAVE_WCHAR16_T
-typedef basic_string_view<char16_t>  u16string_view;
-typedef basic_string_view<char32_t>  u32string_view;
+  typedef basic_string_view<char16_t> u16string_view;
+  typedef basic_string_view<char32_t> u32string_view;
 #endif
 
-}} // namespace nonstd::sv_lite
+  } // namespace sv_lite
+} // namespace nonstd::sv_lite
 
 //
 // 24.4.6 Suffix for basic_string_view literals:
@@ -1410,57 +1273,58 @@ typedef basic_string_view<char32_t>  u32string_view;
 
 namespace nonstd {
 nssv_inline_ns namespace literals {
-nssv_inline_ns namespace string_view_literals {
+  nssv_inline_ns namespace string_view_literals {
 
 #if nssv_CONFIG_STD_SV_OPERATOR && nssv_HAVE_STD_DEFINED_LITERALS
 
-nssv_constexpr nonstd::sv_lite::string_view operator "" sv( const char* str, size_t len ) nssv_noexcept  // (1)
-{
-    return nonstd::sv_lite::string_view{ str, len };
-}
+    nssv_constexpr nonstd::sv_lite::string_view operator"" sv(const char *str, size_t len) nssv_noexcept // (1)
+    {
+      return nonstd::sv_lite::string_view {str, len};
+    }
 
-nssv_constexpr nonstd::sv_lite::u16string_view operator "" sv( const char16_t* str, size_t len ) nssv_noexcept  // (2)
-{
-    return nonstd::sv_lite::u16string_view{ str, len };
-}
+    nssv_constexpr nonstd::sv_lite::u16string_view operator"" sv(const char16_t *str, size_t len) nssv_noexcept // (2)
+    {
+      return nonstd::sv_lite::u16string_view {str, len};
+    }
 
-nssv_constexpr nonstd::sv_lite::u32string_view operator "" sv( const char32_t* str, size_t len ) nssv_noexcept  // (3)
-{
-    return nonstd::sv_lite::u32string_view{ str, len };
-}
+    nssv_constexpr nonstd::sv_lite::u32string_view operator"" sv(const char32_t *str, size_t len) nssv_noexcept // (3)
+    {
+      return nonstd::sv_lite::u32string_view {str, len};
+    }
 
-nssv_constexpr nonstd::sv_lite::wstring_view operator "" sv( const wchar_t* str, size_t len ) nssv_noexcept  // (4)
-{
-    return nonstd::sv_lite::wstring_view{ str, len };
-}
+    nssv_constexpr nonstd::sv_lite::wstring_view operator"" sv(const wchar_t *str, size_t len) nssv_noexcept // (4)
+    {
+      return nonstd::sv_lite::wstring_view {str, len};
+    }
 
 #endif // nssv_CONFIG_STD_SV_OPERATOR && nssv_HAVE_STD_DEFINED_LITERALS
 
 #if nssv_CONFIG_USR_SV_OPERATOR
 
-nssv_constexpr nonstd::sv_lite::string_view operator "" _sv( const char* str, size_t len ) nssv_noexcept  // (1)
-{
-    return nonstd::sv_lite::string_view{ str, len };
-}
+    nssv_constexpr nonstd::sv_lite::string_view operator"" _sv(const char *str, size_t len) nssv_noexcept // (1)
+    {
+      return nonstd::sv_lite::string_view {str, len};
+    }
 
-nssv_constexpr nonstd::sv_lite::u16string_view operator "" _sv( const char16_t* str, size_t len ) nssv_noexcept  // (2)
-{
-    return nonstd::sv_lite::u16string_view{ str, len };
-}
+    nssv_constexpr nonstd::sv_lite::u16string_view operator"" _sv(const char16_t *str, size_t len) nssv_noexcept // (2)
+    {
+      return nonstd::sv_lite::u16string_view {str, len};
+    }
 
-nssv_constexpr nonstd::sv_lite::u32string_view operator "" _sv( const char32_t* str, size_t len ) nssv_noexcept  // (3)
-{
-    return nonstd::sv_lite::u32string_view{ str, len };
-}
+    nssv_constexpr nonstd::sv_lite::u32string_view operator"" _sv(const char32_t *str, size_t len) nssv_noexcept // (3)
+    {
+      return nonstd::sv_lite::u32string_view {str, len};
+    }
 
-nssv_constexpr nonstd::sv_lite::wstring_view operator "" _sv( const wchar_t* str, size_t len ) nssv_noexcept  // (4)
-{
-    return nonstd::sv_lite::wstring_view{ str, len };
-}
+    nssv_constexpr nonstd::sv_lite::wstring_view operator"" _sv(const wchar_t *str, size_t len) nssv_noexcept // (4)
+    {
+      return nonstd::sv_lite::wstring_view {str, len};
+    }
 
 #endif // nssv_CONFIG_USR_SV_OPERATOR
-
-}}} // namespace nonstd::literals::string_view_literals
+  }
+}
+} // namespace nonstd
 
 #endif
 
@@ -1477,39 +1341,32 @@ namespace sv_lite {
 
 #if nssv_CPP11_OR_GREATER && nssv_COMPILER_MSVC_VERSION != 140
 
-template< class CharT, class Traits, class Allocator = std::allocator<CharT> >
-std::basic_string<CharT, Traits, Allocator>
-to_string( basic_string_view<CharT, Traits> v, Allocator const & a = Allocator() )
-{
-    return std::basic_string<CharT,Traits, Allocator>( v.begin(), v.end(), a );
+template <class CharT, class Traits, class Allocator = std::allocator<CharT>>
+std::basic_string<CharT, Traits, Allocator> to_string(basic_string_view<CharT, Traits> v,
+                                                      Allocator const &a = Allocator()) {
+  return std::basic_string<CharT, Traits, Allocator>(v.begin(), v.end(), a);
 }
 
 #else
 
-template< class CharT, class Traits >
-std::basic_string<CharT, Traits>
-to_string( basic_string_view<CharT, Traits> v )
-{
-    return std::basic_string<CharT, Traits>( v.begin(), v.end() );
+template <class CharT, class Traits> std::basic_string<CharT, Traits> to_string(basic_string_view<CharT, Traits> v) {
+  return std::basic_string<CharT, Traits>(v.begin(), v.end());
 }
 
-template< class CharT, class Traits, class Allocator >
-std::basic_string<CharT, Traits, Allocator>
-to_string( basic_string_view<CharT, Traits> v, Allocator const & a )
-{
-    return std::basic_string<CharT, Traits, Allocator>( v.begin(), v.end(), a );
+template <class CharT, class Traits, class Allocator>
+std::basic_string<CharT, Traits, Allocator> to_string(basic_string_view<CharT, Traits> v, Allocator const &a) {
+  return std::basic_string<CharT, Traits, Allocator>(v.begin(), v.end(), a);
 }
 
 #endif // nssv_CPP11_OR_GREATER
 
-template< class CharT, class Traits, class Allocator >
-basic_string_view<CharT, Traits>
-to_string_view( std::basic_string<CharT, Traits, Allocator> const & s )
-{
-    return basic_string_view<CharT, Traits>( s.data(), s.size() );
+template <class CharT, class Traits, class Allocator>
+basic_string_view<CharT, Traits> to_string_view(std::basic_string<CharT, Traits, Allocator> const &s) {
+  return basic_string_view<CharT, Traits>(s.data(), s.size());
 }
 
-}} // namespace nonstd::sv_lite
+} // namespace sv_lite
+} // namespace nonstd
 
 #endif // nssv_CONFIG_CONVERSION_STD_STRING_FREE_FUNCTIONS
 
@@ -1559,44 +1416,32 @@ using sv_lite::to_string_view;
 
 namespace std {
 
-template<>
-struct hash< nonstd::string_view >
-{
+template <> struct hash<nonstd::string_view> {
 public:
-    std::size_t operator()( nonstd::string_view v ) const nssv_noexcept
-    {
-        return std::hash<std::string>()( std::string( v.data(), v.size() ) );
-    }
+  std::size_t operator()(nonstd::string_view v) const nssv_noexcept {
+    return std::hash<std::string>()(std::string(v.data(), v.size()));
+  }
 };
 
-template<>
-struct hash< nonstd::wstring_view >
-{
+template <> struct hash<nonstd::wstring_view> {
 public:
-    std::size_t operator()( nonstd::wstring_view v ) const nssv_noexcept
-    {
-        return std::hash<std::wstring>()( std::wstring( v.data(), v.size() ) );
-    }
+  std::size_t operator()(nonstd::wstring_view v) const nssv_noexcept {
+    return std::hash<std::wstring>()(std::wstring(v.data(), v.size()));
+  }
 };
 
-template<>
-struct hash< nonstd::u16string_view >
-{
+template <> struct hash<nonstd::u16string_view> {
 public:
-    std::size_t operator()( nonstd::u16string_view v ) const nssv_noexcept
-    {
-        return std::hash<std::u16string>()( std::u16string( v.data(), v.size() ) );
-    }
+  std::size_t operator()(nonstd::u16string_view v) const nssv_noexcept {
+    return std::hash<std::u16string>()(std::u16string(v.data(), v.size()));
+  }
 };
 
-template<>
-struct hash< nonstd::u32string_view >
-{
+template <> struct hash<nonstd::u32string_view> {
 public:
-    std::size_t operator()( nonstd::u32string_view v ) const nssv_noexcept
-    {
-        return std::hash<std::u32string>()( std::u32string( v.data(), v.size() ) );
-    }
+  std::size_t operator()(nonstd::u32string_view v) const nssv_noexcept {
+    return std::hash<std::u32string>()(std::u32string(v.data(), v.size()));
+  }
 };
 
 } // namespace std
@@ -1609,13 +1454,9 @@ nssv_RESTORE_WARNINGS()
 #endif // NONSTD_SV_LITE_H_INCLUDED
 
 
-
 namespace inja {
 
-enum class ElementNotation {
-  Dot,
-  Pointer
-};
+enum class ElementNotation { Dot, Pointer };
 
 /*!
  * \brief Class for lexer configuration.
@@ -1657,9 +1498,9 @@ struct ParserConfig {
   ElementNotation notation {ElementNotation::Dot};
 };
 
-}  // namespace inja
+} // namespace inja
 
-#endif  // INCLUDE_INJA_CONFIG_HPP_
+#endif // INCLUDE_INJA_CONFIG_HPP_
 
 // #include "function_storage.hpp"
 // Copyright (c) 2019 Pantor. All rights reserved.
@@ -1683,11 +1524,9 @@ struct ParserConfig {
 // #include "string_view.hpp"
 
 
-
 namespace inja {
 
 using json = nlohmann::json;
-
 
 struct Bytecode {
   enum class Op : uint8_t {
@@ -1790,24 +1629,23 @@ struct Bytecode {
   };
 
   Op op {Op::Nop};
-  uint32_t args: 30;
-  uint32_t flags: 2;
+  uint32_t args : 30;
+  uint32_t flags : 2;
 
   json value;
   std::string str;
 
-  Bytecode(): args(0), flags(0) {}
-  explicit Bytecode(Op op, unsigned int args = 0): op(op), args(args), flags(0) {}
-  explicit Bytecode(Op op, nonstd::string_view str, unsigned int flags): op(op), args(0), flags(flags), str(str) {}
-  explicit Bytecode(Op op, json&& value, unsigned int flags): op(op), args(0), flags(flags), value(std::move(value)) {}
+  Bytecode() : args(0), flags(0) {}
+  explicit Bytecode(Op op, unsigned int args = 0) : op(op), args(args), flags(0) {}
+  explicit Bytecode(Op op, nonstd::string_view str, unsigned int flags) : op(op), args(0), flags(flags), str(str) {}
+  explicit Bytecode(Op op, json &&value, unsigned int flags) : op(op), args(0), flags(flags), value(std::move(value)) {}
 };
 
-}  // namespace inja
+} // namespace inja
 
-#endif  // INCLUDE_INJA_BYTECODE_HPP_
+#endif // INCLUDE_INJA_BYTECODE_HPP_
 
 // #include "string_view.hpp"
-
 
 
 #define INJA_VARARGS (unsigned int) (~0) // use special number for VARARGS functions
@@ -1816,21 +1654,21 @@ namespace inja {
 
 using json = nlohmann::json;
 
-using Arguments = std::vector<const json*>;
-using CallbackFunction = std::function<json(Arguments& args)>;
+using Arguments = std::vector<const json *>;
+using CallbackFunction = std::function<json(Arguments &args)>;
 
 /*!
  * \brief Class for builtin functions and user-defined callbacks.
  */
 class FunctionStorage {
- public:
+public:
   void add_builtin(nonstd::string_view name, unsigned int num_args, Bytecode::Op op) {
-    auto& data = get_or_new(name, num_args);
+    auto &data = get_or_new(name, num_args);
     data.op = op;
   }
 
-  void add_callback(nonstd::string_view name, unsigned int num_args, const CallbackFunction& function) {
-    auto& data = get_or_new(name, num_args);
+  void add_callback(nonstd::string_view name, unsigned int num_args, const CallbackFunction &function) {
+    auto &data = get_or_new(name, num_args);
     data.function = function;
   }
 
@@ -1848,16 +1686,16 @@ class FunctionStorage {
     return nullptr;
   }
 
- private:
+private:
   struct FunctionData {
     unsigned int num_args {0};
     Bytecode::Op op {Bytecode::Op::Nop}; // for builtins
-    CallbackFunction function; // for callbacks
+    CallbackFunction function;           // for callbacks
   };
 
-  FunctionData& get_or_new(nonstd::string_view name, unsigned int num_args) {
+  FunctionData &get_or_new(nonstd::string_view name, unsigned int num_args) {
     auto &vec = m_map[static_cast<std::string>(name)];
-    for (auto &i: vec) {
+    for (auto &i : vec) {
       if (i.num_args == num_args) {
         return i;
       }
@@ -1867,14 +1705,14 @@ class FunctionStorage {
     return vec.back();
   }
 
-  const FunctionData* get(nonstd::string_view name, unsigned int num_args) const {
+  const FunctionData *get(nonstd::string_view name, unsigned int num_args) const {
     auto it = m_map.find(static_cast<std::string>(name));
     if (it == m_map.end()) {
       return nullptr;
     }
 
     const FunctionData* var_func = nullptr;
-    for (auto &&i: it->second) {
+    for (auto &&i : it->second) {
       if (i.num_args == num_args) {
         return &i; // function with precise number of argument(s) should always be used first
       } else if (i.num_args == INJA_VARARGS) {
@@ -1887,9 +1725,9 @@ class FunctionStorage {
   std::map<std::string, std::vector<FunctionData>> m_map;
 };
 
-}
+} // namespace inja
 
-#endif  // INCLUDE_INJA_FUNCTION_STORAGE_HPP_
+#endif // INCLUDE_INJA_FUNCTION_STORAGE_HPP_
 
 // #include "parser.hpp"
 // Copyright (c) 2019 Pantor. All rights reserved.
@@ -1899,7 +1737,7 @@ class FunctionStorage {
 
 #include <limits>
 #include <string>
-#include <utility> 
+#include <utility>
 #include <vector>
 
 // #include "bytecode.hpp"
@@ -1907,6 +1745,60 @@ class FunctionStorage {
 // #include "config.hpp"
 
 // #include "exceptions.hpp"
+// Copyright (c) 2020 Pantor. All rights reserved.
+
+#ifndef INCLUDE_INJA_EXCEPTIONS_HPP_
+#define INCLUDE_INJA_EXCEPTIONS_HPP_
+
+#include <stdexcept>
+#include <string>
+
+namespace inja {
+
+struct SourceLocation {
+  size_t line;
+  size_t column;
+};
+
+struct InjaError : public std::runtime_error {
+  std::string type;
+  std::string message;
+
+  bool has_location {false};
+  SourceLocation location;
+
+  InjaError(const std::string &type, const std::string &message)
+      : std::runtime_error("[inja.exception." + type + "] " + message), type(type), message(message) {}
+
+  InjaError(const std::string &type, const std::string &message, SourceLocation location)
+      : std::runtime_error("[inja.exception." + type + "] (at " + std::to_string(location.line) + ":" +
+                           std::to_string(location.column) + ") " + message),
+        type(type), message(message), has_location(true), location(location) {}
+};
+
+struct ParserError : public InjaError {
+  ParserError(const std::string &message) : InjaError("parser_error", message) {}
+  ParserError(const std::string &message, SourceLocation location) : InjaError("parser_error", message, location) {}
+};
+
+struct RenderError : public InjaError {
+  RenderError(const std::string &message) : InjaError("render_error", message) {}
+  RenderError(const std::string &message, SourceLocation location) : InjaError("render_error", message, location) {}
+};
+
+struct FileError : public InjaError {
+  FileError(const std::string &message) : InjaError("file_error", message) {}
+  FileError(const std::string &message, SourceLocation location) : InjaError("file_error", message, location) {}
+};
+
+struct JsonError : public InjaError {
+  JsonError(const std::string &message) : InjaError("json_error", message) {}
+  JsonError(const std::string &message, SourceLocation location) : InjaError("json_error", message, location) {}
+};
+
+} // namespace inja
+
+#endif // INCLUDE_INJA_EXCEPTIONS_HPP_
 
 // #include "function_storage.hpp"
 
@@ -1932,7 +1824,6 @@ class FunctionStorage {
 // #include "string_view.hpp"
 
 
-
 namespace inja {
 
 /*!
@@ -1941,31 +1832,31 @@ namespace inja {
 struct Token {
   enum class Kind {
     Text,
-    ExpressionOpen,      // {{
-    ExpressionClose,     // }}
-    LineStatementOpen,   // ##
-    LineStatementClose,  // \n
-    StatementOpen,       // {%
-    StatementClose,      // %}
-    CommentOpen,         // {#
-    CommentClose,        // #}
-    Id,                  // this, this.foo
-    Number,              // 1, 2, -1, 5.2, -5.3
-    String,              // "this"
-    Comma,               // ,
-    Colon,               // :
-    LeftParen,           // (
-    RightParen,          // )
-    LeftBracket,         // [
-    RightBracket,        // ]
-    LeftBrace,           // {
-    RightBrace,          // }
-    Equal,               // ==
-    GreaterThan,         // >
-    GreaterEqual,        // >=
-    LessThan,            // <
-    LessEqual,           // <=
-    NotEqual,            // !=
+    ExpressionOpen,     // {{
+    ExpressionClose,    // }}
+    LineStatementOpen,  // ##
+    LineStatementClose, // \n
+    StatementOpen,      // {%
+    StatementClose,     // %}
+    CommentOpen,        // {#
+    CommentClose,       // #}
+    Id,                 // this, this.foo
+    Number,             // 1, 2, -1, 5.2, -5.3
+    String,             // "this"
+    Comma,              // ,
+    Colon,              // :
+    LeftParen,          // (
+    RightParen,         // )
+    LeftBracket,        // [
+    RightBracket,       // ]
+    LeftBrace,          // {
+    RightBrace,         // }
+    Equal,              // ==
+    GreaterThan,        // >
+    GreaterEqual,       // >=
+    LessThan,           // <
+    LessEqual,          // <=
+    NotEqual,           // !=
     Unknown,
     Eof
   } kind {Kind::Unknown};
@@ -1973,25 +1864,25 @@ struct Token {
   nonstd::string_view text;
 
   constexpr Token() = default;
-  constexpr Token(Kind kind, nonstd::string_view text): kind(kind), text(text) {}
+  constexpr Token(Kind kind, nonstd::string_view text) : kind(kind), text(text) {}
 
   std::string describe() const {
     switch (kind) {
-      case Kind::Text:
-        return "<text>";
-      case Kind::LineStatementClose:
-        return "<eol>";
-      case Kind::Eof:
-        return "<eof>";
-      default:
-        return static_cast<std::string>(text);
+    case Kind::Text:
+      return "<text>";
+    case Kind::LineStatementClose:
+      return "<eol>";
+    case Kind::Eof:
+      return "<eof>";
+    default:
+      return static_cast<std::string>(text);
     }
   }
 };
 
-}
+} // namespace inja
 
-#endif  // INCLUDE_INJA_TOKEN_HPP_
+#endif // INCLUDE_INJA_TOKEN_HPP_
 
 // #include "utils.hpp"
 // Copyright (c) 2019 Pantor. All rights reserved.
@@ -2009,44 +1900,42 @@ struct Token {
 // #include "string_view.hpp"
 
 
-
 namespace inja {
 
-inline std::ifstream open_file_or_throw(const std::string& path) {
+inline std::ifstream open_file_or_throw(const std::string &path) {
   std::ifstream file;
   file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
   try {
     file.open(path);
-  } catch(const std::ios_base::failure& /*e*/) {
+  } catch (const std::ios_base::failure & /*e*/) {
     throw FileError("failed accessing file at '" + path + "'");
   }
   return file;
 }
 
 namespace string_view {
-  inline nonstd::string_view slice(nonstd::string_view view, size_t start, size_t end) {
-    start = std::min(start, view.size());
-    end = std::min(std::max(start, end), view.size());
-    return view.substr(start, end - start);  // StringRef(Data + Start, End - Start);
+inline nonstd::string_view slice(nonstd::string_view view, size_t start, size_t end) {
+  start = std::min(start, view.size());
+  end = std::min(std::max(start, end), view.size());
+  return view.substr(start, end - start); // StringRef(Data + Start, End - Start);
+}
+
+inline std::pair<nonstd::string_view, nonstd::string_view> split(nonstd::string_view view, char Separator) {
+  size_t idx = view.find(Separator);
+  if (idx == nonstd::string_view::npos) {
+    return std::make_pair(view, nonstd::string_view());
   }
+  return std::make_pair(slice(view, 0, idx), slice(view, idx + 1, nonstd::string_view::npos));
+}
 
-  inline std::pair<nonstd::string_view, nonstd::string_view> split(nonstd::string_view view, char Separator) {
-    size_t idx = view.find(Separator);
-    if (idx == nonstd::string_view::npos) {
-      return std::make_pair(view, nonstd::string_view());
-    }
-    return std::make_pair(slice(view, 0, idx), slice(view, idx + 1, nonstd::string_view::npos));
-  }
+inline bool starts_with(nonstd::string_view view, nonstd::string_view prefix) {
+  return (view.size() >= prefix.size() && view.compare(0, prefix.size(), prefix) == 0);
+}
+} // namespace string_view
 
-  inline bool starts_with(nonstd::string_view view, nonstd::string_view prefix) {
-    return (view.size() >= prefix.size() && view.compare(0, prefix.size(), prefix) == 0);
-  }
-}  // namespace string_view
+} // namespace inja
 
-}  // namespace inja
-
-#endif  // INCLUDE_INJA_UTILS_HPP_
-
+#endif // INCLUDE_INJA_UTILS_HPP_
 
 
 namespace inja {
@@ -2067,13 +1956,13 @@ class Lexer {
     CommentBody
   } m_state;
 
-  const LexerConfig& m_config;
+  const LexerConfig &m_config;
   nonstd::string_view m_in;
   size_t m_tok_start;
   size_t m_pos;
 
- public:
-  explicit Lexer(const LexerConfig& config) : m_config(config) {}
+public:
+  explicit Lexer(const LexerConfig &config) : m_config(config) {}
 
   SourceLocation current_position() const {
     // Get line and offset position (starts at 1:1)
@@ -2091,7 +1980,7 @@ class Lexer {
       search_start = sliced.find("\n", search_start + 1);
       count_lines += 1;
     }
-    
+
     return {count_lines + 1, sliced.length() - last_newline + 1};
   }
 
@@ -2106,97 +1995,100 @@ class Lexer {
     m_tok_start = m_pos;
 
   again:
-    if (m_tok_start >= m_in.size()) return make_token(Token::Kind::Eof);
+    if (m_tok_start >= m_in.size())
+      return make_token(Token::Kind::Eof);
 
     switch (m_state) {
-      default:
-      case State::Text: {
-        // fast-scan to first open character
-        size_t open_start = m_in.substr(m_pos).find_first_of(m_config.open_chars);
-        if (open_start == nonstd::string_view::npos) {
-          // didn't find open, return remaining text as text token
-          m_pos = m_in.size();
-          return make_token(Token::Kind::Text);
-        }
-        m_pos += open_start;
+    default:
+    case State::Text: {
+      // fast-scan to first open character
+      size_t open_start = m_in.substr(m_pos).find_first_of(m_config.open_chars);
+      if (open_start == nonstd::string_view::npos) {
+        // didn't find open, return remaining text as text token
+        m_pos = m_in.size();
+        return make_token(Token::Kind::Text);
+      }
+      m_pos += open_start;
 
-        // try to match one of the opening sequences, and get the close
-        nonstd::string_view open_str = m_in.substr(m_pos);
-        bool must_lstrip = false;
-        if (inja::string_view::starts_with(open_str, m_config.expression_open)) {
-          m_state = State::ExpressionStart;
-        } else if (inja::string_view::starts_with(open_str, m_config.statement_open)) {
-          m_state = State::StatementStart;
-          must_lstrip = m_config.lstrip_blocks;
-        } else if (inja::string_view::starts_with(open_str, m_config.comment_open)) {
-          m_state = State::CommentStart;
-          must_lstrip = m_config.lstrip_blocks;
-        } else if ((m_pos == 0 || m_in[m_pos - 1] == '\n') &&
-                   inja::string_view::starts_with(open_str, m_config.line_statement)) {
-          m_state = State::LineStart;
-        } else {
-          m_pos += 1;  // wasn't actually an opening sequence
-          goto again;
-        }
+      // try to match one of the opening sequences, and get the close
+      nonstd::string_view open_str = m_in.substr(m_pos);
+      bool must_lstrip = false;
+      if (inja::string_view::starts_with(open_str, m_config.expression_open)) {
+        m_state = State::ExpressionStart;
+      } else if (inja::string_view::starts_with(open_str, m_config.statement_open)) {
+        m_state = State::StatementStart;
+        must_lstrip = m_config.lstrip_blocks;
+      } else if (inja::string_view::starts_with(open_str, m_config.comment_open)) {
+        m_state = State::CommentStart;
+        must_lstrip = m_config.lstrip_blocks;
+      } else if ((m_pos == 0 || m_in[m_pos - 1] == '\n') &&
+                 inja::string_view::starts_with(open_str, m_config.line_statement)) {
+        m_state = State::LineStart;
+      } else {
+        m_pos += 1; // wasn't actually an opening sequence
+        goto again;
+      }
 
-        nonstd::string_view text = string_view::slice(m_in, m_tok_start, m_pos);
-        if (must_lstrip)
-          text = clear_final_line_if_whitespace(text);
+      nonstd::string_view text = string_view::slice(m_in, m_tok_start, m_pos);
+      if (must_lstrip)
+        text = clear_final_line_if_whitespace(text);
 
-        if (text.empty()) goto again;  // don't generate empty token
-        return Token(Token::Kind::Text, text);
+      if (text.empty())
+        goto again; // don't generate empty token
+      return Token(Token::Kind::Text, text);
+    }
+    case State::ExpressionStart: {
+      m_state = State::ExpressionBody;
+      m_pos += m_config.expression_open.size();
+      return make_token(Token::Kind::ExpressionOpen);
+    }
+    case State::LineStart: {
+      m_state = State::LineBody;
+      m_pos += m_config.line_statement.size();
+      return make_token(Token::Kind::LineStatementOpen);
+    }
+    case State::StatementStart: {
+      m_state = State::StatementBody;
+      m_pos += m_config.statement_open.size();
+      return make_token(Token::Kind::StatementOpen);
+    }
+    case State::CommentStart: {
+      m_state = State::CommentBody;
+      m_pos += m_config.comment_open.size();
+      return make_token(Token::Kind::CommentOpen);
+    }
+    case State::ExpressionBody:
+      return scan_body(m_config.expression_close, Token::Kind::ExpressionClose);
+    case State::LineBody:
+      return scan_body("\n", Token::Kind::LineStatementClose);
+    case State::StatementBody:
+      return scan_body(m_config.statement_close, Token::Kind::StatementClose, m_config.trim_blocks);
+    case State::CommentBody: {
+      // fast-scan to comment close
+      size_t end = m_in.substr(m_pos).find(m_config.comment_close);
+      if (end == nonstd::string_view::npos) {
+        m_pos = m_in.size();
+        return make_token(Token::Kind::Eof);
       }
-      case State::ExpressionStart: {
-        m_state = State::ExpressionBody;
-        m_pos += m_config.expression_open.size();
-        return make_token(Token::Kind::ExpressionOpen);
-      }
-      case State::LineStart: {
-        m_state = State::LineBody;
-        m_pos += m_config.line_statement.size();
-        return make_token(Token::Kind::LineStatementOpen);
-      }
-      case State::StatementStart: {
-        m_state = State::StatementBody;
-        m_pos += m_config.statement_open.size();
-        return make_token(Token::Kind::StatementOpen);
-      }
-      case State::CommentStart: {
-        m_state = State::CommentBody;
-        m_pos += m_config.comment_open.size();
-        return make_token(Token::Kind::CommentOpen);
-      }
-      case State::ExpressionBody:
-        return scan_body(m_config.expression_close, Token::Kind::ExpressionClose);
-      case State::LineBody:
-        return scan_body("\n", Token::Kind::LineStatementClose);
-      case State::StatementBody:
-        return scan_body(m_config.statement_close, Token::Kind::StatementClose, m_config.trim_blocks);
-      case State::CommentBody: {
-        // fast-scan to comment close
-        size_t end = m_in.substr(m_pos).find(m_config.comment_close);
-        if (end == nonstd::string_view::npos) {
-          m_pos = m_in.size();
-          return make_token(Token::Kind::Eof);
-        }
-        // return the entire comment in the close token
-        m_state = State::Text;
-        m_pos += end + m_config.comment_close.size();
-        Token tok = make_token(Token::Kind::CommentClose);
-        if (m_config.trim_blocks)
-          skip_newline();
-        return tok;
-      }
+      // return the entire comment in the close token
+      m_state = State::Text;
+      m_pos += end + m_config.comment_close.size();
+      Token tok = make_token(Token::Kind::CommentClose);
+      if (m_config.trim_blocks)
+        skip_newline();
+      return tok;
+    }
     }
   }
 
-  const LexerConfig& get_config() const { return m_config; }
+  const LexerConfig &get_config() const { return m_config; }
 
- private:
+private:
   Token scan_body(nonstd::string_view close, Token::Kind closeKind, bool trim = false) {
   again:
     // skip whitespace (except for \n as it might be a close)
-    if (m_tok_start >= m_in.size()) return make_token(Token::Kind::Eof);
+    if (m_tok_start >= m_in.size())
+      return make_token(Token::Kind::Eof);
     char ch = m_in[m_tok_start];
     if (ch == ' ' || ch == '\t' || ch == '\r') {
       m_tok_start += 1;
@@ -2223,66 +2115,66 @@ class Lexer {
     if (std::isalpha(ch)) {
       return scan_id();
     }
-    
+
     switch (ch) {
-      case ',':
-        return make_token(Token::Kind::Comma);
-      case ':':
-        return make_token(Token::Kind::Colon);
-      case '(':
-        return make_token(Token::Kind::LeftParen);
-      case ')':
-        return make_token(Token::Kind::RightParen);
-      case '[':
-        return make_token(Token::Kind::LeftBracket);
-      case ']':
-        return make_token(Token::Kind::RightBracket);
-      case '{':
-        return make_token(Token::Kind::LeftBrace);
-      case '}':
-        return make_token(Token::Kind::RightBrace);
-      case '>':
-        if (m_pos < m_in.size() && m_in[m_pos] == '=') {
-          m_pos += 1;
-          return make_token(Token::Kind::GreaterEqual);
-        }
-        return make_token(Token::Kind::GreaterThan);
-      case '<':
-        if (m_pos < m_in.size() && m_in[m_pos] == '=') {
-          m_pos += 1;
-          return make_token(Token::Kind::LessEqual);
-        }
-        return make_token(Token::Kind::LessThan);
-      case '=':
-        if (m_pos < m_in.size() && m_in[m_pos] == '=') {
-          m_pos += 1;
-          return make_token(Token::Kind::Equal);
-        }
-        return make_token(Token::Kind::Unknown);
-      case '!':
-        if (m_pos < m_in.size() && m_in[m_pos] == '=') {
-          m_pos += 1;
-          return make_token(Token::Kind::NotEqual);
-        }
-        return make_token(Token::Kind::Unknown);
-      case '\"':
-        return scan_string();
-      case '0':
-      case '1':
-      case '2':
-      case '3':
-      case '4':
-      case '5':
-      case '6':
-      case '7':
-      case '8':
-      case '9':
-      case '-':
-        return scan_number();
-      case '_':
-        return scan_id();
-      default:
-        return make_token(Token::Kind::Unknown);
+    case ',':
+      return make_token(Token::Kind::Comma);
+    case ':':
+      return make_token(Token::Kind::Colon);
+    case '(':
+      return make_token(Token::Kind::LeftParen);
+    case ')':
+      return make_token(Token::Kind::RightParen);
+    case '[':
+      return make_token(Token::Kind::LeftBracket);
+    case ']':
+      return make_token(Token::Kind::RightBracket);
+    case '{':
+      return make_token(Token::Kind::LeftBrace);
+    case '}':
+      return make_token(Token::Kind::RightBrace);
+    case '>':
+      if (m_pos < m_in.size() && m_in[m_pos] == '=') {
+        m_pos += 1;
+        return make_token(Token::Kind::GreaterEqual);
+      }
+      return make_token(Token::Kind::GreaterThan);
+    case '<':
+      if (m_pos < m_in.size() && m_in[m_pos] == '=') {
+        m_pos += 1;
+        return make_token(Token::Kind::LessEqual);
+      }
+      return make_token(Token::Kind::LessThan);
+    case '=':
+      if (m_pos < m_in.size() && m_in[m_pos] == '=') {
+        m_pos += 1;
+        return make_token(Token::Kind::Equal);
+      }
+      return make_token(Token::Kind::Unknown);
+    case '!':
+      if (m_pos < m_in.size() && m_in[m_pos] == '=') {
+        m_pos += 1;
+        return make_token(Token::Kind::NotEqual);
+      }
+      return make_token(Token::Kind::Unknown);
+    case '\"':
+      return scan_string();
+    case '0':
+    case '1':
+    case '2':
+    case '3':
+    case '4':
+    case '5':
+    case '6':
+    case '7':
+    case '8':
+    case '9':
+    case '-':
+      return scan_number();
+    case '_':
+      return scan_id();
+    default:
+      return make_token(Token::Kind::Unknown);
     }
   }
 
@@ -2318,7 +2210,8 @@ class Lexer {
   Token scan_string() {
     bool escape {false};
     for (;;) {
-      if (m_pos >= m_in.size()) break;
+      if (m_pos >= m_in.size())
+        break;
       char ch = m_in[m_pos++];
       if (ch == '\\') {
         escape = true;
@@ -2331,9 +2224,7 @@ class Lexer {
     return make_token(Token::Kind::String);
   }
 
-  Token make_token(Token::Kind kind) const {
-    return Token(kind, string_view::slice(m_in, m_tok_start, m_pos));
-  }
+  Token make_token(Token::Kind kind) const { return Token(kind, string_view::slice(m_in, m_tok_start, m_pos)); }
 
   void skip_newline() {
     if (m_pos < m_in.size()) {
@@ -2353,7 +2244,7 @@ class Lexer {
     while (!result.empty()) {
       char ch = result.back();
       if (ch == ' ' || ch == '\t')
-       result.remove_suffix(1);
+        result.remove_suffix(1);
       else if (ch == '\n' || ch == '\r')
         break;
       else
@@ -2363,9 +2254,9 @@ class Lexer {
   }
 };
 
-}
+} // namespace inja
 
-#endif  // INCLUDE_INJA_LEXER_HPP_
+#endif // INCLUDE_INJA_LEXER_HPP_
 
 // #include "template.hpp"
 // Copyright (c) 2019 Pantor. All rights reserved.
@@ -2380,7 +2271,6 @@ class Lexer {
 // #include "bytecode.hpp"
 
 
-
 namespace inja {
 
 /*!
@@ -2393,9 +2283,9 @@ struct Template {
 
 using TemplateStorage = std::map<std::string, Template>;
 
-}  // namespace inja
+} // namespace inja
 
-#endif  // INCLUDE_INJA_TEMPLATE_HPP_
+#endif // INCLUDE_INJA_TEMPLATE_HPP_
 
 // #include "token.hpp"
 
@@ -2403,7 +2293,6 @@ using TemplateStorage = std::map<std::string, Template>;
 
 
 #include <nlohmann/json.hpp>
-
 
 namespace inja {
 
@@ -2437,11 +2326,11 @@ class ParserStatic {
     functions.add_builtin("isString", 1, Bytecode::Op::IsString);
   }
 
- public:
-  ParserStatic(const ParserStatic&) = delete;
-  ParserStatic& operator=(const ParserStatic&) = delete;
+public:
+  ParserStatic(const ParserStatic &) = delete;
+  ParserStatic &operator=(const ParserStatic &) = delete;
 
-  static const ParserStatic& get_instance() {
+  static const ParserStatic &get_instance() {
     static ParserStatic inst;
     return inst;
   }
@@ -2453,31 +2342,41 @@ class ParserStatic {
  * \brief Class for parsing an inja Template.
  */
 class Parser {
- public:
-  explicit Parser(const ParserConfig& parser_config, const LexerConfig& lexer_config, TemplateStorage& included_templates): m_config(parser_config), m_lexer(lexer_config), m_included_templates(included_templates), m_static(ParserStatic::get_instance()) { }
+public:
+  explicit Parser(const ParserConfig &parser_config, const LexerConfig &lexer_config,
+                  TemplateStorage &included_templates)
+      : m_config(parser_config), m_lexer(lexer_config), m_included_templates(included_templates),
+        m_static(ParserStatic::get_instance()) {}
 
-  bool parse_expression(Template& tmpl) {
-    if (!parse_expression_and(tmpl)) return false;
-    if (m_tok.kind != Token::Kind::Id || m_tok.text != static_cast<decltype(m_tok.text)>("or")) return true;
+  bool parse_expression(Template &tmpl) {
+    if (!parse_expression_and(tmpl))
+      return false;
+    if (m_tok.kind != Token::Kind::Id || m_tok.text != static_cast<decltype(m_tok.text)>("or"))
+      return true;
     get_next_token();
-    if (!parse_expression_and(tmpl)) return false;
+    if (!parse_expression_and(tmpl))
+      return false;
     append_function(tmpl, Bytecode::Op::Or, 2);
     return true;
   }
 
-  bool parse_expression_and(Template& tmpl) {
-    if (!parse_expression_not(tmpl)) return false;
-    if (m_tok.kind != Token::Kind::Id || m_tok.text != static_cast<decltype(m_tok.text)>("and")) return true;
+  bool parse_expression_and(Template &tmpl) {
+    if (!parse_expression_not(tmpl))
+      return false;
+    if (m_tok.kind != Token::Kind::Id || m_tok.text != static_cast<decltype(m_tok.text)>("and"))
+      return true;
     get_next_token();
-    if (!parse_expression_not(tmpl)) return false;
+    if (!parse_expression_not(tmpl))
+      return false;
     append_function(tmpl, Bytecode::Op::And, 2);
     return true;
   }
 
-  bool parse_expression_not(Template& tmpl) {
+  bool parse_expression_not(Template &tmpl) {
     if (m_tok.kind == Token::Kind::Id && m_tok.text == static_cast<decltype(m_tok.text)>("not")) {
       get_next_token();
-      if (!parse_expression_not(tmpl)) return false;
+      if (!parse_expression_not(tmpl))
+        return false;
       append_function(tmpl, Bytecode::Op::Not, 1);
       return true;
     } else {
@@ -2485,164 +2384,169 @@ class Parser {
     }
   }
 
-  bool parse_expression_comparison(Template& tmpl) {
-    if (!parse_expression_datum(tmpl)) return false;
+  bool parse_expression_comparison(Template &tmpl) {
+    if (!parse_expression_datum(tmpl))
+      return false;
     Bytecode::Op op;
     switch (m_tok.kind) {
-      case Token::Kind::Id:
-        if (m_tok.text == static_cast<decltype(m_tok.text)>("in"))
-          op = Bytecode::Op::In;
-        else
-          return true;
-        break;
-      case Token::Kind::Equal:
-        op = Bytecode::Op::Equal;
-        break;
-      case Token::Kind::GreaterThan:
-        op = Bytecode::Op::Greater;
-        break;
-      case Token::Kind::LessThan:
-        op = Bytecode::Op::Less;
-        break;
-      case Token::Kind::LessEqual:
-        op = Bytecode::Op::LessEqual;
-        break;
-      case Token::Kind::GreaterEqual:
-        op = Bytecode::Op::GreaterEqual;
-        break;
-      case Token::Kind::NotEqual:
-        op = Bytecode::Op::Different;
-        break;
-      default:
+    case Token::Kind::Id:
+      if (m_tok.text == static_cast<decltype(m_tok.text)>("in"))
+        op = Bytecode::Op::In;
+      else
         return true;
+      break;
+    case Token::Kind::Equal:
+      op = Bytecode::Op::Equal;
+      break;
+    case Token::Kind::GreaterThan:
+      op = Bytecode::Op::Greater;
+      break;
+    case Token::Kind::LessThan:
+      op = Bytecode::Op::Less;
+      break;
+    case Token::Kind::LessEqual:
+      op = Bytecode::Op::LessEqual;
+      break;
+    case Token::Kind::GreaterEqual:
+      op = Bytecode::Op::GreaterEqual;
+      break;
+    case Token::Kind::NotEqual:
+      op = Bytecode::Op::Different;
+      break;
+    default:
+      return true;
     }
     get_next_token();
-    if (!parse_expression_datum(tmpl)) return false;
+    if (!parse_expression_datum(tmpl))
+      return false;
     append_function(tmpl, op, 2);
     return true;
   }
 
-  bool parse_expression_datum(Template& tmpl) {
+  bool parse_expression_datum(Template &tmpl) {
     nonstd::string_view json_first;
     size_t bracket_level = 0;
     size_t brace_level = 0;
 
     for (;;) {
       switch (m_tok.kind) {
-        case Token::Kind::LeftParen: {
-          get_next_token();
-          if (!parse_expression(tmpl)) return false;
-          if (m_tok.kind != Token::Kind::RightParen) {
-            throw_parser_error("unmatched '('");
-          }
-          get_next_token();
-          return true;
+      case Token::Kind::LeftParen: {
+        get_next_token();
+        if (!parse_expression(tmpl))
+          return false;
+        if (m_tok.kind != Token::Kind::RightParen) {
+          throw_parser_error("unmatched '('");
         }
-        case Token::Kind::Id:
-          get_peek_token();
-          if (m_peek_tok.kind == Token::Kind::LeftParen) {
-            // function call, parse arguments
-            Token func_token = m_tok;
-            get_next_token();  // id
-            get_next_token();  // leftParen
-            unsigned int num_args = 0;
-            if (m_tok.kind == Token::Kind::RightParen) {
-              // no args
-              get_next_token();
-            } else {
-              for (;;) {
-                if (!parse_expression(tmpl)) {
-                  throw_parser_error("expected expression, got '" + m_tok.describe() + "'");
-                }
-                num_args += 1;
-                if (m_tok.kind == Token::Kind::RightParen) {
-                  get_next_token();
-                  break;
-                }
-                if (m_tok.kind != Token::Kind::Comma) {
-                  throw_parser_error("expected ')' or ',', got '" + m_tok.describe() + "'");
-                }
-                get_next_token();
-              }
-            }
-
-            auto op = m_static.functions.find_builtin(func_token.text, num_args);
-
-            if (op != Bytecode::Op::Nop) {
-              // swap arguments for default(); see comment in RenderTo()
-              if (op == Bytecode::Op::Default)
-                std::swap(tmpl.bytecodes.back(), *(tmpl.bytecodes.rbegin() + 1));
-              append_function(tmpl, op, num_args);
-              return true;
-            } else {
-              append_callback(tmpl, func_token.text, num_args);
-              return true;
-            }
-          } else if (m_tok.text == static_cast<decltype(m_tok.text)>("true") ||
-              m_tok.text == static_cast<decltype(m_tok.text)>("false") ||
-              m_tok.text == static_cast<decltype(m_tok.text)>("null")) {
-            // true, false, null are json literals
-            if (brace_level == 0 && bracket_level == 0) {
-              json_first = m_tok.text;
-              goto returnJson;
-            }
-            break;
-          } else {
-            // normal literal (json read)
-            tmpl.bytecodes.emplace_back(
-                Bytecode::Op::Push, m_tok.text,
-                m_config.notation == ElementNotation::Pointer ? Bytecode::Flag::ValueLookupPointer : Bytecode::Flag::ValueLookupDot);
+        get_next_token();
+        return true;
+      }
+      case Token::Kind::Id:
+        get_peek_token();
+        if (m_peek_tok.kind == Token::Kind::LeftParen) {
+          // function call, parse arguments
+          Token func_token = m_tok;
+          get_next_token(); // id
+          get_next_token(); // leftParen
+          unsigned int num_args = 0;
+          if (m_tok.kind == Token::Kind::RightParen) {
+            // no args
             get_next_token();
+          } else {
+            for (;;) {
+              if (!parse_expression(tmpl)) {
+                throw_parser_error("expected expression, got '" + m_tok.describe() + "'");
+              }
+              num_args += 1;
+              if (m_tok.kind == Token::Kind::RightParen) {
+                get_next_token();
+                break;
+              }
+              if (m_tok.kind != Token::Kind::Comma) {
+                throw_parser_error("expected ')' or ',', got '" + m_tok.describe() + "'");
+              }
+              get_next_token();
+            }
+          }
+
+          auto op = m_static.functions.find_builtin(func_token.text, num_args);
+
+          if (op != Bytecode::Op::Nop) {
+            // swap arguments for default(); see comment in RenderTo()
+            if (op == Bytecode::Op::Default)
+              std::swap(tmpl.bytecodes.back(), *(tmpl.bytecodes.rbegin() + 1));
+            append_function(tmpl, op, num_args);
+            return true;
+          } else {
+            append_callback(tmpl, func_token.text, num_args);
             return true;
           }
-        // json passthrough
-        case Token::Kind::Number:
-        case Token::Kind::String:
+        } else if (m_tok.text == static_cast<decltype(m_tok.text)>("true") ||
+                   m_tok.text == static_cast<decltype(m_tok.text)>("false") ||
+                   m_tok.text == static_cast<decltype(m_tok.text)>("null")) {
+          // true, false, null are json literals
           if (brace_level == 0 && bracket_level == 0) {
             json_first = m_tok.text;
             goto returnJson;
           }
           break;
-        case Token::Kind::Comma:
-        case Token::Kind::Colon:
-          if (brace_level == 0 && bracket_level == 0) {
-            throw_parser_error("unexpected token '" + m_tok.describe() + "'");
-          }
-          break;
-        case Token::Kind::LeftBracket:
-          if (brace_level == 0 && bracket_level == 0) {
-            json_first = m_tok.text;
-          }
-          bracket_level += 1;
-          break;
-        case Token::Kind::LeftBrace:
-          if (brace_level == 0 && bracket_level == 0) {
-            json_first = m_tok.text;
-          }
-          brace_level += 1;
-          break;
-        case Token::Kind::RightBracket:
-          if (bracket_level == 0) {
-            throw_parser_error("unexpected ']'");
-          }
-          --bracket_level;
-          if (brace_level == 0 && bracket_level == 0) goto returnJson;
-          break;
-        case Token::Kind::RightBrace:
-          if (brace_level == 0) {
-            throw_parser_error("unexpected '}'");
-          }
-          --brace_level;
-          if (brace_level == 0 && bracket_level == 0) goto returnJson;
-          break;
-        default:
-          if (brace_level != 0) {
-            throw_parser_error("unmatched '{'");
-          }
-          if (bracket_level != 0) {
-            throw_parser_error("unmatched '['");
-          }
-          return false;
+        } else {
+          // normal literal (json read)
+          tmpl.bytecodes.emplace_back(Bytecode::Op::Push, m_tok.text,
+                                      m_config.notation == ElementNotation::Pointer ? Bytecode::Flag::ValueLookupPointer
+                                                                                    : Bytecode::Flag::ValueLookupDot);
+          get_next_token();
+          return true;
+        }
+      // json passthrough
+      case Token::Kind::Number:
+      case Token::Kind::String:
+        if (brace_level == 0 && bracket_level == 0) {
+          json_first = m_tok.text;
+          goto returnJson;
+        }
+        break;
+      case Token::Kind::Comma:
+      case Token::Kind::Colon:
+        if (brace_level == 0 && bracket_level == 0) {
+          throw_parser_error("unexpected token '" + m_tok.describe() + "'");
+        }
+        break;
+      case Token::Kind::LeftBracket:
+        if (brace_level == 0 && bracket_level == 0) {
+          json_first = m_tok.text;
+        }
+        bracket_level += 1;
+        break;
+      case Token::Kind::LeftBrace:
+        if (brace_level == 0 && bracket_level == 0) {
+          json_first = m_tok.text;
+        }
+        brace_level += 1;
+        break;
+      case Token::Kind::RightBracket:
+        if (bracket_level == 0) {
+          throw_parser_error("unexpected ']'");
+        }
+        --bracket_level;
+        if (brace_level == 0 && bracket_level == 0)
+          goto returnJson;
+        break;
+      case Token::Kind::RightBrace:
+        if (brace_level == 0) {
+          throw_parser_error("unexpected '}'");
+        }
+        --brace_level;
+        if (brace_level == 0 && bracket_level == 0)
+          goto returnJson;
+        break;
+      default:
+        if (brace_level != 0) {
+          throw_parser_error("unmatched '{'");
+        }
+        if (bracket_level != 0) {
+          throw_parser_error("unmatched '['");
+        }
+        return false;
       }
 
       get_next_token();
@@ -2656,14 +2560,16 @@ class Parser {
     return true;
   }
 
-  bool parse_statement(Template& tmpl, nonstd::string_view path) {
-    if (m_tok.kind != Token::Kind::Id) return false;
+  bool parse_statement(Template &tmpl, nonstd::string_view path) {
+    if (m_tok.kind != Token::Kind::Id)
+      return false;
 
     if (m_tok.text == static_cast<decltype(m_tok.text)>("if")) {
       get_next_token();
 
       // evaluate expression
-      if (!parse_expression(tmpl)) return false;
+      if (!parse_expression(tmpl))
+        return false;
 
       // start a new if block on if stack
       m_if_stack.emplace_back(static_cast<decltype(m_if_stack)::value_type::jump_t>(tmpl.bytecodes.size()));
@@ -2674,7 +2580,7 @@ class Parser {
       if (m_if_stack.empty()) {
         throw_parser_error("endif without matching if");
       }
-      auto& if_data = m_if_stack.back();
+      auto &if_data = m_if_stack.back();
       get_next_token();
 
       // previous conditional jump jumps here
@@ -2683,7 +2589,7 @@ class Parser {
       }
 
       // update all previous unconditional jumps to here
-      for (size_t i: if_data.uncond_jumps) {
+      for (size_t i : if_data.uncond_jumps) {
         tmpl.bytecodes[i].args = tmpl.bytecodes.size();
       }
 
@@ -2692,7 +2598,7 @@ class Parser {
     } else if (m_tok.text == static_cast<decltype(m_tok.text)>("else")) {
       if (m_if_stack.empty())
         throw_parser_error("else without matching if");
-      auto& if_data = m_if_stack.back();
+      auto &if_data = m_if_stack.back();
       get_next_token();
 
       // end previous block with unconditional jump to endif; destination will be
@@ -2709,7 +2615,8 @@ class Parser {
         get_next_token();
 
         // evaluate expression
-        if (!parse_expression(tmpl)) return false;
+        if (!parse_expression(tmpl))
+          return false;
 
         // update "previous jump"
         if_data.prev_cond_jump = tmpl.bytecodes.size();
@@ -2737,11 +2644,11 @@ class Parser {
       }
 
       if (m_tok.kind != Token::Kind::Id || m_tok.text != static_cast<decltype(m_tok.text)>("in"))
-        throw_parser_error(
-                   "expected 'in', got '" + m_tok.describe() + "'");
+        throw_parser_error("expected 'in', got '" + m_tok.describe() + "'");
       get_next_token();
 
-      if (!parse_expression(tmpl)) return false;
+      if (!parse_expression(tmpl))
+        return false;
 
       m_loop_stack.push_back(tmpl.bytecodes.size());
 
@@ -2760,7 +2667,7 @@ class Parser {
       tmpl.bytecodes[m_loop_stack.back()].args = tmpl.bytecodes.size();
 
       tmpl.bytecodes.emplace_back(Bytecode::Op::EndLoop);
-      tmpl.bytecodes.back().args = m_loop_stack.back() + 1;  // loop body
+      tmpl.bytecodes.back().args = m_loop_stack.back() + 1; // loop body
       m_loop_stack.pop_back();
     } else if (m_tok.text == static_cast<decltype(m_tok.text)>("include")) {
       get_next_token();
@@ -2772,7 +2679,7 @@ class Parser {
       // build the relative path
       json json_name = json::parse(m_tok.text);
       std::string pathname = static_cast<std::string>(path);
-      pathname += json_name.get_ref<const std::string&>();
+      pathname += json_name.get_ref<const std::string &>();
       if (pathname.compare(0, 2, "./") == 0) {
         pathname.erase(0, 2);
       }
@@ -2793,10 +2700,10 @@ class Parser {
     return true;
   }
 
-  void append_function(Template& tmpl, Bytecode::Op op, unsigned int num_args) {
+  void append_function(Template &tmpl, Bytecode::Op op, unsigned int num_args) {
     // we can merge with back-to-back push
     if (!tmpl.bytecodes.empty()) {
-      Bytecode& last = tmpl.bytecodes.back();
+      Bytecode &last = tmpl.bytecodes.back();
       if (last.op == Bytecode::Op::Push) {
         last.op = op;
         last.args = num_args;
@@ -2808,12 +2715,11 @@ class Parser {
     tmpl.bytecodes.emplace_back(op, num_args);
   }
 
-  void append_callback(Template& tmpl, nonstd::string_view name, unsigned int num_args) {
+  void append_callback(Template &tmpl, nonstd::string_view name, unsigned int num_args) {
     // we can merge with back-to-back push value (not lookup)
     if (!tmpl.bytecodes.empty()) {
-      Bytecode& last = tmpl.bytecodes.back();
-      if (last.op == Bytecode::Op::Push &&
-          (last.flags & Bytecode::Flag::ValueMask) == Bytecode::Flag::ValueImmediate) {
+      Bytecode &last = tmpl.bytecodes.back();
+      if (last.op == Bytecode::Op::Push && (last.flags & Bytecode::Flag::ValueMask) == Bytecode::Flag::ValueImmediate) {
         last.op = Bytecode::Op::Callback;
         last.args = num_args;
         last.str = static_cast<std::string>(name);
@@ -2826,55 +2732,56 @@ class Parser {
     tmpl.bytecodes.back().str = static_cast<std::string>(name);
   }
 
-  void parse_into(Template& tmpl, nonstd::string_view path) {
+  void parse_into(Template &tmpl, nonstd::string_view path) {
     m_lexer.start(tmpl.content);
 
     for (;;) {
       get_next_token();
       switch (m_tok.kind) {
-        case Token::Kind::Eof:
-          if (!m_if_stack.empty()) throw_parser_error("unmatched if");
-          if (!m_loop_stack.empty()) throw_parser_error("unmatched for");
-          return;
-        case Token::Kind::Text:
-          tmpl.bytecodes.emplace_back(Bytecode::Op::PrintText, m_tok.text, 0u);
-          break;
-        case Token::Kind::StatementOpen:
-          get_next_token();
-          if (!parse_statement(tmpl, path)) {
-            throw_parser_error("expected statement, got '" + m_tok.describe() + "'");
-          }
-          if (m_tok.kind != Token::Kind::StatementClose) {
-            throw_parser_error("expected statement close, got '" + m_tok.describe() + "'");
-          }
-          break;
-        case Token::Kind::LineStatementOpen:
-          get_next_token();
-          parse_statement(tmpl, path);
-          if (m_tok.kind != Token::Kind::LineStatementClose &&
-              m_tok.kind != Token::Kind::Eof) {
-            throw_parser_error("expected line statement close, got '" + m_tok.describe() + "'");
-          }
-          break;
-        case Token::Kind::ExpressionOpen:
-          get_next_token();
-          if (!parse_expression(tmpl)) {
-            throw_parser_error("expected expression, got '" + m_tok.describe() + "'");
-          }
-          append_function(tmpl, Bytecode::Op::PrintValue, 1);
-          if (m_tok.kind != Token::Kind::ExpressionClose) {
-            throw_parser_error("expected expression close, got '" + m_tok.describe() + "'");
-          }
-          break;
-        case Token::Kind::CommentOpen:
-          get_next_token();
-          if (m_tok.kind != Token::Kind::CommentClose) {
-            throw_parser_error("expected comment close, got '" + m_tok.describe() + "'");
-          }
-          break;
-        default:
-          throw_parser_error("unexpected token '" + m_tok.describe() + "'");
-          break;
+      case Token::Kind::Eof:
+        if (!m_if_stack.empty())
+          throw_parser_error("unmatched if");
+        if (!m_loop_stack.empty())
+          throw_parser_error("unmatched for");
+        return;
+      case Token::Kind::Text:
+        tmpl.bytecodes.emplace_back(Bytecode::Op::PrintText, m_tok.text, 0u);
+        break;
+      case Token::Kind::StatementOpen:
+        get_next_token();
+        if (!parse_statement(tmpl, path)) {
+          throw_parser_error("expected statement, got '" + m_tok.describe() + "'");
+        }
+        if (m_tok.kind != Token::Kind::StatementClose) {
+          throw_parser_error("expected statement close, got '" + m_tok.describe() + "'");
+        }
+        break;
+      case Token::Kind::LineStatementOpen:
+        get_next_token();
+        parse_statement(tmpl, path);
+        if (m_tok.kind != Token::Kind::LineStatementClose && m_tok.kind != Token::Kind::Eof) {
+          throw_parser_error("expected line statement close, got '" + m_tok.describe() + "'");
+        }
+        break;
+      case Token::Kind::ExpressionOpen:
+        get_next_token();
+        if (!parse_expression(tmpl)) {
+          throw_parser_error("expected expression, got '" + m_tok.describe() + "'");
+        }
+        append_function(tmpl, Bytecode::Op::PrintValue, 1);
+        if (m_tok.kind != Token::Kind::ExpressionClose) {
+          throw_parser_error("expected expression close, got '" + m_tok.describe() + "'");
+        }
+        break;
+      case Token::Kind::CommentOpen:
+        get_next_token();
+        if (m_tok.kind != Token::Kind::CommentClose) {
+          throw_parser_error("expected comment close, got '" + m_tok.describe() + "'");
+        }
+        break;
+      default:
+        throw_parser_error("unexpected token '" + m_tok.describe() + "'");
+        break;
       }
     }
   }
@@ -2886,16 +2793,14 @@ class Parser {
     return result;
   }
 
-  Template parse(nonstd::string_view input) {
-    return parse(input, "./");
-  }
+  Template parse(nonstd::string_view input) { return parse(input, "./"); }
 
   Template parse_template(nonstd::string_view filename) {
     Template result;
     result.content = load_file(filename);
 
     nonstd::string_view path = filename.substr(0, filename.find_last_of("/\\") + 1);
-      // StringRef path = sys::path::parent_path(filename);
+    // StringRef path = sys::path::parent_path(filename);
     Parser(m_config, m_lexer.get_config(), m_included_templates).parse_into(result, path);
     return result;
   }
@@ -2906,32 +2811,27 @@ class Parser {
     return text;
   }
 
- private:
-  const ParserConfig& m_config;
+private:
+  const ParserConfig &m_config;
   Lexer m_lexer;
   Token m_tok;
   Token m_peek_tok;
   bool m_have_peek_tok {false};
-  TemplateStorage& m_included_templates;
-  const ParserStatic& m_static;
+  TemplateStorage &m_included_templates;
+  const ParserStatic &m_static;
 
   struct IfData {
     using jump_t = size_t;
     jump_t prev_cond_jump;
     std::vector<jump_t> uncond_jumps;
 
-    explicit IfData(jump_t condJump)
-      : prev_cond_jump(condJump)
-    {
-    }
+    explicit IfData(jump_t condJump) : prev_cond_jump(condJump) {}
   };
 
   std::vector<IfData> m_if_stack;
   std::vector<size_t> m_loop_stack;
 
-  void throw_parser_error(const std::string& message) {
-    throw ParserError(message, m_lexer.current_position());
-  }
+  void throw_parser_error(const std::string &message) { throw ParserError(message, m_lexer.current_position()); }
 
   void get_next_token() {
     if (m_have_peek_tok) {
@@ -2950,16 +2850,15 @@ class Parser {
   }
 };
 
-}  // namespace inja
+} // namespace inja
 
-#endif  // INCLUDE_INJA_PARSER_HPP_
+#endif // INCLUDE_INJA_PARSER_HPP_
 
 // #include "polyfill.hpp"
 // Copyright (c) 2019 Pantor. All rights reserved.
 
 #ifndef INCLUDE_INJA_POLYFILL_HPP_
 #define INCLUDE_INJA_POLYFILL_HPP_
-
 
 #if __cplusplus < 201402L
 
@@ -2968,47 +2867,34 @@ class Parser {
 #include <type_traits>
 #include <utility>
 
-
 namespace stdinja {
 
-template<class T> struct _Unique_if {
-  typedef std::unique_ptr<T> _Single_object;
-};
+template <class T> struct _Unique_if { typedef std::unique_ptr<T> _Single_object; };
 
-template<class T> struct _Unique_if<T[]> {
-  typedef std::unique_ptr<T[]> _Unknown_bound;
-};
+template <class T> struct _Unique_if<T[]> { typedef std::unique_ptr<T[]> _Unknown_bound; };
 
-template<class T, size_t N> struct _Unique_if<T[N]> {
-  typedef void _Known_bound;
-};
+template <class T, size_t N> struct _Unique_if<T[N]> { typedef void _Known_bound; };
 
-template<class T, class... Args>
-typename _Unique_if<T>::_Single_object
-make_unique(Args&&... args) {
+template <class T, class... Args> typename _Unique_if<T>::_Single_object make_unique(Args &&... args) {
   return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
 }
 
-template<class T>
-typename _Unique_if<T>::_Unknown_bound
-make_unique(size_t n) {
+template <class T> typename _Unique_if<T>::_Unknown_bound make_unique(size_t n) {
   typedef typename std::remove_extent<T>::type U;
   return std::unique_ptr<T>(new U[n]());
 }
 
-template<class T, class... Args>
-typename _Unique_if<T>::_Known_bound
-make_unique(Args&&...) = delete;
+template <class T, class... Args> typename _Unique_if<T>::_Known_bound make_unique(Args &&...) = delete;
 
-}  // namespace stdinja
+} // namespace stdinja
 
 #else
 
 namespace stdinja = std;
 
-#endif  // memory */
+#endif // memory */
 
-#endif  // INCLUDE_INJA_POLYFILL_HPP_
+#endif // INCLUDE_INJA_POLYFILL_HPP_
 
 // #include "renderer.hpp"
 // Copyright (c) 2019 Pantor. All rights reserved.
@@ -3033,10 +2919,9 @@ namespace stdinja = std;
 // #include "utils.hpp"
 
 
-
 namespace inja {
 
-inline nonstd::string_view convert_dot_to_json_pointer(nonstd::string_view dot, std::string& out) {
+inline nonstd::string_view convert_dot_to_json_pointer(nonstd::string_view dot, std::string &out) {
   out.clear();
   do {
     nonstd::string_view part;
@@ -3051,7 +2936,7 @@ inline nonstd::string_view convert_dot_to_json_pointer(nonstd::string_view dot, 
  * \brief Class for rendering a Template with data.
  */
 class Renderer {
-  std::vector<const json*>& get_args(const Bytecode& bc) {
+  std::vector<const json *> &get_args(const Bytecode &bc) {
     m_tmp_args.clear();
 
     bool has_imm = ((bc.flags & Bytecode::Flag::ValueMask) != Bytecode::Flag::ValuePop);
@@ -3074,7 +2959,7 @@ class Renderer {
     return m_tmp_args;
   }
 
-  void pop_args(const Bytecode& bc) {
+  void pop_args(const Bytecode &bc) {
     unsigned int popArgs = bc.args;
     if ((bc.flags & Bytecode::Flag::ValueMask) != Bytecode::Flag::ValuePop) {
       popArgs -= 1;
@@ -3084,29 +2969,35 @@ class Renderer {
     }
   }
 
-  const json* get_imm(const Bytecode& bc) {
+  const json *get_imm(const Bytecode &bc) {
     std::string ptr_buffer;
     nonstd::string_view ptr;
     switch (bc.flags & Bytecode::Flag::ValueMask) {
-      case Bytecode::Flag::ValuePop:
-        return nullptr;
-      case Bytecode::Flag::ValueImmediate:
-        return &bc.value;
-      case Bytecode::Flag::ValueLookupDot:
-        ptr = convert_dot_to_json_pointer(bc.str, ptr_buffer);
-        break;
-      case Bytecode::Flag::ValueLookupPointer:
-        ptr_buffer += '/';
-        ptr_buffer += bc.str;
-        ptr = ptr_buffer;
-        break;
+    case Bytecode::Flag::ValuePop:
+      return nullptr;
+    case Bytecode::Flag::ValueImmediate:
+      return &bc.value;
+    case Bytecode::Flag::ValueLookupDot:
+      ptr = convert_dot_to_json_pointer(bc.str, ptr_buffer);
+      break;
+    case Bytecode::Flag::ValueLookupPointer:
+      ptr_buffer += '/';
+      ptr_buffer += bc.str;
+      ptr = ptr_buffer;
+      break;
     }
+    json::json_pointer json_ptr(ptr.data());
     try {
-      return &m_data->at(json::json_pointer(ptr.data()));
-    } catch (std::exception&) {
+      // first try to evaluate as a loop variable
+      // Using contains() is faster than unsucessful at() and throwing an exception
+      if (m_loop_data && m_loop_data->contains(json_ptr)) {
+        return &m_loop_data->at(json_ptr);
+      }
+      return &m_data->at(json_ptr);
+    } catch (std::exception &) {
       // try to evaluate as a no-argument callback
       if (auto callback = m_callbacks.find_callback(bc.str, 0)) {
-        std::vector<const json*> arguments {};
+        std::vector<const json *> arguments {};
         m_tmp_val = callback(arguments);
         return &m_tmp_val;
       }
@@ -3115,7 +3006,7 @@ class Renderer {
     }
   }
 
-  bool truthy(const json& var) const {
+  bool truthy(const json &var) const {
     if (var.empty()) {
       return false;
     } else if (var.is_number()) {
@@ -3126,483 +3017,489 @@ class Renderer {
 
     try {
       return var.get<bool>();
-    } catch (json::type_error& e) {
+    } catch (json::type_error &e) {
       throw JsonError(e.what());
     }
   }
 
-  void update_loop_data()  {
-    LoopLevel& level = m_loop_stack.back();
+  void update_loop_data() {
+    LoopLevel &level = m_loop_stack.back();
 
     if (level.loop_type == LoopLevel::Type::Array) {
-      level.data[static_cast<std::string>(level.value_name)] = level.values.at(level.index);  // *level.it;
-      auto& loopData = level.data["loop"];
-      loopData["index"] = level.index;
-      loopData["index1"] = level.index + 1;
-      loopData["is_first"] = (level.index == 0);
-      loopData["is_last"] = (level.index == level.size - 1);
+      level.data[static_cast<std::string>(level.value_name)] = level.values.at(level.index); // *level.it;
     } else {
       level.data[static_cast<std::string>(level.key_name)] = level.map_it->first;
       level.data[static_cast<std::string>(level.value_name)] = *level.map_it->second;
     }
+    auto &loopData = level.data["loop"];
+    loopData["index"] = level.index;
+    loopData["index1"] = level.index + 1;
+    loopData["is_first"] = (level.index == 0);
+    loopData["is_last"] = (level.index == level.size - 1);
   }
 
-  const TemplateStorage& m_included_templates;
-  const FunctionStorage& m_callbacks;
+  const TemplateStorage &m_included_templates;
+  const FunctionStorage &m_callbacks;
 
   std::vector<json> m_stack;
-
 
   struct LoopLevel {
     enum class Type { Map, Array };
 
     Type loop_type;
-    nonstd::string_view key_name;    // variable name for keys
-    nonstd::string_view value_name;  // variable name for values
-    json data;                       // data with loop info added
+    nonstd::string_view key_name;   // variable name for keys
+    nonstd::string_view value_name; // variable name for values
+    json data;                      // data with loop info added
 
-    json values;                     // values to iterate over
+    json values; // values to iterate over
 
     // loop over list
-    size_t index;                    // current list index
-    size_t size;                     // length of list
+    size_t index; // current list index
+    size_t size;  // length of list
 
     // loop over map
-    using KeyValue = std::pair<nonstd::string_view, json*>;
+    using KeyValue = std::pair<nonstd::string_view, json *>;
     using MapValues = std::vector<KeyValue>;
-    MapValues map_values;            // values to iterate over
-    MapValues::iterator map_it;      // iterator over values
+    MapValues map_values;       // values to iterate over
+    MapValues::iterator map_it; // iterator over values
   };
 
   std::vector<LoopLevel> m_loop_stack;
-  const json* m_data;
+  json *m_loop_data;
+  const json *m_data;
 
-  std::vector<const json*> m_tmp_args;
+  std::vector<const json *> m_tmp_args;
   json m_tmp_val;
 
-
- public:
-  Renderer(const TemplateStorage& included_templates, const FunctionStorage& callbacks): m_included_templates(included_templates), m_callbacks(callbacks) {
+public:
+  Renderer(const TemplateStorage &included_templates, const FunctionStorage &callbacks)
+      : m_included_templates(included_templates), m_callbacks(callbacks) {
     m_stack.reserve(16);
     m_tmp_args.reserve(4);
     m_loop_stack.reserve(16);
   }
 
-  void render_to(std::ostream& os, const Template& tmpl, const json& data) {
+  void render_to(std::ostream &os, const Template &tmpl, const json &data, json *loop_data = nullptr) {
     m_data = &data;
+    m_loop_data = loop_data;
 
     for (size_t i = 0; i < tmpl.bytecodes.size(); ++i) {
-      const auto& bc = tmpl.bytecodes[i];
+      const auto &bc = tmpl.bytecodes[i];
 
       switch (bc.op) {
-        case Bytecode::Op::Nop: {
-          break;
+      case Bytecode::Op::Nop: {
+        break;
+      }
+      case Bytecode::Op::PrintText: {
+        os << bc.str;
+        break;
+      }
+      case Bytecode::Op::PrintValue: {
+        const json &val = *get_args(bc)[0];
+        if (val.is_string()) {
+          os << val.get_ref<const std::string &>();
+        } else {
+          os << val.dump();
         }
-        case Bytecode::Op::PrintText: {
-          os << bc.str;
-          break;
-        }
-        case Bytecode::Op::PrintValue: {
-          const json& val = *get_args(bc)[0];
-          if (val.is_string()) {
-            os << val.get_ref<const std::string&>();
-          } else {
-            os << val.dump();
-          }
-          pop_args(bc);
-          break;
-        }
-        case Bytecode::Op::Push: {
-          m_stack.emplace_back(*get_imm(bc));
-          break;
-        }
-        case Bytecode::Op::Upper: {
-          auto result = get_args(bc)[0]->get<std::string>();
-          std::transform(result.begin(), result.end(), result.begin(), ::toupper);
-          pop_args(bc);
-          m_stack.emplace_back(std::move(result));
-          break;
-        }
-        case Bytecode::Op::Lower: {
-          auto result = get_args(bc)[0]->get<std::string>();
-          std::transform(result.begin(), result.end(), result.begin(), ::tolower);
-          pop_args(bc);
-          m_stack.emplace_back(std::move(result));
-          break;
-        }
-        case Bytecode::Op::Range: {
-          int number = get_args(bc)[0]->get<int>();
-          std::vector<int> result(number);
-          std::iota(std::begin(result), std::end(result), 0);
-          pop_args(bc);
-          m_stack.emplace_back(std::move(result));
-          break;
-        }
-        case Bytecode::Op::Length: {
-          const json& val = *get_args(bc)[0];
+        pop_args(bc);
+        break;
+      }
+      case Bytecode::Op::Push: {
+        m_stack.emplace_back(*get_imm(bc));
+        break;
+      }
+      case Bytecode::Op::Upper: {
+        auto result = get_args(bc)[0]->get<std::string>();
+        std::transform(result.begin(), result.end(), result.begin(), ::toupper);
+        pop_args(bc);
+        m_stack.emplace_back(std::move(result));
+        break;
+      }
+      case Bytecode::Op::Lower: {
+        auto result = get_args(bc)[0]->get<std::string>();
+        std::transform(result.begin(), result.end(), result.begin(), ::tolower);
+        pop_args(bc);
+        m_stack.emplace_back(std::move(result));
+        break;
+      }
+      case Bytecode::Op::Range: {
+        int number = get_args(bc)[0]->get<int>();
+        std::vector<int> result(number);
+        std::iota(std::begin(result), std::end(result), 0);
+        pop_args(bc);
+        m_stack.emplace_back(std::move(result));
+        break;
+      }
+      case Bytecode::Op::Length: {
+        const json &val = *get_args(bc)[0];
 
-          size_t result;
-          if (val.is_string()) {
-            result = val.get_ref<const std::string&>().length();
-          } else {
-            result = val.size();
-          }
+        size_t result;
+        if (val.is_string()) {
+          result = val.get_ref<const std::string &>().length();
+        } else {
+          result = val.size();
+        }
 
-          pop_args(bc);
-          m_stack.emplace_back(result);
-          break;
+        pop_args(bc);
+        m_stack.emplace_back(result);
+        break;
+      }
+      case Bytecode::Op::Sort: {
+        auto result = get_args(bc)[0]->get<std::vector<json>>();
+        std::sort(result.begin(), result.end());
+        pop_args(bc);
+        m_stack.emplace_back(std::move(result));
+        break;
+      }
+      case Bytecode::Op::At: {
+        auto args = get_args(bc);
+        auto result = args[0]->at(args[1]->get<int>());
+        pop_args(bc);
+        m_stack.emplace_back(result);
+        break;
+      }
+      case Bytecode::Op::First: {
+        auto result = get_args(bc)[0]->front();
+        pop_args(bc);
+        m_stack.emplace_back(result);
+        break;
+      }
+      case Bytecode::Op::Last: {
+        auto result = get_args(bc)[0]->back();
+        pop_args(bc);
+        m_stack.emplace_back(result);
+        break;
+      }
+      case Bytecode::Op::Round: {
+        auto args = get_args(bc);
+        double number = args[0]->get<double>();
+        int precision = args[1]->get<int>();
+        pop_args(bc);
+        m_stack.emplace_back(std::round(number * std::pow(10.0, precision)) / std::pow(10.0, precision));
+        break;
+      }
+      case Bytecode::Op::DivisibleBy: {
+        auto args = get_args(bc);
+        int number = args[0]->get<int>();
+        int divisor = args[1]->get<int>();
+        pop_args(bc);
+        m_stack.emplace_back((divisor != 0) && (number % divisor == 0));
+        break;
+      }
+      case Bytecode::Op::Odd: {
+        int number = get_args(bc)[0]->get<int>();
+        pop_args(bc);
+        m_stack.emplace_back(number % 2 != 0);
+        break;
+      }
+      case Bytecode::Op::Even: {
+        int number = get_args(bc)[0]->get<int>();
+        pop_args(bc);
+        m_stack.emplace_back(number % 2 == 0);
+        break;
+      }
+      case Bytecode::Op::Max: {
+        auto args = get_args(bc);
+        auto result = *std::max_element(args[0]->begin(), args[0]->end());
+        pop_args(bc);
+        m_stack.emplace_back(std::move(result));
+        break;
+      }
+      case Bytecode::Op::Min: {
+        auto args = get_args(bc);
+        auto result = *std::min_element(args[0]->begin(), args[0]->end());
+        pop_args(bc);
+        m_stack.emplace_back(std::move(result));
+        break;
+      }
+      case Bytecode::Op::Not: {
+        bool result = !truthy(*get_args(bc)[0]);
+        pop_args(bc);
+        m_stack.emplace_back(result);
+        break;
+      }
+      case Bytecode::Op::And: {
+        auto args = get_args(bc);
+        bool result = truthy(*args[0]) && truthy(*args[1]);
+        pop_args(bc);
+        m_stack.emplace_back(result);
+        break;
+      }
+      case Bytecode::Op::Or: {
+        auto args = get_args(bc);
+        bool result = truthy(*args[0]) || truthy(*args[1]);
+        pop_args(bc);
+        m_stack.emplace_back(result);
+        break;
+      }
+      case Bytecode::Op::In: {
+        auto args = get_args(bc);
+        bool result = std::find(args[1]->begin(), args[1]->end(), *args[0]) != args[1]->end();
+        pop_args(bc);
+        m_stack.emplace_back(result);
+        break;
+      }
+      case Bytecode::Op::Equal: {
+        auto args = get_args(bc);
+        bool result = (*args[0] == *args[1]);
+        pop_args(bc);
+        m_stack.emplace_back(result);
+        break;
+      }
+      case Bytecode::Op::Greater: {
+        auto args = get_args(bc);
+        bool result = (*args[0] > *args[1]);
+        pop_args(bc);
+        m_stack.emplace_back(result);
+        break;
+      }
+      case Bytecode::Op::Less: {
+        auto args = get_args(bc);
+        bool result = (*args[0] < *args[1]);
+        pop_args(bc);
+        m_stack.emplace_back(result);
+        break;
+      }
+      case Bytecode::Op::GreaterEqual: {
+        auto args = get_args(bc);
+        bool result = (*args[0] >= *args[1]);
+        pop_args(bc);
+        m_stack.emplace_back(result);
+        break;
+      }
+      case Bytecode::Op::LessEqual: {
+        auto args = get_args(bc);
+        bool result = (*args[0] <= *args[1]);
+        pop_args(bc);
+        m_stack.emplace_back(result);
+        break;
+      }
+      case Bytecode::Op::Different: {
+        auto args = get_args(bc);
+        bool result = (*args[0] != *args[1]);
+        pop_args(bc);
+        m_stack.emplace_back(result);
+        break;
+      }
+      case Bytecode::Op::Float: {
+        double result = std::stod(get_args(bc)[0]->get_ref<const std::string &>());
+        pop_args(bc);
+        m_stack.emplace_back(result);
+        break;
+      }
+      case Bytecode::Op::Int: {
+        int result = std::stoi(get_args(bc)[0]->get_ref<const std::string &>());
+        pop_args(bc);
+        m_stack.emplace_back(result);
+        break;
+      }
+      case Bytecode::Op::Exists: {
+        auto &&name = get_args(bc)[0]->get_ref<const std::string &>();
+        bool result = (data.find(name) != data.end());
+        pop_args(bc);
+        m_stack.emplace_back(result);
+        break;
+      }
+      case Bytecode::Op::ExistsInObject: {
+        auto args = get_args(bc);
+        auto &&name = args[1]->get_ref<const std::string &>();
+        bool result = (args[0]->find(name) != args[0]->end());
+        pop_args(bc);
+        m_stack.emplace_back(result);
+        break;
+      }
+      case Bytecode::Op::IsBoolean: {
+        bool result = get_args(bc)[0]->is_boolean();
+        pop_args(bc);
+        m_stack.emplace_back(result);
+        break;
+      }
+      case Bytecode::Op::IsNumber: {
+        bool result = get_args(bc)[0]->is_number();
+        pop_args(bc);
+        m_stack.emplace_back(result);
+        break;
+      }
+      case Bytecode::Op::IsInteger: {
+        bool result = get_args(bc)[0]->is_number_integer();
+        pop_args(bc);
+        m_stack.emplace_back(result);
+        break;
+      }
+      case Bytecode::Op::IsFloat: {
+        bool result = get_args(bc)[0]->is_number_float();
+        pop_args(bc);
+        m_stack.emplace_back(result);
+        break;
+      }
+      case Bytecode::Op::IsObject: {
+        bool result = get_args(bc)[0]->is_object();
+        pop_args(bc);
+        m_stack.emplace_back(result);
+        break;
+      }
+      case Bytecode::Op::IsArray: {
+        bool result = get_args(bc)[0]->is_array();
+        pop_args(bc);
+        m_stack.emplace_back(result);
+        break;
+      }
+      case Bytecode::Op::IsString: {
+        bool result = get_args(bc)[0]->is_string();
+        pop_args(bc);
+        m_stack.emplace_back(result);
+        break;
+      }
+      case Bytecode::Op::Default: {
+        // default needs to be a bit "magic"; we can't evaluate the first
+        // argument during the push operation, so we swap the arguments during
+        // the parse phase so the second argument is pushed on the stack and
+        // the first argument is in the immediate
+        try {
+          const json *imm = get_imm(bc);
+          // if no exception was raised, replace the stack value with it
+          m_stack.back() = *imm;
+        } catch (std::exception &) {
+          // couldn't read immediate, just leave the stack as is
         }
-        case Bytecode::Op::Sort: {
-          auto result = get_args(bc)[0]->get<std::vector<json>>();
-          std::sort(result.begin(), result.end());
-          pop_args(bc);
-          m_stack.emplace_back(std::move(result));
-          break;
+        break;
+      }
+      case Bytecode::Op::Include:
+        Renderer(m_included_templates, m_callbacks)
+            .render_to(os, m_included_templates.find(get_imm(bc)->get_ref<const std::string &>())->second, *m_data,
+                       m_loop_data);
+        break;
+      case Bytecode::Op::Callback: {
+        auto callback = m_callbacks.find_callback(bc.str, bc.args);
+        if (!callback) {
+          throw RenderError("function '" + static_cast<std::string>(bc.str) + "' (" +
+                            std::to_string(static_cast<unsigned int>(bc.args)) + ") not found");
         }
-        case Bytecode::Op::At: {
-          auto args = get_args(bc);
-          auto result = args[0]->at(args[1]->get<int>());
-          pop_args(bc);
-          m_stack.emplace_back(result);
-          break;
+        json result = callback(get_args(bc));
+        pop_args(bc);
+        m_stack.emplace_back(std::move(result));
+        break;
+      }
+      case Bytecode::Op::Jump: {
+        i = bc.args - 1; // -1 due to ++i in loop
+        break;
+      }
+      case Bytecode::Op::ConditionalJump: {
+        if (!truthy(m_stack.back())) {
+          i = bc.args - 1; // -1 due to ++i in loop
         }
-        case Bytecode::Op::First: {
-          auto result = get_args(bc)[0]->front();
-          pop_args(bc);
-          m_stack.emplace_back(result);
-          break;
-        }
-        case Bytecode::Op::Last: {
-          auto result = get_args(bc)[0]->back();
-          pop_args(bc);
-          m_stack.emplace_back(result);
-          break;
-        }
-        case Bytecode::Op::Round: {
-          auto args = get_args(bc);
-          double number = args[0]->get<double>();
-          int precision = args[1]->get<int>();
-          pop_args(bc);
-          m_stack.emplace_back(std::round(number * std::pow(10.0, precision)) / std::pow(10.0, precision));
-          break;
-        }
-        case Bytecode::Op::DivisibleBy: {
-          auto args = get_args(bc);
-          int number = args[0]->get<int>();
-          int divisor = args[1]->get<int>();
-          pop_args(bc);
-          m_stack.emplace_back((divisor != 0) && (number % divisor == 0));
-          break;
-        }
-        case Bytecode::Op::Odd: {
-          int number = get_args(bc)[0]->get<int>();
-          pop_args(bc);
-          m_stack.emplace_back(number % 2 != 0);
-          break;
-        }
-        case Bytecode::Op::Even: {
-          int number = get_args(bc)[0]->get<int>();
-          pop_args(bc);
-          m_stack.emplace_back(number % 2 == 0);
-          break;
-        }
-        case Bytecode::Op::Max: {
-          auto args = get_args(bc);
-          auto result = *std::max_element(args[0]->begin(), args[0]->end());
-          pop_args(bc);
-          m_stack.emplace_back(std::move(result));
-          break;
-        }
-        case Bytecode::Op::Min: {
-          auto args = get_args(bc);
-          auto result = *std::min_element(args[0]->begin(), args[0]->end());
-          pop_args(bc);
-          m_stack.emplace_back(std::move(result));
-          break;
-        }
-        case Bytecode::Op::Not: {
-          bool result = !truthy(*get_args(bc)[0]);
-          pop_args(bc);
-          m_stack.emplace_back(result);
-          break;
-        }
-        case Bytecode::Op::And: {
-          auto args = get_args(bc);
-          bool result = truthy(*args[0]) && truthy(*args[1]);
-          pop_args(bc);
-          m_stack.emplace_back(result);
-          break;
-        }
-        case Bytecode::Op::Or: {
-          auto args = get_args(bc);
-          bool result = truthy(*args[0]) || truthy(*args[1]);
-          pop_args(bc);
-          m_stack.emplace_back(result);
-          break;
-        }
-        case Bytecode::Op::In: {
-          auto args = get_args(bc);
-          bool result = std::find(args[1]->begin(), args[1]->end(), *args[0]) !=
-                        args[1]->end();
-          pop_args(bc);
-          m_stack.emplace_back(result);
-          break;
-        }
-        case Bytecode::Op::Equal: {
-          auto args = get_args(bc);
-          bool result = (*args[0] == *args[1]);
-          pop_args(bc);
-          m_stack.emplace_back(result);
-          break;
-        }
-        case Bytecode::Op::Greater: {
-          auto args = get_args(bc);
-          bool result = (*args[0] > *args[1]);
-          pop_args(bc);
-          m_stack.emplace_back(result);
-          break;
-        }
-        case Bytecode::Op::Less: {
-          auto args = get_args(bc);
-          bool result = (*args[0] < *args[1]);
-          pop_args(bc);
-          m_stack.emplace_back(result);
-          break;
-        }
-        case Bytecode::Op::GreaterEqual: {
-          auto args = get_args(bc);
-          bool result = (*args[0] >= *args[1]);
-          pop_args(bc);
-          m_stack.emplace_back(result);
-          break;
-        }
-        case Bytecode::Op::LessEqual: {
-          auto args = get_args(bc);
-          bool result = (*args[0] <= *args[1]);
-          pop_args(bc);
-          m_stack.emplace_back(result);
-          break;
-        }
-        case Bytecode::Op::Different: {
-          auto args = get_args(bc);
-          bool result = (*args[0] != *args[1]);
-          pop_args(bc);
-          m_stack.emplace_back(result);
-          break;
-        }
-        case Bytecode::Op::Float: {
-          double result =
-              std::stod(get_args(bc)[0]->get_ref<const std::string&>());
-          pop_args(bc);
-          m_stack.emplace_back(result);
-          break;
-        }
-        case Bytecode::Op::Int: {
-          int result = std::stoi(get_args(bc)[0]->get_ref<const std::string&>());
-          pop_args(bc);
-          m_stack.emplace_back(result);
-          break;
-        }
-        case Bytecode::Op::Exists: {
-          auto&& name = get_args(bc)[0]->get_ref<const std::string&>();
-          bool result = (data.find(name) != data.end());
-          pop_args(bc);
-          m_stack.emplace_back(result);
-          break;
-        }
-        case Bytecode::Op::ExistsInObject: {
-          auto args = get_args(bc);
-          auto&& name = args[1]->get_ref<const std::string&>();
-          bool result = (args[0]->find(name) != args[0]->end());
-          pop_args(bc);
-          m_stack.emplace_back(result);
-          break;
-        }
-        case Bytecode::Op::IsBoolean: {
-          bool result = get_args(bc)[0]->is_boolean();
-          pop_args(bc);
-          m_stack.emplace_back(result);
-          break;
-        }
-        case Bytecode::Op::IsNumber: {
-          bool result = get_args(bc)[0]->is_number();
-          pop_args(bc);
-          m_stack.emplace_back(result);
-          break;
-        }
-        case Bytecode::Op::IsInteger: {
-          bool result = get_args(bc)[0]->is_number_integer();
-          pop_args(bc);
-          m_stack.emplace_back(result);
-          break;
-        }
-        case Bytecode::Op::IsFloat: {
-          bool result = get_args(bc)[0]->is_number_float();
-          pop_args(bc);
-          m_stack.emplace_back(result);
-          break;
-        }
-        case Bytecode::Op::IsObject: {
-          bool result = get_args(bc)[0]->is_object();
-          pop_args(bc);
-          m_stack.emplace_back(result);
-          break;
-        }
-        case Bytecode::Op::IsArray: {
-          bool result = get_args(bc)[0]->is_array();
-          pop_args(bc);
-          m_stack.emplace_back(result);
-          break;
-        }
-        case Bytecode::Op::IsString: {
-          bool result = get_args(bc)[0]->is_string();
-          pop_args(bc);
-          m_stack.emplace_back(result);
-          break;
-        }
-        case Bytecode::Op::Default: {
-          // default needs to be a bit "magic"; we can't evaluate the first
-          // argument during the push operation, so we swap the arguments during
-          // the parse phase so the second argument is pushed on the stack and
-          // the first argument is in the immediate
-          try {
-            const json* imm = get_imm(bc);
-            // if no exception was raised, replace the stack value with it
-            m_stack.back() = *imm;
-          } catch (std::exception&) {
-            // couldn't read immediate, just leave the stack as is
-          }
-          break;
-        }
-        case Bytecode::Op::Include:
-          Renderer(m_included_templates, m_callbacks).render_to(os, m_included_templates.find(get_imm(bc)->get_ref<const std::string&>())->second, *m_data);
-          break;
-        case Bytecode::Op::Callback: {
-          auto callback = m_callbacks.find_callback(bc.str, bc.args);
-          if (!callback) {
-            throw RenderError("function '" + static_cast<std::string>(bc.str) + "' (" + std::to_string(static_cast<unsigned int>(bc.args)) + ") not found");
-          }
-          json result = callback(get_args(bc));
-          pop_args(bc);
-          m_stack.emplace_back(std::move(result));
-          break;
-        }
-        case Bytecode::Op::Jump: {
-          i = bc.args - 1;  // -1 due to ++i in loop
-          break;
-        }
-        case Bytecode::Op::ConditionalJump: {
-          if (!truthy(m_stack.back())) {
-            i = bc.args - 1;  // -1 due to ++i in loop
-          }
+        m_stack.pop_back();
+        break;
+      }
+      case Bytecode::Op::StartLoop: {
+        // jump past loop body if empty
+        if (m_stack.back().empty()) {
           m_stack.pop_back();
+          i = bc.args; // ++i in loop will take it past EndLoop
           break;
         }
-        case Bytecode::Op::StartLoop: {
-          // jump past loop body if empty
-          if (m_stack.back().empty()) {
-            m_stack.pop_back();
-            i = bc.args;  // ++i in loop will take it past EndLoop
-            break;
-          }
 
-          m_loop_stack.emplace_back();
-          LoopLevel& level = m_loop_stack.back();
-          level.value_name = bc.str;
-          level.values = std::move(m_stack.back());
-          level.data = (*m_data);
-          m_stack.pop_back();
-
-          if (bc.value.is_string()) {
-            // map iterator
-            if (!level.values.is_object()) {
-              m_loop_stack.pop_back();
-              throw RenderError("for key, value requires object");
-            }
-            level.loop_type = LoopLevel::Type::Map;
-            level.key_name = bc.value.get_ref<const std::string&>();
-
-            // sort by key
-            for (auto it = level.values.begin(), end = level.values.end(); it != end; ++it) {
-              level.map_values.emplace_back(it.key(), &it.value());
-            }
-            auto sort_lambda = [](const LoopLevel::KeyValue& a, const LoopLevel::KeyValue& b) { return a.first < b.first; };
-            std::sort(level.map_values.begin(), level.map_values.end(), sort_lambda);
-            level.map_it = level.map_values.begin();
-          } else {
-            if (!level.values.is_array()) {
-              m_loop_stack.pop_back();
-              throw RenderError("type must be array");
-            }
-
-            // list iterator
-            level.loop_type = LoopLevel::Type::Array;
-            level.index = 0;
-            level.size = level.values.size();
-          }
-
-          // provide parent access in nested loop
-          auto parent_loop_it = level.data.find("loop");
-          if (parent_loop_it != level.data.end()) {
-            json loop_copy = *parent_loop_it;
-            (*parent_loop_it)["parent"] = std::move(loop_copy);
-          }
-
-          // set "current" data to loop data
-          m_data = &level.data;
-          update_loop_data();
-          break;
+        m_loop_stack.emplace_back();
+        LoopLevel &level = m_loop_stack.back();
+        level.value_name = bc.str;
+        level.values = std::move(m_stack.back());
+        if (m_loop_data) {
+          level.data = *m_loop_data;
         }
-        case Bytecode::Op::EndLoop: {
-          if (m_loop_stack.empty()) {
-            throw RenderError("unexpected state in renderer");
-          }
-          LoopLevel& level = m_loop_stack.back();
+        level.index = 0;
+        m_stack.pop_back();
 
-          bool done;
-          if (level.loop_type == LoopLevel::Type::Array) {
-            level.index += 1;
-            done = (level.index == level.values.size());
-          } else {
-            level.map_it += 1;
-            done = (level.map_it == level.map_values.end());
-          }
-
-          if (done) {
+        if (bc.value.is_string()) {
+          // map iterator
+          if (!level.values.is_object()) {
             m_loop_stack.pop_back();
-            // set "current" data to outer loop data or main data as appropriate
-            if (!m_loop_stack.empty()) {
-              m_data = &m_loop_stack.back().data;
-            } else {
-              m_data = &data;
-            }
-            break;
+            throw RenderError("for key, value requires object");
+          }
+          level.loop_type = LoopLevel::Type::Map;
+          level.key_name = bc.value.get_ref<const std::string &>();
+
+          // sort by key
+          for (auto it = level.values.begin(), end = level.values.end(); it != end; ++it) {
+            level.map_values.emplace_back(it.key(), &it.value());
+          }
+          auto sort_lambda = [](const LoopLevel::KeyValue &a, const LoopLevel::KeyValue &b) {
+            return a.first < b.first;
+          };
+          std::sort(level.map_values.begin(), level.map_values.end(), sort_lambda);
+          level.map_it = level.map_values.begin();
+          level.size = level.map_values.size();
+        } else {
+          if (!level.values.is_array()) {
+            m_loop_stack.pop_back();
+            throw RenderError("type must be array");
           }
 
-          update_loop_data();
+          // list iterator
+          level.loop_type = LoopLevel::Type::Array;
+          level.size = level.values.size();
+        }
 
-          // jump back to start of loop
-          i = bc.args - 1;  // -1 due to ++i in loop
+        // provide parent access in nested loop
+        auto parent_loop_it = level.data.find("loop");
+        if (parent_loop_it != level.data.end()) {
+          json loop_copy = *parent_loop_it;
+          (*parent_loop_it)["parent"] = std::move(loop_copy);
+        }
+
+        // set "current" loop data to this level
+        m_loop_data = &level.data;
+        update_loop_data();
+        break;
+      }
+      case Bytecode::Op::EndLoop: {
+        if (m_loop_stack.empty()) {
+          throw RenderError("unexpected state in renderer");
+        }
+        LoopLevel &level = m_loop_stack.back();
+
+        bool done;
+        level.index += 1;
+        if (level.loop_type == LoopLevel::Type::Array) {
+          done = (level.index == level.values.size());
+        } else {
+          level.map_it += 1;
+          done = (level.map_it == level.map_values.end());
+        }
+
+        if (done) {
+          m_loop_stack.pop_back();
+          // set "current" data to outer loop data or main data as appropriate
+          if (!m_loop_stack.empty()) {
+            m_loop_data = &m_loop_stack.back().data;
+          } else {
+            m_loop_data = loop_data;
+          }
           break;
         }
-        default: {
-          throw RenderError("unknown op in renderer: " + std::to_string(static_cast<unsigned int>(bc.op)));
-        }
+
+        update_loop_data();
+
+        // jump back to start of loop
+        i = bc.args - 1; // -1 due to ++i in loop
+        break;
+      }
+      default: {
+        throw RenderError("unknown op in renderer: " + std::to_string(static_cast<unsigned int>(bc.op)));
+      }
       }
     }
   }
 };
 
-}  // namespace inja
+} // namespace inja
 
-#endif  // INCLUDE_INJA_RENDERER_HPP_
+#endif // INCLUDE_INJA_RENDERER_HPP_
 
 // #include "string_view.hpp"
 
 // #include "template.hpp"
 
 // #include "utils.hpp"
-
 
 
 namespace inja {
@@ -3613,125 +3510,118 @@ using json = nlohmann::json;
  * \brief Class for changing the configuration.
  */
 class Environment {
- public:
-  Environment(): Environment("") { }
+public:
+  Environment() : Environment("") {}
 
-  explicit Environment(const std::string& global_path): m_input_path(global_path), m_output_path(global_path) {}
+  explicit Environment(const std::string &global_path) : m_input_path(global_path), m_output_path(global_path) {}
 
-  Environment(const std::string& input_path, const std::string& output_path): m_input_path(input_path), m_output_path(output_path) {}
+  Environment(const std::string &input_path, const std::string &output_path)
+      : m_input_path(input_path), m_output_path(output_path) {}
 
   /// Sets the opener and closer for template statements
-  void set_statement(const std::string& open, const std::string& close) {
+  void set_statement(const std::string &open, const std::string &close) {
     m_lexer_config.statement_open = open;
     m_lexer_config.statement_close = close;
     m_lexer_config.update_open_chars();
   }
 
   /// Sets the opener for template line statements
-  void set_line_statement(const std::string& open) {
+  void set_line_statement(const std::string &open) {
     m_lexer_config.line_statement = open;
     m_lexer_config.update_open_chars();
   }
 
   /// Sets the opener and closer for template expressions
-  void set_expression(const std::string& open, const std::string& close) {
+  void set_expression(const std::string &open, const std::string &close) {
     m_lexer_config.expression_open = open;
     m_lexer_config.expression_close = close;
     m_lexer_config.update_open_chars();
   }
 
   /// Sets the opener and closer for template comments
-  void set_comment(const std::string& open, const std::string& close) {
+  void set_comment(const std::string &open, const std::string &close) {
     m_lexer_config.comment_open = open;
     m_lexer_config.comment_close = close;
     m_lexer_config.update_open_chars();
   }
 
   /// Sets whether to remove the first newline after a block
-  void set_trim_blocks(bool trim_blocks) {
-    m_lexer_config.trim_blocks = trim_blocks;
-  }
+  void set_trim_blocks(bool trim_blocks) { m_lexer_config.trim_blocks = trim_blocks; }
 
   /// Sets whether to strip the spaces and tabs from the start of a line to a block
-  void set_lstrip_blocks(bool lstrip_blocks) {
-    m_lexer_config.lstrip_blocks = lstrip_blocks;
-  }
+  void set_lstrip_blocks(bool lstrip_blocks) { m_lexer_config.lstrip_blocks = lstrip_blocks; }
 
   /// Sets the element notation syntax
-  void set_element_notation(ElementNotation notation) {
-    m_parser_config.notation = notation;
-  }
-
+  void set_element_notation(ElementNotation notation) { m_parser_config.notation = notation; }
 
   Template parse(nonstd::string_view input) {
     Parser parser(m_parser_config, m_lexer_config, m_included_templates);
     return parser.parse(input);
   }
 
-  Template parse_template(const std::string& filename) {
+  Template parse_template(const std::string &filename) {
     Parser parser(m_parser_config, m_lexer_config, m_included_templates);
     return parser.parse_template(m_input_path + static_cast<std::string>(filename));
   }
 
-  std::string render(nonstd::string_view input, const json& data) {
-    return render(parse(input), data);
-  }
+  std::string render(nonstd::string_view input, const json &data) { return render(parse(input), data); }
 
-  std::string render(const Template& tmpl, const json& data) {
+  std::string render(const Template &tmpl, const json &data) {
     std::stringstream os;
     render_to(os, tmpl, data);
     return os.str();
   }
 
-  std::string render_file(const std::string& filename, const json& data) {
+  std::string render_file(const std::string &filename, const json &data) {
     return render(parse_template(filename), data);
   }
 
-  std::string render_file_with_json_file(const std::string& filename, const std::string& filename_data) {
+  std::string render_file_with_json_file(const std::string &filename, const std::string &filename_data) {
     const json data = load_json(filename_data);
     return render_file(filename, data);
   }
 
-  void write(const std::string& filename, const json& data, const std::string& filename_out) {
+  void write(const std::string &filename, const json &data, const std::string &filename_out) {
     std::ofstream file(m_output_path + filename_out);
     file << render_file(filename, data);
     file.close();
   }
 
-  void write(const Template& temp, const json& data, const std::string& filename_out) {
+  void write(const Template &temp, const json &data, const std::string &filename_out) {
     std::ofstream file(m_output_path + filename_out);
     file << render(temp, data);
     file.close();
   }
 
-  void write_with_json_file(const std::string& filename, const std::string& filename_data, const std::string& filename_out) {
+  void write_with_json_file(const std::string &filename, const std::string &filename_data,
+                            const std::string &filename_out) {
     const json data = load_json(filename_data);
     write(filename, data, filename_out);
   }
 
-  void write_with_json_file(const Template& temp, const std::string& filename_data, const std::string& filename_out) {
+  void write_with_json_file(const Template &temp, const std::string &filename_data, const std::string &filename_out) {
     const json data = load_json(filename_data);
     write(temp, data, filename_out);
   }
 
-  std::ostream& render_to(std::ostream& os, const Template& tmpl, const json& data) {
+  std::ostream &render_to(std::ostream &os, const Template &tmpl, const json &data) {
     Renderer(m_included_templates, m_callbacks).render_to(os, tmpl, data);
     return os;
   }
 
-  std::string load_file(const std::string& filename) {
+  std::string load_file(const std::string &filename) {
     Parser parser(m_parser_config, m_lexer_config, m_included_templates);
     return parser.load_file(m_input_path + filename);
   }
 
-  json load_json(const std::string& filename) {
+  json load_json(const std::string &filename) {
     std::ifstream file = open_file_or_throw(m_input_path + filename);
     json j;
     file >> j;
     return j;
   }
 
-  void add_callback(const std::string& name, unsigned int numArgs, const CallbackFunction& callback) {
+  void add_callback(const std::string &name, unsigned int numArgs, const CallbackFunction &callback) {
     m_callbacks.add_callback(name, numArgs, callback);
   }
 
@@ -3739,11 +3629,9 @@ class Environment {
    * Then, a template can be rendered in another template using the
    * include "<name>" syntax.
    */
-  void include_template(const std::string& name, const Template& tmpl) {
-    m_included_templates[name] = tmpl;
-  }
+  void include_template(const std::string &name, const Template &tmpl) { m_included_templates[name] = tmpl; }
 
- private:
+private:
   std::string m_input_path;
   std::string m_output_path;
 
@@ -3757,30 +3645,29 @@ class Environment {
 /*!
 @brief render with default settings to a string
 */
-inline std::string render(nonstd::string_view input, const json& data) {
-  return Environment().render(input, data);
-}
+inline std::string render(nonstd::string_view input, const json &data) { return Environment().render(input, data); }
 
 /*!
 @brief render with default settings to the given output stream
 */
-inline void render_to(std::ostream& os, nonstd::string_view input, const json& data) {
+inline void render_to(std::ostream &os, nonstd::string_view input, const json &data) {
   Environment env;
   env.render_to(os, env.parse(input), data);
 }
 
-}
+} // namespace inja
 
-#endif  // INCLUDE_INJA_ENVIRONMENT_HPP_
+#endif // INCLUDE_INJA_ENVIRONMENT_HPP_
 
-// #include "string_view.hpp"
-
-// #include "template.hpp"
+// #include "exceptions.hpp"
 
 // #include "parser.hpp"
 
 // #include "renderer.hpp"
 
+// #include "string_view.hpp"
+
+// #include "template.hpp"
 
 
-#endif  // INCLUDE_INJA_INJA_HPP_
+#endif // INCLUDE_INJA_INJA_HPP_
