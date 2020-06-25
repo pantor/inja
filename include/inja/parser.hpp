@@ -74,25 +74,31 @@ public:
         m_static(ParserStatic::get_instance()) {}
 
   bool parse_expression(Template &tmpl) {
-    if (!parse_expression_and(tmpl))
+    if (!parse_expression_and(tmpl)) {
       return false;
-    if (m_tok.kind != Token::Kind::Id || m_tok.text != static_cast<decltype(m_tok.text)>("or"))
+    }
+    if (m_tok.kind != Token::Kind::Id || m_tok.text != static_cast<decltype(m_tok.text)>("or")) {
       return true;
+    }
     get_next_token();
-    if (!parse_expression_and(tmpl))
+    if (!parse_expression_and(tmpl)) {
       return false;
+    }
     append_function(tmpl, Bytecode::Op::Or, 2);
     return true;
   }
 
   bool parse_expression_and(Template &tmpl) {
-    if (!parse_expression_not(tmpl))
+    if (!parse_expression_not(tmpl)) {
       return false;
-    if (m_tok.kind != Token::Kind::Id || m_tok.text != static_cast<decltype(m_tok.text)>("and"))
+    } 
+    if (m_tok.kind != Token::Kind::Id || m_tok.text != static_cast<decltype(m_tok.text)>("and")) {
       return true;
+    }
     get_next_token();
-    if (!parse_expression_not(tmpl))
+    if (!parse_expression_not(tmpl)) {
       return false;
+    }
     append_function(tmpl, Bytecode::Op::And, 2);
     return true;
   }
@@ -100,8 +106,9 @@ public:
   bool parse_expression_not(Template &tmpl) {
     if (m_tok.kind == Token::Kind::Id && m_tok.text == static_cast<decltype(m_tok.text)>("not")) {
       get_next_token();
-      if (!parse_expression_not(tmpl))
+      if (!parse_expression_not(tmpl)) {
         return false;
+      }
       append_function(tmpl, Bytecode::Op::Not, 1);
       return true;
     } else {
@@ -110,8 +117,9 @@ public:
   }
 
   bool parse_expression_comparison(Template &tmpl) {
-    if (!parse_expression_datum(tmpl))
+    if (!parse_expression_datum(tmpl)) {
       return false;
+    }
     Bytecode::Op op;
     switch (m_tok.kind) {
     case Token::Kind::Id:
@@ -142,8 +150,9 @@ public:
       return true;
     }
     get_next_token();
-    if (!parse_expression_datum(tmpl))
+    if (!parse_expression_datum(tmpl)) {
       return false;
+    }
     append_function(tmpl, op, 2);
     return true;
   }
@@ -157,8 +166,9 @@ public:
       switch (m_tok.kind) {
       case Token::Kind::LeftParen: {
         get_next_token();
-        if (!parse_expression(tmpl))
+        if (!parse_expression(tmpl)) {
           return false;
+        }
         if (m_tok.kind != Token::Kind::RightParen) {
           throw_parser_error("unmatched '('");
         }
@@ -197,8 +207,9 @@ public:
 
           if (op != Bytecode::Op::Nop) {
             // swap arguments for default(); see comment in RenderTo()
-            if (op == Bytecode::Op::Default)
+            if (op == Bytecode::Op::Default) {
               std::swap(tmpl.bytecodes.back(), *(tmpl.bytecodes.rbegin() + 1));
+            }
             append_function(tmpl, op, num_args);
             return true;
           } else {
@@ -252,17 +263,19 @@ public:
         if (bracket_level == 0) {
           throw_parser_error("unexpected ']'");
         }
-        --bracket_level;
-        if (brace_level == 0 && bracket_level == 0)
+        bracket_level -= 1;
+        if (brace_level == 0 && bracket_level == 0) {
           goto returnJson;
+        }
         break;
       case Token::Kind::RightBrace:
         if (brace_level == 0) {
           throw_parser_error("unexpected '}'");
         }
-        --brace_level;
-        if (brace_level == 0 && bracket_level == 0)
+        brace_level -= 1;
+        if (brace_level == 0 && bracket_level == 0) {
           goto returnJson;
+        }
         break;
       default:
         if (brace_level != 0) {
@@ -286,15 +299,17 @@ public:
   }
 
   bool parse_statement(Template &tmpl, nonstd::string_view path) {
-    if (m_tok.kind != Token::Kind::Id)
+    if (m_tok.kind != Token::Kind::Id) {
       return false;
+    }
 
     if (m_tok.text == static_cast<decltype(m_tok.text)>("if")) {
       get_next_token();
 
       // evaluate expression
-      if (!parse_expression(tmpl))
+      if (!parse_expression(tmpl)) {
         return false;
+      }
 
       // start a new if block on if stack
       m_if_stack.emplace_back(static_cast<decltype(m_if_stack)::value_type::jump_t>(tmpl.bytecodes.size()));
@@ -321,8 +336,9 @@ public:
       // pop if stack
       m_if_stack.pop_back();
     } else if (m_tok.text == static_cast<decltype(m_tok.text)>("else")) {
-      if (m_if_stack.empty())
+      if (m_if_stack.empty()) {
         throw_parser_error("else without matching if");
+      }
       auto &if_data = m_if_stack.back();
       get_next_token();
 
@@ -340,8 +356,9 @@ public:
         get_next_token();
 
         // evaluate expression
-        if (!parse_expression(tmpl))
+        if (!parse_expression(tmpl)) {
           return false;
+        }
 
         // update "previous jump"
         if_data.prev_cond_jump = tmpl.bytecodes.size();
@@ -353,27 +370,31 @@ public:
       get_next_token();
 
       // options: for a in arr; for a, b in obj
-      if (m_tok.kind != Token::Kind::Id)
+      if (m_tok.kind != Token::Kind::Id) {
         throw_parser_error("expected id, got '" + m_tok.describe() + "'");
+      }
       Token value_token = m_tok;
       get_next_token();
 
       Token key_token;
       if (m_tok.kind == Token::Kind::Comma) {
         get_next_token();
-        if (m_tok.kind != Token::Kind::Id)
+        if (m_tok.kind != Token::Kind::Id) {
           throw_parser_error("expected id, got '" + m_tok.describe() + "'");
+        }
         key_token = std::move(value_token);
         value_token = m_tok;
         get_next_token();
       }
 
-      if (m_tok.kind != Token::Kind::Id || m_tok.text != static_cast<decltype(m_tok.text)>("in"))
+      if (m_tok.kind != Token::Kind::Id || m_tok.text != static_cast<decltype(m_tok.text)>("in")) {
         throw_parser_error("expected 'in', got '" + m_tok.describe() + "'");
+      }
       get_next_token();
 
-      if (!parse_expression(tmpl))
+      if (!parse_expression(tmpl)) {
         return false;
+      }
 
       m_loop_stack.push_back(tmpl.bytecodes.size());
 
@@ -464,10 +485,12 @@ public:
       get_next_token();
       switch (m_tok.kind) {
       case Token::Kind::Eof:
-        if (!m_if_stack.empty())
+        if (!m_if_stack.empty()) {
           throw_parser_error("unmatched if");
-        if (!m_loop_stack.empty())
+        }
+        if (!m_loop_stack.empty()) {
           throw_parser_error("unmatched for");
+        }
         return;
       case Token::Kind::Text:
         tmpl.bytecodes.emplace_back(Bytecode::Op::PrintText, m_tok.text, 0u);

@@ -90,8 +90,7 @@ struct Bytecode {
 
     // start loop
     // value popped off stack is what is iterated over
-    // args is index of bytecode after end loop (jumped to if iterable is
-    // empty)
+    // args is index of bytecode after end loop (jumped to if iterable is empty)
     // immediate value is key name (for maps)
     // str is value name
     StartLoop,

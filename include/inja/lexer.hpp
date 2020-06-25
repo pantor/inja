@@ -67,9 +67,10 @@ public:
     m_tok_start = m_pos;
 
   again:
-    if (m_tok_start >= m_in.size())
+    if (m_tok_start >= m_in.size()) {
       return make_token(Token::Kind::Eof);
-
+    }
+    
     switch (m_state) {
     default:
     case State::Text: {
@@ -159,8 +160,9 @@ private:
   Token scan_body(nonstd::string_view close, Token::Kind closeKind, bool trim = false) {
   again:
     // skip whitespace (except for \n as it might be a close)
-    if (m_tok_start >= m_in.size())
+    if (m_tok_start >= m_in.size()) {
       return make_token(Token::Kind::Eof);
+    }
     char ch = m_in[m_tok_start];
     if (ch == ' ' || ch == '\t' || ch == '\r') {
       m_tok_start += 1;

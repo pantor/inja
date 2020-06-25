@@ -83,6 +83,7 @@ class Renderer {
       ptr = ptr_buffer;
       break;
     }
+    
     json::json_pointer json_ptr(ptr.data());
     try {
       // first try to evaluate as a loop variable
@@ -98,6 +99,7 @@ class Renderer {
         m_tmp_val = callback(arguments);
         return &m_tmp_val;
       }
+
       throw RenderError("variable '" + static_cast<std::string>(bc.str) + "' not found");
       return nullptr;
     }

@@ -13,7 +13,6 @@
 #include "config.hpp"
 #include "function_storage.hpp"
 #include "parser.hpp"
-#include "polyfill.hpp"
 #include "renderer.hpp"
 #include "string_view.hpp"
 #include "template.hpp"
