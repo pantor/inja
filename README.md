@@ -29,7 +29,7 @@
 
 Inja is a template engine for modern C++, loosely inspired by [jinja](http://jinja.pocoo.org) for python. It has an easy and yet powerful template syntax with all variables, loops, conditions, includes, callbacks, comments you need, nested and combined as you like. Inja uses the wonderful [json](https://github.com/nlohmann/json) library by nlohmann for data input and handling. Most importantly, *inja* needs only two header files, which is (nearly) as trivial as integration in C++ can get. Of course, everything is tested on all relevant compilers. Here is what it looks like:
 
-```c++
+```.cpp
 json data;
 data["name"] = "world";
 
@@ -40,7 +40,7 @@ inja::render("Hello {{ name }}!", data); // Returns "Hello world!"
 
 Inja is a headers only library, which can be downloaded from the [releases](https://github.com/pantor/inja/releases) or directly from the `include/` or `single_include/` folder. Inja uses `nlohmann/json.hpp` as its single dependency, so make sure it can be included from `inja.hpp`. json can be downloaded [here](https://github.com/nlohmann/json/releases). Then integration is as easy as:
 
-```c++
+```.cpp
 #include <inja.hpp>
 
 // Just for convenience
@@ -67,7 +67,7 @@ This tutorial will give you an idea how to use inja. It will explain the most im
 
 The basic template rendering takes a template as a `std::string` and a `json` object for all data. It returns the rendered template as an `std::string`.
 
-```c++
+```.cpp
 json data;
 data["name"] = "world";
 
@@ -76,7 +76,7 @@ render_to(std::cout, "Hello {{ name }}!", data); // Prints "Hello world!"
 ```
 
 For more advanced usage, an environment is recommended.
-```c++
+```.cpp
 Environment env;
 
 // Render a string with json data
@@ -99,7 +99,7 @@ env.write_with_json_file("./templates/greeting.txt", "./data.json", "./result.tx
 ```
 
 The environment class can be configured to your needs.
-```c++
+```.cpp
 // With default settings
 Environment env_default;
 
@@ -123,7 +123,7 @@ env.set_line_statement("##"); // Line statements ## (just an opener)
 ### Variables
 
 Variables are rendered within the `{{ ... }}` expressions.
-```c++
+```.cpp
 json data;
 data["neighbour"] = "Peter";
 data["guests"] = {"Jeff", "Tom", "Patrick"};
@@ -145,7 +145,7 @@ Statements can be written either with the `{% ... %}` syntax or the `##` syntax 
 
 #### Loops
 
-```c++
+```.cpp
 // Combining loops and line statements
 render(R"(Guest List:
 ## for guest in guests
@@ -162,7 +162,7 @@ In a loop, the special variables `loop/index (number)`, `loop/index1 (number)`, 
 #### Conditions
 
 Conditions support the typical if, else if and else statements. Following conditions are for example possible:
-```c++
+```.cpp
 // Standard comparisons with variable
 render("{% if time.hour >= 20 %}…{% else if time.hour >= 18 %}…{% endif %}", data); // True
 
@@ -179,7 +179,7 @@ render("{% if not guest_count %}…{% endif %}", data); // True
 #### Includes
 
 You can either include other template files or already parsed templates.
-```c++
+```.cpp
 // Other template files are included relative from the current file location
 render("{% include \"footer.html\" %}", data);
 
@@ -192,7 +192,7 @@ env.render("Content: {% include \"content\" %}", data); // "Content: Hello Peter
 ### Functions
 
 A few functions are implemented within the inja template syntax. They can be called with
-```c++
+```.cpp
 // Upper and lower function, for string cases
 render("Hello {{ upper(neighbour) }}!", data); // "Hello PETER!"
 render("Hello {{ lower(neighbour) }}!", data); // "Hello peter!"
@@ -249,7 +249,7 @@ render("{{ isArray(guests) }}", data); // "true"
 
 In the default configuration, no whitespace is removed while rendering the file. To support a more readable template style, you can configure the environment to control whitespaces before and after a statement automatically. While enabling `set_trim_blocks` removes the first newline after a statement, `set_lstrip_blocks` strips tabs and spaces from the beginning of a line to the start of a block.
 
-```c++
+```.cpp
 Environment env;
 env.set_trim_blocks(true);
 env.set_lstrip_blocks(true);
@@ -260,7 +260,7 @@ With both `trim_blocks` and `lstrip_blocks` enabled, you can put statements on t
 ### Callbacks
 
 You can create your own and more complex functions with callbacks.
-```c++
+```.cpp
 Environment env;
 
 /*
@@ -288,7 +288,7 @@ env.render("{{ double-greetings }}", data); // "Hello Hello!"
 ### Comments
 
 Comments can be written with the `{# ... #}` syntax.
-```c++
+```.cpp
 render("Hello{# Todo #}!", data); // "Hello!"
 ```
 

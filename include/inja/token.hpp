@@ -10,7 +10,7 @@
 namespace inja {
 
 /*!
- * \brief Helper-class for the inja Parser.
+ * \brief Helper-class for the inja Lexer.
  */
 struct Token {
   enum class Kind {

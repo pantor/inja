@@ -6,4 +6,4 @@ SOURCE_ROOT=$(dirname "${DIR}")
 echo "Move to Source Root: ${SOURCE_ROOT}"
 cd ${SOURCE_ROOT}
 
-python3 amalgamate/amalgamate.py -c amalgamate/config.json -s include -v yes
+python3 third_party/amalgamate/amalgamate.py -c scripts/amalgamate_config.json -s include -v yes
