@@ -192,7 +192,7 @@ render("{% include \"footer.html\" %}", data);
 env.set_search_included_templates_in_files(false);
 ```
 
-Inja will throw an `inja::RenderError` if an included file is not found.
+Inja will throw an `inja::RenderError` if an included file is not found. To disable this error, you can call `env.set_throw_at_missing_includes(false);`.
 
 ### Functions
 
