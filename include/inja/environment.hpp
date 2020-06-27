@@ -26,6 +26,16 @@ using json = nlohmann::json;
  * \brief Class for changing the configuration.
  */
 class Environment {
+  std::string input_path;
+  std::string output_path;
+
+  LexerConfig lexer_config;
+  ParserConfig parser_config;
+  RenderConfig render_config;
+
+  FunctionStorage function_storage;
+  TemplateStorage template_storage;
+
 public:
   Environment() : Environment("") {}
 
@@ -74,6 +84,16 @@ public:
   /// Sets the element notation syntax
   void set_element_notation(ElementNotation notation) {
     parser_config.notation = notation;
+  }
+
+  /// Sets the element notation syntax
+  void set_search_included_templates_in_files(bool search_in_files) {
+    parser_config.search_included_templates_in_files = search_in_files;
+  }
+
+  /// Sets whether a missing include will throw an error
+  void set_throw_at_missing_includes(bool will_throw) {
+    render_config.throw_at_missing_includes = will_throw;
   }
 
   Template parse(nonstd::string_view input) {
@@ -127,7 +147,7 @@ public:
   }
 
   std::ostream &render_to(std::ostream &os, const Template &tmpl, const json &data) {
-    Renderer(template_storage, function_storage).render_to(os, tmpl, data);
+    Renderer(render_config, template_storage, function_storage).render_to(os, tmpl, data);
     return os;
   }
 
@@ -154,16 +174,6 @@ public:
   void include_template(const std::string &name, const Template &tmpl) {
     template_storage[name] = tmpl;
   }
-
-private:
-  std::string input_path;
-  std::string output_path;
-
-  LexerConfig lexer_config;
-  ParserConfig parser_config;
-
-  FunctionStorage function_storage;
-  TemplateStorage template_storage;
 };
 
 /*!

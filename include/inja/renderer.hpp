@@ -11,6 +11,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include "config.hpp"
 #include "exceptions.hpp"
 #include "node.hpp"
 #include "template.hpp"
@@ -176,9 +177,11 @@ class Renderer {
   std::vector<const json *> m_tmp_args;
   json m_tmp_val;
 
+  RenderConfig config;
+
 public:
-  Renderer(const TemplateStorage &included_templates, const FunctionStorage &callbacks)
-      : template_storage(included_templates), function_storage(callbacks) {
+  Renderer(const RenderConfig& config, const TemplateStorage &included_templates, const FunctionStorage &callbacks)
+      : config(config), template_storage(included_templates), function_storage(callbacks) {
     m_stack.reserve(16);
     m_tmp_args.reserve(4);
     m_loop_stack.reserve(16);
@@ -471,10 +474,14 @@ public:
         break;
       }
       case Node::Op::Include: {
-        auto sub_renderer = Renderer(template_storage, function_storage);
+        auto sub_renderer = Renderer(config, template_storage, function_storage);
         auto include_name = get_imm(node)->get_ref<const std::string &>();
-        auto included_template = template_storage.find(include_name)->second;
-        sub_renderer.render_to(os, included_template, *m_data, m_loop_data);
+        auto included_template_it = template_storage.find(include_name);
+        if (included_template_it != template_storage.end()) {
+          sub_renderer.render_to(os, included_template_it->second, *m_data, m_loop_data);
+        } else if (config.throw_at_missing_includes) {
+          throw_renderer_error("include '" + include_name + "' not found", node);
+        }
         break;
       }
       case Node::Op::Callback: {

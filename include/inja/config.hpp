@@ -50,6 +50,14 @@ struct LexerConfig {
  */
 struct ParserConfig {
   ElementNotation notation {ElementNotation::Dot};
+  bool search_included_templates_in_files {true};
+};
+
+/*!
+ * \brief Class for render configuration.
+ */
+struct RenderConfig {
+  bool throw_at_missing_includes {true};
 };
 
 } // namespace inja

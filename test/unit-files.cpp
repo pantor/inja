@@ -73,3 +73,12 @@ TEST_CASE("global-path") {
     CHECK(env_result.load_file("global-path-result.txt") == "Hello Jeff.");
   }
 }
+
+TEST_CASE("include-without-local-files") {
+  inja::Environment env {test_file_directory};
+  env.set_search_included_templates_in_files(false);
+
+  SUBCASE("html") {
+    CHECK_THROWS_WITH(env.render_file_with_json_file("html/template.txt", "html/data.json"), "[inja.exception.render_error] (at 21:1) include '../test/data/html/header.txt' not found");
+  }
+}

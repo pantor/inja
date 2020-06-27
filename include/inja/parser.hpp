@@ -475,7 +475,7 @@ public:
       }
       // sys::path::remove_dots(pathname, true, sys::path::Style::posix);
 
-      if (template_storage.find(pathname) == template_storage.end()) {
+      if (config.search_included_templates_in_files && template_storage.find(pathname) == template_storage.end()) {
         Template include_template = parse_template(pathname);
         template_storage.emplace(pathname, include_template);
       }

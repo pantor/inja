@@ -1488,6 +1488,14 @@ struct LexerConfig {
  */
 struct ParserConfig {
   ElementNotation notation {ElementNotation::Dot};
+  bool search_included_templates_in_files {true};
+};
+
+/*!
+ * \brief Class for render configuration.
+ */
+struct RenderConfig {
+  bool throw_at_missing_includes {true};
 };
 
 } // namespace inja
@@ -2760,7 +2768,7 @@ public:
       }
       // sys::path::remove_dots(pathname, true, sys::path::Style::posix);
 
-      if (template_storage.find(pathname) == template_storage.end()) {
+      if (config.search_included_templates_in_files && template_storage.find(pathname) == template_storage.end()) {
         Template include_template = parse_template(pathname);
         template_storage.emplace(pathname, include_template);
       }
@@ -2909,6 +2917,8 @@ public:
 #include <vector>
 
 #include <nlohmann/json.hpp>
+
+// #include "config.hpp"
 
 // #include "exceptions.hpp"
 
@@ -3079,9 +3089,11 @@ class Renderer {
   std::vector<const json *> m_tmp_args;
   json m_tmp_val;
 
+  RenderConfig config;
+
 public:
-  Renderer(const TemplateStorage &included_templates, const FunctionStorage &callbacks)
-      : template_storage(included_templates), function_storage(callbacks) {
+  Renderer(const RenderConfig& config, const TemplateStorage &included_templates, const FunctionStorage &callbacks)
+      : config(config), template_storage(included_templates), function_storage(callbacks) {
     m_stack.reserve(16);
     m_tmp_args.reserve(4);
     m_loop_stack.reserve(16);
@@ -3374,10 +3386,14 @@ public:
         break;
       }
       case Node::Op::Include: {
-        auto sub_renderer = Renderer(template_storage, function_storage);
+        auto sub_renderer = Renderer(config, template_storage, function_storage);
         auto include_name = get_imm(node)->get_ref<const std::string &>();
-        auto included_template = template_storage.find(include_name)->second;
-        sub_renderer.render_to(os, included_template, *m_data, m_loop_data);
+        auto included_template_it = template_storage.find(include_name);
+        if (included_template_it != template_storage.end()) {
+          sub_renderer.render_to(os, included_template_it->second, *m_data, m_loop_data);
+        } else if (config.throw_at_missing_includes) {
+          throw_renderer_error("include '" + include_name + "' not found", node);
+        }
         break;
       }
       case Node::Op::Callback: {
@@ -3521,6 +3537,16 @@ using json = nlohmann::json;
  * \brief Class for changing the configuration.
  */
 class Environment {
+  std::string input_path;
+  std::string output_path;
+
+  LexerConfig lexer_config;
+  ParserConfig parser_config;
+  RenderConfig render_config;
+
+  FunctionStorage function_storage;
+  TemplateStorage template_storage;
+
 public:
   Environment() : Environment("") {}
 
@@ -3569,6 +3595,16 @@ public:
   /// Sets the element notation syntax
   void set_element_notation(ElementNotation notation) {
     parser_config.notation = notation;
+  }
+
+  /// Sets the element notation syntax
+  void set_search_included_templates_in_files(bool search_in_files) {
+    parser_config.search_included_templates_in_files = search_in_files;
+  }
+
+  /// Sets whether a missing include will throw an error
+  void set_throw_at_missing_includes(bool will_throw) {
+    render_config.throw_at_missing_includes = will_throw;
   }
 
   Template parse(nonstd::string_view input) {
@@ -3622,7 +3658,7 @@ public:
   }
 
   std::ostream &render_to(std::ostream &os, const Template &tmpl, const json &data) {
-    Renderer(template_storage, function_storage).render_to(os, tmpl, data);
+    Renderer(render_config, template_storage, function_storage).render_to(os, tmpl, data);
     return os;
   }
 
@@ -3649,16 +3685,6 @@ public:
   void include_template(const std::string &name, const Template &tmpl) {
     template_storage[name] = tmpl;
   }
-
-private:
-  std::string input_path;
-  std::string output_path;
-
-  LexerConfig lexer_config;
-  ParserConfig parser_config;
-
-  FunctionStorage function_storage;
-  TemplateStorage template_storage;
 };
 
 /*!

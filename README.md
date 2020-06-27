@@ -178,16 +178,21 @@ render("{% if not guest_count %}…{% endif %}", data); // True
 
 #### Includes
 
-You can either include other template files or already parsed templates.
+You can either include other in-memory templates or from the file system.
 ```.cpp
-// Other template files are included relative from the current file location
-render("{% include \"footer.html\" %}", data);
-
 // To include in-memory templates, add them to the environment first
 inja::Template content_template = env.parse("Hello {{ neighbour }}!");
 env.include_template("content", content_template);
 env.render("Content: {% include \"content\" %}", data); // "Content: Hello Peter!"
+
+// Other template files are included relative from the current file location
+render("{% include \"footer.html\" %}", data);
+
+// You can disable to search for templates in the file system via
+env.set_search_included_templates_in_files(false);
 ```
+
+Inja will throw an `inja::RenderError` if an included file is not found.
 
 ### Functions
 
