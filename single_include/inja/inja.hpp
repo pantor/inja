@@ -2283,13 +2283,9 @@ struct Template {
 
   /// Return number of variables (total number, not distinct ones) in the template
   int count_variables() {
-    int result {0};
-    for (auto& n : nodes) {
-      if (n.flags == Node::Flag::ValueLookupDot || n.flags == Node::Flag::ValueLookupPointer) {
-        result += 1;
-      }
-    } 
-    return result;
+    return std::count_if(nodes.cbegin(), nodes.cend(), [](const inja::Node &node) {
+      return (node.flags == Node::Flag::ValueLookupDot || node.flags == Node::Flag::ValueLookupPointer);
+    });
   }
 };
 
