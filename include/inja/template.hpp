@@ -17,6 +17,17 @@ namespace inja {
 struct Template {
   std::vector<Node> nodes;
   std::string content;
+
+  /// Return number of variables (total number, not distinct ones) in the template
+  int count_variables() {
+    int result {0};
+    for (auto& n : nodes) {
+      if (n.flags == Node::Flag::ValueLookupDot || n.flags == Node::Flag::ValueLookupPointer) {
+        result += 1;
+      }
+    } 
+    return result;
+  }
 };
 
 using TemplateStorage = std::map<std::string, Template>;

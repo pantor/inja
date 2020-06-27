@@ -417,6 +417,17 @@ TEST_CASE("templates") {
     CHECK(env.render("{% for city in cities %}{% include \"city.tpl\" %}{% endfor %}", loop_data) ==
           "0:Munich;1:New York;");
   }
+
+  SUBCASE("count variables") {
+    inja::Environment env;
+    inja::Template t1 = env.parse("Hello {{ name }}");
+    inja::Template t2 = env.parse("{% if is_happy %}{{ name }}{% else %}{{ city }}{% endif %}");
+    inja::Template t3 = env.parse("{% if at(name, test) %}{{ name }}{% else %}{{ city }}{{ upper(city) }}{% endif %}");
+
+    CHECK(t1.count_variables() == 1);
+    CHECK(t2.count_variables() == 3);
+    CHECK(t3.count_variables() == 5);
+  }
 }
 
 TEST_CASE("other-syntax") {
