@@ -119,9 +119,10 @@ struct Node {
 
   json value;
   std::string str;
+  nonstd::string_view view;
 
   explicit Node(Op op, unsigned int args = 0) : op(op), args(args), flags(0) {}
-  explicit Node(Op op, nonstd::string_view str, unsigned int flags) : op(op), args(0), flags(flags), str(str) {}
+  explicit Node(Op op, nonstd::string_view str, unsigned int flags) : op(op), args(0), flags(flags), str(str), view(str) {}
   explicit Node(Op op, json &&value, unsigned int flags) : op(op), args(0), flags(flags), value(std::move(value)) {}
 };
 

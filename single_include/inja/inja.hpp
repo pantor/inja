@@ -1625,9 +1625,10 @@ struct Node {
 
   json value;
   std::string str;
+  nonstd::string_view view;
 
   explicit Node(Op op, unsigned int args = 0) : op(op), args(args), flags(0) {}
-  explicit Node(Op op, nonstd::string_view str, unsigned int flags) : op(op), args(0), flags(flags), str(str) {}
+  explicit Node(Op op, nonstd::string_view str, unsigned int flags) : op(op), args(0), flags(flags), str(str), view(str) {}
   explicit Node(Op op, json &&value, unsigned int flags) : op(op), args(0), flags(flags), value(std::move(value)) {}
 };
 
@@ -1916,6 +1917,29 @@ inline bool starts_with(nonstd::string_view view, nonstd::string_view prefix) {
 }
 } // namespace string_view
 
+inline SourceLocation get_source_location(nonstd::string_view content, size_t pos) {
+  // Get line and offset position (starts at 1:1)
+  auto sliced = string_view::slice(content, 0, pos);
+  std::size_t last_newline = sliced.rfind("\n");
+
+  if (last_newline == nonstd::string_view::npos) {
+    return {1, sliced.length() + 1};
+  }
+
+  // Count newlines
+  size_t count_lines = 0;
+  size_t search_start = 0;
+  while (search_start <= sliced.size()) {
+    search_start = sliced.find("\n", search_start) + 1;
+    if (search_start <= 0) {
+      break;
+    }
+    count_lines += 1;
+  }
+
+  return {count_lines + 1, sliced.length() - last_newline};
+}
+
 } // namespace inja
 
 #endif // INCLUDE_INJA_UTILS_HPP_
@@ -2124,23 +2148,7 @@ public:
   explicit Lexer(const LexerConfig &config) : config(config) {}
 
   SourceLocation current_position() const {
-    // Get line and offset position (starts at 1:1)
-    auto sliced = string_view::slice(m_in, 0, tok_start);
-    std::size_t last_newline = sliced.rfind("\n");
-
-    if (last_newline == nonstd::string_view::npos) {
-      return {1, sliced.length() + 1};
-    }
-
-    // Count newlines
-    size_t count_lines = 0;
-    size_t search_start = 0;
-    while (search_start < sliced.size()) {
-      search_start = sliced.find("\n", search_start + 1);
-      count_lines += 1;
-    }
-
-    return {count_lines + 1, sliced.length() - last_newline + 1};
+    return get_source_location(m_in, tok_start);
   }
 
   void start(nonstd::string_view input) {
@@ -2359,7 +2367,9 @@ class Parser {
   std::vector<IfData> if_stack;
   std::vector<size_t> loop_stack;
 
-  void throw_parser_error(const std::string &message) { throw ParserError(message, lexer.current_position()); }
+  void throw_parser_error(const std::string &message) {
+    throw ParserError(message, lexer.current_position());
+  }
 
   void get_next_token() {
     if (have_peek_tok) {
@@ -2540,9 +2550,8 @@ public:
         } else {
           // normal literal (json read)
 
-          tmpl.nodes.emplace_back(Node::Op::Push, tok.text,
-                                      config.notation == ElementNotation::Pointer ? Node::Flag::ValueLookupPointer
-                                                                                    : Node::Flag::ValueLookupDot);
+          auto flag = config.notation == ElementNotation::Pointer ? Node::Flag::ValueLookupPointer : Node::Flag::ValueLookupDot;
+          tmpl.nodes.emplace_back(Node::Op::Push, tok.text, flag);
           get_next_token();
           return true;
         }
@@ -2920,13 +2929,13 @@ inline nonstd::string_view convert_dot_to_json_pointer(nonstd::string_view dot, 
  * \brief Class for rendering a Template with data.
  */
 class Renderer {
-  std::vector<const json *> &get_args(const Node &bc) {
+  std::vector<const json *> &get_args(const Node &node) {
     m_tmp_args.clear();
 
-    bool has_imm = ((bc.flags & Node::Flag::ValueMask) != Node::Flag::ValuePop);
+    bool has_imm = ((node.flags & Node::Flag::ValueMask) != Node::Flag::ValuePop);
 
     // get args from stack
-    unsigned int pop_args = bc.args;
+    unsigned int pop_args = node.args;
     if (has_imm) {
       pop_args -= 1;
     }
@@ -2937,15 +2946,15 @@ class Renderer {
 
     // get immediate arg
     if (has_imm) {
-      m_tmp_args.push_back(get_imm(bc));
+      m_tmp_args.push_back(get_imm(node));
     }
 
     return m_tmp_args;
   }
 
-  void pop_args(const Node &bc) {
-    unsigned int pop_args = bc.args;
-    if ((bc.flags & Node::Flag::ValueMask) != Node::Flag::ValuePop) {
+  void pop_args(const Node &node) {
+    unsigned int pop_args = node.args;
+    if ((node.flags & Node::Flag::ValueMask) != Node::Flag::ValuePop) {
       pop_args -= 1;
     }
     for (unsigned int i = 0; i < pop_args; ++i) {
@@ -2953,20 +2962,20 @@ class Renderer {
     }
   }
 
-  const json *get_imm(const Node &bc) {
+  const json *get_imm(const Node &node) {
     std::string ptr_buffer;
     nonstd::string_view ptr;
-    switch (bc.flags & Node::Flag::ValueMask) {
+    switch (node.flags & Node::Flag::ValueMask) {
     case Node::Flag::ValuePop:
       return nullptr;
     case Node::Flag::ValueImmediate:
-      return &bc.value;
+      return &node.value;
     case Node::Flag::ValueLookupDot:
-      ptr = convert_dot_to_json_pointer(bc.str, ptr_buffer);
+      ptr = convert_dot_to_json_pointer(node.str, ptr_buffer);
       break;
     case Node::Flag::ValueLookupPointer:
       ptr_buffer += '/';
-      ptr_buffer += bc.str;
+      ptr_buffer += node.str; // static_cast<std::string>(node.view);
       ptr = ptr_buffer;
       break;
     }
@@ -2981,13 +2990,13 @@ class Renderer {
       return &m_data->at(json_ptr);
     } catch (std::exception &) {
       // try to evaluate as a no-argument callback
-      if (auto callback = function_storage.find_callback(bc.str, 0)) {
+      if (auto callback = function_storage.find_callback(node.str, 0)) {
         std::vector<const json *> arguments {};
         m_tmp_val = callback(arguments);
         return &m_tmp_val;
       }
 
-      throw RenderError("variable '" + static_cast<std::string>(bc.str) + "' not found");
+      throw_renderer_error("variable '" + static_cast<std::string>(node.str) + "' not found", node);
       return nullptr;
     }
   }
@@ -3024,6 +3033,12 @@ class Renderer {
     loop_data["is_last"] = (level.index == level.size - 1);
   }
 
+  void throw_renderer_error(const std::string &message, const Node& node) {
+    size_t pos = node.view.data() - current_template->content.c_str();
+    SourceLocation loc = get_source_location(current_template->content, pos);
+    throw RenderError(message, loc);
+  }
+
   struct LoopLevel {
     enum class Type { Map, Array };
 
@@ -3048,6 +3063,7 @@ class Renderer {
   const TemplateStorage &template_storage;
   const FunctionStorage &function_storage;
 
+  const Template *current_template;
   std::vector<json> m_stack;
   std::vector<LoopLevel> m_loop_stack;
   json *m_loop_data;
@@ -3065,58 +3081,59 @@ public:
   }
 
   void render_to(std::ostream &os, const Template &tmpl, const json &data, json *loop_data = nullptr) {
+    current_template = &tmpl;
     m_data = &data;
     m_loop_data = loop_data;
 
     for (size_t i = 0; i < tmpl.nodes.size(); ++i) {
-      const auto &bc = tmpl.nodes[i];
+      const auto &node = tmpl.nodes[i];
 
-      switch (bc.op) {
+      switch (node.op) {
       case Node::Op::Nop: {
         break;
       }
       case Node::Op::PrintText: {
-        os << bc.str;
+        os << node.str;
         break;
       }
       case Node::Op::PrintValue: {
-        const json &val = *get_args(bc)[0];
+        const json &val = *get_args(node)[0];
         if (val.is_string()) {
           os << val.get_ref<const std::string &>();
         } else {
           os << val.dump();
         }
-        pop_args(bc);
+        pop_args(node);
         break;
       }
       case Node::Op::Push: {
-        m_stack.emplace_back(*get_imm(bc));
+        m_stack.emplace_back(*get_imm(node));
         break;
       }
       case Node::Op::Upper: {
-        auto result = get_args(bc)[0]->get<std::string>();
+        auto result = get_args(node)[0]->get<std::string>();
         std::transform(result.begin(), result.end(), result.begin(), ::toupper);
-        pop_args(bc);
+        pop_args(node);
         m_stack.emplace_back(std::move(result));
         break;
       }
       case Node::Op::Lower: {
-        auto result = get_args(bc)[0]->get<std::string>();
+        auto result = get_args(node)[0]->get<std::string>();
         std::transform(result.begin(), result.end(), result.begin(), ::tolower);
-        pop_args(bc);
+        pop_args(node);
         m_stack.emplace_back(std::move(result));
         break;
       }
       case Node::Op::Range: {
-        int number = get_args(bc)[0]->get<int>();
+        int number = get_args(node)[0]->get<int>();
         std::vector<int> result(number);
         std::iota(std::begin(result), std::end(result), 0);
-        pop_args(bc);
+        pop_args(node);
         m_stack.emplace_back(std::move(result));
         break;
       }
       case Node::Op::Length: {
-        const json &val = *get_args(bc)[0];
+        const json &val = *get_args(node)[0];
 
         size_t result;
         if (val.is_string()) {
@@ -3125,213 +3142,213 @@ public:
           result = val.size();
         }
 
-        pop_args(bc);
+        pop_args(node);
         m_stack.emplace_back(result);
         break;
       }
       case Node::Op::Sort: {
-        auto result = get_args(bc)[0]->get<std::vector<json>>();
+        auto result = get_args(node)[0]->get<std::vector<json>>();
         std::sort(result.begin(), result.end());
-        pop_args(bc);
+        pop_args(node);
         m_stack.emplace_back(std::move(result));
         break;
       }
       case Node::Op::At: {
-        auto args = get_args(bc);
+        auto args = get_args(node);
         auto result = args[0]->at(args[1]->get<int>());
-        pop_args(bc);
+        pop_args(node);
         m_stack.emplace_back(result);
         break;
       }
       case Node::Op::First: {
-        auto result = get_args(bc)[0]->front();
-        pop_args(bc);
+        auto result = get_args(node)[0]->front();
+        pop_args(node);
         m_stack.emplace_back(result);
         break;
       }
       case Node::Op::Last: {
-        auto result = get_args(bc)[0]->back();
-        pop_args(bc);
+        auto result = get_args(node)[0]->back();
+        pop_args(node);
         m_stack.emplace_back(result);
         break;
       }
       case Node::Op::Round: {
-        auto args = get_args(bc);
+        auto args = get_args(node);
         double number = args[0]->get<double>();
         int precision = args[1]->get<int>();
-        pop_args(bc);
+        pop_args(node);
         m_stack.emplace_back(std::round(number * std::pow(10.0, precision)) / std::pow(10.0, precision));
         break;
       }
       case Node::Op::DivisibleBy: {
-        auto args = get_args(bc);
+        auto args = get_args(node);
         int number = args[0]->get<int>();
         int divisor = args[1]->get<int>();
-        pop_args(bc);
+        pop_args(node);
         m_stack.emplace_back((divisor != 0) && (number % divisor == 0));
         break;
       }
       case Node::Op::Odd: {
-        int number = get_args(bc)[0]->get<int>();
-        pop_args(bc);
+        int number = get_args(node)[0]->get<int>();
+        pop_args(node);
         m_stack.emplace_back(number % 2 != 0);
         break;
       }
       case Node::Op::Even: {
-        int number = get_args(bc)[0]->get<int>();
-        pop_args(bc);
+        int number = get_args(node)[0]->get<int>();
+        pop_args(node);
         m_stack.emplace_back(number % 2 == 0);
         break;
       }
       case Node::Op::Max: {
-        auto args = get_args(bc);
+        auto args = get_args(node);
         auto result = *std::max_element(args[0]->begin(), args[0]->end());
-        pop_args(bc);
+        pop_args(node);
         m_stack.emplace_back(std::move(result));
         break;
       }
       case Node::Op::Min: {
-        auto args = get_args(bc);
+        auto args = get_args(node);
         auto result = *std::min_element(args[0]->begin(), args[0]->end());
-        pop_args(bc);
+        pop_args(node);
         m_stack.emplace_back(std::move(result));
         break;
       }
       case Node::Op::Not: {
-        bool result = !truthy(*get_args(bc)[0]);
-        pop_args(bc);
+        bool result = !truthy(*get_args(node)[0]);
+        pop_args(node);
         m_stack.emplace_back(result);
         break;
       }
       case Node::Op::And: {
-        auto args = get_args(bc);
+        auto args = get_args(node);
         bool result = truthy(*args[0]) && truthy(*args[1]);
-        pop_args(bc);
+        pop_args(node);
         m_stack.emplace_back(result);
         break;
       }
       case Node::Op::Or: {
-        auto args = get_args(bc);
+        auto args = get_args(node);
         bool result = truthy(*args[0]) || truthy(*args[1]);
-        pop_args(bc);
+        pop_args(node);
         m_stack.emplace_back(result);
         break;
       }
       case Node::Op::In: {
-        auto args = get_args(bc);
+        auto args = get_args(node);
         bool result = std::find(args[1]->begin(), args[1]->end(), *args[0]) != args[1]->end();
-        pop_args(bc);
+        pop_args(node);
         m_stack.emplace_back(result);
         break;
       }
       case Node::Op::Equal: {
-        auto args = get_args(bc);
+        auto args = get_args(node);
         bool result = (*args[0] == *args[1]);
-        pop_args(bc);
+        pop_args(node);
         m_stack.emplace_back(result);
         break;
       }
       case Node::Op::Greater: {
-        auto args = get_args(bc);
+        auto args = get_args(node);
         bool result = (*args[0] > *args[1]);
-        pop_args(bc);
+        pop_args(node);
         m_stack.emplace_back(result);
         break;
       }
       case Node::Op::Less: {
-        auto args = get_args(bc);
+        auto args = get_args(node);
         bool result = (*args[0] < *args[1]);
-        pop_args(bc);
+        pop_args(node);
         m_stack.emplace_back(result);
         break;
       }
       case Node::Op::GreaterEqual: {
-        auto args = get_args(bc);
+        auto args = get_args(node);
         bool result = (*args[0] >= *args[1]);
-        pop_args(bc);
+        pop_args(node);
         m_stack.emplace_back(result);
         break;
       }
       case Node::Op::LessEqual: {
-        auto args = get_args(bc);
+        auto args = get_args(node);
         bool result = (*args[0] <= *args[1]);
-        pop_args(bc);
+        pop_args(node);
         m_stack.emplace_back(result);
         break;
       }
       case Node::Op::Different: {
-        auto args = get_args(bc);
+        auto args = get_args(node);
         bool result = (*args[0] != *args[1]);
-        pop_args(bc);
+        pop_args(node);
         m_stack.emplace_back(result);
         break;
       }
       case Node::Op::Float: {
-        double result = std::stod(get_args(bc)[0]->get_ref<const std::string &>());
-        pop_args(bc);
+        double result = std::stod(get_args(node)[0]->get_ref<const std::string &>());
+        pop_args(node);
         m_stack.emplace_back(result);
         break;
       }
       case Node::Op::Int: {
-        int result = std::stoi(get_args(bc)[0]->get_ref<const std::string &>());
-        pop_args(bc);
+        int result = std::stoi(get_args(node)[0]->get_ref<const std::string &>());
+        pop_args(node);
         m_stack.emplace_back(result);
         break;
       }
       case Node::Op::Exists: {
-        auto &&name = get_args(bc)[0]->get_ref<const std::string &>();
+        auto &&name = get_args(node)[0]->get_ref<const std::string &>();
         bool result = (data.find(name) != data.end());
-        pop_args(bc);
+        pop_args(node);
         m_stack.emplace_back(result);
         break;
       }
       case Node::Op::ExistsInObject: {
-        auto args = get_args(bc);
+        auto args = get_args(node);
         auto &&name = args[1]->get_ref<const std::string &>();
         bool result = (args[0]->find(name) != args[0]->end());
-        pop_args(bc);
+        pop_args(node);
         m_stack.emplace_back(result);
         break;
       }
       case Node::Op::IsBoolean: {
-        bool result = get_args(bc)[0]->is_boolean();
-        pop_args(bc);
+        bool result = get_args(node)[0]->is_boolean();
+        pop_args(node);
         m_stack.emplace_back(result);
         break;
       }
       case Node::Op::IsNumber: {
-        bool result = get_args(bc)[0]->is_number();
-        pop_args(bc);
+        bool result = get_args(node)[0]->is_number();
+        pop_args(node);
         m_stack.emplace_back(result);
         break;
       }
       case Node::Op::IsInteger: {
-        bool result = get_args(bc)[0]->is_number_integer();
-        pop_args(bc);
+        bool result = get_args(node)[0]->is_number_integer();
+        pop_args(node);
         m_stack.emplace_back(result);
         break;
       }
       case Node::Op::IsFloat: {
-        bool result = get_args(bc)[0]->is_number_float();
-        pop_args(bc);
+        bool result = get_args(node)[0]->is_number_float();
+        pop_args(node);
         m_stack.emplace_back(result);
         break;
       }
       case Node::Op::IsObject: {
-        bool result = get_args(bc)[0]->is_object();
-        pop_args(bc);
+        bool result = get_args(node)[0]->is_object();
+        pop_args(node);
         m_stack.emplace_back(result);
         break;
       }
       case Node::Op::IsArray: {
-        bool result = get_args(bc)[0]->is_array();
-        pop_args(bc);
+        bool result = get_args(node)[0]->is_array();
+        pop_args(node);
         m_stack.emplace_back(result);
         break;
       }
       case Node::Op::IsString: {
-        bool result = get_args(bc)[0]->is_string();
-        pop_args(bc);
+        bool result = get_args(node)[0]->is_string();
+        pop_args(node);
         m_stack.emplace_back(result);
         break;
       }
@@ -3341,7 +3358,7 @@ public:
         // the parse phase so the second argument is pushed on the stack and
         // the first argument is in the immediate
         try {
-          const json *imm = get_imm(bc);
+          const json *imm = get_imm(node);
           // if no exception was raised, replace the stack value with it
           m_stack.back() = *imm;
         } catch (std::exception &) {
@@ -3349,29 +3366,31 @@ public:
         }
         break;
       }
-      case Node::Op::Include:
-        Renderer(template_storage, function_storage)
-            .render_to(os, template_storage.find(get_imm(bc)->get_ref<const std::string &>())->second, *m_data,
-                       m_loop_data);
+      case Node::Op::Include: {
+        auto sub_renderer = Renderer(template_storage, function_storage);
+        auto include_name = get_imm(node)->get_ref<const std::string &>();
+        auto included_template = template_storage.find(include_name)->second;
+        sub_renderer.render_to(os, included_template, *m_data, m_loop_data);
         break;
+      }
       case Node::Op::Callback: {
-        auto callback = function_storage.find_callback(bc.str, bc.args);
+        auto callback = function_storage.find_callback(node.str, node.args);
         if (!callback) {
-          throw RenderError("function '" + static_cast<std::string>(bc.str) + "' (" +
-                            std::to_string(static_cast<unsigned int>(bc.args)) + ") not found");
+          throw_renderer_error("function '" + static_cast<std::string>(node.str) + "' (" +
+                            std::to_string(static_cast<unsigned int>(node.args)) + ") not found", node);
         }
-        json result = callback(get_args(bc));
-        pop_args(bc);
+        json result = callback(get_args(node));
+        pop_args(node);
         m_stack.emplace_back(std::move(result));
         break;
       }
       case Node::Op::Jump: {
-        i = bc.args - 1; // -1 due to ++i in loop
+        i = node.args - 1; // -1 due to ++i in loop
         break;
       }
       case Node::Op::ConditionalJump: {
         if (!truthy(m_stack.back())) {
-          i = bc.args - 1; // -1 due to ++i in loop
+          i = node.args - 1; // -1 due to ++i in loop
         }
         m_stack.pop_back();
         break;
@@ -3380,13 +3399,13 @@ public:
         // jump past loop body if empty
         if (m_stack.back().empty()) {
           m_stack.pop_back();
-          i = bc.args; // ++i in loop will take it past EndLoop
+          i = node.args; // ++i in loop will take it past EndLoop
           break;
         }
 
         m_loop_stack.emplace_back();
         LoopLevel &level = m_loop_stack.back();
-        level.value_name = bc.str;
+        level.value_name = node.str;
         level.values = std::move(m_stack.back());
         if (m_loop_data) {
           level.data = *m_loop_data;
@@ -3394,14 +3413,14 @@ public:
         level.index = 0;
         m_stack.pop_back();
 
-        if (bc.value.is_string()) {
+        if (node.value.is_string()) {
           // map iterator
           if (!level.values.is_object()) {
             m_loop_stack.pop_back();
-            throw RenderError("for key, value requires object");
+            throw_renderer_error("for key, value requires object", node);
           }
           level.loop_type = LoopLevel::Type::Map;
-          level.key_name = bc.value.get_ref<const std::string &>();
+          level.key_name = node.value.get_ref<const std::string &>();
 
           // sort by key
           for (auto it = level.values.begin(), end = level.values.end(); it != end; ++it) {
@@ -3416,7 +3435,7 @@ public:
         } else {
           if (!level.values.is_array()) {
             m_loop_stack.pop_back();
-            throw RenderError("type must be array");
+            throw_renderer_error("type must be array", node);
           }
 
           // list iterator
@@ -3438,7 +3457,7 @@ public:
       }
       case Node::Op::EndLoop: {
         if (m_loop_stack.empty()) {
-          throw RenderError("unexpected state in renderer");
+          throw_renderer_error("unexpected state in renderer", node);
         }
         LoopLevel &level = m_loop_stack.back();
 
@@ -3465,11 +3484,11 @@ public:
         update_loop_data();
 
         // jump back to start of loop
-        i = bc.args - 1; // -1 due to ++i in loop
+        i = node.args - 1; // -1 due to ++i in loop
         break;
       }
       default: {
-        throw RenderError("unknown operation in renderer: " + std::to_string(static_cast<unsigned int>(bc.op)));
+        throw_renderer_error("unknown operation in renderer: " + std::to_string(static_cast<unsigned int>(node.op)), node);
       }
       }
     }

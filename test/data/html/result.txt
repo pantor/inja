@@ -15,5 +15,12 @@
       <li>test</li>
       <li>templates</li>
     </ul>
+
+    <footer>
+      <div>
+        <h3>About</h3>
+        <p>This is the footer.</p>
+      </div>
+    </footer>
   </body>
 </html>

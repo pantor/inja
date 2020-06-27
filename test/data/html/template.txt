@@ -1,8 +1,6 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>{{ title }}</title>
-  </head>
+  {% include "header.txt" %}
   <body>
     <h1>{{ title }}</h1>
     <small>Written by {{ author }}</small>
@@ -16,5 +14,7 @@
       <li>{{ tag }}</li>
 ## endfor
     </ul>
+
+    {% include "footer.txt" %}
   </body>
 </html>

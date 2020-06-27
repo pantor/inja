@@ -44,7 +44,7 @@ TEST_CASE("complete-files") {
   for (std::string test_name : {"error-unknown"}) {
     SUBCASE(test_name.c_str()) {
       CHECK_THROWS_WITH(env.render_file_with_json_file(test_name + "/template.txt", test_name + "/data.json"),
-                        "[inja.exception.parser_error] (at 2:11) expected 'in', got 'ins'");
+                        "[inja.exception.parser_error] (at 2:10) expected 'in', got 'ins'");
     }
   }
 }

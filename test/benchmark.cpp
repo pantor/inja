@@ -255,9 +255,9 @@ std::string string_template {
     "cupiditate nostrum iure. Voluptatem accusamus vel corporis. \n Debitis {{ name }} sunt est debitis distinctio ut. "
     "Provident corrupti nihil velit aut tempora corporis corrupti exercitationem. Praesentium cumque ex est itaque."};
 
-BENCHMARK(InjaBenchmarkerSmallData, render, 10, 100) { env.render(string_template, smallData); }
+BENCHMARK(InjaBenchmarkerSmallData, render, 5, 50) { env.render(string_template, smallData); }
 
-BENCHMARK(InjaBenchmarkerLargeData, render, 10, 100) { env.render(string_template, largeData); }
+BENCHMARK(InjaBenchmarkerLargeData, render, 5, 25) { env.render(string_template, largeData); }
 
 int main() {
   hayai::ConsoleOutputter consoleOutputter;

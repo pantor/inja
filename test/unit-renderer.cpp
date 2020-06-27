@@ -45,7 +45,7 @@ TEST_CASE("types") {
     CHECK(env.render("Hello {{ brother.daughter0.name }}!", data) == "Hello Maria!");
     CHECK(env.render("{{ \"{{ no_value }}\" }}", data) == "{{ no_value }}");
 
-    CHECK_THROWS_WITH(env.render("{{unknown}}", data), "[inja.exception.render_error] variable 'unknown' not found");
+    CHECK_THROWS_WITH(env.render("{{unknown}}", data), "[inja.exception.render_error] (at 1:3) variable 'unknown' not found");
   }
 
   SUBCASE("comments") {
@@ -74,7 +74,7 @@ TEST_CASE("types") {
     CHECK_THROWS_WITH(env.render("{% for name ins names %}a{% endfor %}", data),
                       "[inja.exception.parser_error] (at 1:13) expected 'in', got 'ins'");
     CHECK_THROWS_WITH(env.render("{% for name in empty_loop %}a{% endfor %}", data),
-                      "[inja.exception.render_error] variable 'empty_loop' not found");
+                      "[inja.exception.render_error] (at 1:16) variable 'empty_loop' not found");
     // CHECK_THROWS_WITH( env.render("{% for name in relatives %}{{ name }}{% endfor %}", data),
     // "[inja.exception.json_error] [json.exception.type_error.302] type must be array, but is object" );
   }
@@ -281,7 +281,7 @@ TEST_CASE("functions") {
     CHECK(env.render("{{ default(surname, \"nobody\") }}", data) == "nobody");
     CHECK(env.render("{{ default(surname, \"{{ surname }}\") }}", data) == "{{ surname }}");
     CHECK_THROWS_WITH(env.render("{{ default(surname, lastname) }}", data),
-                      "[inja.exception.render_error] variable 'lastname' not found");
+                      "[inja.exception.render_error] (at 1:21) variable 'lastname' not found");
   }
 
   SUBCASE("exists") {
@@ -297,9 +297,9 @@ TEST_CASE("functions") {
     CHECK(env.render("{{ existsIn(brother, property) }}", data) == "true");
     CHECK(env.render("{{ existsIn(brother, name) }}", data) == "false");
     CHECK_THROWS_WITH(env.render("{{ existsIn(sister, \"lastname\") }}", data),
-                      "[inja.exception.render_error] variable 'sister' not found");
+                      "[inja.exception.render_error] (at 1:13) variable 'sister' not found");
     CHECK_THROWS_WITH(env.render("{{ existsIn(brother, sister) }}", data),
-                      "[inja.exception.render_error] variable 'sister' not found");
+                      "[inja.exception.render_error] (at 1:22) variable 'sister' not found");
   }
 
   SUBCASE("isType") {
@@ -440,7 +440,7 @@ TEST_CASE("other-syntax") {
     CHECK(env.render("Hello {{ brother/daughter0/name }}!", data) == "Hello Maria!");
 
     CHECK_THROWS_WITH(env.render("{{unknown/name}}", data),
-                      "[inja.exception.render_error] variable 'unknown/name' not found");
+                      "[inja.exception.render_error] (at 1:3) variable 'unknown/name' not found");
   }
 
   SUBCASE("other expression syntax") {

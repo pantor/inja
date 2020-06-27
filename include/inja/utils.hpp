@@ -44,6 +44,29 @@ inline bool starts_with(nonstd::string_view view, nonstd::string_view prefix) {
 }
 } // namespace string_view
 
+inline SourceLocation get_source_location(nonstd::string_view content, size_t pos) {
+  // Get line and offset position (starts at 1:1)
+  auto sliced = string_view::slice(content, 0, pos);
+  std::size_t last_newline = sliced.rfind("\n");
+
+  if (last_newline == nonstd::string_view::npos) {
+    return {1, sliced.length() + 1};
+  }
+
+  // Count newlines
+  size_t count_lines = 0;
+  size_t search_start = 0;
+  while (search_start <= sliced.size()) {
+    search_start = sliced.find("\n", search_start) + 1;
+    if (search_start <= 0) {
+      break;
+    }
+    count_lines += 1;
+  }
+
+  return {count_lines + 1, sliced.length() - last_newline};
+}
+
 } // namespace inja
 
 #endif // INCLUDE_INJA_UTILS_HPP_

@@ -1,0 +1,6 @@
+<footer>
+      <div>
+        <h3>About</h3>
+        <p>{{ footer-text }}</p>
+      </div>
+    </footer>

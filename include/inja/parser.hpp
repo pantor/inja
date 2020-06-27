@@ -89,7 +89,9 @@ class Parser {
   std::vector<IfData> if_stack;
   std::vector<size_t> loop_stack;
 
-  void throw_parser_error(const std::string &message) { throw ParserError(message, lexer.current_position()); }
+  void throw_parser_error(const std::string &message) {
+    throw ParserError(message, lexer.current_position());
+  }
 
   void get_next_token() {
     if (have_peek_tok) {
@@ -270,9 +272,8 @@ public:
         } else {
           // normal literal (json read)
 
-          tmpl.nodes.emplace_back(Node::Op::Push, tok.text,
-                                      config.notation == ElementNotation::Pointer ? Node::Flag::ValueLookupPointer
-                                                                                    : Node::Flag::ValueLookupDot);
+          auto flag = config.notation == ElementNotation::Pointer ? Node::Flag::ValueLookupPointer : Node::Flag::ValueLookupDot;
+          tmpl.nodes.emplace_back(Node::Op::Push, tok.text, flag);
           get_next_token();
           return true;
         }
