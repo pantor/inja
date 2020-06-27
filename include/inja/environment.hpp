@@ -29,55 +29,61 @@ class Environment {
 public:
   Environment() : Environment("") {}
 
-  explicit Environment(const std::string &global_path) : m_input_path(global_path), m_output_path(global_path) {}
+  explicit Environment(const std::string &global_path) : input_path(global_path), output_path(global_path) {}
 
   Environment(const std::string &input_path, const std::string &output_path)
-      : m_input_path(input_path), m_output_path(output_path) {}
+      : input_path(input_path), output_path(output_path) {}
 
   /// Sets the opener and closer for template statements
   void set_statement(const std::string &open, const std::string &close) {
-    m_lexer_config.statement_open = open;
-    m_lexer_config.statement_close = close;
-    m_lexer_config.update_open_chars();
+    lexer_config.statement_open = open;
+    lexer_config.statement_close = close;
+    lexer_config.update_open_chars();
   }
 
   /// Sets the opener for template line statements
   void set_line_statement(const std::string &open) {
-    m_lexer_config.line_statement = open;
-    m_lexer_config.update_open_chars();
+    lexer_config.line_statement = open;
+    lexer_config.update_open_chars();
   }
 
   /// Sets the opener and closer for template expressions
   void set_expression(const std::string &open, const std::string &close) {
-    m_lexer_config.expression_open = open;
-    m_lexer_config.expression_close = close;
-    m_lexer_config.update_open_chars();
+    lexer_config.expression_open = open;
+    lexer_config.expression_close = close;
+    lexer_config.update_open_chars();
   }
 
   /// Sets the opener and closer for template comments
   void set_comment(const std::string &open, const std::string &close) {
-    m_lexer_config.comment_open = open;
-    m_lexer_config.comment_close = close;
-    m_lexer_config.update_open_chars();
+    lexer_config.comment_open = open;
+    lexer_config.comment_close = close;
+    lexer_config.update_open_chars();
   }
 
   /// Sets whether to remove the first newline after a block
-  void set_trim_blocks(bool trim_blocks) { m_lexer_config.trim_blocks = trim_blocks; }
+  void set_trim_blocks(bool trim_blocks) {
+    lexer_config.trim_blocks = trim_blocks;
+  }
 
   /// Sets whether to strip the spaces and tabs from the start of a line to a block
-  void set_lstrip_blocks(bool lstrip_blocks) { m_lexer_config.lstrip_blocks = lstrip_blocks; }
+  void set_lstrip_blocks(bool lstrip_blocks) {
+    lexer_config.lstrip_blocks = lstrip_blocks;
+  }
 
   /// Sets the element notation syntax
-  void set_element_notation(ElementNotation notation) { m_parser_config.notation = notation; }
+  void set_element_notation(ElementNotation notation) {
+    parser_config.notation = notation;
+  }
 
   Template parse(nonstd::string_view input) {
-    Parser parser(m_parser_config, m_lexer_config, m_included_templates);
+    Parser parser(parser_config, lexer_config, template_storage);
     return parser.parse(input);
   }
 
   Template parse_template(const std::string &filename) {
-    Parser parser(m_parser_config, m_lexer_config, m_included_templates);
-    return parser.parse_template(m_input_path + static_cast<std::string>(filename));
+    Parser parser(parser_config, lexer_config, template_storage);
+    return parser.parse_template(input_path + static_cast<std::string>(filename));
   }
 
   std::string render(nonstd::string_view input, const json &data) { return render(parse(input), data); }
@@ -98,13 +104,13 @@ public:
   }
 
   void write(const std::string &filename, const json &data, const std::string &filename_out) {
-    std::ofstream file(m_output_path + filename_out);
+    std::ofstream file(output_path + filename_out);
     file << render_file(filename, data);
     file.close();
   }
 
   void write(const Template &temp, const json &data, const std::string &filename_out) {
-    std::ofstream file(m_output_path + filename_out);
+    std::ofstream file(output_path + filename_out);
     file << render(temp, data);
     file.close();
   }
@@ -121,47 +127,51 @@ public:
   }
 
   std::ostream &render_to(std::ostream &os, const Template &tmpl, const json &data) {
-    Renderer(m_included_templates, m_callbacks).render_to(os, tmpl, data);
+    Renderer(template_storage, function_storage).render_to(os, tmpl, data);
     return os;
   }
 
   std::string load_file(const std::string &filename) {
-    Parser parser(m_parser_config, m_lexer_config, m_included_templates);
-    return parser.load_file(m_input_path + filename);
+    Parser parser(parser_config, lexer_config, template_storage);
+    return parser.load_file(input_path + filename);
   }
 
   json load_json(const std::string &filename) {
-    std::ifstream file = open_file_or_throw(m_input_path + filename);
+    std::ifstream file = open_file_or_throw(input_path + filename);
     json j;
     file >> j;
     return j;
   }
 
   void add_callback(const std::string &name, unsigned int numArgs, const CallbackFunction &callback) {
-    m_callbacks.add_callback(name, numArgs, callback);
+    function_storage.add_callback(name, numArgs, callback);
   }
 
   /** Includes a template with a given name into the environment.
    * Then, a template can be rendered in another template using the
    * include "<name>" syntax.
    */
-  void include_template(const std::string &name, const Template &tmpl) { m_included_templates[name] = tmpl; }
+  void include_template(const std::string &name, const Template &tmpl) {
+    template_storage[name] = tmpl;
+  }
 
 private:
-  std::string m_input_path;
-  std::string m_output_path;
+  std::string input_path;
+  std::string output_path;
 
-  LexerConfig m_lexer_config;
-  ParserConfig m_parser_config;
+  LexerConfig lexer_config;
+  ParserConfig parser_config;
 
-  FunctionStorage m_callbacks;
-  TemplateStorage m_included_templates;
+  FunctionStorage function_storage;
+  TemplateStorage template_storage;
 };
 
 /*!
 @brief render with default settings to a string
 */
-inline std::string render(nonstd::string_view input, const json &data) { return Environment().render(input, data); }
+inline std::string render(nonstd::string_view input, const json &data) {
+  return Environment().render(input, data);
+}
 
 /*!
 @brief render with default settings to the given output stream

@@ -3,14 +3,6 @@
 #ifndef INCLUDE_INJA_INJA_HPP_
 #define INCLUDE_INJA_INJA_HPP_
 
-#include <functional>
-#include <iostream>
-#include <map>
-#include <memory>
-#include <sstream>
-#include <string>
-#include <vector>
-
 #include <nlohmann/json.hpp>
 
 #include "environment.hpp"

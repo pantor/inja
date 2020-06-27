@@ -1,7 +1,7 @@
 // Copyright (c) 2019 Pantor. All rights reserved.
 
-#ifndef INCLUDE_INJA_BYTECODE_HPP_
-#define INCLUDE_INJA_BYTECODE_HPP_
+#ifndef INCLUDE_INJA_NODE_HPP_
+#define INCLUDE_INJA_NODE_HPP_
 
 #include <string>
 #include <utility>
@@ -14,7 +14,7 @@ namespace inja {
 
 using json = nlohmann::json;
 
-struct Bytecode {
+struct Node {
   enum class Op : uint8_t {
     Nop,
     // print StringRef (always immediate)
@@ -79,24 +79,24 @@ struct Bytecode {
     Callback,
 
     // unconditional jump
-    // args is the index of the bytecode to jump to.
+    // args is the index of the node to jump to.
     Jump,
 
     // conditional jump
     // value popped off stack is checked for truthyness
-    // if false, args is the index of the bytecode to jump to.
+    // if false, args is the index of the node to jump to.
     // if true, no action is taken (falls through)
     ConditionalJump,
 
     // start loop
     // value popped off stack is what is iterated over
-    // args is index of bytecode after end loop (jumped to if iterable is empty)
+    // args is index of node after end loop (jumped to if iterable is empty)
     // immediate value is key name (for maps)
     // str is value name
     StartLoop,
 
     // end a loop
-    // args is index of the first bytecode in the loop body
+    // args is index of the first node in the loop body
     EndLoop,
   };
 
@@ -120,12 +120,11 @@ struct Bytecode {
   json value;
   std::string str;
 
-  Bytecode() : args(0), flags(0) {}
-  explicit Bytecode(Op op, unsigned int args = 0) : op(op), args(args), flags(0) {}
-  explicit Bytecode(Op op, nonstd::string_view str, unsigned int flags) : op(op), args(0), flags(flags), str(str) {}
-  explicit Bytecode(Op op, json &&value, unsigned int flags) : op(op), args(0), flags(flags), value(std::move(value)) {}
+  explicit Node(Op op, unsigned int args = 0) : op(op), args(args), flags(0) {}
+  explicit Node(Op op, nonstd::string_view str, unsigned int flags) : op(op), args(0), flags(flags), str(str) {}
+  explicit Node(Op op, json &&value, unsigned int flags) : op(op), args(0), flags(flags), value(std::move(value)) {}
 };
 
 } // namespace inja
 
-#endif // INCLUDE_INJA_BYTECODE_HPP_
+#endif // INCLUDE_INJA_NODE_HPP_

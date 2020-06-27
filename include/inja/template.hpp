@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-#include "bytecode.hpp"
+#include "node.hpp"
 
 namespace inja {
 
@@ -15,7 +15,7 @@ namespace inja {
  * \brief The main inja Template.
  */
 struct Template {
-  std::vector<Bytecode> bytecodes;
+  std::vector<Node> nodes;
   std::string content;
 };
 

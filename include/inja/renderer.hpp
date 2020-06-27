@@ -11,8 +11,8 @@
 
 #include <nlohmann/json.hpp>
 
-#include "bytecode.hpp"
 #include "exceptions.hpp"
+#include "node.hpp"
 #include "template.hpp"
 #include "utils.hpp"
 
@@ -33,10 +33,10 @@ inline nonstd::string_view convert_dot_to_json_pointer(nonstd::string_view dot, 
  * \brief Class for rendering a Template with data.
  */
 class Renderer {
-  std::vector<const json *> &get_args(const Bytecode &bc) {
+  std::vector<const json *> &get_args(const Node &bc) {
     m_tmp_args.clear();
 
-    bool has_imm = ((bc.flags & Bytecode::Flag::ValueMask) != Bytecode::Flag::ValuePop);
+    bool has_imm = ((bc.flags & Node::Flag::ValueMask) != Node::Flag::ValuePop);
 
     // get args from stack
     unsigned int pop_args = bc.args;
@@ -56,28 +56,28 @@ class Renderer {
     return m_tmp_args;
   }
 
-  void pop_args(const Bytecode &bc) {
-    unsigned int popArgs = bc.args;
-    if ((bc.flags & Bytecode::Flag::ValueMask) != Bytecode::Flag::ValuePop) {
-      popArgs -= 1;
+  void pop_args(const Node &bc) {
+    unsigned int pop_args = bc.args;
+    if ((bc.flags & Node::Flag::ValueMask) != Node::Flag::ValuePop) {
+      pop_args -= 1;
     }
-    for (unsigned int i = 0; i < popArgs; ++i) {
+    for (unsigned int i = 0; i < pop_args; ++i) {
       m_stack.pop_back();
     }
   }
 
-  const json *get_imm(const Bytecode &bc) {
+  const json *get_imm(const Node &bc) {
     std::string ptr_buffer;
     nonstd::string_view ptr;
-    switch (bc.flags & Bytecode::Flag::ValueMask) {
-    case Bytecode::Flag::ValuePop:
+    switch (bc.flags & Node::Flag::ValueMask) {
+    case Node::Flag::ValuePop:
       return nullptr;
-    case Bytecode::Flag::ValueImmediate:
+    case Node::Flag::ValueImmediate:
       return &bc.value;
-    case Bytecode::Flag::ValueLookupDot:
+    case Node::Flag::ValueLookupDot:
       ptr = convert_dot_to_json_pointer(bc.str, ptr_buffer);
       break;
-    case Bytecode::Flag::ValueLookupPointer:
+    case Node::Flag::ValueLookupPointer:
       ptr_buffer += '/';
       ptr_buffer += bc.str;
       ptr = ptr_buffer;
@@ -94,7 +94,7 @@ class Renderer {
       return &m_data->at(json_ptr);
     } catch (std::exception &) {
       // try to evaluate as a no-argument callback
-      if (auto callback = m_callbacks.find_callback(bc.str, 0)) {
+      if (auto callback = function_storage.find_callback(bc.str, 0)) {
         std::vector<const json *> arguments {};
         m_tmp_val = callback(arguments);
         return &m_tmp_val;
@@ -130,17 +130,12 @@ class Renderer {
       level.data[static_cast<std::string>(level.key_name)] = level.map_it->first;
       level.data[static_cast<std::string>(level.value_name)] = *level.map_it->second;
     }
-    auto &loopData = level.data["loop"];
-    loopData["index"] = level.index;
-    loopData["index1"] = level.index + 1;
-    loopData["is_first"] = (level.index == 0);
-    loopData["is_last"] = (level.index == level.size - 1);
+    auto &loop_data = level.data["loop"];
+    loop_data["index"] = level.index;
+    loop_data["index1"] = level.index + 1;
+    loop_data["is_first"] = (level.index == 0);
+    loop_data["is_last"] = (level.index == level.size - 1);
   }
-
-  const TemplateStorage &m_included_templates;
-  const FunctionStorage &m_callbacks;
-
-  std::vector<json> m_stack;
 
   struct LoopLevel {
     enum class Type { Map, Array };
@@ -163,16 +158,20 @@ class Renderer {
     MapValues::iterator map_it; // iterator over values
   };
 
+  const TemplateStorage &template_storage;
+  const FunctionStorage &function_storage;
+
+  std::vector<json> m_stack;
   std::vector<LoopLevel> m_loop_stack;
   json *m_loop_data;
-  const json *m_data;
 
+  const json *m_data;
   std::vector<const json *> m_tmp_args;
   json m_tmp_val;
 
 public:
   Renderer(const TemplateStorage &included_templates, const FunctionStorage &callbacks)
-      : m_included_templates(included_templates), m_callbacks(callbacks) {
+      : template_storage(included_templates), function_storage(callbacks) {
     m_stack.reserve(16);
     m_tmp_args.reserve(4);
     m_loop_stack.reserve(16);
@@ -182,18 +181,18 @@ public:
     m_data = &data;
     m_loop_data = loop_data;
 
-    for (size_t i = 0; i < tmpl.bytecodes.size(); ++i) {
-      const auto &bc = tmpl.bytecodes[i];
+    for (size_t i = 0; i < tmpl.nodes.size(); ++i) {
+      const auto &bc = tmpl.nodes[i];
 
       switch (bc.op) {
-      case Bytecode::Op::Nop: {
+      case Node::Op::Nop: {
         break;
       }
-      case Bytecode::Op::PrintText: {
+      case Node::Op::PrintText: {
         os << bc.str;
         break;
       }
-      case Bytecode::Op::PrintValue: {
+      case Node::Op::PrintValue: {
         const json &val = *get_args(bc)[0];
         if (val.is_string()) {
           os << val.get_ref<const std::string &>();
@@ -203,25 +202,25 @@ public:
         pop_args(bc);
         break;
       }
-      case Bytecode::Op::Push: {
+      case Node::Op::Push: {
         m_stack.emplace_back(*get_imm(bc));
         break;
       }
-      case Bytecode::Op::Upper: {
+      case Node::Op::Upper: {
         auto result = get_args(bc)[0]->get<std::string>();
         std::transform(result.begin(), result.end(), result.begin(), ::toupper);
         pop_args(bc);
         m_stack.emplace_back(std::move(result));
         break;
       }
-      case Bytecode::Op::Lower: {
+      case Node::Op::Lower: {
         auto result = get_args(bc)[0]->get<std::string>();
         std::transform(result.begin(), result.end(), result.begin(), ::tolower);
         pop_args(bc);
         m_stack.emplace_back(std::move(result));
         break;
       }
-      case Bytecode::Op::Range: {
+      case Node::Op::Range: {
         int number = get_args(bc)[0]->get<int>();
         std::vector<int> result(number);
         std::iota(std::begin(result), std::end(result), 0);
@@ -229,7 +228,7 @@ public:
         m_stack.emplace_back(std::move(result));
         break;
       }
-      case Bytecode::Op::Length: {
+      case Node::Op::Length: {
         const json &val = *get_args(bc)[0];
 
         size_t result;
@@ -243,33 +242,33 @@ public:
         m_stack.emplace_back(result);
         break;
       }
-      case Bytecode::Op::Sort: {
+      case Node::Op::Sort: {
         auto result = get_args(bc)[0]->get<std::vector<json>>();
         std::sort(result.begin(), result.end());
         pop_args(bc);
         m_stack.emplace_back(std::move(result));
         break;
       }
-      case Bytecode::Op::At: {
+      case Node::Op::At: {
         auto args = get_args(bc);
         auto result = args[0]->at(args[1]->get<int>());
         pop_args(bc);
         m_stack.emplace_back(result);
         break;
       }
-      case Bytecode::Op::First: {
+      case Node::Op::First: {
         auto result = get_args(bc)[0]->front();
         pop_args(bc);
         m_stack.emplace_back(result);
         break;
       }
-      case Bytecode::Op::Last: {
+      case Node::Op::Last: {
         auto result = get_args(bc)[0]->back();
         pop_args(bc);
         m_stack.emplace_back(result);
         break;
       }
-      case Bytecode::Op::Round: {
+      case Node::Op::Round: {
         auto args = get_args(bc);
         double number = args[0]->get<double>();
         int precision = args[1]->get<int>();
@@ -277,7 +276,7 @@ public:
         m_stack.emplace_back(std::round(number * std::pow(10.0, precision)) / std::pow(10.0, precision));
         break;
       }
-      case Bytecode::Op::DivisibleBy: {
+      case Node::Op::DivisibleBy: {
         auto args = get_args(bc);
         int number = args[0]->get<int>();
         int divisor = args[1]->get<int>();
@@ -285,121 +284,121 @@ public:
         m_stack.emplace_back((divisor != 0) && (number % divisor == 0));
         break;
       }
-      case Bytecode::Op::Odd: {
+      case Node::Op::Odd: {
         int number = get_args(bc)[0]->get<int>();
         pop_args(bc);
         m_stack.emplace_back(number % 2 != 0);
         break;
       }
-      case Bytecode::Op::Even: {
+      case Node::Op::Even: {
         int number = get_args(bc)[0]->get<int>();
         pop_args(bc);
         m_stack.emplace_back(number % 2 == 0);
         break;
       }
-      case Bytecode::Op::Max: {
+      case Node::Op::Max: {
         auto args = get_args(bc);
         auto result = *std::max_element(args[0]->begin(), args[0]->end());
         pop_args(bc);
         m_stack.emplace_back(std::move(result));
         break;
       }
-      case Bytecode::Op::Min: {
+      case Node::Op::Min: {
         auto args = get_args(bc);
         auto result = *std::min_element(args[0]->begin(), args[0]->end());
         pop_args(bc);
         m_stack.emplace_back(std::move(result));
         break;
       }
-      case Bytecode::Op::Not: {
+      case Node::Op::Not: {
         bool result = !truthy(*get_args(bc)[0]);
         pop_args(bc);
         m_stack.emplace_back(result);
         break;
       }
-      case Bytecode::Op::And: {
+      case Node::Op::And: {
         auto args = get_args(bc);
         bool result = truthy(*args[0]) && truthy(*args[1]);
         pop_args(bc);
         m_stack.emplace_back(result);
         break;
       }
-      case Bytecode::Op::Or: {
+      case Node::Op::Or: {
         auto args = get_args(bc);
         bool result = truthy(*args[0]) || truthy(*args[1]);
         pop_args(bc);
         m_stack.emplace_back(result);
         break;
       }
-      case Bytecode::Op::In: {
+      case Node::Op::In: {
         auto args = get_args(bc);
         bool result = std::find(args[1]->begin(), args[1]->end(), *args[0]) != args[1]->end();
         pop_args(bc);
         m_stack.emplace_back(result);
         break;
       }
-      case Bytecode::Op::Equal: {
+      case Node::Op::Equal: {
         auto args = get_args(bc);
         bool result = (*args[0] == *args[1]);
         pop_args(bc);
         m_stack.emplace_back(result);
         break;
       }
-      case Bytecode::Op::Greater: {
+      case Node::Op::Greater: {
         auto args = get_args(bc);
         bool result = (*args[0] > *args[1]);
         pop_args(bc);
         m_stack.emplace_back(result);
         break;
       }
-      case Bytecode::Op::Less: {
+      case Node::Op::Less: {
         auto args = get_args(bc);
         bool result = (*args[0] < *args[1]);
         pop_args(bc);
         m_stack.emplace_back(result);
         break;
       }
-      case Bytecode::Op::GreaterEqual: {
+      case Node::Op::GreaterEqual: {
         auto args = get_args(bc);
         bool result = (*args[0] >= *args[1]);
         pop_args(bc);
         m_stack.emplace_back(result);
         break;
       }
-      case Bytecode::Op::LessEqual: {
+      case Node::Op::LessEqual: {
         auto args = get_args(bc);
         bool result = (*args[0] <= *args[1]);
         pop_args(bc);
         m_stack.emplace_back(result);
         break;
       }
-      case Bytecode::Op::Different: {
+      case Node::Op::Different: {
         auto args = get_args(bc);
         bool result = (*args[0] != *args[1]);
         pop_args(bc);
         m_stack.emplace_back(result);
         break;
       }
-      case Bytecode::Op::Float: {
+      case Node::Op::Float: {
         double result = std::stod(get_args(bc)[0]->get_ref<const std::string &>());
         pop_args(bc);
         m_stack.emplace_back(result);
         break;
       }
-      case Bytecode::Op::Int: {
+      case Node::Op::Int: {
         int result = std::stoi(get_args(bc)[0]->get_ref<const std::string &>());
         pop_args(bc);
         m_stack.emplace_back(result);
         break;
       }
-      case Bytecode::Op::Exists: {
+      case Node::Op::Exists: {
         auto &&name = get_args(bc)[0]->get_ref<const std::string &>();
         bool result = (data.find(name) != data.end());
         pop_args(bc);
         m_stack.emplace_back(result);
         break;
       }
-      case Bytecode::Op::ExistsInObject: {
+      case Node::Op::ExistsInObject: {
         auto args = get_args(bc);
         auto &&name = args[1]->get_ref<const std::string &>();
         bool result = (args[0]->find(name) != args[0]->end());
@@ -407,49 +406,49 @@ public:
         m_stack.emplace_back(result);
         break;
       }
-      case Bytecode::Op::IsBoolean: {
+      case Node::Op::IsBoolean: {
         bool result = get_args(bc)[0]->is_boolean();
         pop_args(bc);
         m_stack.emplace_back(result);
         break;
       }
-      case Bytecode::Op::IsNumber: {
+      case Node::Op::IsNumber: {
         bool result = get_args(bc)[0]->is_number();
         pop_args(bc);
         m_stack.emplace_back(result);
         break;
       }
-      case Bytecode::Op::IsInteger: {
+      case Node::Op::IsInteger: {
         bool result = get_args(bc)[0]->is_number_integer();
         pop_args(bc);
         m_stack.emplace_back(result);
         break;
       }
-      case Bytecode::Op::IsFloat: {
+      case Node::Op::IsFloat: {
         bool result = get_args(bc)[0]->is_number_float();
         pop_args(bc);
         m_stack.emplace_back(result);
         break;
       }
-      case Bytecode::Op::IsObject: {
+      case Node::Op::IsObject: {
         bool result = get_args(bc)[0]->is_object();
         pop_args(bc);
         m_stack.emplace_back(result);
         break;
       }
-      case Bytecode::Op::IsArray: {
+      case Node::Op::IsArray: {
         bool result = get_args(bc)[0]->is_array();
         pop_args(bc);
         m_stack.emplace_back(result);
         break;
       }
-      case Bytecode::Op::IsString: {
+      case Node::Op::IsString: {
         bool result = get_args(bc)[0]->is_string();
         pop_args(bc);
         m_stack.emplace_back(result);
         break;
       }
-      case Bytecode::Op::Default: {
+      case Node::Op::Default: {
         // default needs to be a bit "magic"; we can't evaluate the first
         // argument during the push operation, so we swap the arguments during
         // the parse phase so the second argument is pushed on the stack and
@@ -463,13 +462,13 @@ public:
         }
         break;
       }
-      case Bytecode::Op::Include:
-        Renderer(m_included_templates, m_callbacks)
-            .render_to(os, m_included_templates.find(get_imm(bc)->get_ref<const std::string &>())->second, *m_data,
+      case Node::Op::Include:
+        Renderer(template_storage, function_storage)
+            .render_to(os, template_storage.find(get_imm(bc)->get_ref<const std::string &>())->second, *m_data,
                        m_loop_data);
         break;
-      case Bytecode::Op::Callback: {
-        auto callback = m_callbacks.find_callback(bc.str, bc.args);
+      case Node::Op::Callback: {
+        auto callback = function_storage.find_callback(bc.str, bc.args);
         if (!callback) {
           throw RenderError("function '" + static_cast<std::string>(bc.str) + "' (" +
                             std::to_string(static_cast<unsigned int>(bc.args)) + ") not found");
@@ -479,18 +478,18 @@ public:
         m_stack.emplace_back(std::move(result));
         break;
       }
-      case Bytecode::Op::Jump: {
+      case Node::Op::Jump: {
         i = bc.args - 1; // -1 due to ++i in loop
         break;
       }
-      case Bytecode::Op::ConditionalJump: {
+      case Node::Op::ConditionalJump: {
         if (!truthy(m_stack.back())) {
           i = bc.args - 1; // -1 due to ++i in loop
         }
         m_stack.pop_back();
         break;
       }
-      case Bytecode::Op::StartLoop: {
+      case Node::Op::StartLoop: {
         // jump past loop body if empty
         if (m_stack.back().empty()) {
           m_stack.pop_back();
@@ -550,7 +549,7 @@ public:
         update_loop_data();
         break;
       }
-      case Bytecode::Op::EndLoop: {
+      case Node::Op::EndLoop: {
         if (m_loop_stack.empty()) {
           throw RenderError("unexpected state in renderer");
         }
@@ -583,7 +582,7 @@ public:
         break;
       }
       default: {
-        throw RenderError("unknown op in renderer: " + std::to_string(static_cast<unsigned int>(bc.op)));
+        throw RenderError("unknown operation in renderer: " + std::to_string(static_cast<unsigned int>(bc.op)));
       }
       }
     }

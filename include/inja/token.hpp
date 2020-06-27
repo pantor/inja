@@ -42,12 +42,13 @@ struct Token {
     NotEqual,           // !=
     Unknown,
     Eof
-  } kind {Kind::Unknown};
-
+  };
+  
+  Kind kind {Kind::Unknown};
   nonstd::string_view text;
 
-  constexpr Token() = default;
-  constexpr Token(Kind kind, nonstd::string_view text) : kind(kind), text(text) {}
+  explicit constexpr Token() = default;
+  explicit constexpr Token(Kind kind, nonstd::string_view text) : kind(kind), text(text) {}
 
   std::string describe() const {
     switch (kind) {
