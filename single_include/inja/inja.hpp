@@ -2289,6 +2289,9 @@ struct Template {
   std::vector<Node> nodes;
   std::string content;
 
+  explicit Template() { }
+  explicit Template(const std::string& content): content(content) { }
+
   /// Return number of variables (total number, not distinct ones) in the template
   int count_variables() {
     return std::count_if(nodes.cbegin(), nodes.cend(), [](const inja::Node &node) {
@@ -2769,8 +2772,9 @@ public:
       // sys::path::remove_dots(pathname, true, sys::path::Style::posix);
 
       if (config.search_included_templates_in_files && template_storage.find(pathname) == template_storage.end()) {
-        Template include_template = parse_template(pathname);
+        auto include_template = Template(load_file(pathname));
         template_storage.emplace(pathname, include_template);
+        parse_into_template(template_storage.at(pathname), pathname);
       }
 
       // generate a reference node
@@ -2872,8 +2876,7 @@ public:
   }
 
   Template parse(nonstd::string_view input, nonstd::string_view path) {
-    Template result;
-    result.content = static_cast<std::string>(input);
+    auto result = Template(static_cast<std::string>(input));
     parse_into(result, path);
     return result;
   }
@@ -2882,15 +2885,12 @@ public:
     return parse(input, "./");
   }
 
-  Template parse_template(nonstd::string_view filename) {
-    Template result;
-    result.content = load_file(filename);
-
+  void parse_into_template(Template& tmpl, nonstd::string_view filename) {
     nonstd::string_view path = filename.substr(0, filename.find_last_of("/\\") + 1);
     
     // StringRef path = sys::path::parent_path(filename);
-    Parser(config, lexer.get_config(), template_storage).parse_into(result, path);
-    return result;
+    auto sub_parser = Parser(config, lexer.get_config(), template_storage);
+    sub_parser.parse_into(tmpl, path);
   }
 
   std::string load_file(nonstd::string_view filename) {
@@ -2992,7 +2992,7 @@ class Renderer {
       break;
     case Node::Flag::ValueLookupPointer:
       ptr_buffer += '/';
-      ptr_buffer += node.str; // static_cast<std::string>(node.view);
+      ptr_buffer += node.str;
       ptr = ptr_buffer;
       break;
     }
@@ -3614,7 +3614,9 @@ public:
 
   Template parse_template(const std::string &filename) {
     Parser parser(parser_config, lexer_config, template_storage);
-    return parser.parse_template(input_path + static_cast<std::string>(filename));
+    auto result = Template(parser.load_file(input_path + static_cast<std::string>(filename)));
+    parser.parse_into_template(result, input_path + static_cast<std::string>(filename));
+    return result;
   }
 
   std::string render(nonstd::string_view input, const json &data) { return render(parse(input), data); }

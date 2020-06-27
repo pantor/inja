@@ -103,7 +103,9 @@ public:
 
   Template parse_template(const std::string &filename) {
     Parser parser(parser_config, lexer_config, template_storage);
-    return parser.parse_template(input_path + static_cast<std::string>(filename));
+    auto result = Template(parser.load_file(input_path + static_cast<std::string>(filename)));
+    parser.parse_into_template(result, input_path + static_cast<std::string>(filename));
+    return result;
   }
 
   std::string render(nonstd::string_view input, const json &data) { return render(parse(input), data); }

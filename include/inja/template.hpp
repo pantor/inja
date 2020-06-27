@@ -18,6 +18,9 @@ struct Template {
   std::vector<Node> nodes;
   std::string content;
 
+  explicit Template() { }
+  explicit Template(const std::string& content): content(content) { }
+
   /// Return number of variables (total number, not distinct ones) in the template
   int count_variables() {
     return std::count_if(nodes.cbegin(), nodes.cend(), [](const inja::Node &node) {

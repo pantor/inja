@@ -80,7 +80,7 @@ class Renderer {
       break;
     case Node::Flag::ValueLookupPointer:
       ptr_buffer += '/';
-      ptr_buffer += node.str; // static_cast<std::string>(node.view);
+      ptr_buffer += node.str;
       ptr = ptr_buffer;
       break;
     }
