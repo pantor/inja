@@ -47,7 +47,10 @@ public:
   /// Sets the opener and closer for template statements
   void set_statement(const std::string &open, const std::string &close) {
     lexer_config.statement_open = open;
+    lexer_config.statement_open_no_lstrip = open + "+";
+    lexer_config.statement_open_force_lstrip = open + "-";
     lexer_config.statement_close = close;
+    lexer_config.statement_close_force_rstrip = "-" + close;
     lexer_config.update_open_chars();
   }
 

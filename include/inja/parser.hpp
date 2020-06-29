@@ -447,6 +447,7 @@ public:
         tmpl.nodes.back().value = key_token.text;
       }
       tmpl.nodes.back().str = static_cast<std::string>(value_token.text);
+      tmpl.nodes.back().view = value_token.text;
     } else if (tok.text == static_cast<decltype(tok.text)>("endfor")) {
       get_next_token();
       if (loop_stack.empty()) {
@@ -514,6 +515,7 @@ public:
         last.op = Node::Op::Callback;
         last.args = num_args;
         last.str = static_cast<std::string>(name);
+        last.view = name;
         return;
       }
     }
@@ -521,6 +523,7 @@ public:
     // otherwise just add it to the end
     tmpl.nodes.emplace_back(Node::Op::Callback, num_args);
     tmpl.nodes.back().str = static_cast<std::string>(name);
+    tmpl.nodes.back().view = name;
   }
 
   void parse_into(Template &tmpl, nonstd::string_view path) {

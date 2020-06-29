@@ -1455,7 +1455,10 @@ enum class ElementNotation { Dot, Pointer };
  */
 struct LexerConfig {
   std::string statement_open {"{%"};
+  std::string statement_open_no_lstrip {"{%+"};
+  std::string statement_open_force_lstrip {"{%-"};
   std::string statement_close {"%}"};
+  std::string statement_close_force_rstrip {"-%}"};
   std::string line_statement {"##"};
   std::string expression_open {"{{"};
   std::string expression_close {"}}"};
@@ -1473,6 +1476,12 @@ struct LexerConfig {
     }
     if (open_chars.find(statement_open[0]) == std::string::npos) {
       open_chars += statement_open[0];
+    }
+    if (open_chars.find(statement_open_no_lstrip[0]) == std::string::npos) {
+      open_chars += statement_open_no_lstrip[0];
+    }
+    if (open_chars.find(statement_open_force_lstrip[0]) == std::string::npos) {
+      open_chars += statement_open_force_lstrip[0];
     }
     if (open_chars.find(expression_open[0]) == std::string::npos) {
       open_chars += expression_open[0];
@@ -1966,6 +1975,8 @@ class Lexer {
     LineStart,
     LineBody,
     StatementStart,
+    StatementStartNoLstrip,
+    StatementStartForceLstrip,
     StatementBody,
     CommentStart,
     CommentBody
@@ -1979,7 +1990,7 @@ class Lexer {
   size_t pos;
 
 
-  Token scan_body(nonstd::string_view close, Token::Kind closeKind, bool trim = false) {
+  Token scan_body(nonstd::string_view close, Token::Kind closeKind, nonstd::string_view close_trim = nonstd::string_view(), bool trim = false) {
   again:
     // skip whitespace (except for \n as it might be a close)
     if (tok_start >= m_in.size()) {
@@ -1992,12 +2003,20 @@ class Lexer {
     }
 
     // check for close
+    if (!close_trim.empty() && inja::string_view::starts_with(m_in.substr(tok_start), close_trim)) {
+      state = State::Text;
+      pos = tok_start + close_trim.size();
+      Token tok = make_token(closeKind);
+      skip_whitespaces_and_newlines();
+      return tok;
+    }
+
     if (inja::string_view::starts_with(m_in.substr(tok_start), close)) {
       state = State::Text;
       pos = tok_start + close.size();
       Token tok = make_token(closeKind);
       if (trim) {
-        skip_newline();
+        skip_whitespaces_and_first_newline();
       }
       return tok;
     }
@@ -2107,8 +2126,9 @@ class Lexer {
   Token scan_string() {
     bool escape {false};
     for (;;) {
-      if (pos >= m_in.size())
+      if (pos >= m_in.size()) {
         break;
+      }
       char ch = m_in[pos++];
       if (ch == '\\') {
         escape = true;
@@ -2123,7 +2143,21 @@ class Lexer {
 
   Token make_token(Token::Kind kind) const { return Token(kind, string_view::slice(m_in, tok_start, pos)); }
 
-  void skip_newline() {
+  void skip_whitespaces_and_newlines() {
+    if (pos < m_in.size()) {
+      while (pos < m_in.size() && (m_in[pos] == ' ' || m_in[pos] == '\t' || m_in[pos] == '\n' || m_in[pos] == '\r')) {
+        pos += 1;
+      }
+    }
+  }
+
+  void skip_whitespaces_and_first_newline() {
+    if (pos < m_in.size()) {
+      while (pos < m_in.size() && (m_in[pos] == ' ' || m_in[pos] == '\t')) {
+        pos += 1;
+      }
+    }
+
     if (pos < m_in.size()) {
       char ch = m_in[pos];
       if (ch == '\n') {
@@ -2192,8 +2226,15 @@ public:
       if (inja::string_view::starts_with(open_str, config.expression_open)) {
         state = State::ExpressionStart;
       } else if (inja::string_view::starts_with(open_str, config.statement_open)) {
-        state = State::StatementStart;
-        must_lstrip = config.lstrip_blocks;
+        if (inja::string_view::starts_with(open_str, config.statement_open_no_lstrip)) {
+          state = State::StatementStartNoLstrip;
+        } else if (inja::string_view::starts_with(open_str, config.statement_open_force_lstrip )) {
+          state = State::StatementStartForceLstrip;
+          must_lstrip = true;
+        } else {
+          state = State::StatementStart;
+          must_lstrip = config.lstrip_blocks;
+        }
       } else if (inja::string_view::starts_with(open_str, config.comment_open)) {
         state = State::CommentStart;
         must_lstrip = config.lstrip_blocks;
@@ -2206,11 +2247,13 @@ public:
       }
 
       nonstd::string_view text = string_view::slice(m_in, tok_start, pos);
-      if (must_lstrip)
+      if (must_lstrip) {
         text = clear_final_line_if_whitespace(text);
+      }
 
-      if (text.empty())
+      if (text.empty()) {
         goto again; // don't generate empty token
+      }
       return Token(Token::Kind::Text, text);
     }
     case State::ExpressionStart: {
@@ -2228,6 +2271,16 @@ public:
       pos += config.statement_open.size();
       return make_token(Token::Kind::StatementOpen);
     }
+    case State::StatementStartNoLstrip: {
+      state = State::StatementBody;
+      pos += config.statement_open_no_lstrip.size();
+      return make_token(Token::Kind::StatementOpen);
+    }
+    case State::StatementStartForceLstrip: {
+      state = State::StatementBody;
+      pos += config.statement_open_force_lstrip.size();
+      return make_token(Token::Kind::StatementOpen);
+    }
     case State::CommentStart: {
       state = State::CommentBody;
       pos += config.comment_open.size();
@@ -2238,7 +2291,7 @@ public:
     case State::LineBody:
       return scan_body("\n", Token::Kind::LineStatementClose);
     case State::StatementBody:
-      return scan_body(config.statement_close, Token::Kind::StatementClose, config.trim_blocks);
+      return scan_body(config.statement_close, Token::Kind::StatementClose, config.statement_close_force_rstrip, config.trim_blocks);
     case State::CommentBody: {
       // fast-scan to comment close
       size_t end = m_in.substr(pos).find(config.comment_close);
@@ -2251,7 +2304,7 @@ public:
       pos += end + config.comment_close.size();
       Token tok = make_token(Token::Kind::CommentClose);
       if (config.trim_blocks) {
-        skip_newline();
+        skip_whitespaces_and_first_newline();
       }
       return tok;
     }
@@ -2743,6 +2796,7 @@ public:
         tmpl.nodes.back().value = key_token.text;
       }
       tmpl.nodes.back().str = static_cast<std::string>(value_token.text);
+      tmpl.nodes.back().view = value_token.text;
     } else if (tok.text == static_cast<decltype(tok.text)>("endfor")) {
       get_next_token();
       if (loop_stack.empty()) {
@@ -2810,6 +2864,7 @@ public:
         last.op = Node::Op::Callback;
         last.args = num_args;
         last.str = static_cast<std::string>(name);
+        last.view = name;
         return;
       }
     }
@@ -2817,6 +2872,7 @@ public:
     // otherwise just add it to the end
     tmpl.nodes.emplace_back(Node::Op::Callback, num_args);
     tmpl.nodes.back().str = static_cast<std::string>(name);
+    tmpl.nodes.back().view = name;
   }
 
   void parse_into(Template &tmpl, nonstd::string_view path) {
@@ -3558,7 +3614,10 @@ public:
   /// Sets the opener and closer for template statements
   void set_statement(const std::string &open, const std::string &close) {
     lexer_config.statement_open = open;
+    lexer_config.statement_open_no_lstrip = open + "+";
+    lexer_config.statement_open_force_lstrip = open + "-";
     lexer_config.statement_close = close;
+    lexer_config.statement_close_force_rstrip = "-" + close;
     lexer_config.update_open_chars();
   }
 

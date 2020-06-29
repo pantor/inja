@@ -428,6 +428,33 @@ TEST_CASE("templates") {
     CHECK(t2.count_variables() == 3);
     CHECK(t3.count_variables() == 5);
   }
+
+  SUBCASE("whitespace control") {
+    inja::Environment env;
+    CHECK(env.render("{% if is_happy %}{{ name }}{% endif %}", data) == "Peter");
+    CHECK(env.render("   {% if is_happy %}{{ name }}{% endif %}   ", data) == "   Peter   ");
+    CHECK(env.render("   {% if is_happy %}{{ name }}{% endif %}\n ", data) == "   Peter\n ");
+    CHECK(env.render("Test\n   {%- if is_happy %}{{ name }}{% endif %}   ", data) == "Test\nPeter   ");
+    CHECK(env.render("   {%+ if is_happy %}{{ name }}{% endif %}", data) == "   Peter");
+    CHECK(env.render("   {%- if is_happy %}{{ name }}{% endif -%}   \n   ", data) == "Peter");
+
+    // Nothing will be stripped if there are other characters before the start of the block.
+    CHECK(env.render(".  {%- if is_happy %}{{ name }}{% endif -%}\n", data) == ".  Peter");
+
+    env.set_lstrip_blocks(true);
+    CHECK(env.render("   {% if is_happy %}{{ name }}{% endif %}", data) == "Peter");
+    CHECK(env.render("   {% if is_happy %}{{ name }}{% endif %}   ", data) == "Peter   ");
+    CHECK(env.render("   {% if is_happy %}{{ name }}{% endif -%}   ", data) == "Peter");
+    CHECK(env.render("   {%+ if is_happy %}{{ name }}{% endif %}", data) == "   Peter");
+    CHECK(env.render("\n   {%+ if is_happy %}{{ name }}{% endif -%}   ", data) == "\n   Peter");
+    CHECK(env.render("{% if is_happy %}{{ name }}{% endif %}\n", data) == "Peter\n");
+
+    env.set_trim_blocks(true);
+    CHECK(env.render("{% if is_happy %}{{ name }}{% endif %}", data) == "Peter");
+    CHECK(env.render("{% if is_happy %}{{ name }}{% endif %}\n", data) == "Peter");
+    CHECK(env.render("{% if is_happy %}{{ name }}{% endif %}   \n.", data) == "Peter.");
+    CHECK(env.render("{%- if is_happy %}{{ name }}{% endif -%}   \n.", data) == "Peter.");
+  }
 }
 
 TEST_CASE("other-syntax") {
