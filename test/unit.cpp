@@ -7,7 +7,33 @@
 
 using json = nlohmann::json;
 
-TEST_CASE("copy-environment") {
+
+TEST_CASE("source location") {
+  std::string content = R"DELIM(Lorem Ipsum
+  Dolor
+Amid
+Set ().$
+Try this
+
+)DELIM";
+
+  CHECK(inja::get_source_location(content, 0).line == 1);
+  CHECK(inja::get_source_location(content, 0).column == 1);
+
+  CHECK(inja::get_source_location(content, 10).line == 1);
+  CHECK(inja::get_source_location(content, 10).column == 11);
+
+  CHECK(inja::get_source_location(content, 25).line == 4);
+  CHECK(inja::get_source_location(content, 25).column == 1);
+
+  CHECK(inja::get_source_location(content, 29).line == 4);
+  CHECK(inja::get_source_location(content, 29).column == 5);
+
+  CHECK(inja::get_source_location(content, 43).line == 6);
+  CHECK(inja::get_source_location(content, 43).column == 1);
+}
+
+TEST_CASE("copy environment") {
   inja::Environment env;
   env.add_callback("double", 1, [](inja::Arguments &args) {
     int number = args.at(0)->get<int>();

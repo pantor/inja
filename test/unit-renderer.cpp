@@ -457,7 +457,7 @@ TEST_CASE("templates") {
   }
 }
 
-TEST_CASE("other-syntax") {
+TEST_CASE("other syntax") {
   json data;
   data["name"] = "Peter";
   data["city"] = "Brunswick";

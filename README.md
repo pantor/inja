@@ -263,7 +263,7 @@ env.set_lstrip_blocks(true);
 With both `trim_blocks` and `lstrip_blocks` enabled, you can put statements on their own lines. Furthermore, you can also strip whitespaces by hand. If you add a minus sign (`-`) to the start or end of a statement, the whitespaces before or after that block will be removed:
 
 ```.cpp
-render("""{% if neighbour in guests -%}   I was there{% endif -%}   !""", data); // Renders without any whitespaces
+render("{% if neighbour in guests -%}   I was there{% endif -%}   !", data); // Renders without any whitespaces
 ```
 
 Stripping behind a statement also remove any newlines.
