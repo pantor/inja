@@ -1642,11 +1642,11 @@ struct Node {
 
   json value;
   std::string str;
-  nonstd::string_view view;
+  size_t pos;
 
-  explicit Node(Op op, unsigned int args = 0) : op(op), args(args), flags(0) {}
-  explicit Node(Op op, nonstd::string_view str, unsigned int flags) : op(op), args(0), flags(flags), str(str), view(str) {}
-  explicit Node(Op op, json &&value, unsigned int flags) : op(op), args(0), flags(flags), value(std::move(value)) {}
+  explicit Node(Op op, unsigned int args, size_t pos) : op(op), args(args), flags(0), pos(pos) {}
+  explicit Node(Op op, nonstd::string_view str, unsigned int flags, size_t pos) : op(op), args(0), flags(flags), str(str), pos(pos) {}
+  explicit Node(Op op, json &&value, unsigned int flags, size_t pos) : op(op), args(0), flags(flags), value(std::move(value)), pos(pos) {}
 };
 
 } // namespace inja
@@ -2622,7 +2622,7 @@ public:
           // normal literal (json read)
 
           auto flag = config.notation == ElementNotation::Pointer ? Node::Flag::ValueLookupPointer : Node::Flag::ValueLookupDot;
-          tmpl.nodes.emplace_back(Node::Op::Push, tok.text, flag);
+          tmpl.nodes.emplace_back(Node::Op::Push, tok.text, flag, tok.text.data() - tmpl.content.c_str());
           get_next_token();
           return true;
         }
@@ -2686,7 +2686,7 @@ public:
   returnJson:
     // bridge across all intermediate tokens
     nonstd::string_view json_text(json_first.data(), tok.text.data() - json_first.data() + tok.text.size());
-    tmpl.nodes.emplace_back(Node::Op::Push, json::parse(json_text), Node::Flag::ValueImmediate);
+    tmpl.nodes.emplace_back(Node::Op::Push, json::parse(json_text), Node::Flag::ValueImmediate, tok.text.data() - tmpl.content.c_str());
     get_next_token();
     return true;
   }
@@ -2708,7 +2708,7 @@ public:
       if_stack.emplace_back(static_cast<decltype(if_stack)::value_type::jump_t>(tmpl.nodes.size()));
 
       // conditional jump; destination will be filled in by else or endif
-      tmpl.nodes.emplace_back(Node::Op::ConditionalJump);
+      tmpl.nodes.emplace_back(Node::Op::ConditionalJump, 0, tok.text.data() - tmpl.content.c_str());
     } else if (tok.text == static_cast<decltype(tok.text)>("endif")) {
       if (if_stack.empty()) {
         throw_parser_error("endif without matching if");
@@ -2738,7 +2738,7 @@ public:
       // end previous block with unconditional jump to endif; destination will be
       // filled in by endif
       if_data.uncond_jumps.push_back(tmpl.nodes.size());
-      tmpl.nodes.emplace_back(Node::Op::Jump);
+      tmpl.nodes.emplace_back(Node::Op::Jump, 0, tok.text.data() - tmpl.content.c_str());
 
       // previous conditional jump jumps here
       tmpl.nodes[if_data.prev_cond_jump].args = tmpl.nodes.size();
@@ -2757,7 +2757,7 @@ public:
         if_data.prev_cond_jump = tmpl.nodes.size();
 
         // conditional jump; destination will be filled in by else or endif
-        tmpl.nodes.emplace_back(Node::Op::ConditionalJump);
+        tmpl.nodes.emplace_back(Node::Op::ConditionalJump, 0, tok.text.data() - tmpl.content.c_str());
       }
     } else if (tok.text == static_cast<decltype(tok.text)>("for")) {
       get_next_token();
@@ -2791,12 +2791,11 @@ public:
 
       loop_stack.push_back(tmpl.nodes.size());
 
-      tmpl.nodes.emplace_back(Node::Op::StartLoop);
+      tmpl.nodes.emplace_back(Node::Op::StartLoop, 0, tok.text.data() - tmpl.content.c_str());
       if (!key_token.text.empty()) {
         tmpl.nodes.back().value = key_token.text;
       }
       tmpl.nodes.back().str = static_cast<std::string>(value_token.text);
-      tmpl.nodes.back().view = value_token.text;
     } else if (tok.text == static_cast<decltype(tok.text)>("endfor")) {
       get_next_token();
       if (loop_stack.empty()) {
@@ -2806,7 +2805,7 @@ public:
       // update loop with EndLoop index (for empty case)
       tmpl.nodes[loop_stack.back()].args = tmpl.nodes.size();
 
-      tmpl.nodes.emplace_back(Node::Op::EndLoop);
+      tmpl.nodes.emplace_back(Node::Op::EndLoop, 0, tok.text.data() - tmpl.content.c_str());
       tmpl.nodes.back().args = loop_stack.back() + 1; // loop body
       loop_stack.pop_back();
     } else if (tok.text == static_cast<decltype(tok.text)>("include")) {
@@ -2832,7 +2831,7 @@ public:
       }
 
       // generate a reference node
-      tmpl.nodes.emplace_back(Node::Op::Include, json(pathname), Node::Flag::ValueImmediate);
+      tmpl.nodes.emplace_back(Node::Op::Include, json(pathname), Node::Flag::ValueImmediate, tok.text.data() - tmpl.content.c_str());
 
       get_next_token();
     } else {
@@ -2853,7 +2852,7 @@ public:
     }
 
     // otherwise just add it to the end
-    tmpl.nodes.emplace_back(op, num_args);
+    tmpl.nodes.emplace_back(op, num_args, tok.text.data() - tmpl.content.c_str());
   }
 
   void append_callback(Template &tmpl, nonstd::string_view name, unsigned int num_args) {
@@ -2864,15 +2863,14 @@ public:
         last.op = Node::Op::Callback;
         last.args = num_args;
         last.str = static_cast<std::string>(name);
-        last.view = name;
+        last.pos = name.data() - tmpl.content.c_str();
         return;
       }
     }
 
     // otherwise just add it to the end
-    tmpl.nodes.emplace_back(Node::Op::Callback, num_args);
+    tmpl.nodes.emplace_back(Node::Op::Callback, num_args, tok.text.data() - tmpl.content.c_str());
     tmpl.nodes.back().str = static_cast<std::string>(name);
-    tmpl.nodes.back().view = name;
   }
 
   void parse_into(Template &tmpl, nonstd::string_view path) {
@@ -2890,7 +2888,7 @@ public:
         }
         return;
       case Token::Kind::Text:
-        tmpl.nodes.emplace_back(Node::Op::PrintText, tok.text, 0u);
+        tmpl.nodes.emplace_back(Node::Op::PrintText, tok.text, 0u, tok.text.data() - tmpl.content.c_str());
         break;
       case Token::Kind::StatementOpen:
         get_next_token();
@@ -3107,8 +3105,7 @@ class Renderer {
   }
 
   void throw_renderer_error(const std::string &message, const Node& node) {
-    size_t pos = node.view.data() - current_template->content.c_str();
-    SourceLocation loc = get_source_location(current_template->content, pos);
+    SourceLocation loc = get_source_location(current_template->content, node.pos);
     throw RenderError(message, loc);
   }
 

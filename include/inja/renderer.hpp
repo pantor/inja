@@ -139,8 +139,7 @@ class Renderer {
   }
 
   void throw_renderer_error(const std::string &message, const Node& node) {
-    size_t pos = node.view.data() - current_template->content.c_str();
-    SourceLocation loc = get_source_location(current_template->content, pos);
+    SourceLocation loc = get_source_location(current_template->content, node.pos);
     throw RenderError(message, loc);
   }
 
