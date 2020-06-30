@@ -4,6 +4,7 @@
 #define INCLUDE_INJA_TEMPLATE_HPP_
 
 #include <map>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -15,6 +16,7 @@ namespace inja {
  * \brief The main inja Template.
  */
 struct Template {
+  std::vector<std::shared_ptr<AstNode>> ast;
   std::vector<Node> nodes;
   std::string content;
 

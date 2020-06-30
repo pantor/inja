@@ -126,6 +126,71 @@ struct Node {
   explicit Node(Op op, json &&value, unsigned int flags, size_t pos) : op(op), args(0), flags(flags), value(std::move(value)), pos(pos) {}
 };
 
+
+
+
+class NodeVisitor;
+class BlockNode;
+class TextNode;
+
+
+class AstNode {
+public:
+  virtual void accept(NodeVisitor&) = 0;
+  virtual std::string evalString() = 0;
+};
+
+class NodeVisitor {
+public:
+  virtual std::string visit(BlockNode& node);
+  virtual std::string visit(TextNode& node);
+};
+
+class BlockNode : AstNode {
+  std::vector<std::shared_ptr<AstNode>> elements;
+
+public:
+  void accept(NodeVisitor& v) {
+    v.visit(*this);
+  }
+
+  std::string evalString() {
+    return elements[0]->evalString();
+  }
+};
+
+class StatementNode : AstNode {
+
+};
+
+class IfStatementNode : AstNode {
+public:
+  virtual 
+}
+
+class TextNode : AstNode {
+  std::string content;
+
+public:
+  void accept(NodeVisitor& v) {
+    v.visit(*this);
+  }
+
+  std::string evalString() {
+    return content;
+  }
+};
+
+inline std::string NodeVisitor::visit(BlockNode& node) {
+  return node.evalString();
+}
+
+inline std::string NodeVisitor::visit(TextNode& node) {
+  return node.evalString();
+}
+
+
+
 } // namespace inja
 
 #endif // INCLUDE_INJA_NODE_HPP_
