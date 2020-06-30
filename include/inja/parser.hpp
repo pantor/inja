@@ -6,6 +6,7 @@
 #include <limits>
 #include <string>
 #include <utility>
+#include <queue>
 #include <vector>
 
 #include "config.hpp"
@@ -88,6 +89,10 @@ class Parser {
 
   std::vector<IfData> if_stack;
   std::vector<size_t> loop_stack;
+
+  std::queue<IfStatementNode*> ifstatement_stack;
+  std::queue<ExpressionNode*> expression_stack;
+  BlockNode *current_block {nullptr};
 
   void throw_parser_error(const std::string &message) {
     throw ParserError(message, lexer.current_position());
@@ -274,6 +279,13 @@ public:
 
           auto flag = config.notation == ElementNotation::Pointer ? Node::Flag::ValueLookupPointer : Node::Flag::ValueLookupDot;
           tmpl.nodes.emplace_back(Node::Op::Push, tok.text, flag, tok.text.data() - tmpl.content.c_str());
+
+          if (expression_stack.empty()) {
+            current_block->nodes.emplace_back(std::make_shared<JsonNode>(static_cast<std::string>(tok.text)));
+          } else {
+
+          }
+
           get_next_token();
           return true;
         }
@@ -338,6 +350,7 @@ public:
     // bridge across all intermediate tokens
     nonstd::string_view json_text(json_first.data(), tok.text.data() - json_first.data() + tok.text.size());
     tmpl.nodes.emplace_back(Node::Op::Push, json::parse(json_text), Node::Flag::ValueImmediate, tok.text.data() - tmpl.content.c_str());
+    current_block->nodes.emplace_back(std::make_shared<LiteralNode>(json::parse(json_text)));
     get_next_token();
     return true;
   }
@@ -360,6 +373,7 @@ public:
 
       // conditional jump; destination will be filled in by else or endif
       tmpl.nodes.emplace_back(Node::Op::ConditionalJump, 0, tok.text.data() - tmpl.content.c_str());
+      current_block->nodes.emplace_back(std::make_shared<IfStatementNode>());
     } else if (tok.text == static_cast<decltype(tok.text)>("endif")) {
       if (if_stack.empty()) {
         throw_parser_error("endif without matching if");
@@ -483,6 +497,7 @@ public:
 
       // generate a reference node
       tmpl.nodes.emplace_back(Node::Op::Include, json(pathname), Node::Flag::ValueImmediate, tok.text.data() - tmpl.content.c_str());
+      current_block->nodes.emplace_back(std::make_shared<IncludeStatementNode>(pathname));
 
       get_next_token();
     } else {
@@ -504,6 +519,10 @@ public:
 
     // otherwise just add it to the end
     tmpl.nodes.emplace_back(op, num_args, tok.text.data() - tmpl.content.c_str());
+
+    if (expression_stack.empty()) {
+      current_block->nodes.emplace_back(std::make_shared<FunctionNode>(FunctionNode::Operation::Less));
+    } 
   }
 
   void append_callback(Template &tmpl, nonstd::string_view name, unsigned int num_args) {
@@ -526,6 +545,7 @@ public:
 
   void parse_into(Template &tmpl, nonstd::string_view path) {
     lexer.start(tmpl.content);
+    current_block = &tmpl.root;
 
     for (;;) {
       get_next_token();
@@ -538,9 +558,11 @@ public:
           throw_parser_error("unmatched for");
         }
         return;
-      case Token::Kind::Text:
+      case Token::Kind::Text: {
         tmpl.nodes.emplace_back(Node::Op::PrintText, tok.text, 0u, tok.text.data() - tmpl.content.c_str());
+        current_block->nodes.emplace_back(std::make_shared<TextNode>(static_cast<std::string>(tok.text)));
         break;
+      }
       case Token::Kind::StatementOpen:
         get_next_token();
         if (!parse_statement(tmpl, path)) {

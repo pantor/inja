@@ -16,7 +16,7 @@ namespace inja {
  * \brief The main inja Template.
  */
 struct Template {
-  std::vector<std::shared_ptr<AstNode>> ast;
+  BlockNode root;
   std::vector<Node> nodes;
   std::string content;
 

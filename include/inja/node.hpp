@@ -132,61 +132,202 @@ struct Node {
 class NodeVisitor;
 class BlockNode;
 class TextNode;
+class ExpressionNode;
+class LiteralNode;
+class JsonNode;
+class FunctionNode;
+class StatementNode;
+class ForStatementNode;
+class IfStatementNode;
+class IncludeStatementNode;
 
 
 class AstNode {
 public:
   virtual void accept(NodeVisitor&) = 0;
-  virtual std::string evalString() = 0;
 };
 
 class NodeVisitor {
 public:
-  virtual std::string visit(BlockNode& node);
-  virtual std::string visit(TextNode& node);
+  virtual void visit(BlockNode& node);
+  virtual void visit(TextNode& node);
+  virtual void visit(ExpressionNode& node);
+  virtual void visit(LiteralNode& node);
+  virtual void visit(JsonNode& node);
+  virtual void visit(FunctionNode& node);
+  virtual void visit(StatementNode& node);
+  virtual void visit(ForStatementNode& node);
+  virtual void visit(IfStatementNode& node);
+  virtual void visit(IncludeStatementNode& node);
 };
 
-class BlockNode : AstNode {
-  std::vector<std::shared_ptr<AstNode>> elements;
 
+class BlockNode : public AstNode {
+public:
+  std::vector<std::shared_ptr<AstNode>> nodes;
+
+  void accept(NodeVisitor& v) {
+    v.visit(*this);
+
+    for (auto& n : nodes) {
+      n->accept(v);
+    }
+  }
+};
+
+class ExpressionNode : public AstNode {
 public:
   void accept(NodeVisitor& v) {
     v.visit(*this);
   }
+};
 
-  std::string evalString() {
-    return elements[0]->evalString();
+class LiteralNode : public ExpressionNode {
+public:
+  json data;
+
+  LiteralNode(const json& data): data(data) { }
+
+  void accept(NodeVisitor& v) {
+    v.visit(*this);
   }
 };
 
-class StatementNode : AstNode {
+class JsonNode : public ExpressionNode {
+public:
+  std::string json_ptr;
 
+  JsonNode(const std::string& json_ptr): json_ptr(json_ptr) { }
+
+  void accept(NodeVisitor& v) {
+    v.visit(*this);
+  }
 };
 
-class IfStatementNode : AstNode {
+class FunctionNode : public ExpressionNode {
 public:
-  virtual 
-}
+  enum class Operation {
+    Not,
+    And,
+    Or,
+    In,
+    Equal,
+    NotEqual,
+    Greater,
+    GreaterEqual,
+    Less,
+    LessEqual,
+    Other,
+  };
 
-class TextNode : AstNode {
+  Operation operation;
+  std::vector<std::shared_ptr<ExpressionNode>> args;
+
+  FunctionNode(Operation operation) : operation(operation) { }
+
+  void accept(NodeVisitor& v) {
+    v.visit(*this);
+
+    for (auto& arg : args) {
+      arg->accept(v);
+    }
+  }
+};
+
+class StatementNode : public AstNode {
+public:
+  virtual void accept(NodeVisitor& v) = 0;
+};
+
+class ForStatementNode : public StatementNode {
+public:
+  void accept(NodeVisitor& v) {
+    v.visit(*this);
+  };
+
+  ExpressionNode condition;
+  BlockNode body;
+};
+
+class IfStatementNode : public StatementNode {
+public:
+  void accept(NodeVisitor& v) {
+    v.visit(*this);
+
+    condition.accept(v);
+    true_statement.accept(v);
+
+    if (has_false_statement) {
+      false_statement.accept(v);
+    }
+  };
+
+  ExpressionNode condition;
+  BlockNode true_statement;
+  BlockNode false_statement;
+
+  bool has_false_statement {false};
+};
+
+class IncludeStatementNode : public StatementNode {
+public:
+  std::string file;
+
+  IncludeStatementNode(const std::string& file) : file(file) { }
+  void accept(NodeVisitor& v) {
+    v.visit(*this);
+  };
+};
+
+class TextNode : public AstNode {
+public:
   std::string content;
 
-public:
+  TextNode(const std::string& content): content(content) { }
+
   void accept(NodeVisitor& v) {
     v.visit(*this);
   }
-
-  std::string evalString() {
-    return content;
-  }
 };
 
-inline std::string NodeVisitor::visit(BlockNode& node) {
-  return node.evalString();
+inline void NodeVisitor::visit(BlockNode& node) {
+  std::cout << "<block (" << node.nodes.size() << ")>" << std::endl;
 }
 
-inline std::string NodeVisitor::visit(TextNode& node) {
-  return node.evalString();
+inline void NodeVisitor::visit(TextNode& node) {
+  std::cout << node.content << std::endl;
+}
+
+inline void NodeVisitor::visit(ExpressionNode& node) {
+  
+}
+
+inline void NodeVisitor::visit(LiteralNode& node) {
+  std::cout << "<json literal> " << node.data << std::endl;
+}
+
+inline void NodeVisitor::visit(JsonNode& node) {
+  std::cout << "<json ptr> " << node.json_ptr << std::endl;
+}
+
+inline void NodeVisitor::visit(FunctionNode& node) {
+  std::cout << "<function> " << std::endl;
+}
+
+inline void NodeVisitor::visit(StatementNode& node) {
+  
+}
+
+inline void NodeVisitor::visit(ForStatementNode& node) {
+  std::cout << "<if>" << std::endl;
+}
+
+inline void NodeVisitor::visit(IfStatementNode& node) {
+  std::cout << "<if>" << std::endl;
+}
+
+inline void NodeVisitor::visit(IncludeStatementNode& node) {
+  std::cout << "<include " << node.file << ">" << std::endl;
 }
 
 
