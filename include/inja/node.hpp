@@ -217,7 +217,7 @@ public:
     GreaterEqual,
     Less,
     LessEqual,
-    Other,
+    Named,
   };
 
   Operation operation;
@@ -291,6 +291,7 @@ public:
   }
 };
 
+
 inline void NodeVisitor::visit(BlockNode& node) {
   std::cout << "<block (" << node.nodes.size() << ")>" << std::endl;
 }
@@ -300,7 +301,7 @@ inline void NodeVisitor::visit(TextNode& node) {
 }
 
 inline void NodeVisitor::visit(ExpressionNode& node) {
-  
+
 }
 
 inline void NodeVisitor::visit(LiteralNode& node) {
@@ -316,7 +317,7 @@ inline void NodeVisitor::visit(FunctionNode& node) {
 }
 
 inline void NodeVisitor::visit(StatementNode& node) {
-  
+
 }
 
 inline void NodeVisitor::visit(ForStatementNode& node) {

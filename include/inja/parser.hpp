@@ -91,7 +91,9 @@ class Parser {
   std::vector<size_t> loop_stack;
 
   BlockNode *current_block {nullptr};
-  std::queue<ExpressionNode*> expression_stack;
+  std::queue<std::shared_ptr<ExpressionNode>> operator_stack;
+  std::queue<std::shared_ptr<ExpressionNode>> output_stack;
+
   std::queue<IfStatementNode*> if_statement_stack;
   std::queue<ForStatementNode*> for_statement_stack;
 
@@ -122,7 +124,7 @@ public:
       : config(parser_config), lexer(lexer_config), template_storage(included_templates),
         parser_static(ParserStatic::get_instance()) {}
 
-  bool parse_expression(Template &tmpl) {
+  /* bool parse_expression(Template &tmpl) {
     if (!parse_expression_and(tmpl)) {
       return false;
     }
@@ -140,7 +142,7 @@ public:
   bool parse_expression_and(Template &tmpl) {
     if (!parse_expression_not(tmpl)) {
       return false;
-    } 
+    }
     if (tok.kind != Token::Kind::Id || tok.text != static_cast<decltype(tok.text)>("and")) {
       return true;
     }
@@ -354,6 +356,25 @@ public:
     current_block->nodes.emplace_back(std::make_shared<LiteralNode>(json::parse(json_text)));
     get_next_token();
     return true;
+  } */
+
+  bool parse_expression(Template &tmpl) {
+    get_next_token();
+
+    while (tok.kind != Token::Kind::ExpressionClose && tok.kind != Token::Kind::StatementClose) {
+      if (tok.kind == Token::Kind::Number || tok.kind == Token::Kind::String) {
+        output_stack.emplace(std::make_shared<LiteralNode>(static_cast<std::string>(tok.text)));
+      } else if (tok.kind == Token::Kind::Id) {
+
+      } else if (tok.kind == Token::Kind::LessThan) {
+        while (!operator_stack.empty()) {
+          output_stack.emplace(operator_stack.back());
+        }
+      }
+
+      get_next_token();
+    }
+    return true;
   }
 
   bool parse_statement(Template &tmpl, nonstd::string_view path) {
@@ -374,7 +395,7 @@ public:
 
       // conditional jump; destination will be filled in by else or endif
       tmpl.nodes.emplace_back(Node::Op::ConditionalJump, 0, tok.text.data() - tmpl.content.c_str());
-      
+
       auto if_statement_node = std::make_shared<IfStatementNode>();
       current_block->nodes.emplace_back(if_statement_node);
       if_statement_node->parent = current_block;
@@ -437,7 +458,7 @@ public:
 
         // conditional jump; destination will be filled in by else or endif
         tmpl.nodes.emplace_back(Node::Op::ConditionalJump, 0, tok.text.data() - tmpl.content.c_str());
-      
+
         auto if_statement_node = std::make_shared<IfStatementNode>();
         current_block->nodes.emplace_back(if_statement_node);
         if_statement_node->parent = current_block;
@@ -526,7 +547,7 @@ public:
     return true;
   }
 
-  void append_function(Template &tmpl, Node::Op op, unsigned int num_args) {
+  /* void append_function(Template &tmpl, Node::Op op, unsigned int num_args) {
     // we can merge with back-to-back push
     if (!tmpl.nodes.empty()) {
       Node &last = tmpl.nodes.back();
@@ -542,7 +563,7 @@ public:
 
     if (expression_stack.empty()) {
       current_block->nodes.emplace_back(std::make_shared<FunctionNode>(FunctionNode::Operation::Less));
-    } 
+    }
   }
 
   void append_callback(Template &tmpl, nonstd::string_view name, unsigned int num_args) {
@@ -561,7 +582,11 @@ public:
     // otherwise just add it to the end
     tmpl.nodes.emplace_back(Node::Op::Callback, num_args, tok.text.data() - tmpl.content.c_str());
     tmpl.nodes.back().str = static_cast<std::string>(name);
-  }
+
+    if (expression_stack.empty()) {
+      current_block->nodes.emplace_back(std::make_shared<FunctionNode>(FunctionNode::Operation::Named));
+    }
+  } */
 
   void parse_into(Template &tmpl, nonstd::string_view path) {
     lexer.start(tmpl.content);
@@ -604,7 +629,7 @@ public:
         if (!parse_expression(tmpl)) {
           throw_parser_error("expected expression, got '" + tok.describe() + "'");
         }
-        append_function(tmpl, Node::Op::PrintValue, 1);
+        // append_function(tmpl, Node::Op::PrintValue, 1);
         if (tok.kind != Token::Kind::ExpressionClose) {
           throw_parser_error("expected expression close, got '" + tok.describe() + "'");
         }
@@ -634,7 +659,7 @@ public:
 
   void parse_into_template(Template& tmpl, nonstd::string_view filename) {
     nonstd::string_view path = filename.substr(0, filename.find_last_of("/\\") + 1);
-    
+
     // StringRef path = sys::path::parent_path(filename);
     auto sub_parser = Parser(config, lexer.get_config(), template_storage);
     sub_parser.parse_into(tmpl, path);
