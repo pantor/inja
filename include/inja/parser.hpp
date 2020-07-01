@@ -90,9 +90,10 @@ class Parser {
   std::vector<IfData> if_stack;
   std::vector<size_t> loop_stack;
 
-  std::queue<IfStatementNode*> ifstatement_stack;
-  std::queue<ExpressionNode*> expression_stack;
   BlockNode *current_block {nullptr};
+  std::queue<ExpressionNode*> expression_stack;
+  std::queue<IfStatementNode*> if_statement_stack;
+  std::queue<ForStatementNode*> for_statement_stack;
 
   void throw_parser_error(const std::string &message) {
     throw ParserError(message, lexer.current_position());
@@ -373,12 +374,18 @@ public:
 
       // conditional jump; destination will be filled in by else or endif
       tmpl.nodes.emplace_back(Node::Op::ConditionalJump, 0, tok.text.data() - tmpl.content.c_str());
-      current_block->nodes.emplace_back(std::make_shared<IfStatementNode>());
+      
+      auto if_statement_node = std::make_shared<IfStatementNode>();
+      current_block->nodes.emplace_back(if_statement_node);
+      if_statement_node->parent = current_block;
+      if_statement_stack.emplace(if_statement_node.get());
+      current_block = &if_statement_node->true_statement;
     } else if (tok.text == static_cast<decltype(tok.text)>("endif")) {
       if (if_stack.empty()) {
         throw_parser_error("endif without matching if");
       }
       auto &if_data = if_stack.back();
+      auto &if_statement_data = if_statement_stack.back();
       get_next_token();
 
       // previous conditional jump jumps here
@@ -393,11 +400,15 @@ public:
 
       // pop if stack
       if_stack.pop_back();
+
+      current_block = if_statement_data->parent;
+      if_statement_stack.pop();
     } else if (tok.text == static_cast<decltype(tok.text)>("else")) {
       if (if_stack.empty()) {
         throw_parser_error("else without matching if");
       }
       auto &if_data = if_stack.back();
+      auto &if_statement_data = if_statement_stack.back();
       get_next_token();
 
       // end previous block with unconditional jump to endif; destination will be
@@ -408,6 +419,9 @@ public:
       // previous conditional jump jumps here
       tmpl.nodes[if_data.prev_cond_jump].args = tmpl.nodes.size();
       if_data.prev_cond_jump = std::numeric_limits<unsigned int>::max();
+
+      if_statement_data->has_false_statement = true;
+      current_block = &if_statement_data->false_statement;
 
       // chained else if
       if (tok.kind == Token::Kind::Id && tok.text == static_cast<decltype(tok.text)>("if")) {
@@ -423,6 +437,12 @@ public:
 
         // conditional jump; destination will be filled in by else or endif
         tmpl.nodes.emplace_back(Node::Op::ConditionalJump, 0, tok.text.data() - tmpl.content.c_str());
+      
+        auto if_statement_node = std::make_shared<IfStatementNode>();
+        current_block->nodes.emplace_back(if_statement_node);
+        if_statement_node->parent = current_block;
+        if_statement_stack.emplace(if_statement_node.get());
+        current_block = &if_statement_node->true_statement;
       }
     } else if (tok.text == static_cast<decltype(tok.text)>("for")) {
       get_next_token();

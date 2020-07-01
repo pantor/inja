@@ -267,6 +267,7 @@ public:
   BlockNode false_statement;
 
   bool has_false_statement {false};
+  BlockNode *parent;
 };
 
 class IncludeStatementNode : public StatementNode {
