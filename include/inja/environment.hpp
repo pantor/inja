@@ -168,8 +168,8 @@ public:
     return j;
   }
 
-  void add_callback(const std::string &name, unsigned int numArgs, const CallbackFunction &callback) {
-    function_storage.add_callback(name, numArgs, callback);
+  void add_callback(const std::string &name, unsigned int num_args, const CallbackFunction &callback) {
+    function_storage.add_callback(name, num_args, callback);
   }
 
   /** Includes a template with a given name into the environment.

@@ -30,6 +30,49 @@ inline nonstd::string_view convert_dot_to_json_pointer(nonstd::string_view dot, 
   return nonstd::string_view(out.data(), out.size());
 }
 
+class RenderVisitor : public NodeVisitor {
+public:
+  std::string result;
+
+  explicit RenderVisitor() : result("") { }
+
+  void visit(const TextNode& node) {
+    result += node.content;
+  }
+
+  void visit(const LiteralNode& node) {
+
+  }
+
+  void visit(const JsonNode& node) {
+    
+  }
+
+  void visit(const FunctionNode& node) {
+
+  }
+
+  void visit(const ExpressionListNode& node) {
+
+  }
+
+  void visit(const StatementNode& node) {
+
+  }
+
+  void visit(const ForStatementNode& node) {
+
+  }
+
+  void visit(const IfStatementNode& node) {
+
+  }
+
+  void visit(const IncludeStatementNode& node) {
+
+  }
+};
+
 /*!
  * \brief Class for rendering a Template with data.
  */
@@ -95,11 +138,11 @@ class Renderer {
       return &m_data->at(json_ptr);
     } catch (std::exception &) {
       // try to evaluate as a no-argument callback
-      if (auto callback = function_storage.find_callback(node.str, 0)) {
+      /* if (auto callback = function_storage.find_callback(node.str, 0)) {
         std::vector<const json *> arguments {};
         m_tmp_val = callback(arguments);
         return &m_tmp_val;
-      }
+      } */
 
       throw_renderer_error("variable '" + static_cast<std::string>(node.str) + "' not found", node);
       return nullptr;
@@ -189,9 +232,15 @@ public:
   void render_to(std::ostream &os, const Template &tmpl, const json &data, json *loop_data = nullptr) {
     current_template = &tmpl;
     m_data = &data;
-    m_loop_data = loop_data;
+    // m_loop_data = loop_data;
 
-    for (size_t i = 0; i < tmpl.nodes.size(); ++i) {
+    auto rv = RenderVisitor();
+    current_template->root.accept(rv);
+
+    std::cout << "-result-" << std::endl;
+    std::cout << rv.result << std::endl;
+
+    /* for (size_t i = 0; i < tmpl.nodes.size(); ++i) {
       const auto &node = tmpl.nodes[i];
 
       switch (node.op) {
@@ -484,7 +533,7 @@ public:
         break;
       }
       case Node::Op::Callback: {
-        auto callback = function_storage.find_callback(node.str, node.args);
+        auto callback = function_storage.find_function(node.str, node.args);
         if (!callback) {
           throw_renderer_error("function '" + static_cast<std::string>(node.str) + "' (" +
                             std::to_string(static_cast<unsigned int>(node.args)) + ") not found", node);
@@ -601,7 +650,7 @@ public:
         throw_renderer_error("unknown operation in renderer: " + std::to_string(static_cast<unsigned int>(node.op)), node);
       }
       }
-    }
+    } */
   }
 };
 

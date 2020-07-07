@@ -26,6 +26,8 @@ struct Token {
     Id,                 // this, this.foo
     Number,             // 1, 2, -1, 5.2, -5.3
     String,             // "this"
+    Plus,               // +
+    Minus,              // -
     Comma,              // ,
     Colon,              // :
     LeftParen,          // (
@@ -35,13 +37,13 @@ struct Token {
     LeftBrace,          // {
     RightBrace,         // }
     Equal,              // ==
+    NotEqual,           // !=
     GreaterThan,        // >
     GreaterEqual,       // >=
     LessThan,           // <
     LessEqual,          // <=
-    NotEqual,           // !=
     Unknown,
-    Eof
+    Eof,
   };
   
   Kind kind {Kind::Unknown};

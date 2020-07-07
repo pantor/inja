@@ -19,63 +19,38 @@ using CallbackFunction = std::function<json(Arguments &args)>;
  * \brief Class for builtin functions and user-defined callbacks.
  */
 class FunctionStorage {
+public:
+  constexpr static int VARIAIDC {-1};
+
   struct FunctionData {
-    unsigned int num_args {0};
-    Node::Op op {Node::Op::Nop}; // for builtins
-    CallbackFunction function; // for callbacks
+    FunctionNode::Operation operation;
+
+    CallbackFunction function;
   };
 
-  std::map<std::string, std::vector<FunctionData>> storage;
-
-  FunctionData &get_or_new(nonstd::string_view name, unsigned int num_args) {
-    auto &vec = storage[static_cast<std::string>(name)];
-    for (auto &i : vec) {
-      if (i.num_args == num_args) {
-        return i;
-      }
-    }
-    vec.emplace_back();
-    vec.back().num_args = num_args;
-    return vec.back();
-  }
-
-  const FunctionData *get(nonstd::string_view name, unsigned int num_args) const {
-    auto it = storage.find(static_cast<std::string>(name));
-    if (it == storage.end()) {
-      return nullptr;
-    }
-
-    for (auto &&i : it->second) {
-      if (i.num_args == num_args) {
-        return &i;
-      }
-    }
-    return nullptr;
-  }
+  std::map<std::pair<std::string, int>, FunctionData> function_storage;
 
 public:
-  void add_builtin(nonstd::string_view name, unsigned int num_args, Node::Op op) {
-    auto &data = get_or_new(name, num_args);
-    data.op = op;
+  void add_function(nonstd::string_view name, int num_args, FunctionNode::Operation op) {
+    function_storage.emplace(std::make_pair(name, num_args), FunctionData { op });
   }
 
-  void add_callback(nonstd::string_view name, unsigned int num_args, const CallbackFunction &function) {
-    auto &data = get_or_new(name, num_args);
-    data.function = function;
+  void add_callback(nonstd::string_view name, int num_args, const CallbackFunction &function) {
+    function_storage.emplace(std::make_pair(name, num_args), FunctionData { FunctionNode::Operation::Callback, function });
   }
 
-  Node::Op find_builtin(nonstd::string_view name, unsigned int num_args) const {
-    if (auto ptr = get(name, num_args)) {
-      return ptr->op;
+  FunctionData find_function(nonstd::string_view name, int num_args) const {
+    auto it = function_storage.find(std::make_pair(static_cast<std::string>(name), num_args));
+    if (it != function_storage.end()) {
+      return it->second;
     }
-    return Node::Op::Nop;
-  }
 
-  CallbackFunction find_callback(nonstd::string_view name, unsigned int num_args) const {
-    if (auto ptr = get(name, num_args)) {
-      return ptr->function;
+    it = function_storage.find(std::make_pair(static_cast<std::string>(name), VARIAIDC));
+    if (it != function_storage.end()) {
+      return it->second;
     }
-    return nullptr;
+
+    return { FunctionNode::Operation::None };
   }
 };
 

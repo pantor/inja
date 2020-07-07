@@ -81,6 +81,10 @@ class Lexer {
     }
 
     switch (ch) {
+    // case '+':
+    //   return make_token(Token::Kind::Plus);
+    // case '-':
+    //   return make_token(Token::Kind::Minus);
     case ',':
       return make_token(Token::Kind::Comma);
     case ':':
