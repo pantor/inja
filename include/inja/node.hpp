@@ -139,14 +139,13 @@ class FunctionNode;
 class ExpressionListNode;
 class StatementNode;
 class ForStatementNode;
+class ForArrayStatementNode;
+class ForObjectStatementNode;
 class IfStatementNode;
 class IncludeStatementNode;
 
 
-class AstNode {
-public:
-  virtual void accept(NodeVisitor&) const = 0;
-};
+
 
 class NodeVisitor {
 public:
@@ -159,8 +158,16 @@ public:
   virtual void visit(const ExpressionListNode& node);
   virtual void visit(const StatementNode& node);
   virtual void visit(const ForStatementNode& node);
+  virtual void visit(const ForArrayStatementNode& node);
+  virtual void visit(const ForObjectStatementNode& node);
   virtual void visit(const IfStatementNode& node);
   virtual void visit(const IncludeStatementNode& node);
+};
+
+
+class AstNode {
+public:
+  virtual void accept(NodeVisitor& v) const = 0;
 };
 
 
@@ -170,10 +177,6 @@ public:
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);
-
-    for (auto& n : nodes) {
-      n->accept(v);
-    }
   }
 };
 
@@ -186,9 +189,9 @@ public:
 
 class LiteralNode : public ExpressionNode {
 public:
-  json data;
+  json value;
 
-  LiteralNode(const json& data): data(data) { }
+  LiteralNode(const json& value): value(value) { }
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);
@@ -331,11 +334,7 @@ public:
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);
-
-    for (auto node : rpn_output) {
-      node->accept(v);
-    }
-  };
+  }
 };
 
 class StatementNode : public AstNode {
@@ -345,33 +344,49 @@ public:
 
 class ForStatementNode : public StatementNode {
 public:
-  void accept(NodeVisitor& v) const {
-    v.visit(*this);
-  };
-
   ExpressionListNode condition;
   BlockNode body;
+  BlockNode *parent;
+
+  void accept(NodeVisitor& v) const {
+    v.visit(*this);
+  }
+};
+
+class ForArrayStatementNode : public ForStatementNode {
+public:
+  nonstd::string_view value;
+
+  explicit ForArrayStatementNode(nonstd::string_view value) : value(value) { }
+
+  void accept(NodeVisitor& v) const {
+    v.visit(*this);
+  }
+};
+
+class ForObjectStatementNode : public ForStatementNode {
+public:
+  nonstd::string_view key;
+  nonstd::string_view value;
+
+  explicit ForObjectStatementNode(nonstd::string_view key, nonstd::string_view value) : key(key), value(value) { }
+
+  void accept(NodeVisitor& v) const {
+    v.visit(*this);
+  }
 };
 
 class IfStatementNode : public StatementNode {
 public:
-  void accept(NodeVisitor& v) const {
-    v.visit(*this);
-
-    condition.accept(v);
-    true_statement.accept(v);
-
-    if (has_false_statement) {
-      false_statement.accept(v);
-    }
-  };
-
   ExpressionListNode condition;
   BlockNode true_statement;
   BlockNode false_statement;
-
   bool has_false_statement {false};
   BlockNode *parent;
+
+  void accept(NodeVisitor& v) const {
+    v.visit(*this);
+  }
 };
 
 class IncludeStatementNode : public StatementNode {
@@ -379,6 +394,7 @@ public:
   std::string file;
 
   IncludeStatementNode(const std::string& file) : file(file) { }
+
   void accept(NodeVisitor& v) const {
     v.visit(*this);
   };
@@ -398,6 +414,10 @@ public:
 
 inline void NodeVisitor::visit(const BlockNode& node) {
   std::cout << "<block (" << node.nodes.size() << ")>" << std::endl;
+
+  for (auto& n : node.nodes) {
+    n->accept(*this);
+  }
 }
 
 inline void NodeVisitor::visit(const TextNode& node) {
@@ -409,7 +429,7 @@ inline void NodeVisitor::visit(const ExpressionNode& node) {
 }
 
 inline void NodeVisitor::visit(const LiteralNode& node) {
-  std::cout << "<json " << node.data << ">" << std::endl;
+  std::cout << "<json " << node.value << ">" << std::endl;
 }
 
 inline void NodeVisitor::visit(const JsonNode& node) {
@@ -429,11 +449,22 @@ inline void NodeVisitor::visit(const StatementNode& node) {
 }
 
 inline void NodeVisitor::visit(const ForStatementNode& node) {
-  std::cout << "<if>" << std::endl;
+  
+}
+
+inline void NodeVisitor::visit(const ForArrayStatementNode& node) {
+  std::cout << "<for array>" << std::endl;
+}
+
+inline void NodeVisitor::visit(const ForObjectStatementNode& node) {
+  std::cout << "<for object>" << std::endl;
 }
 
 inline void NodeVisitor::visit(const IfStatementNode& node) {
   std::cout << "<if>" << std::endl;
+
+  node.condition.accept(*this);
+  node.true_statement.accept(*this);
 }
 
 inline void NodeVisitor::visit(const IncludeStatementNode& node) {

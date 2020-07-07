@@ -25,7 +25,7 @@ public:
   struct FunctionData {
     FunctionNode::Operation operation;
 
-    CallbackFunction function;
+    CallbackFunction callback;
   };
 
   std::map<std::pair<std::string, int>, FunctionData> function_storage;
@@ -35,19 +35,21 @@ public:
     function_storage.emplace(std::make_pair(name, num_args), FunctionData { op });
   }
 
-  void add_callback(nonstd::string_view name, int num_args, const CallbackFunction &function) {
-    function_storage.emplace(std::make_pair(name, num_args), FunctionData { FunctionNode::Operation::Callback, function });
+  void add_callback(nonstd::string_view name, int num_args, const CallbackFunction &callback) {
+    function_storage.emplace(std::make_pair(name, num_args), FunctionData { FunctionNode::Operation::Callback, callback });
   }
 
   FunctionData find_function(nonstd::string_view name, int num_args) const {
     auto it = function_storage.find(std::make_pair(static_cast<std::string>(name), num_args));
     if (it != function_storage.end()) {
       return it->second;
-    }
-
-    it = function_storage.find(std::make_pair(static_cast<std::string>(name), VARIAIDC));
-    if (it != function_storage.end()) {
-      return it->second;
+    
+    // Find variadic function
+    } else if (num_args > 0) {
+      it = function_storage.find(std::make_pair(static_cast<std::string>(name), VARIAIDC));
+      if (it != function_storage.end()) {
+        return it->second;
+      }
     }
 
     return { FunctionNode::Operation::None };

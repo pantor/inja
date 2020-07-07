@@ -30,53 +30,11 @@ inline nonstd::string_view convert_dot_to_json_pointer(nonstd::string_view dot, 
   return nonstd::string_view(out.data(), out.size());
 }
 
-class RenderVisitor : public NodeVisitor {
-public:
-  std::string result;
-
-  explicit RenderVisitor() : result("") { }
-
-  void visit(const TextNode& node) {
-    result += node.content;
-  }
-
-  void visit(const LiteralNode& node) {
-
-  }
-
-  void visit(const JsonNode& node) {
-    
-  }
-
-  void visit(const FunctionNode& node) {
-
-  }
-
-  void visit(const ExpressionListNode& node) {
-
-  }
-
-  void visit(const StatementNode& node) {
-
-  }
-
-  void visit(const ForStatementNode& node) {
-
-  }
-
-  void visit(const IfStatementNode& node) {
-
-  }
-
-  void visit(const IncludeStatementNode& node) {
-
-  }
-};
 
 /*!
  * \brief Class for rendering a Template with data.
  */
-class Renderer {
+class Renderer : public NodeVisitor  {
   std::vector<const json *> &get_args(const Node &node) {
     m_tmp_args.clear();
 
@@ -138,11 +96,12 @@ class Renderer {
       return &m_data->at(json_ptr);
     } catch (std::exception &) {
       // try to evaluate as a no-argument callback
-      /* if (auto callback = function_storage.find_callback(node.str, 0)) {
+      auto function_data = function_storage.find_function(node.str, 0);
+      if (function_data.operation == FunctionNode::Operation::Callback) {
         std::vector<const json *> arguments {};
-        m_tmp_val = callback(arguments);
+        m_tmp_val = function_data.callback(arguments);
         return &m_tmp_val;
-      } */
+      } 
 
       throw_renderer_error("variable '" + static_cast<std::string>(node.str) + "' not found", node);
       return nullptr;
@@ -181,9 +140,26 @@ class Renderer {
     loop_data["is_last"] = (level.index == level.size - 1);
   }
 
+  void print_json(const json* value) {
+    if (value->is_string()) {
+      *output_stream << value->get_ref<const std::string &>();
+    } else {
+      *output_stream << value->dump();
+    }
+  }
+
+  json render_expression_list(const ExpressionListNode& expression_list) {
+    return json();
+  }
+
   void throw_renderer_error(const std::string &message, const Node& node) {
     SourceLocation loc = get_source_location(current_template->content, node.pos);
     throw RenderError(message, loc);
+  }
+
+  void throw_renderer_error(const std::string &message, const AstNode& node) {
+    // SourceLocation loc = get_source_location(current_template->content, node.pos);
+    // throw RenderError(message, loc);
   }
 
   struct LoopLevel {
@@ -215,6 +191,7 @@ class Renderer {
   std::vector<LoopLevel> m_loop_stack;
   json *m_loop_data;
 
+  std::ostream *output_stream;
   const json *m_data;
   std::vector<const json *> m_tmp_args;
   json m_tmp_val;
@@ -229,16 +206,104 @@ public:
     m_loop_stack.reserve(16);
   }
 
+  void visit(const BlockNode& node) {
+    for (auto& n : node.nodes) {
+      n->accept(*this);
+    }
+  }
+
+  void visit(const TextNode& node) {
+    *output_stream << node.content;
+  }
+
+  void visit(const LiteralNode& node) {
+    print_json(&node.value);
+  }
+
+  void visit(const JsonNode& node) {
+    std::string ptr_buffer;
+    nonstd::string_view ptr = convert_dot_to_json_pointer(node.json_ptr, ptr_buffer);
+    
+    json::json_pointer json_ptr(ptr.data());
+    try {
+      // first try to evaluate as a loop variable
+      // Using contains() is faster than unsucessful at() and throwing an exception
+      // if (m_loop_data && m_loop_data->contains(json_ptr)) {
+      //   return &m_loop_data->at(json_ptr);
+      // }
+      print_json(&m_data->at(json_ptr));
+    
+    } catch (std::exception &) {
+      // try to evaluate as a no-argument callback
+      // auto function_data = function_storage.find_function(node.json_ptr, 0);
+      // if (function_data.operation == FunctionNode::Operation::Callback) {
+      //   std::vector<const json *> arguments {};
+      //   auto m_tmp_val = function_data.callback(arguments);
+      //   print_json(&m_tmp_val);
+      // }
+
+      throw_renderer_error("variable '" + static_cast<std::string>(node.json_ptr) + "' not found", node);
+    }
+  }
+
+  void visit(const ExpressionListNode& node) {
+    if (node.rpn_output.size() == 1) {
+      node.rpn_output.front()->accept(*this);
+
+    // Render RPN Expression
+    } else {
+      auto result = render_expression_list(node);
+      print_json(&result);
+    }
+  }
+
+  void visit(const ForArrayStatementNode& node) {
+    auto result = render_expression_list(node.condition);
+    if (!result.is_array()) {
+      throw_renderer_error("object must be an array", node);
+    }
+
+    for (auto &c : result) {
+
+    }
+  }
+
+  void visit(const ForObjectStatementNode& node) {
+    auto result = render_expression_list(node.condition);
+    if (!result.is_object()) {
+      throw_renderer_error("object must be an object", node);
+    }
+
+    for (auto &c : result) {
+
+    }
+  }
+
+  void visit(const IfStatementNode& node) {
+    auto result = render_expression_list(node.condition);
+    if (truthy(result)) {
+      node.true_statement.accept(*this);
+    } else if (node.has_false_statement) {
+      node.false_statement.accept(*this);
+    }
+  }
+
+  void visit(const IncludeStatementNode& node) {
+    auto sub_renderer = Renderer(config, template_storage, function_storage);
+    auto included_template_it = template_storage.find(node.file);
+    if (included_template_it != template_storage.end()) {
+      sub_renderer.render_to(*output_stream, included_template_it->second, *m_data, m_loop_data);
+    } else if (config.throw_at_missing_includes) {
+      throw_renderer_error("include '" + node.file + "' not found", node);
+    }
+  }
+
   void render_to(std::ostream &os, const Template &tmpl, const json &data, json *loop_data = nullptr) {
+    output_stream = &os;
     current_template = &tmpl;
     m_data = &data;
-    // m_loop_data = loop_data;
 
-    auto rv = RenderVisitor();
-    current_template->root.accept(rv);
-
-    std::cout << "-result-" << std::endl;
-    std::cout << rv.result << std::endl;
+    current_template->root.accept(*this);
 
     /* for (size_t i = 0; i < tmpl.nodes.size(); ++i) {
       const auto &node = tmpl.nodes[i];

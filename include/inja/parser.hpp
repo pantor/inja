@@ -77,11 +77,8 @@ class Parser {
   Lexer lexer;
   TemplateStorage &template_storage;
 
-  Token tok;
-  Token peek_tok;
+  Token tok, peek_tok;
   bool have_peek_tok {false};
-
-  std::vector<size_t> loop_stack;
 
   BlockNode *current_block {nullptr};
   ExpressionListNode *current_expression_list {nullptr};
@@ -120,8 +117,11 @@ public:
   bool parse_expression(Template &tmpl) {
     while (tok.kind != Token::Kind::ExpressionClose && tok.kind != Token::Kind::StatementClose) {
       // Literals
-      if (tok.kind == Token::Kind::Number || tok.kind == Token::Kind::String) {
+      if (tok.kind == Token::Kind::Number) {
         current_expression_list->rpn_output.emplace_back(std::make_shared<LiteralNode>(static_cast<std::string>(tok.text)));
+      
+      } else if (tok.kind == Token::Kind::String) {
+        current_expression_list->rpn_output.emplace_back(std::make_shared<LiteralNode>(static_cast<std::string>(tok.text.substr(1, tok.text.length() - 2))));
       
       } else if (tok.kind == Token::Kind::Id) {
         get_peek_token();
@@ -219,13 +219,9 @@ public:
     }
 
     if (tok.text == static_cast<decltype(tok.text)>("if")) {
+parse_if_statement:
       get_next_token();
-
-      // evaluate expression
       
-      // conditional jump; destination will be filled in by else or endif
-      tmpl.nodes.emplace_back(Node::Op::ConditionalJump, 0, tok.text.data() - tmpl.content.c_str());
-
       auto if_statement_node = std::make_shared<IfStatementNode>();
       current_block->nodes.emplace_back(if_statement_node);
       if_statement_node->parent = current_block;
@@ -244,20 +240,9 @@ public:
       auto &if_statement_data = if_statement_stack.top();
       get_next_token();
 
-      // // previous conditional jump jumps here
-      // if (if_data.prev_cond_jump != std::numeric_limits<unsigned int>::max()) {
-      //   tmpl.nodes[if_data.prev_cond_jump].args = tmpl.nodes.size();
-      // }
-
-      // // update all previous unconditional jumps to here
-      // for (size_t i : if_data.uncond_jumps) {
-      //   tmpl.nodes[i].args = tmpl.nodes.size();
-      // }
-
-      // // pop if stack
-
       current_block = if_statement_data->parent;
       if_statement_stack.pop();
+    
     } else if (tok.text == static_cast<decltype(tok.text)>("else")) {
       if (if_statement_stack.empty()) {
         throw_parser_error("else without matching if");
@@ -265,34 +250,14 @@ public:
       auto &if_statement_data = if_statement_stack.top();
       get_next_token();
 
-      // end previous block with unconditional jump to endif; destination will be
-      // filled in by endif
-      tmpl.nodes.emplace_back(Node::Op::Jump, 0, tok.text.data() - tmpl.content.c_str());
-
-      // previous conditional jump jumps here
-      // tmpl.nodes[if_data.prev_cond_jump].args = tmpl.nodes.size();
-
       if_statement_data->has_false_statement = true;
       current_block = &if_statement_data->false_statement;
 
       // chained else if
       if (tok.kind == Token::Kind::Id && tok.text == static_cast<decltype(tok.text)>("if")) {
-        get_next_token();
-
-        // evaluate expression
-        if (!parse_expression(tmpl)) {
-          return false;
-        }
-
-        // conditional jump; destination will be filled in by else or endif
-        tmpl.nodes.emplace_back(Node::Op::ConditionalJump, 0, tok.text.data() - tmpl.content.c_str());
-
-        auto if_statement_node = std::make_shared<IfStatementNode>();
-        current_block->nodes.emplace_back(if_statement_node);
-        if_statement_node->parent = current_block;
-        if_statement_stack.emplace(if_statement_node.get());
-        current_block = &if_statement_node->true_statement;
+        goto parse_if_statement;
       }
+    
     } else if (tok.text == static_cast<decltype(tok.text)>("for")) {
       get_next_token();
 
@@ -300,19 +265,34 @@ public:
       if (tok.kind != Token::Kind::Id) {
         throw_parser_error("expected id, got '" + tok.describe() + "'");
       }
+
       Token value_token = tok;
       get_next_token();
 
-      Token key_token;
+      // Object type
+      std::shared_ptr<ForStatementNode> for_statement_node;
       if (tok.kind == Token::Kind::Comma) {
         get_next_token();
         if (tok.kind != Token::Kind::Id) {
           throw_parser_error("expected id, got '" + tok.describe() + "'");
         }
-        key_token = std::move(value_token);
+
+        Token key_token = std::move(value_token);
         value_token = tok;
         get_next_token();
+
+        for_statement_node = std::make_shared<ForObjectStatementNode>(key_token.text, value_token.text);
+      
+      // Array type
+      } else {
+        for_statement_node = std::make_shared<ForArrayStatementNode>(value_token.text);
       }
+
+      current_block->nodes.emplace_back(for_statement_node);
+      for_statement_node->parent = current_block;
+      for_statement_stack.emplace(for_statement_node.get());
+      current_block = &for_statement_node->body;
+      current_expression_list = &for_statement_node->condition;
 
       if (tok.kind != Token::Kind::Id || tok.text != static_cast<decltype(tok.text)>("in")) {
         throw_parser_error("expected 'in', got '" + tok.describe() + "'");
@@ -322,26 +302,18 @@ public:
       if (!parse_expression(tmpl)) {
         return false;
       }
-
-      loop_stack.push_back(tmpl.nodes.size());
-
-      tmpl.nodes.emplace_back(Node::Op::StartLoop, 0, tok.text.data() - tmpl.content.c_str());
-      if (!key_token.text.empty()) {
-        tmpl.nodes.back().value = key_token.text;
-      }
-      tmpl.nodes.back().str = static_cast<std::string>(value_token.text);
+    
     } else if (tok.text == static_cast<decltype(tok.text)>("endfor")) {
-      get_next_token();
-      if (loop_stack.empty()) {
+      if (for_statement_stack.empty()) {
         throw_parser_error("endfor without matching for");
       }
 
-      // update loop with EndLoop index (for empty case)
-      tmpl.nodes[loop_stack.back()].args = tmpl.nodes.size();
+      auto &for_statement_data = for_statement_stack.top();
+      get_next_token();
 
-      tmpl.nodes.emplace_back(Node::Op::EndLoop, 0, tok.text.data() - tmpl.content.c_str());
-      tmpl.nodes.back().args = loop_stack.back() + 1; // loop body
-      loop_stack.pop_back();
+      current_block = for_statement_data->parent;
+      for_statement_stack.pop();
+
     } else if (tok.text == static_cast<decltype(tok.text)>("include")) {
       get_next_token();
 
@@ -364,8 +336,6 @@ public:
         parse_into_template(template_storage.at(pathname), pathname);
       }
 
-      // generate a reference node
-      tmpl.nodes.emplace_back(Node::Op::Include, json(pathname), Node::Flag::ValueImmediate, tok.text.data() - tmpl.content.c_str());
       current_block->nodes.emplace_back(std::make_shared<IncludeStatementNode>(pathname));
 
       get_next_token();
@@ -375,47 +345,6 @@ public:
     return true;
   }
 
-  /* void append_function(Template &tmpl, Node::Op op, unsigned int num_args) {
-    // we can merge with back-to-back push
-    if (!tmpl.nodes.empty()) {
-      Node &last = tmpl.nodes.back();
-      if (last.op == Node::Op::Push) {
-        last.op = op;
-        last.args = num_args;
-        return;
-      }
-    }
-
-    // otherwise just add it to the end
-    tmpl.nodes.emplace_back(op, num_args, tok.text.data() - tmpl.content.c_str());
-
-    if (expression_stack.empty()) {
-      current_block->nodes.emplace_back(std::make_shared<FunctionNode>(FunctionNode::Operation::Less));
-    }
-  }
-
-  void append_callback(Template &tmpl, nonstd::string_view name, unsigned int num_args) {
-    // we can merge with back-to-back push value (not lookup)
-    if (!tmpl.nodes.empty()) {
-      Node &last = tmpl.nodes.back();
-      if (last.op == Node::Op::Push && (last.flags & Node::Flag::ValueMask) == Node::Flag::ValueImmediate) {
-        last.op = Node::Op::Callback;
-        last.args = num_args;
-        last.str = static_cast<std::string>(name);
-        last.pos = name.data() - tmpl.content.c_str();
-        return;
-      }
-    }
-
-    // otherwise just add it to the end
-    tmpl.nodes.emplace_back(Node::Op::Callback, num_args, tok.text.data() - tmpl.content.c_str());
-    tmpl.nodes.back().str = static_cast<std::string>(name);
-
-    if (expression_stack.empty()) {
-      current_block->nodes.emplace_back(std::make_shared<FunctionNode>(FunctionNode::Operation::Named));
-    }
-  } */
-
   void parse_into(Template &tmpl, nonstd::string_view path) {
     lexer.start(tmpl.content);
     current_block = &tmpl.root;
@@ -423,20 +352,19 @@ public:
     for (;;) {
       get_next_token();
       switch (tok.kind) {
-      case Token::Kind::Eof:
+      case Token::Kind::Eof: {
         if (!if_statement_stack.empty()) {
           throw_parser_error("unmatched if");
         }
         if (!for_statement_stack.empty()) {
           throw_parser_error("unmatched for");
         }
-        return;
+      } return;
       case Token::Kind::Text: {
-        // tmpl.nodes.emplace_back(Node::Op::PrintText, tok.text, 0u, tok.text.data() - tmpl.content.c_str());
         current_block->nodes.emplace_back(std::make_shared<TextNode>(static_cast<std::string>(tok.text)));
         break;
       }
-      case Token::Kind::StatementOpen:
+      case Token::Kind::StatementOpen: {
         get_next_token();
         if (!parse_statement(tmpl, path)) {
           throw_parser_error("expected statement, got '" + tok.describe() + "'");
@@ -444,14 +372,14 @@ public:
         if (tok.kind != Token::Kind::StatementClose) {
           throw_parser_error("expected statement close, got '" + tok.describe() + "'");
         }
-        break;
-      case Token::Kind::LineStatementOpen:
+      } break;
+      case Token::Kind::LineStatementOpen: {
         get_next_token();
         parse_statement(tmpl, path);
         if (tok.kind != Token::Kind::LineStatementClose && tok.kind != Token::Kind::Eof) {
           throw_parser_error("expected line statement close, got '" + tok.describe() + "'");
         }
-        break;
+      } break;
       case Token::Kind::ExpressionOpen: {
         get_next_token();
 
@@ -462,20 +390,20 @@ public:
         if (!parse_expression(tmpl)) {
           throw_parser_error("expected expression, got '" + tok.describe() + "'");
         }
-        // append_function(tmpl, Node::Op::PrintValue, 1);
+        
         if (tok.kind != Token::Kind::ExpressionClose) {
           throw_parser_error("expected expression close, got '" + tok.describe() + "'");
         }
       } break;
-      case Token::Kind::CommentOpen:
+      case Token::Kind::CommentOpen: {
         get_next_token();
         if (tok.kind != Token::Kind::CommentClose) {
           throw_parser_error("expected comment close, got '" + tok.describe() + "'");
         }
-        break;
-      default:
+      } break;
+      default: {
         throw_parser_error("unexpected token '" + tok.describe() + "'");
-        break;
+      } break;
       }
     }
   }

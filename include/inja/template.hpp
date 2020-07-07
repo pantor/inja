@@ -17,7 +17,6 @@ namespace inja {
  */
 struct Template {
   BlockNode root;
-  std::vector<Node> nodes;
   std::string content;
 
   explicit Template() { }
@@ -25,9 +24,9 @@ struct Template {
 
   /// Return number of variables (total number, not distinct ones) in the template
   int count_variables() {
-    return std::count_if(nodes.cbegin(), nodes.cend(), [](const inja::Node &node) {
-      return (node.flags == Node::Flag::ValueLookupDot || node.flags == Node::Flag::ValueLookupPointer);
-    });
+    // return std::count_if(nodes.cbegin(), nodes.cend(), [](const inja::Node &node) {
+    //   return (node.flags == Node::Flag::ValueLookupDot || node.flags == Node::Flag::ValueLookupPointer);
+    // });
   }
 };
 
