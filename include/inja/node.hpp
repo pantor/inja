@@ -168,12 +168,29 @@ public:
 class AstNode {
 public:
   virtual void accept(NodeVisitor& v) const = 0;
+
+  size_t pos;
+
+  AstNode(size_t pos) : pos(pos) { }
 };
 
 
 class BlockNode : public AstNode {
 public:
   std::vector<std::shared_ptr<AstNode>> nodes;
+
+  explicit BlockNode() : AstNode(0) {}
+
+  void accept(NodeVisitor& v) const {
+    v.visit(*this);
+  }
+};
+
+class TextNode : public AstNode {
+public:
+  std::string content;
+
+  explicit TextNode(const std::string& content, size_t pos): content(content), AstNode(pos) { }
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);
@@ -182,6 +199,8 @@ public:
 
 class ExpressionNode : public AstNode {
 public:
+  explicit ExpressionNode(size_t pos) : AstNode(pos) {}
+
   void accept(NodeVisitor& v) const {
     v.visit(*this);
   }
@@ -191,7 +210,7 @@ class LiteralNode : public ExpressionNode {
 public:
   json value;
 
-  LiteralNode(const json& value): value(value) { }
+  explicit LiteralNode(const json& value): value(value), ExpressionNode(0) { }
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);
@@ -202,7 +221,7 @@ class JsonNode : public ExpressionNode {
 public:
   std::string json_ptr;
 
-  JsonNode(const std::string& json_ptr): json_ptr(json_ptr) { }
+  explicit JsonNode(const std::string& json_ptr): json_ptr(json_ptr), ExpressionNode(0) { }
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);
@@ -272,7 +291,7 @@ public:
   unsigned int precedence;
   Associativity associativity;
 
-  FunctionNode(Operation operation) : operation(operation) {
+  explicit FunctionNode(Operation operation) : operation(operation), ExpressionNode(0) {
     switch (operation) {
       case Operation::Not: {
         precedence = 2;
@@ -321,7 +340,7 @@ public:
     }
   }
 
-  FunctionNode(nonstd::string_view name) : operation(Operation::Callback), name(name), precedence(1), associativity(Associativity::Left) { }
+  explicit FunctionNode(nonstd::string_view name) : operation(Operation::Callback), name(name), precedence(1), associativity(Associativity::Left), ExpressionNode(0) { }
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);
@@ -332,6 +351,8 @@ class ExpressionListNode : public AstNode {
 public:
   std::vector<std::shared_ptr<ExpressionNode>> rpn_output;
 
+  explicit ExpressionListNode() : AstNode(0) { }
+
   void accept(NodeVisitor& v) const {
     v.visit(*this);
   }
@@ -339,6 +360,8 @@ public:
 
 class StatementNode : public AstNode {
 public:
+  StatementNode(size_t pos) : AstNode(pos) { }
+
   virtual void accept(NodeVisitor& v) const = 0;
 };
 
@@ -348,16 +371,16 @@ public:
   BlockNode body;
   BlockNode *parent;
 
-  void accept(NodeVisitor& v) const {
-    v.visit(*this);
-  }
+  ForStatementNode(size_t pos) : StatementNode(pos) { }
+
+  virtual void accept(NodeVisitor& v) const = 0;
 };
 
 class ForArrayStatementNode : public ForStatementNode {
 public:
   nonstd::string_view value;
 
-  explicit ForArrayStatementNode(nonstd::string_view value) : value(value) { }
+  explicit ForArrayStatementNode(nonstd::string_view value) : value(value), ForStatementNode(0) { }
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);
@@ -369,7 +392,7 @@ public:
   nonstd::string_view key;
   nonstd::string_view value;
 
-  explicit ForObjectStatementNode(nonstd::string_view key, nonstd::string_view value) : key(key), value(value) { }
+  explicit ForObjectStatementNode(nonstd::string_view key, nonstd::string_view value) : key(key), value(value), ForStatementNode(0) { }
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);
@@ -384,6 +407,8 @@ public:
   bool has_false_statement {false};
   BlockNode *parent;
 
+  explicit IfStatementNode() : StatementNode(0) { }
+
   void accept(NodeVisitor& v) const {
     v.visit(*this);
   }
@@ -393,22 +418,11 @@ class IncludeStatementNode : public StatementNode {
 public:
   std::string file;
 
-  IncludeStatementNode(const std::string& file) : file(file) { }
+  explicit IncludeStatementNode(const std::string& file) : file(file), StatementNode(0) { }
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);
   };
-};
-
-class TextNode : public AstNode {
-public:
-  std::string content;
-
-  TextNode(const std::string& content): content(content) { }
-
-  void accept(NodeVisitor& v) const {
-    v.visit(*this);
-  }
 };
 
 
@@ -449,7 +463,7 @@ inline void NodeVisitor::visit(const StatementNode& node) {
 }
 
 inline void NodeVisitor::visit(const ForStatementNode& node) {
-  
+
 }
 
 inline void NodeVisitor::visit(const ForArrayStatementNode& node) {

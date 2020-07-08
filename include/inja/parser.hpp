@@ -4,6 +4,7 @@
 #define INCLUDE_INJA_PARSER_HPP_
 
 #include <limits>
+#include <stack>
 #include <string>
 #include <utility>
 #include <queue>
@@ -119,10 +120,10 @@ public:
       // Literals
       if (tok.kind == Token::Kind::Number) {
         current_expression_list->rpn_output.emplace_back(std::make_shared<LiteralNode>(static_cast<std::string>(tok.text)));
-      
+
       } else if (tok.kind == Token::Kind::String) {
         current_expression_list->rpn_output.emplace_back(std::make_shared<LiteralNode>(static_cast<std::string>(tok.text.substr(1, tok.text.length() - 2))));
-      
+
       } else if (tok.kind == Token::Kind::Id) {
         get_peek_token();
 
@@ -133,7 +134,7 @@ public:
         // Operator
         } else if (tok.text == "and" || tok.text == "or" || tok.text == "in") {
           goto parse_operator;
-        
+
         // Variables
         } else {
           current_expression_list->rpn_output.emplace_back(std::make_shared<JsonNode>(static_cast<std::string>(tok.text)));
@@ -221,7 +222,7 @@ public:
     if (tok.text == static_cast<decltype(tok.text)>("if")) {
 parse_if_statement:
       get_next_token();
-      
+
       auto if_statement_node = std::make_shared<IfStatementNode>();
       current_block->nodes.emplace_back(if_statement_node);
       if_statement_node->parent = current_block;
@@ -242,7 +243,7 @@ parse_if_statement:
 
       current_block = if_statement_data->parent;
       if_statement_stack.pop();
-    
+
     } else if (tok.text == static_cast<decltype(tok.text)>("else")) {
       if (if_statement_stack.empty()) {
         throw_parser_error("else without matching if");
@@ -257,7 +258,7 @@ parse_if_statement:
       if (tok.kind == Token::Kind::Id && tok.text == static_cast<decltype(tok.text)>("if")) {
         goto parse_if_statement;
       }
-    
+
     } else if (tok.text == static_cast<decltype(tok.text)>("for")) {
       get_next_token();
 
@@ -282,7 +283,7 @@ parse_if_statement:
         get_next_token();
 
         for_statement_node = std::make_shared<ForObjectStatementNode>(key_token.text, value_token.text);
-      
+
       // Array type
       } else {
         for_statement_node = std::make_shared<ForArrayStatementNode>(value_token.text);
@@ -302,7 +303,7 @@ parse_if_statement:
       if (!parse_expression(tmpl)) {
         return false;
       }
-    
+
     } else if (tok.text == static_cast<decltype(tok.text)>("endfor")) {
       if (for_statement_stack.empty()) {
         throw_parser_error("endfor without matching for");
@@ -361,7 +362,7 @@ parse_if_statement:
         }
       } return;
       case Token::Kind::Text: {
-        current_block->nodes.emplace_back(std::make_shared<TextNode>(static_cast<std::string>(tok.text)));
+        current_block->nodes.emplace_back(std::make_shared<TextNode>(static_cast<std::string>(tok.text), tok.text.data() - tmpl.content.c_str()));
         break;
       }
       case Token::Kind::StatementOpen: {
@@ -390,7 +391,7 @@ parse_if_statement:
         if (!parse_expression(tmpl)) {
           throw_parser_error("expected expression, got '" + tok.describe() + "'");
         }
-        
+
         if (tok.kind != Token::Kind::ExpressionClose) {
           throw_parser_error("expected expression close, got '" + tok.describe() + "'");
         }

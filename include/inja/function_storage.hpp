@@ -20,7 +20,7 @@ using CallbackFunction = std::function<json(Arguments &args)>;
  */
 class FunctionStorage {
 public:
-  constexpr static int VARIAIDC {-1};
+  const int VARIADIC {-1};
 
   struct FunctionData {
     FunctionNode::Operation operation;
@@ -43,10 +43,10 @@ public:
     auto it = function_storage.find(std::make_pair(static_cast<std::string>(name), num_args));
     if (it != function_storage.end()) {
       return it->second;
-    
+
     // Find variadic function
     } else if (num_args > 0) {
-      it = function_storage.find(std::make_pair(static_cast<std::string>(name), VARIAIDC));
+      it = function_storage.find(std::make_pair(static_cast<std::string>(name), VARIADIC));
       if (it != function_storage.end()) {
         return it->second;
       }

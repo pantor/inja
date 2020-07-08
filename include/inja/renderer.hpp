@@ -35,6 +35,9 @@ inline nonstd::string_view convert_dot_to_json_pointer(nonstd::string_view dot, 
  * \brief Class for rendering a Template with data.
  */
 class Renderer : public NodeVisitor  {
+  using Op = FunctionNode::Operation;
+
+
   std::vector<const json *> &get_args(const Node &node) {
     m_tmp_args.clear();
 
@@ -85,7 +88,7 @@ class Renderer : public NodeVisitor  {
       ptr = ptr_buffer;
       break;
     }
-    
+
     json::json_pointer json_ptr(ptr.data());
     try {
       // first try to evaluate as a loop variable
@@ -93,51 +96,27 @@ class Renderer : public NodeVisitor  {
       if (m_loop_data && m_loop_data->contains(json_ptr)) {
         return &m_loop_data->at(json_ptr);
       }
-      return &m_data->at(json_ptr);
+      return &json_input->at(json_ptr);
     } catch (std::exception &) {
       // try to evaluate as a no-argument callback
-      auto function_data = function_storage.find_function(node.str, 0);
-      if (function_data.operation == FunctionNode::Operation::Callback) {
-        std::vector<const json *> arguments {};
-        m_tmp_val = function_data.callback(arguments);
-        return &m_tmp_val;
-      } 
-
-      throw_renderer_error("variable '" + static_cast<std::string>(node.str) + "' not found", node);
       return nullptr;
     }
   }
 
-  bool truthy(const json &var) const {
-    if (var.empty()) {
+  bool truthy(const json* data) const {
+    if (data->empty()) {
       return false;
-    } else if (var.is_number()) {
-      return (var != 0);
-    } else if (var.is_string()) {
-      return !var.empty();
+    } else if (data->is_number()) {
+      return (*data != 0);
+    } else if (data->is_string()) {
+      return !data->empty();
     }
 
     try {
-      return var.get<bool>();
+      return data->get<bool>();
     } catch (json::type_error &e) {
       throw JsonError(e.what());
     }
-  }
-
-  void update_loop_data() {
-    LoopLevel &level = m_loop_stack.back();
-
-    if (level.loop_type == LoopLevel::Type::Array) {
-      level.data[static_cast<std::string>(level.value_name)] = level.values.at(level.index); // *level.it;
-    } else {
-      level.data[static_cast<std::string>(level.key_name)] = level.map_it->first;
-      level.data[static_cast<std::string>(level.value_name)] = *level.map_it->second;
-    }
-    auto &loop_data = level.data["loop"];
-    loop_data["index"] = level.index;
-    loop_data["index1"] = level.index + 1;
-    loop_data["is_first"] = (level.index == 0);
-    loop_data["is_last"] = (level.index == level.size - 1);
   }
 
   void print_json(const json* value) {
@@ -148,13 +127,12 @@ class Renderer : public NodeVisitor  {
     }
   }
 
-  json render_expression_list(const ExpressionListNode& expression_list) {
-    return json();
-  }
+  const json* eval_expression_list(const ExpressionListNode& expression_list) {
+    for (auto& expression : expression_list.rpn_output) {
+      expression->accept(*this);
+    }
 
-  void throw_renderer_error(const std::string &message, const Node& node) {
-    SourceLocation loc = get_source_location(current_template->content, node.pos);
-    throw RenderError(message, loc);
+    return json_eval_stack.top();
   }
 
   void throw_renderer_error(const std::string &message, const AstNode& node) {
@@ -162,48 +140,33 @@ class Renderer : public NodeVisitor  {
     // throw RenderError(message, loc);
   }
 
-  struct LoopLevel {
-    enum class Type { Map, Array };
 
-    Type loop_type;
-    nonstd::string_view key_name;   // variable name for keys
-    nonstd::string_view value_name; // variable name for values
-    json data;                      // data with loop info added
+  RenderConfig config;
 
-    json values; // values to iterate over
-
-    // loop over list
-    size_t index; // current list index
-    size_t size;  // length of list
-
-    // loop over map
-    using KeyValue = std::pair<nonstd::string_view, json *>;
-    using MapValues = std::vector<KeyValue>;
-    MapValues map_values;       // values to iterate over
-    MapValues::iterator map_it; // iterator over values
-  };
-
+  const Template *current_template;
   const TemplateStorage &template_storage;
   const FunctionStorage &function_storage;
 
-  const Template *current_template;
+  std::stack<json> json_loop_stack;
+  json* loop_ptr;
+  std::stack<json> json_tmp_stack;
+  std::stack<const json*> json_eval_stack;
+
+  const json *json_input;
+  json json_tmp;
+
   std::vector<json> m_stack;
-  std::vector<LoopLevel> m_loop_stack;
   json *m_loop_data;
 
   std::ostream *output_stream;
-  const json *m_data;
-  std::vector<const json *> m_tmp_args;
-  json m_tmp_val;
 
-  RenderConfig config;
+  std::vector<const json *> m_tmp_args;
 
 public:
   Renderer(const RenderConfig& config, const TemplateStorage &included_templates, const FunctionStorage &callbacks)
       : config(config), template_storage(included_templates), function_storage(callbacks) {
     m_stack.reserve(16);
     m_tmp_args.reserve(4);
-    m_loop_stack.reserve(16);
   }
 
   void visit(const BlockNode& node) {
@@ -217,70 +180,101 @@ public:
   }
 
   void visit(const LiteralNode& node) {
-    print_json(&node.value);
+    json_eval_stack.push(&node.value);
   }
 
   void visit(const JsonNode& node) {
     std::string ptr_buffer;
     nonstd::string_view ptr = convert_dot_to_json_pointer(node.json_ptr, ptr_buffer);
-    
-    json::json_pointer json_ptr(ptr.data());
+    json::json_pointer qwer(ptr.data());
+
     try {
       // first try to evaluate as a loop variable
       // Using contains() is faster than unsucessful at() and throwing an exception
-      // if (m_loop_data && m_loop_data->contains(json_ptr)) {
-      //   return &m_loop_data->at(json_ptr);
+      // if (m_loop_data && m_loop_data->contains(qwer)) {
+      //   return &m_loop_data->at(qwer);
       // }
-      print_json(&m_data->at(json_ptr));
-    
+
+      json_eval_stack.push(&json_input->at(qwer));
+
     } catch (std::exception &) {
       // try to evaluate as a no-argument callback
-      // auto function_data = function_storage.find_function(node.json_ptr, 0);
-      // if (function_data.operation == FunctionNode::Operation::Callback) {
-      //   std::vector<const json *> arguments {};
-      //   auto m_tmp_val = function_data.callback(arguments);
-      //   print_json(&m_tmp_val);
-      // }
+      auto function_data = function_storage.find_function(node.json_ptr, 0);
+      if (function_data.operation == FunctionNode::Operation::Callback) {
+        std::vector<const json *> empty_args {};
+        auto value = function_data.callback(empty_args);
+
+        // json_tmp_stack.push(value);
+        json_eval_stack.push(&value);
+      }
 
       throw_renderer_error("variable '" + static_cast<std::string>(node.json_ptr) + "' not found", node);
     }
   }
 
-  void visit(const ExpressionListNode& node) {
-    if (node.rpn_output.size() == 1) {
-      node.rpn_output.front()->accept(*this);
-
-    // Render RPN Expression
-    } else {
-      auto result = render_expression_list(node);
-      print_json(&result);
+  void visit(const FunctionNode& node) {
+    switch (node.operation) {
+    case Op::Not: {
+      // bool result = !truthy(*get_args(node)[0]);
+      // pop_args(node);
+      // json_eval_stack.push(result);
+    } break;
     }
+  }
+
+  void visit(const ExpressionListNode& node) {
+    print_json(eval_expression_list(node));
   }
 
   void visit(const ForArrayStatementNode& node) {
-    auto result = render_expression_list(node.condition);
-    if (!result.is_array()) {
+    auto result = eval_expression_list(node.condition);
+    if (!result->is_array()) {
       throw_renderer_error("object must be an array", node);
     }
 
-    for (auto &c : result) {
+    json_loop_stack.emplace();
+    json* loop_data = &json_loop_stack.top()["loop"];
 
+    for (auto it = result->begin(); it != result->end(); ++it) {
+      int index = std::distance(result->begin(), it);
+      json_loop_stack.top()[static_cast<std::string>(node.value)] = *it;
+      (*loop_data)["index"] = index;
+      (*loop_data)["index1"] = index + 1;
+      (*loop_data)["is_first"] = (index == 0);
+      (*loop_data)["is_last"] = (index == result->size() - 1);
+
+      node.body.accept(*this);
     }
+
+    json_loop_stack.pop();
   }
 
   void visit(const ForObjectStatementNode& node) {
-    auto result = render_expression_list(node.condition);
-    if (!result.is_object()) {
+    auto result = eval_expression_list(node.condition);
+    if (!result->is_object()) {
       throw_renderer_error("object must be an object", node);
     }
 
-    for (auto &c : result) {
+    json_loop_stack.emplace();
+    json* loop_data = &json_loop_stack.top()["loop"];
 
+    for (auto it = result->begin(); it != result->end(); ++it) {
+      int index = std::distance(result->begin(), it);
+      // json_loop_stack.top()[static_cast<std::string>(node.key)] = it->first;
+      // json_loop_stack.top()[static_cast<std::string>(node.value)] = it->second;
+      (*loop_data)["index"] = index;
+      (*loop_data)["index1"] = index + 1;
+      (*loop_data)["is_first"] = (index == 0);
+      (*loop_data)["is_last"] = (index == result->size() - 1);
+
+      node.body.accept(*this);
     }
+
+    json_loop_stack.pop();
   }
 
   void visit(const IfStatementNode& node) {
-    auto result = render_expression_list(node.condition);
+    auto result = eval_expression_list(node.condition);
     if (truthy(result)) {
       node.true_statement.accept(*this);
     } else if (node.has_false_statement) {
@@ -292,7 +286,7 @@ public:
     auto sub_renderer = Renderer(config, template_storage, function_storage);
     auto included_template_it = template_storage.find(node.file);
     if (included_template_it != template_storage.end()) {
-      sub_renderer.render_to(*output_stream, included_template_it->second, *m_data, m_loop_data);
+      sub_renderer.render_to(*output_stream, included_template_it->second, *json_input, m_loop_data);
     } else if (config.throw_at_missing_includes) {
       throw_renderer_error("include '" + node.file + "' not found", node);
     }
@@ -301,7 +295,7 @@ public:
   void render_to(std::ostream &os, const Template &tmpl, const json &data, json *loop_data = nullptr) {
     output_stream = &os;
     current_template = &tmpl;
-    m_data = &data;
+    json_input = &data;
 
     current_template->root.accept(*this);
 
@@ -591,7 +585,7 @@ public:
         auto include_name = get_imm(node)->get_ref<const std::string &>();
         auto included_template_it = template_storage.find(include_name);
         if (included_template_it != template_storage.end()) {
-          sub_renderer.render_to(os, included_template_it->second, *m_data, m_loop_data);
+          sub_renderer.render_to(os, included_template_it->second, *json_input, m_loop_data);
         } else if (config.throw_at_missing_includes) {
           throw_renderer_error("include '" + include_name + "' not found", node);
         }
