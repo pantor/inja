@@ -12,8 +12,6 @@
 
 namespace inja {
 
-using json = nlohmann::json;
-
 class NodeVisitor;
 class BlockNode;
 class TextNode;
@@ -91,9 +89,9 @@ public:
 
 class LiteralNode : public ExpressionNode {
 public:
-  json value;
+  nlohmann::json value;
 
-  explicit LiteralNode(const json& value): value(value), ExpressionNode(0) { }
+  explicit LiteralNode(const nlohmann::json& value, size_t pos): value(value), ExpressionNode(pos) { }
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);
@@ -104,7 +102,7 @@ class JsonNode : public ExpressionNode {
 public:
   std::string json_ptr;
 
-  explicit JsonNode(const std::string& json_ptr): json_ptr(json_ptr), ExpressionNode(0) { }
+  explicit JsonNode(const std::string& json_ptr, size_t pos): json_ptr(json_ptr), ExpressionNode(pos) { }
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);
@@ -174,8 +172,8 @@ public:
   
   unsigned int number_args;
 
-  explicit FunctionNode(nonstd::string_view name) : operation(Operation::Callback), name(name), precedence(1), associativity(Associativity::Left), number_args(1), ExpressionNode(0) { }
-  explicit FunctionNode(Operation operation) : operation(operation), number_args(1), ExpressionNode(0) {
+  explicit FunctionNode(nonstd::string_view name, size_t pos) : operation(Operation::Callback), name(name), precedence(1), associativity(Associativity::Left), number_args(1), ExpressionNode(pos) { }
+  explicit FunctionNode(Operation operation, size_t pos) : operation(operation), number_args(1), ExpressionNode(pos) {
     switch (operation) {
       case Operation::Not: {
         precedence = 2;
@@ -234,6 +232,7 @@ public:
   std::vector<std::shared_ptr<ExpressionNode>> rpn_output;
 
   explicit ExpressionListNode() : AstNode(0) { }
+  explicit ExpressionListNode(size_t pos) : AstNode(pos) { }
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);
@@ -262,7 +261,7 @@ class ForArrayStatementNode : public ForStatementNode {
 public:
   nonstd::string_view value;
 
-  explicit ForArrayStatementNode(nonstd::string_view value) : value(value), ForStatementNode(0) { }
+  explicit ForArrayStatementNode(nonstd::string_view value, size_t pos) : value(value), ForStatementNode(pos) { }
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);
@@ -274,7 +273,7 @@ public:
   nonstd::string_view key;
   nonstd::string_view value;
 
-  explicit ForObjectStatementNode(nonstd::string_view key, nonstd::string_view value) : key(key), value(value), ForStatementNode(0) { }
+  explicit ForObjectStatementNode(nonstd::string_view key, nonstd::string_view value, size_t pos) : key(key), value(value), ForStatementNode(pos) { }
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);
@@ -289,7 +288,7 @@ public:
   bool has_false_statement {false};
   BlockNode *parent;
 
-  explicit IfStatementNode() : StatementNode(0) { }
+  explicit IfStatementNode(size_t pos) : StatementNode(pos) { }
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);
@@ -300,7 +299,7 @@ class IncludeStatementNode : public StatementNode {
 public:
   std::string file;
 
-  explicit IncludeStatementNode(const std::string& file) : file(file), StatementNode(0) { }
+  explicit IncludeStatementNode(const std::string& file, size_t pos) : file(file), StatementNode(pos) { }
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);

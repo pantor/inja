@@ -122,10 +122,10 @@ public:
     while (tok.kind != Token::Kind::ExpressionClose && tok.kind != Token::Kind::StatementClose) {
       // Literals
       if (tok.kind == Token::Kind::Number) {
-        current_expression_list->rpn_output.emplace_back(std::make_shared<LiteralNode>(static_cast<std::string>(tok.text)));
+        current_expression_list->rpn_output.emplace_back(std::make_shared<LiteralNode>(static_cast<std::string>(tok.text), tok.text.data() - tmpl.content.c_str()));
 
       } else if (tok.kind == Token::Kind::String) {
-        current_expression_list->rpn_output.emplace_back(std::make_shared<LiteralNode>(static_cast<std::string>(tok.text.substr(1, tok.text.length() - 2))));
+        current_expression_list->rpn_output.emplace_back(std::make_shared<LiteralNode>(static_cast<std::string>(tok.text.substr(1, tok.text.length() - 2)), tok.text.data() - tmpl.content.c_str()));
 
       } else if (tok.kind == Token::Kind::Id) {
         get_peek_token();
@@ -133,7 +133,7 @@ public:
         // Functions
         if (peek_tok.kind == Token::Kind::LeftParen) {
           auto name = static_cast<std::string>(tok.text);
-          operator_stack.emplace(std::make_shared<FunctionNode>(static_cast<std::string>(tok.text)));
+          operator_stack.emplace(std::make_shared<FunctionNode>(static_cast<std::string>(tok.text), tok.text.data() - tmpl.content.c_str()));
           function_stack.emplace(operator_stack.top().get());
           function_paren_level.emplace(current_paren_level);
 
@@ -143,7 +143,7 @@ public:
 
         // Variables
         } else {
-          current_expression_list->rpn_output.emplace_back(std::make_shared<JsonNode>(static_cast<std::string>(tok.text)));
+          current_expression_list->rpn_output.emplace_back(std::make_shared<JsonNode>(static_cast<std::string>(tok.text), tok.text.data() - tmpl.content.c_str()));
         }
 
       // Operators
@@ -190,7 +190,7 @@ public:
           throw_parser_error("unknown operator in parser.");
         }
         }
-        auto function_node = std::make_shared<FunctionNode>(operation);
+        auto function_node = std::make_shared<FunctionNode>(operation, tok.text.data() - tmpl.content.c_str());
 
         while (!operator_stack.empty() && ((operator_stack.top()->precedence > function_node->precedence) || (operator_stack.top()->precedence == function_node->precedence && function_node->associativity == FunctionNode::Associativity::Left)) && (operator_stack.top()->operation != FunctionNode::Operation::ParenLeft)) {
           current_expression_list->rpn_output.emplace_back(operator_stack.top());
@@ -206,7 +206,7 @@ public:
       // Parens
       } else if (tok.kind == Token::Kind::LeftParen) {
         current_paren_level += 1;
-        operator_stack.emplace(std::make_shared<FunctionNode>(FunctionNode::Operation::ParenLeft));
+        operator_stack.emplace(std::make_shared<FunctionNode>(FunctionNode::Operation::ParenLeft, tok.text.data() - tmpl.content.c_str()));
 
       } else if (tok.kind == Token::Kind::RightParen) {
         current_paren_level -= 1;
@@ -252,7 +252,7 @@ public:
 parse_if_statement:
       get_next_token();
 
-      auto if_statement_node = std::make_shared<IfStatementNode>();
+      auto if_statement_node = std::make_shared<IfStatementNode>(tok.text.data() - tmpl.content.c_str());
       current_block->nodes.emplace_back(if_statement_node);
       if_statement_node->parent = current_block;
       if_statement_stack.emplace(if_statement_node.get());
@@ -311,11 +311,11 @@ parse_if_statement:
         value_token = tok;
         get_next_token();
 
-        for_statement_node = std::make_shared<ForObjectStatementNode>(key_token.text, value_token.text);
+        for_statement_node = std::make_shared<ForObjectStatementNode>(key_token.text, value_token.text, tok.text.data() - tmpl.content.c_str());
 
       // Array type
       } else {
-        for_statement_node = std::make_shared<ForArrayStatementNode>(value_token.text);
+        for_statement_node = std::make_shared<ForArrayStatementNode>(value_token.text, tok.text.data() - tmpl.content.c_str());
       }
 
       current_block->nodes.emplace_back(for_statement_node);
@@ -366,7 +366,7 @@ parse_if_statement:
         parse_into_template(template_storage.at(pathname), pathname);
       }
 
-      current_block->nodes.emplace_back(std::make_shared<IncludeStatementNode>(pathname));
+      current_block->nodes.emplace_back(std::make_shared<IncludeStatementNode>(pathname, tok.text.data() - tmpl.content.c_str()));
 
       get_next_token();
     } else {
@@ -413,7 +413,7 @@ parse_if_statement:
       case Token::Kind::ExpressionOpen: {
         get_next_token();
 
-        auto expression_list_node = std::make_shared<ExpressionListNode>();
+        auto expression_list_node = std::make_shared<ExpressionListNode>(tok.text.data() - tmpl.content.c_str());
         current_block->nodes.emplace_back(expression_list_node);
         current_expression_list = expression_list_node.get();
 

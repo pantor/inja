@@ -6,10 +6,9 @@
 using json = nlohmann::json;
 
 TEST_CASE("dot-to-pointer") {
-  std::string buffer;
-  CHECK(inja::convert_dot_to_json_pointer("test", buffer) == "/test");
-  CHECK(inja::convert_dot_to_json_pointer("guests.2", buffer) == "/guests/2");
-  CHECK(inja::convert_dot_to_json_pointer("person.names.surname", buffer) == "/person/names/surname");
+  CHECK(inja::convert_dot_to_json_pointer("test") == json::json_pointer("/test"));
+  CHECK(inja::convert_dot_to_json_pointer("guests.2") == json::json_pointer("/guests/2"));
+  CHECK(inja::convert_dot_to_json_pointer("person.names.surname") == json::json_pointer("/person/names/surname"));
 }
 
 TEST_CASE("types") {
