@@ -132,7 +132,7 @@ public:
           operator_stack.emplace(std::make_shared<FunctionNode>(static_cast<std::string>(tok.text)));
 
         // Operator
-        } else if (tok.text == "and" || tok.text == "or" || tok.text == "in") {
+        } else if (tok.text == "and" || tok.text == "or" || tok.text == "in" || tok.text == "not") {
           goto parse_operator;
 
         // Variables
@@ -153,6 +153,8 @@ public:
               operation = FunctionNode::Operation::Or;
             } else if (tok.text == "in") {
               operation = FunctionNode::Operation::In;
+            } else if (tok.text == "not") {
+              operation = FunctionNode::Operation::Not;
             } else {
               throw_parser_error("unknown operator in parser.");
             }

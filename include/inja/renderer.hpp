@@ -19,15 +19,17 @@
 
 namespace inja {
 
-inline nonstd::string_view convert_dot_to_json_pointer(nonstd::string_view dot, std::string &out) {
-  out.clear();
+inline json::json_pointer convert_dot_to_json_pointer(nonstd::string_view dot) {
+  std::string out;
   do {
     nonstd::string_view part;
     std::tie(part, dot) = string_view::split(dot, '.');
     out.push_back('/');
     out.append(part.begin(), part.end());
   } while (!dot.empty());
-  return nonstd::string_view(out.data(), out.size());
+
+  return json::json_pointer(out);
+  // return nonstd::string_view(out.data(), out.size());
 }
 
 
@@ -36,72 +38,6 @@ inline nonstd::string_view convert_dot_to_json_pointer(nonstd::string_view dot, 
  */
 class Renderer : public NodeVisitor  {
   using Op = FunctionNode::Operation;
-
-
-  std::vector<const json *> &get_args(const Node &node) {
-    m_tmp_args.clear();
-
-    bool has_imm = ((node.flags & Node::Flag::ValueMask) != Node::Flag::ValuePop);
-
-    // get args from stack
-    unsigned int pop_args = node.args;
-    if (has_imm) {
-      pop_args -= 1;
-    }
-
-    for (auto i = std::prev(m_stack.end(), pop_args); i != m_stack.end(); i++) {
-      m_tmp_args.push_back(&(*i));
-    }
-
-    // get immediate arg
-    if (has_imm) {
-      m_tmp_args.push_back(get_imm(node));
-    }
-
-    return m_tmp_args;
-  }
-
-  void pop_args(const Node &node) {
-    unsigned int pop_args = node.args;
-    if ((node.flags & Node::Flag::ValueMask) != Node::Flag::ValuePop) {
-      pop_args -= 1;
-    }
-    for (unsigned int i = 0; i < pop_args; ++i) {
-      m_stack.pop_back();
-    }
-  }
-
-  const json *get_imm(const Node &node) {
-    std::string ptr_buffer;
-    nonstd::string_view ptr;
-    switch (node.flags & Node::Flag::ValueMask) {
-    case Node::Flag::ValuePop:
-      return nullptr;
-    case Node::Flag::ValueImmediate:
-      return &node.value;
-    case Node::Flag::ValueLookupDot:
-      ptr = convert_dot_to_json_pointer(node.str, ptr_buffer);
-      break;
-    case Node::Flag::ValueLookupPointer:
-      ptr_buffer += '/';
-      ptr_buffer += node.str;
-      ptr = ptr_buffer;
-      break;
-    }
-
-    json::json_pointer json_ptr(ptr.data());
-    try {
-      // first try to evaluate as a loop variable
-      // Using contains() is faster than unsucessful at() and throwing an exception
-      if (m_loop_data && m_loop_data->contains(json_ptr)) {
-        return &m_loop_data->at(json_ptr);
-      }
-      return &json_input->at(json_ptr);
-    } catch (std::exception &) {
-      // try to evaluate as a no-argument callback
-      return nullptr;
-    }
-  }
 
   bool truthy(const json* data) const {
     if (data->empty()) {
@@ -128,46 +64,51 @@ class Renderer : public NodeVisitor  {
   }
 
   const json* eval_expression_list(const ExpressionListNode& expression_list) {
-    for (auto& expression : expression_list.rpn_output) {
-      expression->accept(*this);
+    std::cout << "size: " << expression_list.rpn_output.size() << std::endl;
+    for (auto it = expression_list.rpn_output.rbegin(); it != expression_list.rpn_output.rend(); it += 1) {
+      (*it)->accept(*this);
     }
 
-    return json_eval_stack.top();
+    auto result = json_eval_stack.top();
+    json_eval_stack.pop();
+    return result;
   }
 
   void throw_renderer_error(const std::string &message, const AstNode& node) {
-    // SourceLocation loc = get_source_location(current_template->content, node.pos);
-    // throw RenderError(message, loc);
+    SourceLocation loc = get_source_location(current_template->content, node.pos);
+    throw RenderError(message, loc);
   }
 
+  template<size_t N>
+  std::array<const json*, N> get_arguments(const AstNode& node) {
+    if (json_eval_stack.size() < N) {
+      throw_renderer_error("variable not found", node);
+    }
 
-  RenderConfig config;
+    std::array<const json*, N> result;
+    for (int i = 0; i < N; i += 1) {
+      result[i] = json_eval_stack.top();
+      json_eval_stack.pop();
+    }
+    return result;
+  }
 
+  const RenderConfig config;
   const Template *current_template;
   const TemplateStorage &template_storage;
   const FunctionStorage &function_storage;
 
-  std::stack<json> json_loop_stack;
+  const json *json_input;
   json* loop_ptr;
+  std::stack<json> json_loop_stack;
   std::stack<json> json_tmp_stack;
   std::stack<const json*> json_eval_stack;
 
-  const json *json_input;
-  json json_tmp;
-
-  std::vector<json> m_stack;
-  json *m_loop_data;
-
   std::ostream *output_stream;
-
-  std::vector<const json *> m_tmp_args;
 
 public:
   Renderer(const RenderConfig& config, const TemplateStorage &included_templates, const FunctionStorage &callbacks)
-      : config(config), template_storage(included_templates), function_storage(callbacks) {
-    m_stack.reserve(16);
-    m_tmp_args.reserve(4);
-  }
+      : config(config), template_storage(included_templates), function_storage(callbacks) { }
 
   void visit(const BlockNode& node) {
     for (auto& n : node.nodes) {
@@ -184,28 +125,25 @@ public:
   }
 
   void visit(const JsonNode& node) {
-    std::string ptr_buffer;
-    nonstd::string_view ptr = convert_dot_to_json_pointer(node.json_ptr, ptr_buffer);
-    json::json_pointer qwer(ptr.data());
+    json::json_pointer qwer = convert_dot_to_json_pointer(node.json_ptr);
 
     try {
       // first try to evaluate as a loop variable
       // Using contains() is faster than unsucessful at() and throwing an exception
-      // if (m_loop_data && m_loop_data->contains(qwer)) {
-      //   return &m_loop_data->at(qwer);
+      // if (loop_ptr && loop_ptr->contains(qwer)) {
+      //   return &loop_ptr->at(qwer);
       // }
 
       json_eval_stack.push(&json_input->at(qwer));
 
     } catch (std::exception &) {
-      // try to evaluate as a no-argument callback
+      // Try to evaluate as a no-argument callback
       auto function_data = function_storage.find_function(node.json_ptr, 0);
       if (function_data.operation == FunctionNode::Operation::Callback) {
         std::vector<const json *> empty_args {};
         auto value = function_data.callback(empty_args);
-
-        // json_tmp_stack.push(value);
-        json_eval_stack.push(&value);
+        json_tmp_stack.push(value);
+        json_eval_stack.push(&json_tmp_stack.top());
       }
 
       throw_renderer_error("variable '" + static_cast<std::string>(node.json_ptr) + "' not found", node);
@@ -215,9 +153,40 @@ public:
   void visit(const FunctionNode& node) {
     switch (node.operation) {
     case Op::Not: {
-      // bool result = !truthy(*get_args(node)[0]);
-      // pop_args(node);
-      // json_eval_stack.push(result);
+      auto args = get_arguments<1>(node);
+      bool result = !truthy(args[0]);
+      json_tmp_stack.push(result);
+      json_eval_stack.push(&json_tmp_stack.top());
+    } break;
+    case Op::And: {
+      auto args = get_arguments<2>(node);
+      bool result = truthy(args[0]) && truthy(args[1]);
+      json_tmp_stack.push(result);
+      json_eval_stack.push(&json_tmp_stack.top());
+    } break;
+    case Op::Or: {
+      auto args = get_arguments<2>(node);
+      bool result = truthy(args[0]) || truthy(args[1]);
+      json_tmp_stack.push(result);
+      json_eval_stack.push(&json_tmp_stack.top());
+    } break;
+    case Op::In: {
+      auto args = get_arguments<2>(node);
+      bool result = std::find(args[1]->begin(), args[1]->end(), *args[0]) != args[1]->end();
+      json_tmp_stack.push(result);
+      json_eval_stack.push(&json_tmp_stack.top());
+    } break;
+    case Op::Equal: {
+      auto args = get_arguments<2>(node);
+      bool result = (*args[0] == *args[1]);
+      json_tmp_stack.push(result);
+      json_eval_stack.push(&json_tmp_stack.top());
+    } break;
+    case Op::NotEqual: {
+      auto args = get_arguments<2>(node);
+      bool result = (*args[0] != *args[1]);
+      json_tmp_stack.push(result);
+      json_eval_stack.push(&json_tmp_stack.top());
     } break;
     }
   }
@@ -285,8 +254,9 @@ public:
   void visit(const IncludeStatementNode& node) {
     auto sub_renderer = Renderer(config, template_storage, function_storage);
     auto included_template_it = template_storage.find(node.file);
+    
     if (included_template_it != template_storage.end()) {
-      sub_renderer.render_to(*output_stream, included_template_it->second, *json_input, m_loop_data);
+      sub_renderer.render_to(*output_stream, included_template_it->second, *json_input, loop_ptr);
     } else if (config.throw_at_missing_includes) {
       throw_renderer_error("include '" + node.file + "' not found", node);
     }
@@ -585,7 +555,7 @@ public:
         auto include_name = get_imm(node)->get_ref<const std::string &>();
         auto included_template_it = template_storage.find(include_name);
         if (included_template_it != template_storage.end()) {
-          sub_renderer.render_to(os, included_template_it->second, *json_input, m_loop_data);
+          sub_renderer.render_to(os, included_template_it->second, *json_input, loop_ptr);
         } else if (config.throw_at_missing_includes) {
           throw_renderer_error("include '" + include_name + "' not found", node);
         }
@@ -625,8 +595,8 @@ public:
         LoopLevel &level = m_loop_stack.back();
         level.value_name = node.str;
         level.values = std::move(m_stack.back());
-        if (m_loop_data) {
-          level.data = *m_loop_data;
+        if (loop_ptr) {
+          level.data = *loop_ptr;
         }
         level.index = 0;
         m_stack.pop_back();
@@ -669,7 +639,7 @@ public:
         }
 
         // set "current" loop data to this level
-        m_loop_data = &level.data;
+        loop_ptr = &level.data;
         update_loop_data();
         break;
       }
@@ -692,9 +662,9 @@ public:
           m_loop_stack.pop_back();
           // set "current" data to outer loop data or main data as appropriate
           if (!m_loop_stack.empty()) {
-            m_loop_data = &m_loop_stack.back().data;
+            loop_ptr = &m_loop_stack.back().data;
           } else {
-            m_loop_data = loop_data;
+            loop_ptr = loop_data;
           }
           break;
         }
