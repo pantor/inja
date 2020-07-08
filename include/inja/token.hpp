@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Pantor. All rights reserved.
+// Copyright (c) 2020 Pantor. All rights reserved.
 
 #ifndef INCLUDE_INJA_TOKEN_HPP_
 #define INCLUDE_INJA_TOKEN_HPP_
@@ -28,6 +28,10 @@ struct Token {
     String,             // "this"
     Plus,               // +
     Minus,              // -
+    Times,              // *
+    Slash,              // /
+    Percent,            // %
+    Power,              // ^
     Comma,              // ,
     Colon,              // :
     LeftParen,          // (

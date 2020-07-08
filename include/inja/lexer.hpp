@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Pantor. All rights reserved.
+// Copyright (c) 2020 Pantor. All rights reserved.
 
 #ifndef INCLUDE_INJA_LEXER_HPP_
 #define INCLUDE_INJA_LEXER_HPP_
@@ -81,10 +81,18 @@ class Lexer {
     }
 
     switch (ch) {
-    // case '+':
-    //   return make_token(Token::Kind::Plus);
+    case '+':
+      return make_token(Token::Kind::Plus);
     // case '-':
     //   return make_token(Token::Kind::Minus);
+    case '*':
+      return make_token(Token::Kind::Times);
+    case '/':
+      return make_token(Token::Kind::Slash);
+    case '^':
+      return make_token(Token::Kind::Power);
+    case '%':
+      return make_token(Token::Kind::Percent);
     case ',':
       return make_token(Token::Kind::Comma);
     case ':':

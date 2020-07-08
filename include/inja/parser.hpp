@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Pantor. All rights reserved.
+// Copyright (c) 2020 Pantor. All rights reserved.
 
 #ifndef INCLUDE_INJA_PARSER_HPP_
 #define INCLUDE_INJA_PARSER_HPP_
@@ -81,8 +81,11 @@ class Parser {
   Token tok, peek_tok;
   bool have_peek_tok {false};
 
+  unsigned int current_paren_level {0};
   BlockNode *current_block {nullptr};
   ExpressionListNode *current_expression_list {nullptr};
+  std::stack<FunctionNode*> function_stack;
+  std::stack<unsigned int> function_paren_level;
   std::stack<std::shared_ptr<FunctionNode>> operator_stack;
 
   std::stack<IfStatementNode*> if_statement_stack;
@@ -129,7 +132,10 @@ public:
 
         // Functions
         if (peek_tok.kind == Token::Kind::LeftParen) {
+          auto name = static_cast<std::string>(tok.text);
           operator_stack.emplace(std::make_shared<FunctionNode>(static_cast<std::string>(tok.text)));
+          function_stack.emplace(operator_stack.top().get());
+          function_paren_level.emplace(current_paren_level);
 
         // Operator
         } else if (tok.text == "and" || tok.text == "or" || tok.text == "in" || tok.text == "not") {
@@ -141,45 +147,48 @@ public:
         }
 
       // Operators
-      } else if (tok.kind == Token::Kind::Equal || tok.kind == Token::Kind::NotEqual || tok.kind == Token::Kind::GreaterThan || tok.kind == Token::Kind::GreaterEqual || tok.kind == Token::Kind::LessThan || tok.kind == Token::Kind::LessEqual) {
+      } else if (tok.kind == Token::Kind::Equal || tok.kind == Token::Kind::NotEqual || tok.kind == Token::Kind::GreaterThan || tok.kind == Token::Kind::GreaterEqual || tok.kind == Token::Kind::LessThan || tok.kind == Token::Kind::LessEqual || tok.kind == Token::Kind::Plus) {
 
   parse_operator:
         FunctionNode::Operation operation;
         switch (tok.kind) {
-          case Token::Kind::Id: {
-            if (tok.text == "and") {
-              operation = FunctionNode::Operation::And;
-            } else if (tok.text == "or") {
-              operation = FunctionNode::Operation::Or;
-            } else if (tok.text == "in") {
-              operation = FunctionNode::Operation::In;
-            } else if (tok.text == "not") {
-              operation = FunctionNode::Operation::Not;
-            } else {
-              throw_parser_error("unknown operator in parser.");
-            }
-          } break;
-          case Token::Kind::Equal: {
-            operation = FunctionNode::Operation::Equal;
-          } break;
-          case Token::Kind::NotEqual: {
-            operation = FunctionNode::Operation::NotEqual;
-          } break;
-          case Token::Kind::GreaterThan: {
-            operation = FunctionNode::Operation::Greater;
-          } break;
-          case Token::Kind::GreaterEqual: {
-            operation = FunctionNode::Operation::GreaterEqual;
-          } break;
-          case Token::Kind::LessThan: {
-            operation = FunctionNode::Operation::Less;
-          } break;
-          case Token::Kind::LessEqual: {
-            operation = FunctionNode::Operation::LessEqual;
-          } break;
-          default: {
+        case Token::Kind::Id: {
+          if (tok.text == "and") {
+            operation = FunctionNode::Operation::And;
+          } else if (tok.text == "or") {
+            operation = FunctionNode::Operation::Or;
+          } else if (tok.text == "in") {
+            operation = FunctionNode::Operation::In;
+          } else if (tok.text == "not") {
+            operation = FunctionNode::Operation::Not;
+          } else {
             throw_parser_error("unknown operator in parser.");
           }
+        } break;
+        case Token::Kind::Equal: {
+          operation = FunctionNode::Operation::Equal;
+        } break;
+        case Token::Kind::NotEqual: {
+          operation = FunctionNode::Operation::NotEqual;
+        } break;
+        case Token::Kind::GreaterThan: {
+          operation = FunctionNode::Operation::Greater;
+        } break;
+        case Token::Kind::GreaterEqual: {
+          operation = FunctionNode::Operation::GreaterEqual;
+        } break;
+        case Token::Kind::LessThan: {
+          operation = FunctionNode::Operation::Less;
+        } break;
+        case Token::Kind::LessEqual: {
+          operation = FunctionNode::Operation::LessEqual;
+        } break;
+        case Token::Kind::Plus: {
+          operation = FunctionNode::Operation::Add;
+        } break;
+        default: {
+          throw_parser_error("unknown operator in parser.");
+        }
         }
         auto function_node = std::make_shared<FunctionNode>(operation);
 
@@ -188,13 +197,19 @@ public:
           operator_stack.pop();
         }
 
-        current_expression_list->rpn_output.emplace_back(function_node);
+        operator_stack.emplace(function_node);
+
+      // Colon
+      } else if (tok.kind == Token::Kind::Colon) {
+        function_stack.top()->number_args += 1;
 
       // Parens
       } else if (tok.kind == Token::Kind::LeftParen) {
+        current_paren_level += 1;
         operator_stack.emplace(std::make_shared<FunctionNode>(FunctionNode::Operation::ParenLeft));
 
       } else if (tok.kind == Token::Kind::RightParen) {
+        current_paren_level -= 1;
         while (operator_stack.top()->operation != FunctionNode::Operation::ParenLeft) {
           current_expression_list->rpn_output.emplace_back(operator_stack.top());
           operator_stack.pop();
@@ -202,6 +217,18 @@ public:
 
         if (operator_stack.top()->operation == FunctionNode::Operation::ParenLeft) {
           operator_stack.pop();
+        }
+
+        if (function_paren_level.top() == current_paren_level) {
+          auto func = function_stack.top();
+          auto funcion_data = parser_static.function_storage.find_function(func->name, func->number_args);
+          if (funcion_data.operation == FunctionNode::Operation::None) {
+            throw_parser_error("unknown function " + func->name);
+          }
+          func->operation = funcion_data.operation;
+
+          function_paren_level.pop();
+          function_stack.pop();
         }
       }
 
