@@ -20,16 +20,15 @@
 namespace inja {
 
 inline json::json_pointer convert_dot_to_json_pointer(nonstd::string_view dot) {
-  std::string out;
+  std::string result;
   do {
     nonstd::string_view part;
     std::tie(part, dot) = string_view::split(dot, '.');
-    out.push_back('/');
-    out.append(part.begin(), part.end());
+    result.push_back('/');
+    result.append(part.begin(), part.end());
   } while (!dot.empty());
 
-  return json::json_pointer(out);
-  // return nonstd::string_view(out.data(), out.size());
+  return json::json_pointer(result);
 }
 
 
@@ -92,14 +91,22 @@ class Renderer : public NodeVisitor  {
     return result;
   }
 
+  Arguments get_argument_vector(unsigned int N, const AstNode& node) {
+    Arguments result;
+    for (int i = 0; i < N; i += 1) {
+      result.push_back(json_eval_stack.top());
+      json_eval_stack.pop();
+    }
+    return result;
+  }
+
   const RenderConfig config;
   const Template *current_template;
   const TemplateStorage &template_storage;
   const FunctionStorage &function_storage;
 
   const json *json_input;
-  json* loop_ptr;
-  std::stack<json> json_loop_stack;
+  json json_loop_data;
   std::stack<json> json_tmp_stack;
   std::stack<const json*> json_eval_stack;
 
@@ -124,16 +131,15 @@ public:
   }
 
   void visit(const JsonNode& node) {
-    json::json_pointer qwer = convert_dot_to_json_pointer(node.json_ptr);
+    json::json_pointer ptr = convert_dot_to_json_pointer(node.json_ptr);
 
     try {
-      // first try to evaluate as a loop variable
-      // Using contains() is faster than unsucessful at() and throwing an exception
-      // if (loop_ptr && loop_ptr->contains(qwer)) {
-      //   return &loop_ptr->at(qwer);
-      // }
-
-      json_eval_stack.push(&json_input->at(qwer));
+      // First try to evaluate as a loop variable
+      if (json_loop_data.contains(ptr)) {
+        json_eval_stack.push(&json_loop_data.at(ptr));
+      } else {
+        json_eval_stack.push(&json_input->at(ptr));
+      }
 
     } catch (std::exception &) {
       // Try to evaluate as a no-argument callback
@@ -257,16 +263,15 @@ public:
       json_eval_stack.push(&json_tmp_stack.top());
     } break;
     case Op::Default: {
-      // default needs to be a bit "magic"; we can't evaluate the first
-      // argument during the push operation, so we swap the arguments during
-      // the parse phase so the second argument is pushed on the stack and
-      // the first argument is in the immediate
+      // TODO: Default function
+      auto args = get_arguments<2>(node);
+
       // try {
-      //   const json *imm = get_imm(node);
-      //   // if no exception was raised, replace the stack value with it
-      //   m_stack.back() = *imm;
+      //   json_tmp_stack.push(args[0]);
+      //   json_eval_stack.push(&json_tmp_stack.top());
       // } catch (std::exception &) {
-      //   // couldn't read immediate, just leave the stack as is
+      //   json_tmp_stack.push(args[1]);
+      //   json_eval_stack.push(&json_tmp_stack.top());
       // }
     } break;
     case Op::DivisibleBy: {
@@ -409,14 +414,11 @@ public:
       json_eval_stack.push(&json_tmp_stack.top());
     } break;
     case Op::Callback: {
-      // auto callback = function_storage.find_function(node.str, node.args);
-      // if (!callback) {
-      //   throw_renderer_error("function '" + static_cast<std::string>(node.str) + "' (" +
-      //                     std::to_string(static_cast<unsigned int>(node.args)) + ") not found", node);
-      // }
-      // json result = callback(get_arguments<>(node));
-      // json_tmp_stack.push(result);
-      // json_eval_stack.push(&json_tmp_stack.top());
+      auto function_data = function_storage.find_function(node.name, node.number_args);
+      auto args = get_argument_vector(node.number_args, node);
+      json result = function_data.callback(args);
+      json_tmp_stack.push(result);
+      json_eval_stack.push(&json_tmp_stack.top());
     } break;
     case Op::ParenLeft:
     case Op::ParenRight:
@@ -435,21 +437,24 @@ public:
       throw_renderer_error("object must be an array", node);
     }
 
-    json_loop_stack.emplace();
-    json* loop_data = &json_loop_stack.top()["loop"];
+    json* current_loop_data = &json_loop_data["loop"];
+    if (!json_loop_data.empty()) {
+      (*current_loop_data)["parent"] = std::move(*current_loop_data);
+    }
 
     for (auto it = result->begin(); it != result->end(); ++it) {
       int index = std::distance(result->begin(), it);
-      json_loop_stack.top()[static_cast<std::string>(node.value)] = *it;
-      (*loop_data)["index"] = index;
-      (*loop_data)["index1"] = index + 1;
-      (*loop_data)["is_first"] = (index == 0);
-      (*loop_data)["is_last"] = (index == result->size() - 1);
+      json_loop_data[static_cast<std::string>(node.value)] = *it;
+      (*current_loop_data)["index"] = index;
+      (*current_loop_data)["index1"] = index + 1;
+      (*current_loop_data)["is_first"] = (index == 0);
+      (*current_loop_data)["is_last"] = (index == result->size() - 1);
 
       node.body.accept(*this);
     }
 
-    json_loop_stack.pop();
+    json_loop_data[static_cast<std::string>(node.value)].clear();
+    // json_loop_stack.pop();
   }
 
   void visit(const ForObjectStatementNode& node) {
@@ -458,22 +463,26 @@ public:
       throw_renderer_error("object must be an object", node);
     }
 
-    json_loop_stack.emplace();
-    json* loop_data = &json_loop_stack.top()["loop"];
+    json* current_loop_data = &json_loop_data["loop"];
+    if (!json_loop_data.empty()) {
+      (*current_loop_data)["parent"] = std::move(*current_loop_data);
+    }
 
     for (auto it = result->begin(); it != result->end(); ++it) {
       int index = std::distance(result->begin(), it);
-      // json_loop_stack.top()[static_cast<std::string>(node.key)] = it->first;
-      // json_loop_stack.top()[static_cast<std::string>(node.value)] = it->second;
-      (*loop_data)["index"] = index;
-      (*loop_data)["index1"] = index + 1;
-      (*loop_data)["is_first"] = (index == 0);
-      (*loop_data)["is_last"] = (index == result->size() - 1);
+      // json_loop_data[static_cast<std::string>(node.key)] = *it;
+      // json_loop_data[static_cast<std::string>(node.value)] = *it;
+      (*current_loop_data)["index"] = index;
+      (*current_loop_data)["index1"] = index + 1;
+      (*current_loop_data)["is_first"] = (index == 0);
+      (*current_loop_data)["is_last"] = (index == result->size() - 1);
 
       node.body.accept(*this);
     }
 
-    json_loop_stack.pop();
+    json_loop_data[static_cast<std::string>(node.key)].clear();
+    json_loop_data[static_cast<std::string>(node.value)].clear();
+    // json_loop_stack.pop();
   }
 
   void visit(const IfStatementNode& node) {
@@ -490,7 +499,7 @@ public:
     auto included_template_it = template_storage.find(node.file);
     
     if (included_template_it != template_storage.end()) {
-      sub_renderer.render_to(*output_stream, included_template_it->second, *json_input, loop_ptr);
+      sub_renderer.render_to(*output_stream, included_template_it->second, *json_input, &json_loop_data);
     } else if (config.throw_at_missing_includes) {
       throw_renderer_error("include '" + node.file + "' not found", node);
     }
