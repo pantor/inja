@@ -5,7 +5,6 @@
 
 #include <vector>
 
-#include "node.hpp"
 #include "string_view.hpp"
 
 namespace inja {
@@ -20,23 +19,75 @@ using CallbackFunction = std::function<json(Arguments &args)>;
  */
 class FunctionStorage {
 public:
+  enum class Operation {
+    Not,
+    And,
+    Or,
+    In,
+    Equal,
+    NotEqual,
+    Greater,
+    GreaterEqual,
+    Less,
+    LessEqual,
+    Add,
+    Subtract,
+    Multiplication,
+    Division,
+    Power,
+    Modulo,
+    At,
+    Default,
+    DivisibleBy,
+    Even,
+    Exists,
+    ExistsInObject,
+    First,
+    Float,
+    Int,
+    IsArray,
+    IsBoolean,
+    IsFloat,
+    IsInteger,
+    IsNumber,
+    IsObject,
+    IsString,
+    Last,
+    Length,
+    Lower,
+    Max,
+    Min,
+    Odd,
+    Range,
+    Round,
+    Sort,
+    Upper,
+    Callback,
+    ParenLeft,
+    ParenRight,
+    None,
+  };
+
   const int VARIADIC {-1};
 
   struct FunctionData {
-    FunctionNode::Operation operation;
+    Operation operation;
 
     CallbackFunction callback;
   };
 
   std::map<std::pair<std::string, int>, FunctionData> function_storage;
 
+  // std::map<std::pair<std::string, int>, Operation> builtin_storage;
+  // std::map<std::pair<std::string, int>, CallbackFunction> callback_storage;
+
 public:
-  void add_function(nonstd::string_view name, int num_args, FunctionNode::Operation op) {
+  void add_builtin(nonstd::string_view name, int num_args, Operation op) {
     function_storage.emplace(std::make_pair(name, num_args), FunctionData { op });
   }
 
   void add_callback(nonstd::string_view name, int num_args, const CallbackFunction &callback) {
-    function_storage.emplace(std::make_pair(name, num_args), FunctionData { FunctionNode::Operation::Callback, callback });
+    function_storage.emplace(std::make_pair(name, num_args), FunctionData { Operation::Callback, callback });
   }
 
   FunctionData find_function(nonstd::string_view name, int num_args) const {
@@ -52,7 +103,7 @@ public:
       }
     }
 
-    return { FunctionNode::Operation::None };
+    return { Operation::None };
   }
 };
 

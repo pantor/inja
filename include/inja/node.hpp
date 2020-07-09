@@ -8,7 +8,9 @@
 
 #include <nlohmann/json.hpp>
 
+#include "function_storage.hpp"
 #include "string_view.hpp"
+
 
 namespace inja {
 
@@ -110,108 +112,63 @@ public:
 };
 
 class FunctionNode : public ExpressionNode {
-public:
-  enum class Operation {
-    Not,
-    And,
-    Or,
-    In,
-    Equal,
-    NotEqual,
-    Greater,
-    GreaterEqual,
-    Less,
-    LessEqual,
-    Add,
-    Subtract,
-    Multiplication,
-    Division,
-    Power,
-    Modulo,
-    At,
-    Default,
-    DivisibleBy,
-    Even,
-    Exists,
-    ExistsInObject,
-    First,
-    Float,
-    Int,
-    IsArray,
-    IsBoolean,
-    IsFloat,
-    IsInteger,
-    IsNumber,
-    IsObject,
-    IsString,
-    Last,
-    Length,
-    Lower,
-    Max,
-    Min,
-    Odd,
-    Range,
-    Round,
-    Sort,
-    Upper,
-    Callback,
-    ParenLeft,
-    ParenRight,
-    None,
-  };
+  using Op = FunctionStorage::Operation;
 
+public:
   enum class Associativity {
     Left,
     Right,
   };
 
-  Operation operation;
-  std::string name;
   unsigned int precedence;
   Associativity associativity;
-  
-  unsigned int number_args;
 
-  explicit FunctionNode(nonstd::string_view name, size_t pos) : operation(Operation::Callback), name(name), precedence(1), associativity(Associativity::Left), number_args(1), ExpressionNode(pos) { }
-  explicit FunctionNode(Operation operation, size_t pos) : operation(operation), number_args(1), ExpressionNode(pos) {
+  Op operation;
+
+  std::string name;
+  unsigned int number_args;
+  CallbackFunction callback;
+
+  explicit FunctionNode(nonstd::string_view name, size_t pos) : operation(Op::Callback), name(name), precedence(5), associativity(Associativity::Left), number_args(1), ExpressionNode(pos) { }
+  explicit FunctionNode(Op operation, size_t pos) : operation(operation), number_args(1), ExpressionNode(pos) {
     switch (operation) {
-      case Operation::Not: {
+      case Op::Not: {
         precedence = 2;
         associativity = Associativity::Left;
       } break;
-      case Operation::And: {
+      case Op::And: {
         precedence = 1;
         associativity = Associativity::Left;
       } break;
-      case Operation::Or: {
+      case Op::Or: {
         precedence = 1;
         associativity = Associativity::Left;
       } break;
-      case Operation::In: {
+      case Op::In: {
         precedence = 2;
         associativity = Associativity::Left;
       } break;
-      case Operation::Equal: {
+      case Op::Equal: {
         precedence = 2;
         associativity = Associativity::Left;
       } break;
-      case Operation::NotEqual: {
+      case Op::NotEqual: {
         precedence = 2;
         associativity = Associativity::Left;
       } break;
-      case Operation::Greater: {
+      case Op::Greater: {
         precedence = 2;
         associativity = Associativity::Left;
       } break;
-      case Operation::GreaterEqual: {
+      case Op::GreaterEqual: {
         precedence = 2;
         associativity = Associativity::Left;
       } break;
-      case Operation::Less: {
+      case Op::Less: {
         precedence = 2;
         associativity = Associativity::Left;
       } break;
-      case Operation::LessEqual: {
+      case Op::LessEqual: {
         precedence = 2;
         associativity = Associativity::Left;
       } break;
@@ -285,10 +242,13 @@ public:
   ExpressionListNode condition;
   BlockNode true_statement;
   BlockNode false_statement;
-  bool has_false_statement {false};
   BlockNode *parent;
 
-  explicit IfStatementNode(size_t pos) : StatementNode(pos) { }
+  bool is_nested;
+  bool has_false_statement {false};
+
+  explicit IfStatementNode(size_t pos) : is_nested(false), StatementNode(pos) { }
+  explicit IfStatementNode(bool is_nested, size_t pos) : is_nested(is_nested), StatementNode(pos) { }
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);

@@ -36,7 +36,7 @@ inline json::json_pointer convert_dot_to_json_pointer(nonstd::string_view dot) {
  * \brief Class for rendering a Template with data.
  */
 class Renderer : public NodeVisitor  {
-  using Op = FunctionNode::Operation;
+  using Op = FunctionStorage::Operation;
 
   bool truthy(const json* data) const {
     if (data->empty()) {
@@ -69,6 +69,10 @@ class Renderer : public NodeVisitor  {
 
     auto result = json_eval_stack.top();
     json_eval_stack.pop();
+
+    if (!json_eval_stack.empty()) {
+      throw_renderer_error("malformed expression", expression_list);
+    }
     return result;
   }
 
@@ -144,7 +148,7 @@ public:
     } catch (std::exception &) {
       // Try to evaluate as a no-argument callback
       auto function_data = function_storage.find_function(node.json_ptr, 0);
-      if (function_data.operation == FunctionNode::Operation::Callback) {
+      if (function_data.operation == FunctionStorage::Operation::Callback) {
         std::vector<const json *> empty_args {};
         auto value = function_data.callback(empty_args);
         json_tmp_stack.push(value);
@@ -183,56 +187,71 @@ public:
     } break;
     case Op::Equal: {
       auto args = get_arguments<2>(node);
-      bool result = (*args[0] == *args[1]);
+      bool result = (*args[1] == *args[0]);
       json_tmp_stack.push(result);
       json_eval_stack.push(&json_tmp_stack.top());
     } break;
     case Op::NotEqual: {
       auto args = get_arguments<2>(node);
-      bool result = (*args[0] != *args[1]);
+      bool result = (*args[1] != *args[0]);
       json_tmp_stack.push(result);
       json_eval_stack.push(&json_tmp_stack.top());
     } break;
     case Op::Greater: {
       auto args = get_arguments<2>(node);
-      bool result = (*args[0] > *args[1]);
+      bool result = (*args[1] > *args[0]);
       json_tmp_stack.push(result);
       json_eval_stack.push(&json_tmp_stack.top());
     } break;
     case Op::GreaterEqual: {
       auto args = get_arguments<2>(node);
-      bool result = (*args[0] >= *args[1]);
+      bool result = (*args[1] >= *args[0]);
       json_tmp_stack.push(result);
       json_eval_stack.push(&json_tmp_stack.top());
     } break;
     case Op::Less: {
       auto args = get_arguments<2>(node);
-      bool result = (*args[0] < *args[1]);
+      bool result = (*args[1] < *args[0]);
       json_tmp_stack.push(result);
       json_eval_stack.push(&json_tmp_stack.top());
     } break;
     case Op::LessEqual: {
       auto args = get_arguments<2>(node);
-      bool result = (*args[0] <= *args[1]);
+      bool result = (*args[1] <= *args[0]);
       json_tmp_stack.push(result);
       json_eval_stack.push(&json_tmp_stack.top());
     } break;
     case Op::Add: {
       auto args = get_arguments<2>(node);
-      double result = args[0]->get<double>() + args[1]->get<double>();
-      json_tmp_stack.push(result);
+      if (args[0]->is_number_integer() && args[1]->is_number_integer()) {
+        int result = args[0]->get<int>() + args[1]->get<int>();
+        json_tmp_stack.push(result);
+      } else {
+        double result = args[0]->get<double>() + args[1]->get<double>();
+        json_tmp_stack.push(result);
+      }
       json_eval_stack.push(&json_tmp_stack.top());
     } break;
     case Op::Subtract: {
       auto args = get_arguments<2>(node);
-      double result = args[0]->get<double>() - args[1]->get<double>();
-      json_tmp_stack.push(result);
+      if (args[0]->is_number_integer() && args[1]->is_number_integer()) {
+        int result = args[0]->get<int>() - args[1]->get<int>();
+        json_tmp_stack.push(result);
+      } else {
+        double result = args[0]->get<double>() - args[1]->get<double>();
+        json_tmp_stack.push(result);
+      }
       json_eval_stack.push(&json_tmp_stack.top());
     } break;
     case Op::Multiplication: {
       auto args = get_arguments<2>(node);
-      double result = args[0]->get<double>() * args[1]->get<double>();
-      json_tmp_stack.push(result);
+      if (args[0]->is_number_integer() && args[1]->is_number_integer()) {
+        int result = args[0]->get<int>() * args[1]->get<int>();
+        json_tmp_stack.push(result);
+      } else {
+        double result = args[0]->get<double>() * args[1]->get<double>();
+        json_tmp_stack.push(result);
+      }
       json_eval_stack.push(&json_tmp_stack.top());
     } break;
     case Op::Division: {
@@ -414,9 +433,8 @@ public:
       json_eval_stack.push(&json_tmp_stack.top());
     } break;
     case Op::Callback: {
-      auto function_data = function_storage.find_function(node.name, node.number_args);
       auto args = get_argument_vector(node.number_args, node);
-      json result = function_data.callback(args);
+      json result = node.callback(args);
       json_tmp_stack.push(result);
       json_eval_stack.push(&json_tmp_stack.top());
     } break;
@@ -443,8 +461,9 @@ public:
     }
 
     for (auto it = result->begin(); it != result->end(); ++it) {
-      int index = std::distance(result->begin(), it);
       json_loop_data[static_cast<std::string>(node.value)] = *it;
+
+      int index = std::distance(result->begin(), it);
       (*current_loop_data)["index"] = index;
       (*current_loop_data)["index1"] = index + 1;
       (*current_loop_data)["is_first"] = (index == 0);
@@ -454,7 +473,11 @@ public:
     }
 
     json_loop_data[static_cast<std::string>(node.value)].clear();
-    // json_loop_stack.pop();
+    if (!json_loop_data["parent"].empty()) {
+      *current_loop_data = std::move((*current_loop_data)["parent"]);
+    } else {
+      current_loop_data->clear();
+    }
   }
 
   void visit(const ForObjectStatementNode& node) {
@@ -469,9 +492,10 @@ public:
     }
 
     for (auto it = result->begin(); it != result->end(); ++it) {
+      json_loop_data[static_cast<std::string>(node.key)] = it.key();
+      json_loop_data[static_cast<std::string>(node.value)] = it.value();
+
       int index = std::distance(result->begin(), it);
-      // json_loop_data[static_cast<std::string>(node.key)] = *it;
-      // json_loop_data[static_cast<std::string>(node.value)] = *it;
       (*current_loop_data)["index"] = index;
       (*current_loop_data)["index1"] = index + 1;
       (*current_loop_data)["is_first"] = (index == 0);
@@ -482,7 +506,11 @@ public:
 
     json_loop_data[static_cast<std::string>(node.key)].clear();
     json_loop_data[static_cast<std::string>(node.value)].clear();
-    // json_loop_stack.pop();
+    if (!json_loop_data["parent"].empty()) {
+      *current_loop_data = std::move((*current_loop_data)["parent"]);
+    } else {
+      current_loop_data->clear();
+    }
   }
 
   void visit(const IfStatementNode& node) {
@@ -497,7 +525,7 @@ public:
   void visit(const IncludeStatementNode& node) {
     auto sub_renderer = Renderer(config, template_storage, function_storage);
     auto included_template_it = template_storage.find(node.file);
-    
+
     if (included_template_it != template_storage.end()) {
       sub_renderer.render_to(*output_stream, included_template_it->second, *json_input, &json_loop_data);
     } else if (config.throw_at_missing_includes) {

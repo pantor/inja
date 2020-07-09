@@ -29,7 +29,7 @@ class Lexer {
     CommentStart,
     CommentBody
   };
-  
+
   const LexerConfig &config;
 
   State state;
@@ -83,8 +83,8 @@ class Lexer {
     switch (ch) {
     case '+':
       return make_token(Token::Kind::Plus);
-    // case '-':
-    //   return make_token(Token::Kind::Minus);
+    case '-':
+      return make_token(Token::Kind::Minus);
     case '*':
       return make_token(Token::Kind::Times);
     case '/':
@@ -145,7 +145,7 @@ class Lexer {
     case '7':
     case '8':
     case '9':
-    case '-':
+    // case '-':
       return scan_number();
     case '_':
       return scan_id();
@@ -267,7 +267,7 @@ public:
     if (tok_start >= m_in.size()) {
       return make_token(Token::Kind::Eof);
     }
-    
+
     switch (state) {
     default:
     case State::Text: {

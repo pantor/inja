@@ -24,35 +24,35 @@
 namespace inja {
 
 class ParserStatic {
-  using Operation = FunctionNode::Operation;
+  using Op = FunctionStorage::Operation;
 
   ParserStatic() {
-    function_storage.add_function("at", 2, Operation::At);
-    function_storage.add_function("default", 2, Operation::Default);
-    function_storage.add_function("divisibleBy", 2, Operation::DivisibleBy);
-    function_storage.add_function("even", 1, Operation::Even);
-    function_storage.add_function("first", 1, Operation::First);
-    function_storage.add_function("float", 1, Operation::Float);
-    function_storage.add_function("int", 1, Operation::Int);
-    function_storage.add_function("last", 1, Operation::Last);
-    function_storage.add_function("length", 1, Operation::Length);
-    function_storage.add_function("lower", 1, Operation::Lower);
-    function_storage.add_function("max", 1, Operation::Max);
-    function_storage.add_function("min", 1, Operation::Min);
-    function_storage.add_function("odd", 1, Operation::Odd);
-    function_storage.add_function("range", 1, Operation::Range);
-    function_storage.add_function("round", 2, Operation::Round);
-    function_storage.add_function("sort", 1, Operation::Sort);
-    function_storage.add_function("upper", 1, Operation::Upper);
-    function_storage.add_function("exists", 1, Operation::Exists);
-    function_storage.add_function("existsIn", 2, Operation::ExistsInObject);
-    function_storage.add_function("isBoolean", 1, Operation::IsBoolean);
-    function_storage.add_function("isNumber", 1, Operation::IsNumber);
-    function_storage.add_function("isInteger", 1, Operation::IsInteger);
-    function_storage.add_function("isFloat", 1, Operation::IsFloat);
-    function_storage.add_function("isObject", 1, Operation::IsObject);
-    function_storage.add_function("isArray", 1, Operation::IsArray);
-    function_storage.add_function("isString", 1, Operation::IsString);
+    function_storage.add_builtin("at", 2, Op::At);
+    function_storage.add_builtin("default", 2, Op::Default);
+    function_storage.add_builtin("divisibleBy", 2, Op::DivisibleBy);
+    function_storage.add_builtin("even", 1, Op::Even);
+    function_storage.add_builtin("first", 1, Op::First);
+    function_storage.add_builtin("float", 1, Op::Float);
+    function_storage.add_builtin("int", 1, Op::Int);
+    function_storage.add_builtin("last", 1, Op::Last);
+    function_storage.add_builtin("length", 1, Op::Length);
+    function_storage.add_builtin("lower", 1, Op::Lower);
+    function_storage.add_builtin("max", 1, Op::Max);
+    function_storage.add_builtin("min", 1, Op::Min);
+    function_storage.add_builtin("odd", 1, Op::Odd);
+    function_storage.add_builtin("range", 1, Op::Range);
+    function_storage.add_builtin("round", 2, Op::Round);
+    function_storage.add_builtin("sort", 1, Op::Sort);
+    function_storage.add_builtin("upper", 1, Op::Upper);
+    function_storage.add_builtin("exists", 1, Op::Exists);
+    function_storage.add_builtin("existsIn", 2, Op::ExistsInObject);
+    function_storage.add_builtin("isBoolean", 1, Op::IsBoolean);
+    function_storage.add_builtin("isNumber", 1, Op::IsNumber);
+    function_storage.add_builtin("isInteger", 1, Op::IsInteger);
+    function_storage.add_builtin("isFloat", 1, Op::IsFloat);
+    function_storage.add_builtin("isObject", 1, Op::IsObject);
+    function_storage.add_builtin("isArray", 1, Op::IsArray);
+    function_storage.add_builtin("isString", 1, Op::IsString);
   }
 
 public:
@@ -121,17 +121,26 @@ public:
   bool parse_expression(Template &tmpl) {
     while (tok.kind != Token::Kind::ExpressionClose && tok.kind != Token::Kind::StatementClose) {
       // Literals
-      if (tok.kind == Token::Kind::Number) {
-        current_expression_list->rpn_output.emplace_back(std::make_shared<LiteralNode>(static_cast<std::string>(tok.text), tok.text.data() - tmpl.content.c_str()));
+      if (tok.kind == Token::Kind::String) {
+        current_expression_list->rpn_output.emplace_back(std::make_shared<LiteralNode>(json::parse(tok.text), tok.text.data() - tmpl.content.c_str()));
 
-      } else if (tok.kind == Token::Kind::String) {
-        current_expression_list->rpn_output.emplace_back(std::make_shared<LiteralNode>(static_cast<std::string>(tok.text.substr(1, tok.text.length() - 2)), tok.text.data() - tmpl.content.c_str()));
+      } else if (tok.kind == Token::Kind::Minus) {
+        // TODO
+        // get_prior_token()
+        // if (prior_token ==
+
+      } else if (tok.kind == Token::Kind::Number) {
+        current_expression_list->rpn_output.emplace_back(std::make_shared<LiteralNode>(json::parse(tok.text), tok.text.data() - tmpl.content.c_str()));
 
       } else if (tok.kind == Token::Kind::Id) {
         get_peek_token();
 
+        // Json Literal
+        if (tok.text == static_cast<decltype(tok.text)>("true") || tok.text == static_cast<decltype(tok.text)>("false") || tok.text == static_cast<decltype(tok.text)>("null")) {
+          current_expression_list->rpn_output.emplace_back(std::make_shared<LiteralNode>(json::parse(tok.text), tok.text.data() - tmpl.content.c_str()));
+
         // Functions
-        if (peek_tok.kind == Token::Kind::LeftParen) {
+        } else if (peek_tok.kind == Token::Kind::LeftParen) {
           auto name = static_cast<std::string>(tok.text);
           operator_stack.emplace(std::make_shared<FunctionNode>(static_cast<std::string>(tok.text), tok.text.data() - tmpl.content.c_str()));
           function_stack.emplace(operator_stack.top().get());
@@ -147,44 +156,59 @@ public:
         }
 
       // Operators
-      } else if (tok.kind == Token::Kind::Equal || tok.kind == Token::Kind::NotEqual || tok.kind == Token::Kind::GreaterThan || tok.kind == Token::Kind::GreaterEqual || tok.kind == Token::Kind::LessThan || tok.kind == Token::Kind::LessEqual || tok.kind == Token::Kind::Plus) {
+      } else if (tok.kind == Token::Kind::Equal || tok.kind == Token::Kind::NotEqual || tok.kind == Token::Kind::GreaterThan || tok.kind == Token::Kind::GreaterEqual || tok.kind == Token::Kind::LessThan || tok.kind == Token::Kind::LessEqual || tok.kind == Token::Kind::Plus || tok.kind == Token::Kind::Times || tok.kind == Token::Kind::Slash || tok.kind == Token::Kind::Power || tok.kind == Token::Kind::Percent) {
 
   parse_operator:
-        FunctionNode::Operation operation;
+        FunctionStorage::Operation operation;
         switch (tok.kind) {
         case Token::Kind::Id: {
           if (tok.text == "and") {
-            operation = FunctionNode::Operation::And;
+            operation = FunctionStorage::Operation::And;
           } else if (tok.text == "or") {
-            operation = FunctionNode::Operation::Or;
+            operation = FunctionStorage::Operation::Or;
           } else if (tok.text == "in") {
-            operation = FunctionNode::Operation::In;
+            operation = FunctionStorage::Operation::In;
           } else if (tok.text == "not") {
-            operation = FunctionNode::Operation::Not;
+            operation = FunctionStorage::Operation::Not;
           } else {
             throw_parser_error("unknown operator in parser.");
           }
         } break;
         case Token::Kind::Equal: {
-          operation = FunctionNode::Operation::Equal;
+          operation = FunctionStorage::Operation::Equal;
         } break;
         case Token::Kind::NotEqual: {
-          operation = FunctionNode::Operation::NotEqual;
+          operation = FunctionStorage::Operation::NotEqual;
         } break;
         case Token::Kind::GreaterThan: {
-          operation = FunctionNode::Operation::Greater;
+          operation = FunctionStorage::Operation::Greater;
         } break;
         case Token::Kind::GreaterEqual: {
-          operation = FunctionNode::Operation::GreaterEqual;
+          operation = FunctionStorage::Operation::GreaterEqual;
         } break;
         case Token::Kind::LessThan: {
-          operation = FunctionNode::Operation::Less;
+          operation = FunctionStorage::Operation::Less;
         } break;
         case Token::Kind::LessEqual: {
-          operation = FunctionNode::Operation::LessEqual;
+          operation = FunctionStorage::Operation::LessEqual;
         } break;
         case Token::Kind::Plus: {
-          operation = FunctionNode::Operation::Add;
+          operation = FunctionStorage::Operation::Add;
+        } break;
+        case Token::Kind::Minus: {
+          operation = FunctionStorage::Operation::Subtract;
+        } break;
+        case Token::Kind::Times: {
+          operation = FunctionStorage::Operation::Multiplication;
+        } break;
+        case Token::Kind::Slash: {
+          operation = FunctionStorage::Operation::Division;
+        } break;
+        case Token::Kind::Power: {
+          operation = FunctionStorage::Operation::Power;
+        } break;
+        case Token::Kind::Percent: {
+          operation = FunctionStorage::Operation::Modulo;
         } break;
         default: {
           throw_parser_error("unknown operator in parser.");
@@ -192,7 +216,7 @@ public:
         }
         auto function_node = std::make_shared<FunctionNode>(operation, tok.text.data() - tmpl.content.c_str());
 
-        while (!operator_stack.empty() && ((operator_stack.top()->precedence > function_node->precedence) || (operator_stack.top()->precedence == function_node->precedence && function_node->associativity == FunctionNode::Associativity::Left)) && (operator_stack.top()->operation != FunctionNode::Operation::ParenLeft)) {
+        while (!operator_stack.empty() && ((operator_stack.top()->precedence > function_node->precedence) || (operator_stack.top()->precedence == function_node->precedence && function_node->associativity == FunctionNode::Associativity::Left)) && (operator_stack.top()->operation != FunctionStorage::Operation::ParenLeft)) {
           current_expression_list->rpn_output.emplace_back(operator_stack.top());
           operator_stack.pop();
         }
@@ -206,26 +230,29 @@ public:
       // Parens
       } else if (tok.kind == Token::Kind::LeftParen) {
         current_paren_level += 1;
-        operator_stack.emplace(std::make_shared<FunctionNode>(FunctionNode::Operation::ParenLeft, tok.text.data() - tmpl.content.c_str()));
+        operator_stack.emplace(std::make_shared<FunctionNode>(FunctionStorage::Operation::ParenLeft, tok.text.data() - tmpl.content.c_str()));
 
       } else if (tok.kind == Token::Kind::RightParen) {
         current_paren_level -= 1;
-        while (operator_stack.top()->operation != FunctionNode::Operation::ParenLeft) {
+        while (operator_stack.top()->operation != FunctionStorage::Operation::ParenLeft) {
           current_expression_list->rpn_output.emplace_back(operator_stack.top());
           operator_stack.pop();
         }
 
-        if (operator_stack.top()->operation == FunctionNode::Operation::ParenLeft) {
+        if (operator_stack.top()->operation == FunctionStorage::Operation::ParenLeft) {
           operator_stack.pop();
         }
 
         if (function_paren_level.top() == current_paren_level) {
           auto func = function_stack.top();
-          auto funcion_data = parser_static.function_storage.find_function(func->name, func->number_args);
-          if (funcion_data.operation == FunctionNode::Operation::None) {
+          auto function_data = parser_static.function_storage.find_function(func->name, func->number_args);
+          if (function_data.operation == FunctionStorage::Operation::None) {
             throw_parser_error("unknown function " + func->name);
           }
-          func->operation = funcion_data.operation;
+          func->operation = function_data.operation;
+          if (function_data.operation == FunctionStorage::Operation::Callback) {
+            func->callback = function_data.callback;
+          }
 
           function_paren_level.pop();
           function_stack.pop();
@@ -249,7 +276,6 @@ public:
     }
 
     if (tok.text == static_cast<decltype(tok.text)>("if")) {
-parse_if_statement:
       get_next_token();
 
       auto if_statement_node = std::make_shared<IfStatementNode>(tok.text.data() - tmpl.content.c_str());
@@ -263,16 +289,6 @@ parse_if_statement:
         return false;
       }
 
-    } else if (tok.text == static_cast<decltype(tok.text)>("endif")) {
-      if (if_statement_stack.empty()) {
-        throw_parser_error("endif without matching if");
-      }
-      auto &if_statement_data = if_statement_stack.top();
-      get_next_token();
-
-      current_block = if_statement_data->parent;
-      if_statement_stack.pop();
-
     } else if (tok.text == static_cast<decltype(tok.text)>("else")) {
       if (if_statement_stack.empty()) {
         throw_parser_error("else without matching if");
@@ -283,10 +299,37 @@ parse_if_statement:
       if_statement_data->has_false_statement = true;
       current_block = &if_statement_data->false_statement;
 
-      // chained else if
+      // Chained else if
       if (tok.kind == Token::Kind::Id && tok.text == static_cast<decltype(tok.text)>("if")) {
-        goto parse_if_statement;
+        get_next_token();
+
+        auto if_statement_node = std::make_shared<IfStatementNode>(true, tok.text.data() - tmpl.content.c_str());
+        current_block->nodes.emplace_back(if_statement_node);
+        if_statement_node->parent = current_block;
+        if_statement_stack.emplace(if_statement_node.get());
+        current_block = &if_statement_node->true_statement;
+        current_expression_list = &if_statement_node->condition;
+
+        if (!parse_expression(tmpl)) {
+          return false;
+        }
       }
+
+    } else if (tok.text == static_cast<decltype(tok.text)>("endif")) {
+      if (if_statement_stack.empty()) {
+        throw_parser_error("endif without matching if");
+      }
+
+      // Nested if statements
+      while (if_statement_stack.top()->is_nested) {
+        if_statement_stack.pop();
+      }
+
+      auto &if_statement_data = if_statement_stack.top();
+      get_next_token();
+
+      current_block = if_statement_data->parent;
+      if_statement_stack.pop();
 
     } else if (tok.text == static_cast<decltype(tok.text)>("for")) {
       get_next_token();
@@ -351,7 +394,7 @@ parse_if_statement:
         throw_parser_error("expected string, got '" + tok.describe() + "'");
       }
 
-      // build the relative path
+      // Build the relative path
       json json_name = json::parse(tok.text);
       std::string pathname = static_cast<std::string>(path);
       pathname += json_name.get_ref<const std::string &>();
@@ -369,6 +412,7 @@ parse_if_statement:
       current_block->nodes.emplace_back(std::make_shared<IncludeStatementNode>(pathname, tok.text.data() - tmpl.content.c_str()));
 
       get_next_token();
+
     } else {
       return false;
     }
