@@ -19,19 +19,6 @@
 
 namespace inja {
 
-inline json::json_pointer convert_dot_to_json_pointer(nonstd::string_view dot) {
-  std::string result;
-  do {
-    nonstd::string_view part;
-    std::tie(part, dot) = string_view::split(dot, '.');
-    result.push_back('/');
-    result.append(part.begin(), part.end());
-  } while (!dot.empty());
-
-  return json::json_pointer(result);
-}
-
-
 /*!
  * \brief Class for rendering a Template with data.
  */
@@ -72,6 +59,8 @@ class Renderer : public NodeVisitor  {
 
     if (!json_eval_stack.empty()) {
       throw_renderer_error("malformed expression", expression_list);
+    } else if (!result) {
+      throw_renderer_error("expression could not be evaluated", expression_list);
     }
     return result;
   }
@@ -135,7 +124,7 @@ public:
   }
 
   void visit(const JsonNode& node) {
-    json::json_pointer ptr = convert_dot_to_json_pointer(node.json_ptr);
+    auto ptr = json::json_pointer(node.ptr);
 
     try {
       // First try to evaluate as a loop variable
@@ -147,15 +136,18 @@ public:
 
     } catch (std::exception &) {
       // Try to evaluate as a no-argument callback
-      auto function_data = function_storage.find_function(node.json_ptr, 0);
+      auto function_data = function_storage.find_function(node.ptr, 0);
       if (function_data.operation == FunctionStorage::Operation::Callback) {
         std::vector<const json *> empty_args {};
         auto value = function_data.callback(empty_args);
         json_tmp_stack.push(value);
         json_eval_stack.push(&json_tmp_stack.top());
       }
+      // else {
+      //   json_eval_stack.push(nullptr);
+      // }
 
-      throw_renderer_error("variable '" + static_cast<std::string>(node.json_ptr) + "' not found", node);
+      throw_renderer_error("variable '" + static_cast<std::string>(node.name) + "' not found", node);
     }
   }
 
@@ -282,13 +274,14 @@ public:
       json_eval_stack.push(&json_tmp_stack.top());
     } break;
     case Op::Default: {
-      auto args = get_arguments<2>(node);
-      try {
-        json_tmp_stack.push(*args[1]);
-        json_eval_stack.push(&json_tmp_stack.top());
-      } catch (std::exception &) {
-        json_tmp_stack.push(*args[0]);
-        json_eval_stack.push(&json_tmp_stack.top());
+      auto normal_arg = get_arguments<1>(node)[0];
+      if (normal_arg) {
+        json_eval_stack.push(normal_arg);
+        get_arguments<1>(node)[0];
+
+      } else {
+        auto default_arg = get_arguments<1>(node)[0];
+        json_eval_stack.push(default_arg);
       }
     } break;
     case Op::DivisibleBy: {
@@ -535,6 +528,9 @@ public:
     output_stream = &os;
     current_template = &tmpl;
     json_input = &data;
+    if (loop_data) {
+      json_loop_data = *loop_data;
+    }
 
     current_template->root.accept(*this);
   }

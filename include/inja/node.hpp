@@ -102,9 +102,18 @@ public:
 
 class JsonNode : public ExpressionNode {
 public:
-  std::string json_ptr;
+  std::string name;
+  std::string ptr {""};
 
-  explicit JsonNode(const std::string& json_ptr, size_t pos): json_ptr(json_ptr), ExpressionNode(pos) { }
+  explicit JsonNode(nonstd::string_view ptr_name, size_t pos): name(ptr_name), ExpressionNode(pos) {
+    // Convert dot notation to json pointer notation
+    do {
+      nonstd::string_view part;
+      std::tie(part, ptr_name) = string_view::split(ptr_name, '.');
+      ptr.push_back('/');
+      ptr.append(part.begin(), part.end());
+    } while (!ptr_name.empty());
+  }
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);
@@ -289,7 +298,7 @@ inline void NodeVisitor::visit(const LiteralNode& node) {
 }
 
 inline void NodeVisitor::visit(const JsonNode& node) {
-  std::cout << "<json ptr " << node.json_ptr << ">" << std::endl;
+  std::cout << "<json ptr " << node.ptr << ">" << std::endl;
 }
 
 inline void NodeVisitor::visit(const FunctionNode& node) {
