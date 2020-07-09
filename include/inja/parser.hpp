@@ -31,9 +31,18 @@ class ParserStatic {
     function_storage.add_builtin("default", 2, Op::Default);
     function_storage.add_builtin("divisibleBy", 2, Op::DivisibleBy);
     function_storage.add_builtin("even", 1, Op::Even);
+    function_storage.add_builtin("exists", 1, Op::Exists);
+    function_storage.add_builtin("existsIn", 2, Op::ExistsInObject);
     function_storage.add_builtin("first", 1, Op::First);
     function_storage.add_builtin("float", 1, Op::Float);
     function_storage.add_builtin("int", 1, Op::Int);
+    function_storage.add_builtin("isArray", 1, Op::IsArray);
+    function_storage.add_builtin("isBoolean", 1, Op::IsBoolean);
+    function_storage.add_builtin("isFloat", 1, Op::IsFloat);
+    function_storage.add_builtin("isInteger", 1, Op::IsInteger);
+    function_storage.add_builtin("isNumber", 1, Op::IsNumber);
+    function_storage.add_builtin("isObject", 1, Op::IsObject);
+    function_storage.add_builtin("isString", 1, Op::IsString);
     function_storage.add_builtin("last", 1, Op::Last);
     function_storage.add_builtin("length", 1, Op::Length);
     function_storage.add_builtin("lower", 1, Op::Lower);
@@ -44,15 +53,6 @@ class ParserStatic {
     function_storage.add_builtin("round", 2, Op::Round);
     function_storage.add_builtin("sort", 1, Op::Sort);
     function_storage.add_builtin("upper", 1, Op::Upper);
-    function_storage.add_builtin("exists", 1, Op::Exists);
-    function_storage.add_builtin("existsIn", 2, Op::ExistsInObject);
-    function_storage.add_builtin("isBoolean", 1, Op::IsBoolean);
-    function_storage.add_builtin("isNumber", 1, Op::IsNumber);
-    function_storage.add_builtin("isInteger", 1, Op::IsInteger);
-    function_storage.add_builtin("isFloat", 1, Op::IsFloat);
-    function_storage.add_builtin("isObject", 1, Op::IsObject);
-    function_storage.add_builtin("isArray", 1, Op::IsArray);
-    function_storage.add_builtin("isString", 1, Op::IsString);
   }
 
 public:
@@ -223,8 +223,8 @@ public:
 
         operator_stack.emplace(function_node);
 
-      // Colon
-      } else if (tok.kind == Token::Kind::Colon) {
+      // Comma
+      } else if (tok.kind == Token::Kind::Comma) {
         function_stack.top()->number_args += 1;
 
       // Parens

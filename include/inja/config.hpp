@@ -10,8 +10,6 @@
 
 namespace inja {
 
-enum class ElementNotation { Dot, Pointer };
-
 /*!
  * \brief Class for lexer configuration.
  */
@@ -58,7 +56,6 @@ struct LexerConfig {
  * \brief Class for parser configuration.
  */
 struct ParserConfig {
-  ElementNotation notation {ElementNotation::Dot};
   bool search_included_templates_in_files {true};
 };
 

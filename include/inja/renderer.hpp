@@ -313,8 +313,8 @@ public:
     } break;
     case Op::ExistsInObject: {
       auto args = get_arguments<2>(node);
-      auto &&name = args[1]->get_ref<const std::string &>();
-      bool result = (args[0]->find(name) != args[0]->end());
+      auto &&name = args[0]->get_ref<const std::string &>();
+      bool result = (args[1]->find(name) != args[1]->end());
       json_tmp_stack.push(result);
       json_eval_stack.push(&json_tmp_stack.top());
     } break;
