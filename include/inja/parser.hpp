@@ -14,8 +14,8 @@
 #include "exceptions.hpp"
 #include "function_storage.hpp"
 #include "lexer.hpp"
-#include "template.hpp"
 #include "node.hpp"
+#include "template.hpp"
 #include "token.hpp"
 #include "utils.hpp"
 
@@ -23,60 +23,15 @@
 
 namespace inja {
 
-class ParserStatic {
-  using Op = FunctionStorage::Operation;
-
-  ParserStatic() {
-    function_storage.add_builtin("at", 2, Op::At);
-    function_storage.add_builtin("default", 2, Op::Default);
-    function_storage.add_builtin("divisibleBy", 2, Op::DivisibleBy);
-    function_storage.add_builtin("even", 1, Op::Even);
-    function_storage.add_builtin("exists", 1, Op::Exists);
-    function_storage.add_builtin("existsIn", 2, Op::ExistsInObject);
-    function_storage.add_builtin("first", 1, Op::First);
-    function_storage.add_builtin("float", 1, Op::Float);
-    function_storage.add_builtin("int", 1, Op::Int);
-    function_storage.add_builtin("isArray", 1, Op::IsArray);
-    function_storage.add_builtin("isBoolean", 1, Op::IsBoolean);
-    function_storage.add_builtin("isFloat", 1, Op::IsFloat);
-    function_storage.add_builtin("isInteger", 1, Op::IsInteger);
-    function_storage.add_builtin("isNumber", 1, Op::IsNumber);
-    function_storage.add_builtin("isObject", 1, Op::IsObject);
-    function_storage.add_builtin("isString", 1, Op::IsString);
-    function_storage.add_builtin("last", 1, Op::Last);
-    function_storage.add_builtin("length", 1, Op::Length);
-    function_storage.add_builtin("lower", 1, Op::Lower);
-    function_storage.add_builtin("max", 1, Op::Max);
-    function_storage.add_builtin("min", 1, Op::Min);
-    function_storage.add_builtin("odd", 1, Op::Odd);
-    function_storage.add_builtin("range", 1, Op::Range);
-    function_storage.add_builtin("round", 2, Op::Round);
-    function_storage.add_builtin("sort", 1, Op::Sort);
-    function_storage.add_builtin("upper", 1, Op::Upper);
-  }
-
-public:
-  ParserStatic(const ParserStatic &) = delete;
-  ParserStatic &operator=(const ParserStatic &) = delete;
-
-  static const ParserStatic &get_instance() {
-    static ParserStatic instance;
-    return instance;
-  }
-
-  FunctionStorage function_storage;
-};
-
-
 /*!
  * \brief Class for parsing an inja Template.
  */
 class Parser {
-  const ParserStatic &parser_static;
   const ParserConfig &config;
 
   Lexer lexer;
   TemplateStorage &template_storage;
+  const FunctionStorage &function_storage;
 
   Token tok, peek_tok;
   bool have_peek_tok {false};
@@ -114,12 +69,11 @@ class Parser {
 
 public:
   explicit Parser(const ParserConfig &parser_config, const LexerConfig &lexer_config,
-                  TemplateStorage &included_templates)
-      : config(parser_config), lexer(lexer_config), template_storage(included_templates),
-        parser_static(ParserStatic::get_instance()) {}
+                  TemplateStorage &template_storage, const FunctionStorage &function_storage)
+      : config(parser_config), lexer(lexer_config), template_storage(template_storage), function_storage(function_storage) { }
 
-  bool parse_expression(Template &tmpl) {
-    while (tok.kind != Token::Kind::ExpressionClose && tok.kind != Token::Kind::StatementClose) {
+  bool parse_expression(Template &tmpl, Token::Kind closing) {
+    while (tok.kind != closing) {
       // Literals
       if (tok.kind == Token::Kind::String) {
         current_expression_list->rpn_output.emplace_back(std::make_shared<LiteralNode>(json::parse(tok.text), tok.text.data() - tmpl.content.c_str()));
@@ -245,7 +199,7 @@ public:
 
         if (function_paren_level.top() == current_paren_level) {
           auto func = function_stack.top();
-          auto function_data = parser_static.function_storage.find_function(func->name, func->number_args);
+          auto function_data = function_storage.find_function(func->name, func->number_args);
           if (function_data.operation == FunctionStorage::Operation::None) {
             throw_parser_error("unknown function " + func->name);
           }
@@ -270,7 +224,7 @@ public:
     return true;
   }
 
-  bool parse_statement(Template &tmpl, nonstd::string_view path) {
+  bool parse_statement(Template &tmpl, Token::Kind closing, nonstd::string_view path) {
     if (tok.kind != Token::Kind::Id) {
       return false;
     }
@@ -285,7 +239,7 @@ public:
       current_block = &if_statement_node->true_statement;
       current_expression_list = &if_statement_node->condition;
 
-      if (!parse_expression(tmpl)) {
+      if (!parse_expression(tmpl, closing)) {
         return false;
       }
 
@@ -310,7 +264,7 @@ public:
         current_block = &if_statement_node->true_statement;
         current_expression_list = &if_statement_node->condition;
 
-        if (!parse_expression(tmpl)) {
+        if (!parse_expression(tmpl, closing)) {
           return false;
         }
       }
@@ -372,7 +326,7 @@ public:
       }
       get_next_token();
 
-      if (!parse_expression(tmpl)) {
+      if (!parse_expression(tmpl, closing)) {
         return false;
       }
 
@@ -440,7 +394,7 @@ public:
       }
       case Token::Kind::StatementOpen: {
         get_next_token();
-        if (!parse_statement(tmpl, path)) {
+        if (!parse_statement(tmpl, Token::Kind::StatementClose, path)) {
           throw_parser_error("expected statement, got '" + tok.describe() + "'");
         }
         if (tok.kind != Token::Kind::StatementClose) {
@@ -449,7 +403,7 @@ public:
       } break;
       case Token::Kind::LineStatementOpen: {
         get_next_token();
-        parse_statement(tmpl, path);
+        parse_statement(tmpl, Token::Kind::LineStatementClose, path);
         if (tok.kind != Token::Kind::LineStatementClose && tok.kind != Token::Kind::Eof) {
           throw_parser_error("expected line statement close, got '" + tok.describe() + "'");
         }
@@ -461,7 +415,7 @@ public:
         current_block->nodes.emplace_back(expression_list_node);
         current_expression_list = expression_list_node.get();
 
-        if (!parse_expression(tmpl)) {
+        if (!parse_expression(tmpl, Token::Kind::ExpressionClose)) {
           throw_parser_error("expected expression, got '" + tok.describe() + "'");
         }
 
@@ -496,7 +450,7 @@ public:
     nonstd::string_view path = filename.substr(0, filename.find_last_of("/\\") + 1);
 
     // StringRef path = sys::path::parent_path(filename);
-    auto sub_parser = Parser(config, lexer.get_config(), template_storage);
+    auto sub_parser = Parser(config, lexer.get_config(), template_storage, function_storage);
     sub_parser.parse_into(tmpl, path);
   }
 

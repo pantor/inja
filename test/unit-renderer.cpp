@@ -78,7 +78,7 @@ TEST_CASE("types") {
     // "[inja.exception.json_error] [json.exception.type_error.302] type must be array, but is object" );
   }
 
-  /* SUBCASE("nested loops") {
+  SUBCASE("nested loops") {
     auto ldata = json::parse(
         R"DELIM(
 { "outer" : [
@@ -97,13 +97,13 @@ TEST_CASE("types") {
     ]
 }
 )DELIM");
-    CHECK(env.render(R"DELIM(
+    /* CHECK(env.render(R"DELIM(
 {% for o in outer %}{% for i in o.inner %}{{loop.parent.index}}:{{loop.index}}::{{loop.parent.is_last}}
 {% for ii in i.in2%}{{ii}},{%endfor%}
 {%endfor%}{%endfor%}
 )DELIM",
-                     ldata) == "\n0:0::false\n1,2,\n0:1::false\n\n0:2::false\n\n2:0::true\n3,4,\n2:1::true\n5,6,\n\n");
-  } */
+                     ldata) == "\n0:0::false\n1,2,\n0:1::false\n\n0:2::false\n\n2:0::true\n3,4,\n2:1::true\n5,6,\n\n"); */
+  }
 
   SUBCASE("conditionals") {
     CHECK(env.render("{% if is_happy %}Yeah!{% endif %}", data) == "Yeah!");
@@ -126,7 +126,7 @@ TEST_CASE("types") {
                       "[inja.exception.parser_error] (at 1:43) expected statement, got 'end'");
   }
 
-  /* SUBCASE("line statements") {
+  SUBCASE("line statements") {
     CHECK(env.render(R"(## if is_happy
 Yeah!
 ## endif)",
@@ -140,7 +140,7 @@ Yeah!
 ## endif    )",
                      data) == R"(Yeah!
 )");
-  } */
+  }
 }
 
 TEST_CASE("functions") {
@@ -384,7 +384,7 @@ TEST_CASE("templates") {
   data["city"] = "Brunswick";
   data["is_happy"] = true;
 
-  /* SUBCASE("reuse") {
+  SUBCASE("reuse") {
     inja::Environment env;
     inja::Template temp = env.parse("{% if is_happy %}{{ name }}{% else %}{{ city }}{% endif %}");
 
@@ -453,7 +453,7 @@ TEST_CASE("templates") {
     CHECK(env.render("{% if is_happy %}{{ name }}{% endif %}\n", data) == "Peter");
     CHECK(env.render("{% if is_happy %}{{ name }}{% endif %}   \n.", data) == "Peter.");
     CHECK(env.render("{%- if is_happy %}{{ name }}{% endif -%}   \n.", data) == "Peter.");
-  } */
+  }
 }
 
 TEST_CASE("other syntax") {

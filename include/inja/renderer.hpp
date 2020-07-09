@@ -117,8 +117,8 @@ class Renderer : public NodeVisitor  {
   std::ostream *output_stream;
 
 public:
-  Renderer(const RenderConfig& config, const TemplateStorage &included_templates, const FunctionStorage &callbacks)
-      : config(config), template_storage(included_templates), function_storage(callbacks) { }
+  Renderer(const RenderConfig& config, const TemplateStorage &template_storage, const FunctionStorage &function_storage)
+      : config(config), template_storage(template_storage), function_storage(function_storage) { }
 
   void visit(const BlockNode& node) {
     for (auto& n : node.nodes) {
@@ -169,19 +169,19 @@ public:
     } break;
     case Op::And: {
       auto args = get_arguments<2>(node);
-      bool result = truthy(args[0]) && truthy(args[1]);
+      bool result = truthy(args[1]) && truthy(args[0]);
       json_tmp_stack.push(result);
       json_eval_stack.push(&json_tmp_stack.top());
     } break;
     case Op::Or: {
       auto args = get_arguments<2>(node);
-      bool result = truthy(args[0]) || truthy(args[1]);
+      bool result = truthy(args[1]) || truthy(args[0]);
       json_tmp_stack.push(result);
       json_eval_stack.push(&json_tmp_stack.top());
     } break;
     case Op::In: {
       auto args = get_arguments<2>(node);
-      bool result = std::find(args[1]->begin(), args[1]->end(), *args[0]) != args[1]->end();
+      bool result = std::find(args[0]->begin(), args[0]->end(), *args[1]) != args[0]->end();
       json_tmp_stack.push(result);
       json_eval_stack.push(&json_tmp_stack.top());
     } break;
@@ -223,80 +223,78 @@ public:
     } break;
     case Op::Add: {
       auto args = get_arguments<2>(node);
-      if (args[0]->is_number_integer() && args[1]->is_number_integer()) {
-        int result = args[0]->get<int>() + args[1]->get<int>();
+      if (args[1]->is_number_integer() && args[0]->is_number_integer()) {
+        int result = args[1]->get<int>() + args[0]->get<int>();
         json_tmp_stack.push(result);
       } else {
-        double result = args[0]->get<double>() + args[1]->get<double>();
+        double result = args[1]->get<double>() + args[0]->get<double>();
         json_tmp_stack.push(result);
       }
       json_eval_stack.push(&json_tmp_stack.top());
     } break;
     case Op::Subtract: {
       auto args = get_arguments<2>(node);
-      if (args[0]->is_number_integer() && args[1]->is_number_integer()) {
-        int result = args[0]->get<int>() - args[1]->get<int>();
+      if (args[1]->is_number_integer() && args[0]->is_number_integer()) {
+        int result = args[1]->get<int>() - args[0]->get<int>();
         json_tmp_stack.push(result);
       } else {
-        double result = args[0]->get<double>() - args[1]->get<double>();
+        double result = args[1]->get<double>() - args[0]->get<double>();
         json_tmp_stack.push(result);
       }
       json_eval_stack.push(&json_tmp_stack.top());
     } break;
     case Op::Multiplication: {
       auto args = get_arguments<2>(node);
-      if (args[0]->is_number_integer() && args[1]->is_number_integer()) {
-        int result = args[0]->get<int>() * args[1]->get<int>();
+      if (args[1]->is_number_integer() && args[0]->is_number_integer()) {
+        int result = args[1]->get<int>() * args[0]->get<int>();
         json_tmp_stack.push(result);
       } else {
-        double result = args[0]->get<double>() * args[1]->get<double>();
+        double result = args[1]->get<double>() * args[0]->get<double>();
         json_tmp_stack.push(result);
       }
       json_eval_stack.push(&json_tmp_stack.top());
     } break;
     case Op::Division: {
       auto args = get_arguments<2>(node);
-      if (args[1]->get<double>() == 0) {
+      if (args[0]->get<double>() == 0) {
         throw_renderer_error("division by zero", node);
       }
-      double result = args[0]->get<double>() / args[1]->get<double>();
+      double result = args[1]->get<double>() / args[0]->get<double>();
       json_tmp_stack.push(result);
       json_eval_stack.push(&json_tmp_stack.top());
     } break;
     case Op::Power: {
       auto args = get_arguments<2>(node);
-      double result = std::pow(args[0]->get<double>(), args[1]->get<int>());
+      double result = std::pow(args[1]->get<double>(), args[0]->get<int>());
       json_tmp_stack.push(result);
       json_eval_stack.push(&json_tmp_stack.top());
     } break;
     case Op::Modulo: {
       auto args = get_arguments<2>(node);
-      double result = args[0]->get<int>() % args[1]->get<int>();
+      double result = args[1]->get<int>() % args[0]->get<int>();
       json_tmp_stack.push(result);
       json_eval_stack.push(&json_tmp_stack.top());
     } break;
     case Op::At: {
       auto args = get_arguments<2>(node);
-      auto result = args[0]->at(args[1]->get<int>());
+      auto result = args[1]->at(args[0]->get<int>());
       json_tmp_stack.push(result);
       json_eval_stack.push(&json_tmp_stack.top());
     } break;
     case Op::Default: {
-      // TODO: Default function
       auto args = get_arguments<2>(node);
-
-      // try {
-      //   json_tmp_stack.push(args[0]);
-      //   json_eval_stack.push(&json_tmp_stack.top());
-      // } catch (std::exception &) {
-      //   json_tmp_stack.push(args[1]);
-      //   json_eval_stack.push(&json_tmp_stack.top());
-      // }
+      try {
+        json_tmp_stack.push(*args[1]);
+        json_eval_stack.push(&json_tmp_stack.top());
+      } catch (std::exception &) {
+        json_tmp_stack.push(*args[0]);
+        json_eval_stack.push(&json_tmp_stack.top());
+      }
     } break;
     case Op::DivisibleBy: {
       auto args = get_arguments<2>(node);
-      int divisor = args[1]->get<int>();
-      bool result = (divisor != 0) && (args[0]->get<int>() % divisor == 0);
+      int divisor = args[0]->get<int>();
+      bool result = (divisor != 0) && (args[1]->get<int>() % divisor == 0);
       json_tmp_stack.push(result);
       json_eval_stack.push(&json_tmp_stack.top());
     } break;
@@ -380,8 +378,8 @@ public:
     } break;
     case Op::Round: {
       auto args = get_arguments<2>(node);
-      int precision = args[1]->get<int>();
-      auto result = std::round(args[0]->get<double>() * std::pow(10.0, precision)) / std::pow(10.0, precision);
+      int precision = args[0]->get<int>();
+      auto result = std::round(args[1]->get<double>() * std::pow(10.0, precision)) / std::pow(10.0, precision);
       json_tmp_stack.push(result);
       json_eval_stack.push(&json_tmp_stack.top());
     } break;

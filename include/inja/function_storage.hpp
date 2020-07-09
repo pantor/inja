@@ -76,10 +76,34 @@ public:
     CallbackFunction callback;
   };
 
-  std::map<std::pair<std::string, int>, FunctionData> function_storage;
-
-  // std::map<std::pair<std::string, int>, Operation> builtin_storage;
-  // std::map<std::pair<std::string, int>, CallbackFunction> callback_storage;
+  std::map<std::pair<std::string, int>, FunctionData> function_storage = {
+    {std::make_pair("at", 2), FunctionData { Operation::At }},
+    {std::make_pair("default", 2), FunctionData { Operation::Default }},
+    {std::make_pair("divisibleBy", 2), FunctionData { Operation::DivisibleBy }},
+    {std::make_pair("even", 1), FunctionData { Operation::Even }},
+    {std::make_pair("exists", 1), FunctionData { Operation::Exists }},
+    {std::make_pair("existsIn", 2), FunctionData { Operation::ExistsInObject }},
+    {std::make_pair("first", 1), FunctionData { Operation::First }},
+    {std::make_pair("float", 1), FunctionData { Operation::Float }},
+    {std::make_pair("int", 1), FunctionData { Operation::Int }},
+    {std::make_pair("isArray", 1), FunctionData { Operation::IsArray }},
+    {std::make_pair("isBoolean", 1), FunctionData { Operation::IsBoolean }},
+    {std::make_pair("isFloat", 1), FunctionData { Operation::IsFloat }},
+    {std::make_pair("isInteger", 1), FunctionData { Operation::IsInteger }},
+    {std::make_pair("isNumber", 1), FunctionData { Operation::IsNumber }},
+    {std::make_pair("isObject", 1), FunctionData { Operation::IsObject }},
+    {std::make_pair("isString", 1), FunctionData { Operation::IsString }},
+    {std::make_pair("last", 1), FunctionData { Operation::Last }},
+    {std::make_pair("length", 1), FunctionData { Operation::Length }},
+    {std::make_pair("lower", 1), FunctionData { Operation::Lower }},
+    {std::make_pair("max", 1), FunctionData { Operation::Max }},
+    {std::make_pair("min", 1), FunctionData { Operation::Min }},
+    {std::make_pair("odd", 1), FunctionData { Operation::Odd }},
+    {std::make_pair("range", 1), FunctionData { Operation::Range }},
+    {std::make_pair("round", 2), FunctionData { Operation::Round }},
+    {std::make_pair("sort", 1), FunctionData { Operation::Sort }},
+    {std::make_pair("upper", 1), FunctionData { Operation::Upper }},
+  };
 
 public:
   void add_builtin(nonstd::string_view name, int num_args, Operation op) {
