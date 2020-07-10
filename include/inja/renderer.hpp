@@ -136,18 +136,17 @@ public:
 
     } catch (std::exception &) {
       // Try to evaluate as a no-argument callback
-      auto function_data = function_storage.find_function(node.ptr, 0);
+      auto function_data = function_storage.find_function(node.name, 0);
       if (function_data.operation == FunctionStorage::Operation::Callback) {
         std::vector<const json *> empty_args {};
         auto value = function_data.callback(empty_args);
         json_tmp_stack.push(value);
         json_eval_stack.push(&json_tmp_stack.top());
+      
+      } else {
+        // json_eval_stack.push(nullptr);
+        throw_renderer_error("variable '" + static_cast<std::string>(node.name) + "' not found", node);
       }
-      // else {
-      //   json_eval_stack.push(nullptr);
-      // }
-
-      throw_renderer_error("variable '" + static_cast<std::string>(node.name) + "' not found", node);
     }
   }
 
