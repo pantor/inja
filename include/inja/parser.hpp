@@ -36,11 +36,16 @@ class Parser {
   Token tok, peek_tok;
   bool have_peek_tok {false};
 
-  unsigned int current_paren_level {0};
+  size_t current_paren_level {0};
+  size_t current_bracket_level {0};
+  size_t current_brace_level {0};
+
+  nonstd::string_view json_first;
+
   BlockNode *current_block {nullptr};
   ExpressionListNode *current_expression_list {nullptr};
   std::stack<FunctionNode*> function_stack;
-  std::stack<unsigned int> function_paren_level;
+  std::stack<size_t> function_paren_level;
   std::stack<std::shared_ptr<FunctionNode>> operator_stack;
 
   std::stack<IfStatementNode*> if_statement_stack;
@@ -66,6 +71,11 @@ class Parser {
     }
   }
 
+  void add_json_literal(const char* content_ptr) {
+    nonstd::string_view json_text(json_first.data(), tok.text.data() - json_first.data() + tok.text.size());
+    current_expression_list->rpn_output.emplace_back(std::make_shared<LiteralNode>(json::parse(json_text), json_text.data() - content_ptr));
+  }
+
 
 public:
   explicit Parser(const ParserConfig &parser_config, const LexerConfig &lexer_config,
@@ -76,7 +86,10 @@ public:
     while (tok.kind != closing) {
       // Literals
       if (tok.kind == Token::Kind::String) {
-        current_expression_list->rpn_output.emplace_back(std::make_shared<LiteralNode>(json::parse(tok.text), tok.text.data() - tmpl.content.c_str()));
+        if (current_brace_level == 0 && current_bracket_level == 0) {
+          json_first = tok.text;
+          add_json_literal(tmpl.content.c_str());
+        }
 
       } else if (tok.kind == Token::Kind::Minus) {
         // TODO
@@ -84,14 +97,52 @@ public:
         // if (prior_token ==
 
       } else if (tok.kind == Token::Kind::Number) {
-        current_expression_list->rpn_output.emplace_back(std::make_shared<LiteralNode>(json::parse(tok.text), tok.text.data() - tmpl.content.c_str()));
+        if (current_brace_level == 0 && current_bracket_level == 0) {
+          json_first = tok.text;
+          add_json_literal(tmpl.content.c_str());
+        }
+
+      } else if (tok.kind == Token::Kind::LeftBracket) {
+        if (current_brace_level == 0 && current_bracket_level == 0) {
+          json_first = tok.text;
+        }
+        current_bracket_level += 1;
+
+      } else if (tok.kind == Token::Kind::LeftBrace) {
+        if (current_brace_level == 0 && current_bracket_level == 0) {
+          json_first = tok.text;
+        }
+        current_brace_level += 1;
+
+      } else if (tok.kind == Token::Kind::RightBracket) {
+        if (current_bracket_level == 0) {
+          throw_parser_error("unexpected ']'");
+        }
+
+        current_bracket_level -= 1;
+        if (current_brace_level == 0 && current_bracket_level == 0) {
+          add_json_literal(tmpl.content.c_str());
+        }
+
+      } else if (tok.kind == Token::Kind::RightBrace) {
+        if (current_brace_level == 0) {
+          throw_parser_error("unexpected '}'");
+        }
+
+        current_brace_level -= 1;
+        if (current_brace_level == 0 && current_bracket_level == 0) {
+          add_json_literal(tmpl.content.c_str());
+        }
 
       } else if (tok.kind == Token::Kind::Id) {
         get_peek_token();
 
         // Json Literal
         if (tok.text == static_cast<decltype(tok.text)>("true") || tok.text == static_cast<decltype(tok.text)>("false") || tok.text == static_cast<decltype(tok.text)>("null")) {
-          current_expression_list->rpn_output.emplace_back(std::make_shared<LiteralNode>(json::parse(tok.text), tok.text.data() - tmpl.content.c_str()));
+          if (current_brace_level == 0 && current_bracket_level == 0) {
+            json_first = tok.text;
+            add_json_literal(tmpl.content.c_str());
+          }
 
         // Functions
         } else if (peek_tok.kind == Token::Kind::LeftParen) {
@@ -179,9 +230,20 @@ public:
 
       // Comma
       } else if (tok.kind == Token::Kind::Comma) {
-        function_stack.top()->number_args += 1;
+        if (current_brace_level == 0 && current_bracket_level == 0) {
+          if (function_stack.empty()) {
+            throw_parser_error("unexpected ','");
+          }
+
+          function_stack.top()->number_args += 1;
+        }
 
       // Parens
+      } else if (tok.kind == Token::Kind::Colon) {
+        if (current_brace_level == 0 && current_bracket_level == 0) {
+          throw_parser_error("unexpected ':'");
+        }
+
       } else if (tok.kind == Token::Kind::LeftParen) {
         current_paren_level += 1;
         operator_stack.emplace(std::make_shared<FunctionNode>(FunctionStorage::Operation::ParenLeft, tok.text.data() - tmpl.content.c_str()));

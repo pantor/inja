@@ -62,7 +62,7 @@ TEST_CASE("types") {
                      "endfor %}!",
                      data) == "0: Jeff, 1: Seb!");
 
-    // CHECK(env.render("{% for name in {} %}a{% endfor %}", data) == "");
+    CHECK(env.render("{% for name in [] %}a{% endfor %}", data) == "");
 
     CHECK_THROWS_WITH(env.render("{% for name ins names %}a{% endfor %}", data),
                       "[inja.exception.parser_error] (at 1:13) expected 'in', got 'ins'");
@@ -108,7 +108,7 @@ TEST_CASE("types") {
     CHECK(env.render("{% if age <= 29 %}Right{% else %}Wrong{% endif %}", data) == "Right");
     CHECK(env.render("{% if age != 28 %}Right{% else %}Wrong{% endif %}", data) == "Right");
     CHECK(env.render("{% if age >= 30 %}Right{% else %}Wrong{% endif %}", data) == "Wrong");
-    // CHECK(env.render("{% if age in [28, 29, 30] %}True{% endif %}", data) == "True");
+    CHECK(env.render("{% if age in [28, 29, 30] %}True{% endif %}", data) == "True");
     CHECK(env.render("{% if age == 28 %}28{% else if age == 29 %}29{% endif %}", data) == "29");
     CHECK(env.render("{% if age == 26 %}26{% else if age == 27 %}27{% else if age == 28 %}28{% else %}29{% endif %}",
                      data) == "29");
@@ -187,8 +187,8 @@ TEST_CASE("functions") {
   }
 
   SUBCASE("sort") {
-    // CHECK(env.render("{{ sort([3, 2, 1]) }}", data) == "[1,2,3]");
-    // CHECK(env.render("{{ sort([\"bob\", \"charlie\", \"alice\"]) }}", data) == "[\"alice\",\"bob\",\"charlie\"]");
+    CHECK(env.render("{{ sort([3, 2, 1]) }}", data) == "[1,2,3]");
+    CHECK(env.render("{{ sort([\"bob\", \"charlie\", \"alice\"]) }}", data) == "[\"alice\",\"bob\",\"charlie\"]");
     // CHECK_THROWS_WITH( env.render("{{ sort(5) }}", data), "[inja.exception.json_error]
     // [json.exception.type_error.302] type must be array, but is number" );
   }
@@ -240,15 +240,15 @@ TEST_CASE("functions") {
   }
 
   SUBCASE("max") {
-    // CHECK(env.render("{{ max([1, 2, 3]) }}", data) == "3");
-    // CHECK(env.render("{{ max([-5.2, 100.2, 2.4]) }}", data) == "100.2");
+    CHECK(env.render("{{ max([1, 2, 3]) }}", data) == "3");
+    CHECK(env.render("{{ max([-5.2, 100.2, 2.4]) }}", data) == "100.2");
     // CHECK_THROWS_WITH( env.render("{{ max(name) }}", data), "[inja.exception.json_error]
     // [json.exception.type_error.302] type must be array, but is string" );
   }
 
   SUBCASE("min") {
-    // CHECK(env.render("{{ min([1, 2, 3]) }}", data) == "1");
-    // CHECK(env.render("{{ min([-5.2, 100.2, 2.4]) }}", data) == "-5.2");
+    CHECK(env.render("{{ min([1, 2, 3]) }}", data) == "1");
+    CHECK(env.render("{{ min([-5.2, 100.2, 2.4]) }}", data) == "-5.2");
     // CHECK_THROWS_WITH( env.render("{{ min(name) }}", data), "[inja.exception.json_error]
     // [json.exception.type_error.302] type must be array, but is string" );
   }
