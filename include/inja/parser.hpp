@@ -85,36 +85,42 @@ public:
   bool parse_expression(Template &tmpl, Token::Kind closing) {
     while (tok.kind != closing) {
       // Literals
-      if (tok.kind == Token::Kind::String) {
+      switch (tok.kind) {
+      case Token::Kind::String: {
         if (current_brace_level == 0 && current_bracket_level == 0) {
           json_first = tok.text;
           add_json_literal(tmpl.content.c_str());
         }
 
-      } else if (tok.kind == Token::Kind::Minus) {
+      } break;
+      case Token::Kind::Minus: {
         // TODO
         // get_prior_token()
         // if (prior_token ==
 
-      } else if (tok.kind == Token::Kind::Number) {
+      } break;
+      case Token::Kind::Number: {
         if (current_brace_level == 0 && current_bracket_level == 0) {
           json_first = tok.text;
           add_json_literal(tmpl.content.c_str());
         }
 
-      } else if (tok.kind == Token::Kind::LeftBracket) {
+      } break;
+      case Token::Kind::LeftBracket: {
         if (current_brace_level == 0 && current_bracket_level == 0) {
           json_first = tok.text;
         }
         current_bracket_level += 1;
 
-      } else if (tok.kind == Token::Kind::LeftBrace) {
+      } break;
+      case Token::Kind::LeftBrace: {
         if (current_brace_level == 0 && current_bracket_level == 0) {
           json_first = tok.text;
         }
         current_brace_level += 1;
 
-      } else if (tok.kind == Token::Kind::RightBracket) {
+      } break;
+      case Token::Kind::RightBracket: {
         if (current_bracket_level == 0) {
           throw_parser_error("unexpected ']'");
         }
@@ -124,7 +130,8 @@ public:
           add_json_literal(tmpl.content.c_str());
         }
 
-      } else if (tok.kind == Token::Kind::RightBrace) {
+      } break;
+      case Token::Kind::RightBrace: {
         if (current_brace_level == 0) {
           throw_parser_error("unexpected '}'");
         }
@@ -134,7 +141,8 @@ public:
           add_json_literal(tmpl.content.c_str());
         }
 
-      } else if (tok.kind == Token::Kind::Id) {
+      } break;
+      case Token::Kind::Id: {
         get_peek_token();
 
         // Json Literal
@@ -161,7 +169,18 @@ public:
         }
 
       // Operators
-      } else if (tok.kind == Token::Kind::Equal || tok.kind == Token::Kind::NotEqual || tok.kind == Token::Kind::GreaterThan || tok.kind == Token::Kind::GreaterEqual || tok.kind == Token::Kind::LessThan || tok.kind == Token::Kind::LessEqual || tok.kind == Token::Kind::Plus || tok.kind == Token::Kind::Times || tok.kind == Token::Kind::Slash || tok.kind == Token::Kind::Power || tok.kind == Token::Kind::Percent) {
+      } break;
+      case Token::Kind::Equal:
+      case Token::Kind::NotEqual:
+      case Token::Kind::GreaterThan:
+      case Token::Kind::GreaterEqual:
+      case Token::Kind::LessThan:
+      case Token::Kind::LessEqual:
+      case Token::Kind::Plus:
+      case Token::Kind::Times:
+      case Token::Kind::Slash:
+      case Token::Kind::Power:
+      case Token::Kind::Percent: {
 
   parse_operator:
         FunctionStorage::Operation operation;
@@ -228,8 +247,8 @@ public:
 
         operator_stack.emplace(function_node);
 
-      // Comma
-      } else if (tok.kind == Token::Kind::Comma) {
+      } break;
+      case Token::Kind::Comma: {
         if (current_brace_level == 0 && current_bracket_level == 0) {
           if (function_stack.empty()) {
             throw_parser_error("unexpected ','");
@@ -238,17 +257,26 @@ public:
           function_stack.top()->number_args += 1;
         }
 
-      // Parens
-      } else if (tok.kind == Token::Kind::Colon) {
+      } break;
+      case Token::Kind::Colon: {
         if (current_brace_level == 0 && current_bracket_level == 0) {
           throw_parser_error("unexpected ':'");
         }
 
-      } else if (tok.kind == Token::Kind::LeftParen) {
+      } break;
+      case Token::Kind::LeftParen: {
         current_paren_level += 1;
         operator_stack.emplace(std::make_shared<FunctionNode>(FunctionStorage::Operation::ParenLeft, tok.text.data() - tmpl.content.c_str()));
 
-      } else if (tok.kind == Token::Kind::RightParen) {
+        get_peek_token();
+        if (peek_tok.kind == Token::Kind::RightParen) {
+          if (!function_paren_level.empty() && function_paren_level.top() == current_paren_level - 1) {
+            function_stack.top()->number_args = 0;
+          }
+        }
+
+      } break;
+      case Token::Kind::RightParen: {
         current_paren_level -= 1;
         while (operator_stack.top()->operation != FunctionStorage::Operation::ParenLeft) {
           current_expression_list->rpn_output.emplace_back(operator_stack.top());
@@ -273,6 +301,9 @@ public:
           function_paren_level.pop();
           function_stack.pop();
         }
+      }
+      default:
+        break;
       }
 
       get_next_token();
@@ -452,8 +483,7 @@ public:
       } return;
       case Token::Kind::Text: {
         current_block->nodes.emplace_back(std::make_shared<TextNode>(static_cast<std::string>(tok.text), tok.text.data() - tmpl.content.c_str()));
-        break;
-      }
+      } break;
       case Token::Kind::StatementOpen: {
         get_next_token();
         if (!parse_statement(tmpl, Token::Kind::StatementClose, path)) {
