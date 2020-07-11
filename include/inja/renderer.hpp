@@ -31,7 +31,10 @@ class Renderer : public NodeVisitor  {
   const FunctionStorage &function_storage;
 
   const json *json_input;
+
   json json_loop_data;
+  json* current_loop_data = &json_loop_data["loop"];
+
   std::vector<json> json_tmp_stack;
   std::stack<const json*> json_eval_stack;
   std::stack<const JsonNode*> not_found_stack; 
@@ -99,7 +102,7 @@ class Renderer : public NodeVisitor  {
     }
 
     std::array<const json*, N> result;
-    for (int i = 0; i < N; i += 1) {
+    for (size_t i = 0; i < N; i += 1) {
       result[i] = json_eval_stack.top();
       json_eval_stack.pop();
 
@@ -118,7 +121,7 @@ class Renderer : public NodeVisitor  {
   template<bool throw_not_found=true>
   Arguments get_argument_vector(unsigned int N, const AstNode& node) {
     Arguments result {N};
-    for (int i = 0; i < N; i += 1) {
+    for (size_t i = 0; i < N; i += 1) {
       result[i] = json_eval_stack.top();
       json_eval_stack.pop();
 
@@ -147,6 +150,8 @@ public:
   void visit(const TextNode& node) {
     *output_stream << node.content;
   }
+
+  void visit(const ExpressionNode& node) { }
 
   void visit(const LiteralNode& node) {
     json_eval_stack.push(&node.value);
@@ -463,21 +468,24 @@ public:
     print_json(eval_expression_list(node));
   }
 
+  void visit(const StatementNode& node) { }
+
+  void visit(const ForStatementNode& node) { }
+
   void visit(const ForArrayStatementNode& node) {
     auto result = eval_expression_list(node.condition);
     if (!result->is_array()) {
       throw_renderer_error("object must be an array", node);
     }
 
-    json* current_loop_data = &json_loop_data["loop"];
-    if (!json_loop_data.empty()) {
+    if (!current_loop_data->empty()) {
       (*current_loop_data)["parent"] = std::move(*current_loop_data);
     }
 
     for (auto it = result->begin(); it != result->end(); ++it) {
       json_loop_data[static_cast<std::string>(node.value)] = *it;
 
-      int index = std::distance(result->begin(), it);
+      size_t index = std::distance(result->begin(), it);
       (*current_loop_data)["index"] = index;
       (*current_loop_data)["index1"] = index + 1;
       (*current_loop_data)["is_first"] = (index == 0);
@@ -487,10 +495,10 @@ public:
     }
 
     json_loop_data[static_cast<std::string>(node.value)].clear();
-    if (!json_loop_data["parent"].empty()) {
+    if (!(*current_loop_data)["parent"].empty()) {
       *current_loop_data = std::move((*current_loop_data)["parent"]);
     } else {
-      current_loop_data->clear();
+      current_loop_data = &json_loop_data["loop"];
     }
   }
 
@@ -500,8 +508,7 @@ public:
       throw_renderer_error("object must be an object", node);
     }
 
-    json* current_loop_data = &json_loop_data["loop"];
-    if (!json_loop_data.empty()) {
+    if (!current_loop_data->empty()) {
       (*current_loop_data)["parent"] = std::move(*current_loop_data);
     }
 
@@ -509,7 +516,7 @@ public:
       json_loop_data[static_cast<std::string>(node.key)] = it.key();
       json_loop_data[static_cast<std::string>(node.value)] = it.value();
 
-      int index = std::distance(result->begin(), it);
+      size_t index = std::distance(result->begin(), it);
       (*current_loop_data)["index"] = index;
       (*current_loop_data)["index1"] = index + 1;
       (*current_loop_data)["is_first"] = (index == 0);
@@ -520,10 +527,10 @@ public:
 
     json_loop_data[static_cast<std::string>(node.key)].clear();
     json_loop_data[static_cast<std::string>(node.value)].clear();
-    if (!json_loop_data["parent"].empty()) {
+    if (!(*current_loop_data)["parent"].empty()) {
       *current_loop_data = std::move((*current_loop_data)["parent"]);
     } else {
-      current_loop_data->clear();
+      current_loop_data = &json_loop_data["loop"];
     }
   }
 

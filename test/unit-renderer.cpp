@@ -91,12 +91,12 @@ TEST_CASE("types") {
     ]
 }
 )DELIM");
-    /* CHECK(env.render(R"DELIM(
+    CHECK(env.render(R"DELIM(
 {% for o in outer %}{% for i in o.inner %}{{loop.parent.index}}:{{loop.index}}::{{loop.parent.is_last}}
 {% for ii in i.in2%}{{ii}},{%endfor%}
 {%endfor%}{%endfor%}
 )DELIM",
-                     ldata) == "\n0:0::false\n1,2,\n0:1::false\n\n0:2::false\n\n2:0::true\n3,4,\n2:1::true\n5,6,\n\n"); */
+                     ldata) == "\n0:0::false\n1,2,\n0:1::false\n\n0:2::false\n\n2:0::true\n3,4,\n2:1::true\n5,6,\n\n");
   }
 
   SUBCASE("conditionals") {
