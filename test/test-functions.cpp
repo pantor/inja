@@ -21,6 +21,15 @@ TEST_CASE("functions") {
   data["is_sad"] = false;
   data["vars"] = {2, 3, 4, 0, -1, -2, -3};
 
+  SUBCASE("math") {
+    // CHECK(env.render("{{ 1 + 1 }}", data) == "2");
+    // CHECK(env.render("{{ 1 + 1 * 3 }}", data) == "4");
+    // CHECK(env.render("{{ (1 + 1) * 3 }}", data) == "6");
+    // CHECK(env.render("{{ 5 / 2 }}", data) == "2.5");
+    // CHECK(env.render("{{ 5^3 }}", data) == "125");
+    // CHECK(env.render("{{ 5 + 12 + 4 * (4 - (1 + 1))^2 - 75 * 1 }}", data) == "-42");
+  }
+
   SUBCASE("upper") {
     CHECK(env.render("{{ upper(name) }}", data) == "PETER");
     CHECK(env.render("{{ upper(  name  ) }}", data) == "PETER");
@@ -220,4 +229,33 @@ TEST_CASE("callbacks") {
   CHECK(env.render("{{ multiply(4, 5) }}", data) == "20.0");
   CHECK(env.render("{{ multiply(3, 4, 5) }}", data) == "60.0");
   CHECK(env.render("{{ multiply }}", data) == "1.0");
+
+  SUBCASE("Variadic") {
+    env.add_callback("argmax", [](inja::Arguments& args) {
+      auto result = std::max_element(args.begin(), args.end());
+      return std::distance(args.begin(), result);
+    });
+
+    // CHECK(env.render("{{ argmax(4, 2, 6) }}", data) == "2");
+    // CHECK(env.render("{{ argmax(0, 2, 6, 8, 3) }}", data) == "3");
+  }
+}
+
+TEST_CASE("combinations") {
+  inja::Environment env;
+  json data;
+  data["name"] = "Peter";
+  data["city"] = "Brunswick";
+  data["age"] = 29;
+  data["names"] = {"Jeff", "Seb"};
+  data["brother"]["name"] = "Chris";
+  data["brother"]["daughters"] = {"Maria", "Helen"};
+  data["brother"]["daughter0"] = {{"name", "Maria"}};
+  data["is_happy"] = true;
+
+  CHECK(env.render("{% if upper(\"Peter\") == \"PETER\" %}TRUE{% endif %}", data) == "TRUE");
+  CHECK(env.render("{% if lower(upper(name)) == \"peter\" %}TRUE{% endif %}", data) == "TRUE");
+  CHECK(env.render("{% for i in range(4) %}{{ loop.index1 }}{% endfor %}", data) == "1234");
+  CHECK(env.render("{{ upper(last(brother.daughters)) }}", data) == "HELEN");
+  CHECK(env.render("{{ length(name) * 2.5 }}", data) == "12.5");
 }

@@ -70,6 +70,10 @@ class Renderer : public NodeVisitor  {
       expression->accept(*this);
     }
 
+    if (json_eval_stack.empty()) {
+      throw_renderer_error("empty expression", expression_list);
+    }
+
     if (json_eval_stack.size() != 1) {
       throw_renderer_error("malformed expression", expression_list);
     } 
@@ -98,7 +102,7 @@ class Renderer : public NodeVisitor  {
   template<size_t N, bool throw_not_found=true>
   std::array<const json*, N> get_arguments(const AstNode& node) {
     if (json_eval_stack.size() < N) {
-      throw_renderer_error("function needs" + std::to_string(N) + "variables, but has only found " + std::to_string(json_eval_stack.size()), node);
+      throw_renderer_error("function needs " + std::to_string(N) + " variables, but has only found " + std::to_string(json_eval_stack.size()), node);
     }
 
     std::array<const json*, N> result;

@@ -284,6 +284,14 @@ env.add_callback("double", 1, [](Arguments& args) {
 // You can then use a callback like a regular function
 env.render("{{ double(16) }}", data); // "32"
 
+// Inja falls back to variadic callbacks if the number of expected arguments is omitted.
+env.add_callback("argmax", [](Arguments& args) {
+  auto result = std::max_element(args.begin(), args.end());
+  return std::distance(args.begin(), result);
+});
+env.render("{{ argmax(4, 2, 6) }}", data); // "2"
+env.render("{{ argmax(0, 2, 6, 8, 3) }}", data); // "3"
+
 // A callback without argument can be used like a dynamic variable:
 std::string greet = "Hello";
 env.add_callback("double-greetings", 0, [greet](Arguments args) {

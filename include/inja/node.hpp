@@ -142,7 +142,7 @@ public:
   explicit FunctionNode(Op operation, size_t pos) : ExpressionNode(pos), operation(operation), number_args(1) {
     switch (operation) {
       case Op::Not: {
-        precedence = 2;
+        precedence = 4;
         associativity = Associativity::Left;
       } break;
       case Op::And: {
@@ -179,6 +179,30 @@ public:
       } break;
       case Op::LessEqual: {
         precedence = 2;
+        associativity = Associativity::Left;
+      } break;
+      case Op::Add: {
+        precedence = 3;
+        associativity = Associativity::Left;
+      } break;
+      case Op::Subtract: {
+        precedence = 3;
+        associativity = Associativity::Left;
+      } break;
+      case Op::Multiplication: {
+        precedence = 4;
+        associativity = Associativity::Left;
+      } break;
+      case Op::Division: {
+        precedence = 4;
+        associativity = Associativity::Left;
+      } break;
+      case Op::Power: {
+        precedence = 5;
+        associativity = Associativity::Right;
+      } break;
+      case Op::Modulo: {
+        precedence = 4;
         associativity = Associativity::Left;
       } break;
       default: {

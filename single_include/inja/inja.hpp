@@ -1844,7 +1844,7 @@ namespace string_view {
 inline nonstd::string_view slice(nonstd::string_view view, size_t start, size_t end) {
   start = std::min(start, view.size());
   end = std::min(std::max(start, end), view.size());
-  return view.substr(start, end - start); // StringRef(Data + Start, End - Start);
+  return view.substr(start, end - start);
 }
 
 inline std::pair<nonstd::string_view, nonstd::string_view> split(nonstd::string_view view, char Separator) {
@@ -2425,7 +2425,7 @@ public:
   explicit FunctionNode(Op operation, size_t pos) : ExpressionNode(pos), operation(operation), number_args(1) {
     switch (operation) {
       case Op::Not: {
-        precedence = 2;
+        precedence = 4;
         associativity = Associativity::Left;
       } break;
       case Op::And: {
@@ -2462,6 +2462,30 @@ public:
       } break;
       case Op::LessEqual: {
         precedence = 2;
+        associativity = Associativity::Left;
+      } break;
+      case Op::Add: {
+        precedence = 3;
+        associativity = Associativity::Left;
+      } break;
+      case Op::Subtract: {
+        precedence = 3;
+        associativity = Associativity::Left;
+      } break;
+      case Op::Multiplication: {
+        precedence = 4;
+        associativity = Associativity::Left;
+      } break;
+      case Op::Division: {
+        precedence = 4;
+        associativity = Associativity::Left;
+      } break;
+      case Op::Power: {
+        precedence = 5;
+        associativity = Associativity::Right;
+      } break;
+      case Op::Modulo: {
+        precedence = 4;
         associativity = Associativity::Left;
       } break;
       default: {
@@ -3283,6 +3307,10 @@ class Renderer : public NodeVisitor  {
       expression->accept(*this);
     }
 
+    if (json_eval_stack.empty()) {
+      throw_renderer_error("empty expression", expression_list);
+    }
+
     if (json_eval_stack.size() != 1) {
       throw_renderer_error("malformed expression", expression_list);
     } 
@@ -3311,7 +3339,7 @@ class Renderer : public NodeVisitor  {
   template<size_t N, bool throw_not_found=true>
   std::array<const json*, N> get_arguments(const AstNode& node) {
     if (json_eval_stack.size() < N) {
-      throw_renderer_error("function needs" + std::to_string(N) + "variables, but has only found " + std::to_string(json_eval_stack.size()), node);
+      throw_renderer_error("function needs " + std::to_string(N) + " variables, but has only found " + std::to_string(json_eval_stack.size()), node);
     }
 
     std::array<const json*, N> result;

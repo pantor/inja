@@ -24,6 +24,7 @@ TEST_CASE("types") {
   SUBCASE("basic") {
     CHECK(env.render("", data) == "");
     CHECK(env.render("Hello World!", data) == "Hello World!");
+    CHECK_THROWS_WITH(env.render("{{ }}", data), "[inja.exception.render_error] (at 1:4) empty expression");
   }
 
   SUBCASE("variables") {
@@ -134,23 +135,6 @@ Yeah!
                      data) == R"(Yeah!
 )");
   }
-}
-
-TEST_CASE("combinations") {
-  inja::Environment env;
-  json data;
-  data["name"] = "Peter";
-  data["city"] = "Brunswick";
-  data["age"] = 29;
-  data["names"] = {"Jeff", "Seb"};
-  data["brother"]["name"] = "Chris";
-  data["brother"]["daughters"] = {"Maria", "Helen"};
-  data["brother"]["daughter0"] = {{"name", "Maria"}};
-  data["is_happy"] = true;
-
-  CHECK(env.render("{% if upper(\"Peter\") == \"PETER\" %}TRUE{% endif %}", data) == "TRUE");
-  CHECK(env.render("{% if lower(upper(name)) == \"peter\" %}TRUE{% endif %}", data) == "TRUE");
-  CHECK(env.render("{% for i in range(4) %}{{ loop.index1 }}{% endfor %}", data) == "1234");
 }
 
 TEST_CASE("templates") {
