@@ -3,9 +3,6 @@
 #include "doctest/doctest.h"
 #include "inja/inja.hpp"
 
-using json = nlohmann::json;
-
-const std::string test_file_directory {"../test/data/"};
 
 TEST_CASE("loading") {
   inja::Environment env;

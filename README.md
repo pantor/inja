@@ -273,7 +273,7 @@ Environment env;
 /*
  * Callbacks are defined by its:
  * - name
- * - number of arguments
+ * - (optional) number of arguments
  * - callback function. Implemented with std::function, you can for example use lambdas.
  */
 env.add_callback("double", 1, [](Arguments& args) {
