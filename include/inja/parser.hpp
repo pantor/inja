@@ -40,14 +40,13 @@ class Parser {
   size_t current_bracket_level {0};
   size_t current_brace_level {0};
 
-  nonstd::string_view json_first;
+  nonstd::string_view json_literal_start;
 
   BlockNode *current_block {nullptr};
   ExpressionListNode *current_expression_list {nullptr};
-  std::stack<FunctionNode*> function_stack;
-  std::stack<size_t> function_paren_level;
-  std::stack<std::shared_ptr<FunctionNode>> operator_stack;
+  std::stack<std::pair<FunctionNode*, size_t>> function_stack;
 
+  std::stack<std::shared_ptr<FunctionNode>> operator_stack;
   std::stack<IfStatementNode*> if_statement_stack;
   std::stack<ForStatementNode*> for_statement_stack;
 
@@ -72,7 +71,7 @@ class Parser {
   }
 
   void add_json_literal(const char* content_ptr) {
-    nonstd::string_view json_text(json_first.data(), tok.text.data() - json_first.data() + tok.text.size());
+    nonstd::string_view json_text(json_literal_start.data(), tok.text.data() - json_literal_start.data() + tok.text.size());
     current_expression_list->rpn_output.emplace_back(std::make_shared<LiteralNode>(json::parse(json_text), json_text.data() - content_ptr));
   }
 
@@ -88,34 +87,28 @@ public:
       switch (tok.kind) {
       case Token::Kind::String: {
         if (current_brace_level == 0 && current_bracket_level == 0) {
-          json_first = tok.text;
+          json_literal_start = tok.text;
           add_json_literal(tmpl.content.c_str());
         }
 
       } break;
-      case Token::Kind::Minus: {
-        // TODO
-        // get_prior_token()
-        // if (prior_token ==
-
-      } break;
       case Token::Kind::Number: {
         if (current_brace_level == 0 && current_bracket_level == 0) {
-          json_first = tok.text;
+          json_literal_start = tok.text;
           add_json_literal(tmpl.content.c_str());
         }
 
       } break;
       case Token::Kind::LeftBracket: {
         if (current_brace_level == 0 && current_bracket_level == 0) {
-          json_first = tok.text;
+          json_literal_start = tok.text;
         }
         current_bracket_level += 1;
 
       } break;
       case Token::Kind::LeftBrace: {
         if (current_brace_level == 0 && current_bracket_level == 0) {
-          json_first = tok.text;
+          json_literal_start = tok.text;
         }
         current_brace_level += 1;
 
@@ -148,7 +141,7 @@ public:
         // Json Literal
         if (tok.text == static_cast<decltype(tok.text)>("true") || tok.text == static_cast<decltype(tok.text)>("false") || tok.text == static_cast<decltype(tok.text)>("null")) {
           if (current_brace_level == 0 && current_bracket_level == 0) {
-            json_first = tok.text;
+            json_literal_start = tok.text;
             add_json_literal(tmpl.content.c_str());
           }
 
@@ -156,8 +149,7 @@ public:
         } else if (peek_tok.kind == Token::Kind::LeftParen) {
           auto name = static_cast<std::string>(tok.text);
           operator_stack.emplace(std::make_shared<FunctionNode>(static_cast<std::string>(tok.text), tok.text.data() - tmpl.content.c_str()));
-          function_stack.emplace(operator_stack.top().get());
-          function_paren_level.emplace(current_paren_level);
+          function_stack.emplace(operator_stack.top().get(), current_paren_level);
 
         // Operator
         } else if (tok.text == "and" || tok.text == "or" || tok.text == "in" || tok.text == "not") {
@@ -254,7 +246,7 @@ public:
             throw_parser_error("unexpected ','");
           }
 
-          function_stack.top()->number_args += 1;
+          function_stack.top().first->number_args += 1;
         }
 
       } break;
@@ -270,8 +262,8 @@ public:
 
         get_peek_token();
         if (peek_tok.kind == Token::Kind::RightParen) {
-          if (!function_paren_level.empty() && function_paren_level.top() == current_paren_level - 1) {
-            function_stack.top()->number_args = 0;
+          if (!function_stack.empty() && function_stack.top().second == current_paren_level - 1) {
+            function_stack.top().first->number_args = 0;
           }
         }
 
@@ -287,8 +279,8 @@ public:
           operator_stack.pop();
         }
 
-        if (function_paren_level.top() == current_paren_level) {
-          auto func = function_stack.top();
+        if (function_stack.top().second == current_paren_level) {
+          auto func = function_stack.top().first;
           auto function_data = function_storage.find_function(func->name, func->number_args);
           if (function_data.operation == FunctionStorage::Operation::None) {
             throw_parser_error("unknown function " + func->name);
@@ -298,7 +290,6 @@ public:
             func->callback = function_data.callback;
           }
 
-          function_paren_level.pop();
           function_stack.pop();
         }
       }

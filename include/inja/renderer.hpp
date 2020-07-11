@@ -25,6 +25,19 @@ namespace inja {
 class Renderer : public NodeVisitor  {
   using Op = FunctionStorage::Operation;
 
+  const RenderConfig config;
+  const Template *current_template;
+  const TemplateStorage &template_storage;
+  const FunctionStorage &function_storage;
+
+  const json *json_input;
+  json json_loop_data;
+  std::vector<json> json_tmp_stack;
+  std::stack<const json*> json_eval_stack;
+  std::stack<const JsonNode*> not_found_stack; 
+
+  std::ostream *output_stream;
+
   bool truthy(const json* data) const {
     if (data->empty()) {
       return false;
@@ -54,13 +67,22 @@ class Renderer : public NodeVisitor  {
       expression->accept(*this);
     }
 
+    if (json_eval_stack.size() != 1) {
+      throw_renderer_error("malformed expression", expression_list);
+    } 
+
     auto result = json_eval_stack.top();
     json_eval_stack.pop();
 
-    if (!json_eval_stack.empty()) {
-      throw_renderer_error("malformed expression", expression_list);
-    } else if (!result) {
-      throw_renderer_error("expression could not be evaluated", expression_list);
+    if (!result) {
+      if (not_found_stack.empty()) {
+        throw_renderer_error("expression could not be evaluated", expression_list);
+      }
+
+      auto node = not_found_stack.top();
+      not_found_stack.pop();
+
+      throw_renderer_error("variable '" + static_cast<std::string>(node->name) + "' not found", *node);
     }
     return result;
   }
@@ -70,7 +92,7 @@ class Renderer : public NodeVisitor  {
     throw RenderError(message, loc);
   }
 
-  template<size_t N>
+  template<size_t N, bool throw_not_found=true>
   std::array<const json*, N> get_arguments(const AstNode& node) {
     if (json_eval_stack.size() < N) {
       throw_renderer_error("function needs" + std::to_string(N) + "variables, but has only found " + std::to_string(json_eval_stack.size()), node);
@@ -80,30 +102,37 @@ class Renderer : public NodeVisitor  {
     for (int i = 0; i < N; i += 1) {
       result[i] = json_eval_stack.top();
       json_eval_stack.pop();
+
+      if (!result[i]) {
+        auto node = not_found_stack.top();
+        not_found_stack.pop();
+
+        if (throw_not_found) {
+          throw_renderer_error("variable '" + static_cast<std::string>(node->name) + "' not found", *node);
+        }
+      }
     }
     return result;
   }
 
+  template<bool throw_not_found=true>
   Arguments get_argument_vector(unsigned int N, const AstNode& node) {
-    Arguments result;
+    Arguments result {N};
     for (int i = 0; i < N; i += 1) {
-      result.push_back(json_eval_stack.top());
+      result[i] = json_eval_stack.top();
       json_eval_stack.pop();
+
+      if (!result[i]) {
+        auto node = not_found_stack.top();
+        not_found_stack.pop();
+
+        if (throw_not_found) {
+          throw_renderer_error("variable '" + static_cast<std::string>(node->name) + "' not found", *node);
+        }
+      }
     }
     return result;
   }
-
-  const RenderConfig config;
-  const Template *current_template;
-  const TemplateStorage &template_storage;
-  const FunctionStorage &function_storage;
-
-  const json *json_input;
-  json json_loop_data;
-  std::stack<json> json_tmp_stack;
-  std::stack<const json*> json_eval_stack;
-
-  std::ostream *output_stream;
 
 public:
   Renderer(const RenderConfig& config, const TemplateStorage &template_storage, const FunctionStorage &function_storage)
@@ -138,14 +167,14 @@ public:
       // Try to evaluate as a no-argument callback
       auto function_data = function_storage.find_function(node.name, 0);
       if (function_data.operation == FunctionStorage::Operation::Callback) {
-        std::vector<const json *> empty_args {};
+        Arguments empty_args {};
         auto value = function_data.callback(empty_args);
-        json_tmp_stack.push(value);
-        json_eval_stack.push(&json_tmp_stack.top());
+        json_tmp_stack.push_back(value);
+        json_eval_stack.push(&json_tmp_stack.back());
       
       } else {
-        // json_eval_stack.push(nullptr);
-        throw_renderer_error("variable '" + static_cast<std::string>(node.name) + "' not found", node);
+        json_eval_stack.push(nullptr);
+        not_found_stack.emplace(&node);
       }
     }
   }
@@ -155,95 +184,95 @@ public:
     case Op::Not: {
       auto args = get_arguments<1>(node);
       bool result = !truthy(args[0]);
-      json_tmp_stack.push(result);
-      json_eval_stack.push(&json_tmp_stack.top());
+      json_tmp_stack.push_back(result);
+      json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::And: {
       auto args = get_arguments<2>(node);
       bool result = truthy(args[1]) && truthy(args[0]);
-      json_tmp_stack.push(result);
-      json_eval_stack.push(&json_tmp_stack.top());
+      json_tmp_stack.push_back(result);
+      json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::Or: {
       auto args = get_arguments<2>(node);
       bool result = truthy(args[1]) || truthy(args[0]);
-      json_tmp_stack.push(result);
-      json_eval_stack.push(&json_tmp_stack.top());
+      json_tmp_stack.push_back(result);
+      json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::In: {
       auto args = get_arguments<2>(node);
       bool result = std::find(args[0]->begin(), args[0]->end(), *args[1]) != args[0]->end();
-      json_tmp_stack.push(result);
-      json_eval_stack.push(&json_tmp_stack.top());
+      json_tmp_stack.push_back(result);
+      json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::Equal: {
       auto args = get_arguments<2>(node);
       bool result = (*args[1] == *args[0]);
-      json_tmp_stack.push(result);
-      json_eval_stack.push(&json_tmp_stack.top());
+      json_tmp_stack.push_back(result);
+      json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::NotEqual: {
       auto args = get_arguments<2>(node);
       bool result = (*args[1] != *args[0]);
-      json_tmp_stack.push(result);
-      json_eval_stack.push(&json_tmp_stack.top());
+      json_tmp_stack.push_back(result);
+      json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::Greater: {
       auto args = get_arguments<2>(node);
       bool result = (*args[1] > *args[0]);
-      json_tmp_stack.push(result);
-      json_eval_stack.push(&json_tmp_stack.top());
+      json_tmp_stack.push_back(result);
+      json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::GreaterEqual: {
       auto args = get_arguments<2>(node);
       bool result = (*args[1] >= *args[0]);
-      json_tmp_stack.push(result);
-      json_eval_stack.push(&json_tmp_stack.top());
+      json_tmp_stack.push_back(result);
+      json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::Less: {
       auto args = get_arguments<2>(node);
       bool result = (*args[1] < *args[0]);
-      json_tmp_stack.push(result);
-      json_eval_stack.push(&json_tmp_stack.top());
+      json_tmp_stack.push_back(result);
+      json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::LessEqual: {
       auto args = get_arguments<2>(node);
       bool result = (*args[1] <= *args[0]);
-      json_tmp_stack.push(result);
-      json_eval_stack.push(&json_tmp_stack.top());
+      json_tmp_stack.push_back(result);
+      json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::Add: {
       auto args = get_arguments<2>(node);
       if (args[1]->is_number_integer() && args[0]->is_number_integer()) {
         int result = args[1]->get<int>() + args[0]->get<int>();
-        json_tmp_stack.push(result);
+        json_tmp_stack.push_back(result);
       } else {
         double result = args[1]->get<double>() + args[0]->get<double>();
-        json_tmp_stack.push(result);
+        json_tmp_stack.push_back(result);
       }
-      json_eval_stack.push(&json_tmp_stack.top());
+      json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::Subtract: {
       auto args = get_arguments<2>(node);
       if (args[1]->is_number_integer() && args[0]->is_number_integer()) {
         int result = args[1]->get<int>() - args[0]->get<int>();
-        json_tmp_stack.push(result);
+        json_tmp_stack.push_back(result);
       } else {
         double result = args[1]->get<double>() - args[0]->get<double>();
-        json_tmp_stack.push(result);
+        json_tmp_stack.push_back(result);
       }
-      json_eval_stack.push(&json_tmp_stack.top());
+      json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::Multiplication: {
       auto args = get_arguments<2>(node);
       if (args[1]->is_number_integer() && args[0]->is_number_integer()) {
         int result = args[1]->get<int>() * args[0]->get<int>();
-        json_tmp_stack.push(result);
+        json_tmp_stack.push_back(result);
       } else {
         double result = args[1]->get<double>() * args[0]->get<double>();
-        json_tmp_stack.push(result);
+        json_tmp_stack.push_back(result);
       }
-      json_eval_stack.push(&json_tmp_stack.top());
+      json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::Division: {
       auto args = get_arguments<2>(node);
@@ -251,82 +280,77 @@ public:
         throw_renderer_error("division by zero", node);
       }
       double result = args[1]->get<double>() / args[0]->get<double>();
-      json_tmp_stack.push(result);
-      json_eval_stack.push(&json_tmp_stack.top());
+      json_tmp_stack.push_back(result);
+      json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::Power: {
       auto args = get_arguments<2>(node);
       double result = std::pow(args[1]->get<double>(), args[0]->get<int>());
-      json_tmp_stack.push(result);
-      json_eval_stack.push(&json_tmp_stack.top());
+      json_tmp_stack.push_back(result);
+      json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::Modulo: {
       auto args = get_arguments<2>(node);
       double result = args[1]->get<int>() % args[0]->get<int>();
-      json_tmp_stack.push(result);
-      json_eval_stack.push(&json_tmp_stack.top());
+      json_tmp_stack.push_back(result);
+      json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::At: {
       auto args = get_arguments<2>(node);
       auto result = args[1]->at(args[0]->get<int>());
-      json_tmp_stack.push(result);
-      json_eval_stack.push(&json_tmp_stack.top());
+      json_tmp_stack.push_back(result);
+      json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::Default: {
-      auto normal_arg = get_arguments<1>(node)[0];
-      if (normal_arg) {
-        json_eval_stack.push(normal_arg);
-        get_arguments<1>(node)[0];
-
-      } else {
-        auto default_arg = get_arguments<1>(node)[0];
-        json_eval_stack.push(default_arg);
-      }
+      auto default_arg = get_arguments<1>(node)[0];
+      auto test_arg = get_arguments<1, false>(node)[0];
+      auto result = test_arg ? test_arg : default_arg;
+      json_eval_stack.push(result);
     } break;
     case Op::DivisibleBy: {
       auto args = get_arguments<2>(node);
       int divisor = args[0]->get<int>();
       bool result = (divisor != 0) && (args[1]->get<int>() % divisor == 0);
-      json_tmp_stack.push(result);
-      json_eval_stack.push(&json_tmp_stack.top());
+      json_tmp_stack.push_back(result);
+      json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::Even: {
       bool result = (get_arguments<1>(node)[0]->get<int>() % 2 == 0);
-      json_tmp_stack.push(result);
-      json_eval_stack.push(&json_tmp_stack.top());
+      json_tmp_stack.push_back(result);
+      json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::Exists: {
       auto &&name = get_arguments<1>(node)[0]->get_ref<const std::string &>();
       bool result = (json_input->find(name) != json_input->end());
-      json_tmp_stack.push(result);
-      json_eval_stack.push(&json_tmp_stack.top());
+      json_tmp_stack.push_back(result);
+      json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::ExistsInObject: {
       auto args = get_arguments<2>(node);
       auto &&name = args[0]->get_ref<const std::string &>();
       bool result = (args[1]->find(name) != args[1]->end());
-      json_tmp_stack.push(result);
-      json_eval_stack.push(&json_tmp_stack.top());
+      json_tmp_stack.push_back(result);
+      json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::First: {
       auto result = get_arguments<1>(node)[0]->front();
-      json_tmp_stack.push(result);
-      json_eval_stack.push(&json_tmp_stack.top());
+      json_tmp_stack.push_back(result);
+      json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::Float: {
       double result = std::stod(get_arguments<1>(node)[0]->get_ref<const std::string &>());
-      json_tmp_stack.push(result);
-      json_eval_stack.push(&json_tmp_stack.top());
+      json_tmp_stack.push_back(result);
+      json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::Int: {
       int result = std::stoi(get_arguments<1>(node)[0]->get_ref<const std::string &>());
-      json_tmp_stack.push(result);
-      json_eval_stack.push(&json_tmp_stack.top());
+      json_tmp_stack.push_back(result);
+      json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::Last: {
       auto result = get_arguments<1>(node)[0]->back();
-      json_tmp_stack.push(result);
-      json_eval_stack.push(&json_tmp_stack.top());
+      json_tmp_stack.push_back(result);
+      json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::Length: {
       auto val = get_arguments<1>(node)[0];
@@ -336,97 +360,97 @@ public:
       } else {
         result = val->size();
       }
-      json_tmp_stack.push(result);
-      json_eval_stack.push(&json_tmp_stack.top());
+      json_tmp_stack.push_back(result);
+      json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::Lower: {
       auto result = get_arguments<1>(node)[0]->get<std::string>();
       std::transform(result.begin(), result.end(), result.begin(), ::tolower);
-      json_tmp_stack.push(result);
-      json_eval_stack.push(&json_tmp_stack.top());
+      json_tmp_stack.push_back(result);
+      json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::Max: {
       auto args = get_arguments<1>(node);
       auto result = *std::max_element(args[0]->begin(), args[0]->end());
-      json_tmp_stack.push(result);
-      json_eval_stack.push(&json_tmp_stack.top());
+      json_tmp_stack.push_back(result);
+      json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::Min: {
       auto args = get_arguments<1>(node);
       auto result = *std::min_element(args[0]->begin(), args[0]->end());
-      json_tmp_stack.push(result);
-      json_eval_stack.push(&json_tmp_stack.top());
+      json_tmp_stack.push_back(result);
+      json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::Odd: {
       bool result = (get_arguments<1>(node)[0]->get<int>() % 2 != 0);
-      json_tmp_stack.push(result);
-      json_eval_stack.push(&json_tmp_stack.top());
+      json_tmp_stack.push_back(result);
+      json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::Range: {
       std::vector<int> result(get_arguments<1>(node)[0]->get<int>());
       std::iota(std::begin(result), std::end(result), 0);
-      json_tmp_stack.push(result);
-      json_eval_stack.push(&json_tmp_stack.top());
+      json_tmp_stack.push_back(result);
+      json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::Round: {
       auto args = get_arguments<2>(node);
       int precision = args[0]->get<int>();
       auto result = std::round(args[1]->get<double>() * std::pow(10.0, precision)) / std::pow(10.0, precision);
-      json_tmp_stack.push(result);
-      json_eval_stack.push(&json_tmp_stack.top());
+      json_tmp_stack.push_back(result);
+      json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::Sort: {
       auto result = get_arguments<1>(node)[0]->get<std::vector<json>>();
       std::sort(result.begin(), result.end());
-      json_tmp_stack.push(result);
-      json_eval_stack.push(&json_tmp_stack.top());
+      json_tmp_stack.push_back(result);
+      json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::Upper: {
       auto result = get_arguments<1>(node)[0]->get<std::string>();
       std::transform(result.begin(), result.end(), result.begin(), ::toupper);
-      json_tmp_stack.push(result);
-      json_eval_stack.push(&json_tmp_stack.top());
+      json_tmp_stack.push_back(result);
+      json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::IsBoolean: {
       bool result = get_arguments<1>(node)[0]->is_boolean();
-      json_tmp_stack.push(result);
-      json_eval_stack.push(&json_tmp_stack.top());
+      json_tmp_stack.push_back(result);
+      json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::IsNumber: {
       bool result = get_arguments<1>(node)[0]->is_number();
-      json_tmp_stack.push(result);
-      json_eval_stack.push(&json_tmp_stack.top());
+      json_tmp_stack.push_back(result);
+      json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::IsInteger: {
       bool result = get_arguments<1>(node)[0]->is_number_integer();
-      json_tmp_stack.push(result);
-      json_eval_stack.push(&json_tmp_stack.top());
+      json_tmp_stack.push_back(result);
+      json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::IsFloat: {
       bool result = get_arguments<1>(node)[0]->is_number_float();
-      json_tmp_stack.push(result);
-      json_eval_stack.push(&json_tmp_stack.top());
+      json_tmp_stack.push_back(result);
+      json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::IsObject: {
       bool result = get_arguments<1>(node)[0]->is_object();
-      json_tmp_stack.push(result);
-      json_eval_stack.push(&json_tmp_stack.top());
+      json_tmp_stack.push_back(result);
+      json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::IsArray: {
       bool result = get_arguments<1>(node)[0]->is_array();
-      json_tmp_stack.push(result);
-      json_eval_stack.push(&json_tmp_stack.top());
+      json_tmp_stack.push_back(result);
+      json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::IsString: {
       bool result = get_arguments<1>(node)[0]->is_string();
-      json_tmp_stack.push(result);
-      json_eval_stack.push(&json_tmp_stack.top());
+      json_tmp_stack.push_back(result);
+      json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::Callback: {
       auto args = get_argument_vector(node.number_args, node);
       json result = node.callback(args);
-      json_tmp_stack.push(result);
-      json_eval_stack.push(&json_tmp_stack.top());
+      json_tmp_stack.push_back(result);
+      json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::ParenLeft:
     case Op::ParenRight:
@@ -532,6 +556,8 @@ public:
     }
 
     current_template->root.accept(*this);
+
+    json_tmp_stack.clear();
   }
 };
 
