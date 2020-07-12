@@ -82,7 +82,7 @@ public:
       : config(parser_config), lexer(lexer_config), template_storage(template_storage), function_storage(function_storage) { }
 
   bool parse_expression(Template &tmpl, Token::Kind closing) {
-    while (tok.kind != closing) {
+    while (tok.kind != closing && tok.kind != Token::Kind::Eof) {
       // Literals
       switch (tok.kind) {
       case Token::Kind::String: {
@@ -486,7 +486,9 @@ public:
       } break;
       case Token::Kind::LineStatementOpen: {
         get_next_token();
-        parse_statement(tmpl, Token::Kind::LineStatementClose, path);
+        if (!parse_statement(tmpl, Token::Kind::LineStatementClose, path)) {
+          throw_parser_error("expected statement, got '" + tok.describe() + "'");
+        }
         if (tok.kind != Token::Kind::LineStatementClose && tok.kind != Token::Kind::Eof) {
           throw_parser_error("expected line statement close, got '" + tok.describe() + "'");
         }

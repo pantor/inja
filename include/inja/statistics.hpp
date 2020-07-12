@@ -22,15 +22,15 @@ struct StatisticsVisitor : public NodeVisitor {
     }
   }
 
-  void visit(const TextNode& node) { }
-  void visit(const ExpressionNode& node) { }
-  void visit(const LiteralNode& node) { }
+  void visit(const TextNode&) { }
+  void visit(const ExpressionNode&) { }
+  void visit(const LiteralNode&) { }
 
-  void visit(const JsonNode& node) {
+  void visit(const JsonNode&) {
     variable_counter += 1;
   }
 
-  void visit(const FunctionNode& node) { }
+  void visit(const FunctionNode&) { }
 
   void visit(const ExpressionListNode& node) {
     for (auto& n : node.rpn_output) {
@@ -38,8 +38,8 @@ struct StatisticsVisitor : public NodeVisitor {
     }
   }
 
-  void visit(const StatementNode& node) { }
-  void visit(const ForStatementNode& node) { }
+  void visit(const StatementNode&) { }
+  void visit(const ForStatementNode&) { }
 
   void visit(const ForArrayStatementNode& node) {
     node.condition.accept(*this);
@@ -57,7 +57,7 @@ struct StatisticsVisitor : public NodeVisitor {
     node.false_statement.accept(*this);
   }
 
-  void visit(const IncludeStatementNode& node) { }
+  void visit(const IncludeStatementNode&) { }
 };
 
 } // namespace inja

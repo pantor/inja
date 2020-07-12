@@ -31,6 +31,7 @@ class Renderer : public NodeVisitor  {
   const FunctionStorage &function_storage;
 
   const json *json_input;
+  std::ostream *output_stream;
 
   json json_loop_data;
   json* current_loop_data = &json_loop_data["loop"];
@@ -38,8 +39,6 @@ class Renderer : public NodeVisitor  {
   std::vector<json> json_tmp_stack;
   std::stack<const json*> json_eval_stack;
   std::stack<const JsonNode*> not_found_stack; 
-
-  std::ostream *output_stream;
 
   bool truthy(const json* data) const {
     if (data->empty()) {
@@ -65,7 +64,7 @@ class Renderer : public NodeVisitor  {
     }
   }
 
-  const json* eval_expression_list(const ExpressionListNode& expression_list) {
+  const std::shared_ptr<json> eval_expression_list(const ExpressionListNode& expression_list) {
     for (auto& expression : expression_list.rpn_output) {
       expression->accept(*this);
     }
@@ -91,7 +90,7 @@ class Renderer : public NodeVisitor  {
 
       throw_renderer_error("variable '" + static_cast<std::string>(node->name) + "' not found", *node);
     }
-    return result;
+    return std::make_shared<json>(*result);
   }
 
   void throw_renderer_error(const std::string &message, const AstNode& node) {
@@ -155,7 +154,7 @@ public:
     *output_stream << node.content;
   }
 
-  void visit(const ExpressionNode& node) { }
+  void visit(const ExpressionNode&) { }
 
   void visit(const LiteralNode& node) {
     json_eval_stack.push(&node.value);
@@ -252,7 +251,10 @@ public:
     } break;
     case Op::Add: {
       auto args = get_arguments<2>(node);
-      if (args[1]->is_number_integer() && args[0]->is_number_integer()) {
+      if (args[1]->is_string() && args[0]->is_string()) {
+        std::string result = args[1]->get<std::string>() + args[0]->get<std::string>();
+        json_tmp_stack.push_back(result);
+      } else if (args[1]->is_number_integer() && args[0]->is_number_integer()) {
         int result = args[1]->get<int>() + args[0]->get<int>();
         json_tmp_stack.push_back(result);
       } else {
@@ -306,9 +308,8 @@ public:
     } break;
     case Op::At: {
       auto args = get_arguments<2>(node);
-      auto result = args[1]->at(args[0]->get<int>());
-      json_tmp_stack.push_back(result);
-      json_eval_stack.push(&json_tmp_stack.back());
+      auto result = &args[1]->at(args[0]->get<int>());
+      json_eval_stack.push(result);
     } break;
     case Op::Default: {
       auto default_arg = get_arguments<1>(node)[0];
@@ -342,9 +343,8 @@ public:
       json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::First: {
-      auto result = get_arguments<1>(node)[0]->front();
-      json_tmp_stack.push_back(result);
-      json_eval_stack.push(&json_tmp_stack.back());
+      auto result = &get_arguments<1>(node)[0]->front();
+      json_eval_stack.push(result);
     } break;
     case Op::Float: {
       double result = std::stod(get_arguments<1>(node)[0]->get_ref<const std::string &>());
@@ -357,9 +357,8 @@ public:
       json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::Last: {
-      auto result = get_arguments<1>(node)[0]->back();
-      json_tmp_stack.push_back(result);
-      json_eval_stack.push(&json_tmp_stack.back());
+      auto result = &get_arguments<1>(node)[0]->back();
+      json_eval_stack.push(result);
     } break;
     case Op::Length: {
       auto val = get_arguments<1>(node)[0];
@@ -380,15 +379,13 @@ public:
     } break;
     case Op::Max: {
       auto args = get_arguments<1>(node);
-      auto result = *std::max_element(args[0]->begin(), args[0]->end());
-      json_tmp_stack.push_back(result);
-      json_eval_stack.push(&json_tmp_stack.back());
+      auto result = std::max_element(args[0]->begin(), args[0]->end());
+      json_eval_stack.push(&(*result));
     } break;
     case Op::Min: {
       auto args = get_arguments<1>(node);
-      auto result = *std::min_element(args[0]->begin(), args[0]->end());
-      json_tmp_stack.push_back(result);
-      json_eval_stack.push(&json_tmp_stack.back());
+      auto result = std::min_element(args[0]->begin(), args[0]->end());
+      json_eval_stack.push(&(*result));
     } break;
     case Op::Odd: {
       bool result = (get_arguments<1>(node)[0]->get<int>() % 2 != 0);
@@ -469,12 +466,12 @@ public:
   }
 
   void visit(const ExpressionListNode& node) {
-    print_json(eval_expression_list(node));
+    print_json(eval_expression_list(node).get());
   }
 
-  void visit(const StatementNode& node) { }
+  void visit(const StatementNode&) { }
 
-  void visit(const ForStatementNode& node) { }
+  void visit(const ForStatementNode&) { }
 
   void visit(const ForArrayStatementNode& node) {
     auto result = eval_expression_list(node.condition);
@@ -540,7 +537,7 @@ public:
 
   void visit(const IfStatementNode& node) {
     auto result = eval_expression_list(node.condition);
-    if (truthy(result)) {
+    if (truthy(result.get())) {
       node.true_statement.accept(*this);
     } else if (node.has_false_statement) {
       node.false_statement.accept(*this);

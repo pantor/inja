@@ -25,6 +25,7 @@ TEST_CASE("types") {
     CHECK(env.render("", data) == "");
     CHECK(env.render("Hello World!", data) == "Hello World!");
     CHECK_THROWS_WITH(env.render("{{ }}", data), "[inja.exception.render_error] (at 1:4) empty expression");
+    CHECK_THROWS_WITH(env.render("{{", data), "[inja.exception.parser_error] (at 1:3) expected expression close, got '<eof>'");
   }
 
   SUBCASE("variables") {

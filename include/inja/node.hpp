@@ -55,6 +55,7 @@ public:
   size_t pos;
 
   AstNode(size_t pos) : pos(pos) { }
+  virtual ~AstNode() { };
 };
 
 
@@ -138,7 +139,7 @@ public:
   unsigned int number_args;
   CallbackFunction callback;
 
-  explicit FunctionNode(nonstd::string_view name, size_t pos) : ExpressionNode(pos), operation(Op::Callback), name(name), precedence(5), associativity(Associativity::Left), number_args(1) { }
+  explicit FunctionNode(nonstd::string_view name, size_t pos) : ExpressionNode(pos), precedence(5), associativity(Associativity::Left), operation(Op::Callback), name(name), number_args(1) { }
   explicit FunctionNode(Op operation, size_t pos) : ExpressionNode(pos), operation(operation), number_args(1) {
     switch (operation) {
       case Op::Not: {
