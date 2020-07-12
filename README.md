@@ -266,15 +266,15 @@ Stripping behind a statement also remove any newlines.
 
 ### Callbacks
 
-You can create your own and more complex functions with callbacks.
+You can create your own and more complex functions with callbacks. These are implemented with `std::function`, so you can for example use C++ lambdas. Inja `Arguments` are a vector of json pointers.
 ```.cpp
 Environment env;
 
 /*
  * Callbacks are defined by its:
- * - name
- * - (optional) number of arguments
- * - callback function. Implemented with std::function, you can for example use lambdas.
+ * - name,
+ * - (optional) number of arguments,
+ * - callback function.
  */
 env.add_callback("double", 1, [](Arguments& args) {
 	int number = args.at(0)->get<int>(); // Adapt the index and type of the argument
@@ -286,7 +286,7 @@ env.render("{{ double(16) }}", data); // "32"
 
 // Inja falls back to variadic callbacks if the number of expected arguments is omitted.
 env.add_callback("argmax", [](Arguments& args) {
-  auto result = std::max_element(args.begin(), args.end());
+  auto result = std::max_element(args.begin(), args.end(), [](const json* a, const json* b) { return *a < *b;});
   return std::distance(args.begin(), result);
 });
 env.render("{{ argmax(4, 2, 6) }}", data); // "2"
