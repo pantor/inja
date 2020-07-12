@@ -107,11 +107,11 @@ public:
 
 public:
   void add_builtin(nonstd::string_view name, int num_args, Operation op) {
-    function_storage.emplace(std::make_pair(name, num_args), FunctionData { op });
+    function_storage.emplace(std::make_pair(static_cast<std::string>(name), num_args), FunctionData { op });
   }
 
   void add_callback(nonstd::string_view name, int num_args, const CallbackFunction &callback) {
-    function_storage.emplace(std::make_pair(name, num_args), FunctionData { Operation::Callback, callback });
+    function_storage.emplace(std::make_pair(static_cast<std::string>(name), num_args), FunctionData { Operation::Callback, callback });
   }
 
   FunctionData find_function(nonstd::string_view name, int num_args) const {

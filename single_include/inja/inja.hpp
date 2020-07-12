@@ -3126,7 +3126,7 @@ public:
       if (config.search_included_templates_in_files && template_storage.find(pathname) == template_storage.end()) {
         auto include_template = Template(load_file(pathname));
         template_storage.emplace(pathname, include_template);
-        parse_into_template(template_storage.at(pathname), pathname);
+        parse_into_template(template_storage[pathname], pathname);
       }
 
       current_block->nodes.emplace_back(std::make_shared<IncludeStatementNode>(pathname, tok.text.data() - tmpl.content.c_str()));
@@ -3346,10 +3346,10 @@ class Renderer : public NodeVisitor  {
 
     std::array<const json*, N> result;
     for (size_t i = 0; i < N; i += 1) {
-      result[i] = json_eval_stack.top();
+      result[N - i - 1] = json_eval_stack.top();
       json_eval_stack.pop();
 
-      if (!result[i]) {
+      if (!result[N - i - 1]) {
         auto node = not_found_stack.top();
         not_found_stack.pop();
 
@@ -3365,10 +3365,10 @@ class Renderer : public NodeVisitor  {
   Arguments get_argument_vector(unsigned int N, const AstNode& node) {
     Arguments result {N};
     for (size_t i = 0; i < N; i += 1) {
-      result[i] = json_eval_stack.top();
+      result[N - i - 1] = json_eval_stack.top();
       json_eval_stack.pop();
 
-      if (!result[i]) {
+      if (!result[N - i - 1]) {
         auto node = not_found_stack.top();
         not_found_stack.pop();
 
@@ -3437,118 +3437,118 @@ public:
     } break;
     case Op::And: {
       auto args = get_arguments<2>(node);
-      bool result = truthy(args[1]) && truthy(args[0]);
+      bool result = truthy(args[0]) && truthy(args[1]);
       json_tmp_stack.push_back(result);
       json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::Or: {
       auto args = get_arguments<2>(node);
-      bool result = truthy(args[1]) || truthy(args[0]);
+      bool result = truthy(args[0]) || truthy(args[1]);
       json_tmp_stack.push_back(result);
       json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::In: {
       auto args = get_arguments<2>(node);
-      bool result = std::find(args[0]->begin(), args[0]->end(), *args[1]) != args[0]->end();
+      bool result = std::find(args[1]->begin(), args[1]->end(), *args[0]) != args[1]->end();
       json_tmp_stack.push_back(result);
       json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::Equal: {
       auto args = get_arguments<2>(node);
-      bool result = (*args[1] == *args[0]);
+      bool result = (*args[0] == *args[1]);
       json_tmp_stack.push_back(result);
       json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::NotEqual: {
       auto args = get_arguments<2>(node);
-      bool result = (*args[1] != *args[0]);
+      bool result = (*args[0] != *args[1]);
       json_tmp_stack.push_back(result);
       json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::Greater: {
       auto args = get_arguments<2>(node);
-      bool result = (*args[1] > *args[0]);
+      bool result = (*args[0] > *args[1]);
       json_tmp_stack.push_back(result);
       json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::GreaterEqual: {
       auto args = get_arguments<2>(node);
-      bool result = (*args[1] >= *args[0]);
+      bool result = (*args[0] >= *args[1]);
       json_tmp_stack.push_back(result);
       json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::Less: {
       auto args = get_arguments<2>(node);
-      bool result = (*args[1] < *args[0]);
+      bool result = (*args[0] < *args[1]);
       json_tmp_stack.push_back(result);
       json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::LessEqual: {
       auto args = get_arguments<2>(node);
-      bool result = (*args[1] <= *args[0]);
+      bool result = (*args[0] <= *args[1]);
       json_tmp_stack.push_back(result);
       json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::Add: {
       auto args = get_arguments<2>(node);
-      if (args[1]->is_string() && args[0]->is_string()) {
-        std::string result = args[1]->get<std::string>() + args[0]->get<std::string>();
+      if (args[0]->is_string() && args[1]->is_string()) {
+        std::string result = args[0]->get<std::string>() + args[1]->get<std::string>();
         json_tmp_stack.push_back(result);
-      } else if (args[1]->is_number_integer() && args[0]->is_number_integer()) {
-        int result = args[1]->get<int>() + args[0]->get<int>();
+      } else if (args[0]->is_number_integer() && args[1]->is_number_integer()) {
+        int result = args[0]->get<int>() + args[1]->get<int>();
         json_tmp_stack.push_back(result);
       } else {
-        double result = args[1]->get<double>() + args[0]->get<double>();
+        double result = args[0]->get<double>() + args[1]->get<double>();
         json_tmp_stack.push_back(result);
       }
       json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::Subtract: {
       auto args = get_arguments<2>(node);
-      if (args[1]->is_number_integer() && args[0]->is_number_integer()) {
-        int result = args[1]->get<int>() - args[0]->get<int>();
+      if (args[0]->is_number_integer() && args[1]->is_number_integer()) {
+        int result = args[0]->get<int>() - args[1]->get<int>();
         json_tmp_stack.push_back(result);
       } else {
-        double result = args[1]->get<double>() - args[0]->get<double>();
+        double result = args[0]->get<double>() - args[1]->get<double>();
         json_tmp_stack.push_back(result);
       }
       json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::Multiplication: {
       auto args = get_arguments<2>(node);
-      if (args[1]->is_number_integer() && args[0]->is_number_integer()) {
-        int result = args[1]->get<int>() * args[0]->get<int>();
+      if (args[0]->is_number_integer() && args[1]->is_number_integer()) {
+        int result = args[0]->get<int>() * args[1]->get<int>();
         json_tmp_stack.push_back(result);
       } else {
-        double result = args[1]->get<double>() * args[0]->get<double>();
+        double result = args[0]->get<double>() * args[1]->get<double>();
         json_tmp_stack.push_back(result);
       }
       json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::Division: {
       auto args = get_arguments<2>(node);
-      if (args[0]->get<double>() == 0) {
+      if (args[1]->get<double>() == 0) {
         throw_renderer_error("division by zero", node);
       }
-      double result = args[1]->get<double>() / args[0]->get<double>();
+      double result = args[0]->get<double>() / args[1]->get<double>();
       json_tmp_stack.push_back(result);
       json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::Power: {
       auto args = get_arguments<2>(node);
-      double result = std::pow(args[1]->get<double>(), args[0]->get<int>());
+      double result = std::pow(args[0]->get<double>(), args[1]->get<int>());
       json_tmp_stack.push_back(result);
       json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::Modulo: {
       auto args = get_arguments<2>(node);
-      double result = args[1]->get<int>() % args[0]->get<int>();
+      double result = args[0]->get<int>() % args[1]->get<int>();
       json_tmp_stack.push_back(result);
       json_eval_stack.push(&json_tmp_stack.back());
     } break;
     case Op::At: {
       auto args = get_arguments<2>(node);
-      auto result = &args[1]->at(args[0]->get<int>());
+      auto result = &args[0]->at(args[1]->get<int>());
       json_eval_stack.push(result);
     } break;
     case Op::Default: {
@@ -3559,8 +3559,8 @@ public:
     } break;
     case Op::DivisibleBy: {
       auto args = get_arguments<2>(node);
-      int divisor = args[0]->get<int>();
-      bool result = (divisor != 0) && (args[1]->get<int>() % divisor == 0);
+      int divisor = args[1]->get<int>();
+      bool result = (divisor != 0) && (args[0]->get<int>() % divisor == 0);
       json_tmp_stack.push_back(result);
       json_eval_stack.push(&json_tmp_stack.back());
     } break;
@@ -3577,8 +3577,8 @@ public:
     } break;
     case Op::ExistsInObject: {
       auto args = get_arguments<2>(node);
-      auto &&name = args[0]->get_ref<const std::string &>();
-      bool result = (args[1]->find(name) != args[1]->end());
+      auto &&name = args[1]->get_ref<const std::string &>();
+      bool result = (args[0]->find(name) != args[0]->end());
       json_tmp_stack.push_back(result);
       json_eval_stack.push(&json_tmp_stack.back());
     } break;
@@ -3640,8 +3640,8 @@ public:
     } break;
     case Op::Round: {
       auto args = get_arguments<2>(node);
-      int precision = args[0]->get<int>();
-      auto result = std::round(args[1]->get<double>() * std::pow(10.0, precision)) / std::pow(10.0, precision);
+      int precision = args[1]->get<int>();
+      auto result = std::round(args[0]->get<double>() * std::pow(10.0, precision)) / std::pow(10.0, precision);
       json_tmp_stack.push_back(result);
       json_eval_stack.push(&json_tmp_stack.back());
     } break;

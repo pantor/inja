@@ -232,12 +232,12 @@ TEST_CASE("callbacks") {
 
   SUBCASE("Variadic") {
     env.add_callback("argmax", [](inja::Arguments& args) {
-      auto result = std::max_element(args.begin(), args.end());
+      auto result = std::max_element(args.begin(), args.end(), [](const json* a, const json* b) { return *a < *b;});
       return std::distance(args.begin(), result);
     });
 
-    // CHECK(env.render("{{ argmax(4, 2, 6) }}", data) == "2");
-    // CHECK(env.render("{{ argmax(0, 2, 6, 8, 3) }}", data) == "3");
+    CHECK(env.render("{{ argmax(4, 2, 6) }}", data) == "2");
+    CHECK(env.render("{{ argmax(0, 2, 6, 8, 3) }}", data) == "3");
   }
 }
 

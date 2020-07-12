@@ -444,7 +444,7 @@ public:
       if (config.search_included_templates_in_files && template_storage.find(pathname) == template_storage.end()) {
         auto include_template = Template(load_file(pathname));
         template_storage.emplace(pathname, include_template);
-        parse_into_template(template_storage.at(pathname), pathname);
+        parse_into_template(template_storage[pathname], pathname);
       }
 
       current_block->nodes.emplace_back(std::make_shared<IncludeStatementNode>(pathname, tok.text.data() - tmpl.content.c_str()));
