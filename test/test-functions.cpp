@@ -247,7 +247,7 @@ TEST_CASE("combinations") {
   data["name"] = "Peter";
   data["city"] = "Brunswick";
   data["age"] = 29;
-  data["names"] = {"Jeff", "Seb"};
+  data["names"] = {"Jeff", "Seb", "Chris"};
   data["brother"]["name"] = "Chris";
   data["brother"]["daughters"] = {"Maria", "Helen"};
   data["brother"]["daughter0"] = {{"name", "Maria"}};
@@ -258,4 +258,6 @@ TEST_CASE("combinations") {
   CHECK(env.render("{% for i in range(4) %}{{ loop.index1 }}{% endfor %}", data) == "1234");
   CHECK(env.render("{{ upper(last(brother.daughters)) }}", data) == "HELEN");
   CHECK(env.render("{{ length(name) * 2.5 }}", data) == "12.5");
+  CHECK(env.render("{{ upper(first(sort(brother.daughters)) + \"_test\") }}", data) == "HELEN_TEST");
+  CHECK(env.render("{% for i in range(3) %}{{ at(names, i) }}{% endfor %}", data) == "JeffSebChris");
 }

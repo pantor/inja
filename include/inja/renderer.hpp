@@ -480,7 +480,7 @@ public:
     }
 
     if (!current_loop_data->empty()) {
-      (*current_loop_data)["parent"] = *current_loop_data;
+      (*current_loop_data)["parent"] = std::move(*current_loop_data);
     }
 
     for (auto it = result->begin(); it != result->end(); ++it) {
@@ -497,7 +497,7 @@ public:
 
     json_loop_data[static_cast<std::string>(node.value)].clear();
     if (!(*current_loop_data)["parent"].empty()) {
-      *current_loop_data = (*current_loop_data)["parent"];
+      *current_loop_data = std::move((*current_loop_data)["parent"]);
     } else {
       current_loop_data = &json_loop_data["loop"];
     }
