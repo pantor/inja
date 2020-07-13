@@ -262,4 +262,5 @@ TEST_CASE("combinations") {
   CHECK(env.render("{{ length(name) * 2.5 }}", data) == "12.5");
   CHECK(env.render("{{ upper(first(sort(brother.daughters)) + \"_test\") }}", data) == "HELEN_TEST");
   CHECK(env.render("{% for i in range(3) %}{{ at(names, i) }}{% endfor %}", data) == "JeffSebChris");
+  CHECK(env.render("{% if not is_happy or age > 26 %}TRUE{% endif %}", data) == "TRUE");
 }

@@ -130,7 +130,7 @@ data["time"]["end"] = 22;
 render("{{ guests.1 }}", data); // "Tom"
 
 // Objects
-render("{{ time.start }} to {{ time.end }}pm", data); // "16 to 22pm"
+render("{{ time.start }} to {{ time.end + 1 }}pm", data); // "16 to 23pm"
 ```
 In general, the variables can be fetched using the [JSON Pointer](https://tools.ietf.org/html/rfc6901) syntax. For convenience, the leading `/` can be omitted. If no variable is found, valid JSON is printed directly, otherwise an error is thrown.
 
@@ -166,7 +166,7 @@ render("{% if time.hour >= 20 %}…{% else if time.hour >= 18 %}…{% endif %}",
 render("{% if neighbour in guests %}…{% endif %}", data); // True
 
 // Logical operations
-render("{% if guest_count < 5 and all_tired %}…{% else %}…{% endif %}", data); // True
+render("{% if guest_count < (3+2) and all_tired %}…{% else %}…{% endif %}", data); // True
 
 // Negations
 render("{% if not guest_count %}…{% endif %}", data); // True
