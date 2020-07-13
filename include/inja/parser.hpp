@@ -147,7 +147,6 @@ public:
 
         // Functions
         } else if (peek_tok.kind == Token::Kind::LeftParen) {
-          auto name = static_cast<std::string>(tok.text);
           operator_stack.emplace(std::make_shared<FunctionNode>(static_cast<std::string>(tok.text), tok.text.data() - tmpl.content.c_str()));
           function_stack.emplace(operator_stack.top().get(), current_paren_level);
 
@@ -474,7 +473,7 @@ public:
         }
       } return;
       case Token::Kind::Text: {
-        current_block->nodes.emplace_back(std::make_shared<TextNode>(static_cast<std::string>(tok.text), tok.text.data() - tmpl.content.c_str()));
+        current_block->nodes.emplace_back(std::make_shared<TextNode>(tok.text, tok.text.data() - tmpl.content.c_str()));
       } break;
       case Token::Kind::StatementOpen: {
         get_next_token();

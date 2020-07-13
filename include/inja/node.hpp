@@ -74,7 +74,7 @@ class TextNode : public AstNode {
 public:
   std::string content;
 
-  explicit TextNode(const std::string& content, size_t pos): AstNode(pos), content(content) { }
+  explicit TextNode(nonstd::string_view content, size_t pos): AstNode(pos), content(content) { }
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);
