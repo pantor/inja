@@ -22,12 +22,13 @@ TEST_CASE("functions") {
   data["vars"] = {2, 3, 4, 0, -1, -2, -3};
 
   SUBCASE("math") {
-    // CHECK(env.render("{{ 1 + 1 }}", data) == "2");
-    // CHECK(env.render("{{ 1 + 1 * 3 }}", data) == "4");
-    // CHECK(env.render("{{ (1 + 1) * 3 }}", data) == "6");
-    // CHECK(env.render("{{ 5 / 2 }}", data) == "2.5");
-    // CHECK(env.render("{{ 5^3 }}", data) == "125");
-    // CHECK(env.render("{{ 5 + 12 + 4 * (4 - (1 + 1))^2 - 75 * 1 }}", data) == "-42");
+    CHECK(env.render("{{ 1 + 1 }}", data) == "2");
+    CHECK(env.render("{{ 3 - 21 }}", data) == "-18");
+    CHECK(env.render("{{ 1 + 1 * 3 }}", data) == "4");
+    CHECK(env.render("{{ (1 + 1) * 3 }}", data) == "6");
+    CHECK(env.render("{{ 5 / 2 }}", data) == "2.5");
+    CHECK(env.render("{{ 5^3 }}", data) == "125");
+    CHECK(env.render("{{ 5 + 12 + 4 * (4 - (1 + 1))^2 - 75 * 1 }}", data) == "-42");
   }
 
   SUBCASE("upper") {
@@ -35,6 +36,7 @@ TEST_CASE("functions") {
     CHECK(env.render("{{ upper(  name  ) }}", data) == "PETER");
     CHECK(env.render("{{ upper(city) }}", data) == "NEW YORK");
     CHECK(env.render("{{ upper(upper(name)) }}", data) == "PETER");
+
     // CHECK_THROWS_WITH( env.render("{{ upper(5) }}", data), "[inja.exception.json_error]
     // [json.exception.type_error.302] type must be string, but is number" ); CHECK_THROWS_WITH( env.render("{{
     // upper(true) }}", data), "[inja.exception.json_error] [json.exception.type_error.302] type must be string, but is

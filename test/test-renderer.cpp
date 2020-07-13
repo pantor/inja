@@ -102,6 +102,7 @@ TEST_CASE("types") {
   }
 
   SUBCASE("conditionals") {
+    CHECK(env.render("{% if is_happy %}{% endif %}", data) == "");
     CHECK(env.render("{% if is_happy %}Yeah!{% endif %}", data) == "Yeah!");
     CHECK(env.render("{% if is_sad %}Yeah!{% endif %}", data) == "");
     CHECK(env.render("{% if is_sad %}Yeah!{% else %}Nooo...{% endif %}", data) == "Nooo...");

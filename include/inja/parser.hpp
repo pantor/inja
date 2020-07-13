@@ -169,6 +169,7 @@ public:
       case Token::Kind::LessThan:
       case Token::Kind::LessEqual:
       case Token::Kind::Plus:
+      case Token::Kind::Minus:
       case Token::Kind::Times:
       case Token::Kind::Slash:
       case Token::Kind::Power:
@@ -279,7 +280,7 @@ public:
           operator_stack.pop();
         }
 
-        if (function_stack.top().second == current_paren_level) {
+        if (!function_stack.empty() && function_stack.top().second == current_paren_level) {
           auto func = function_stack.top().first;
           auto function_data = function_storage.find_function(func->name, func->number_args);
           if (function_data.operation == FunctionStorage::Operation::None) {

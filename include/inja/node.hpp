@@ -136,7 +136,7 @@ public:
   Op operation;
 
   std::string name;
-  unsigned int number_args;
+  size_t number_args;
   CallbackFunction callback;
 
   explicit FunctionNode(nonstd::string_view name, size_t pos) : ExpressionNode(pos), precedence(5), associativity(Associativity::Left), operation(Op::Callback), name(name), number_args(1) { }

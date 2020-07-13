@@ -2419,7 +2419,7 @@ public:
   Op operation;
 
   std::string name;
-  unsigned int number_args;
+  size_t number_args;
   CallbackFunction callback;
 
   explicit FunctionNode(nonstd::string_view name, size_t pos) : ExpressionNode(pos), precedence(5), associativity(Associativity::Left), operation(Op::Callback), name(name), number_args(1) { }
@@ -2851,6 +2851,7 @@ public:
       case Token::Kind::LessThan:
       case Token::Kind::LessEqual:
       case Token::Kind::Plus:
+      case Token::Kind::Minus:
       case Token::Kind::Times:
       case Token::Kind::Slash:
       case Token::Kind::Power:
@@ -2961,7 +2962,7 @@ public:
           operator_stack.pop();
         }
 
-        if (function_stack.top().second == current_paren_level) {
+        if (!function_stack.empty() && function_stack.top().second == current_paren_level) {
           auto func = function_stack.top().first;
           auto function_data = function_storage.find_function(func->name, func->number_args);
           if (function_data.operation == FunctionStorage::Operation::None) {
@@ -3276,7 +3277,7 @@ class Renderer : public NodeVisitor  {
   json json_loop_data;
   json* current_loop_data = &json_loop_data["loop"];
 
-  std::vector<json> json_tmp_stack;
+  std::vector<std::shared_ptr<json>> json_tmp_stack;
   std::stack<const json*> json_eval_stack;
   std::stack<const JsonNode*> not_found_stack;
 
@@ -3350,11 +3351,11 @@ class Renderer : public NodeVisitor  {
       json_eval_stack.pop();
 
       if (!result[N - i - 1]) {
-        auto node = not_found_stack.top();
+        auto json_node = not_found_stack.top();
         not_found_stack.pop();
 
         if (throw_not_found) {
-          throw_renderer_error("variable '" + static_cast<std::string>(node->name) + "' not found", *node);
+          throw_renderer_error("variable '" + static_cast<std::string>(json_node->name) + "' not found", *json_node);
         }
       }
     }
@@ -3362,18 +3363,18 @@ class Renderer : public NodeVisitor  {
   }
 
   template<bool throw_not_found=true>
-  Arguments get_argument_vector(unsigned int N, const AstNode& node) {
+  Arguments get_argument_vector(size_t N, const AstNode& node) {
     Arguments result {N};
     for (size_t i = 0; i < N; i += 1) {
       result[N - i - 1] = json_eval_stack.top();
       json_eval_stack.pop();
 
       if (!result[N - i - 1]) {
-        auto node = not_found_stack.top();
+        auto json_node = not_found_stack.top();
         not_found_stack.pop();
 
         if (throw_not_found) {
-          throw_renderer_error("variable '" + static_cast<std::string>(node->name) + "' not found", *node);
+          throw_renderer_error("variable '" + static_cast<std::string>(json_node->name) + "' not found", *json_node);
         }
       }
     }
@@ -3416,9 +3417,9 @@ public:
       auto function_data = function_storage.find_function(node.name, 0);
       if (function_data.operation == FunctionStorage::Operation::Callback) {
         Arguments empty_args {};
-        auto value = function_data.callback(empty_args);
+        auto value = std::make_shared<json>(function_data.callback(empty_args));
         json_tmp_stack.push_back(value);
-        json_eval_stack.push(&json_tmp_stack.back());
+        json_eval_stack.push(value.get());
 
       } else {
         json_eval_stack.push(nullptr);
@@ -3428,173 +3429,180 @@ public:
   }
 
   void visit(const FunctionNode& node) {
+    std::shared_ptr<json> result_ptr;
+
     switch (node.operation) {
     case Op::Not: {
       auto args = get_arguments<1>(node);
-      bool result = !truthy(args[0]);
-      json_tmp_stack.push_back(result);
-      json_eval_stack.push(&json_tmp_stack.back());
+      result_ptr = std::make_shared<json>(!truthy(args[0]));
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
     } break;
     case Op::And: {
       auto args = get_arguments<2>(node);
-      bool result = truthy(args[0]) && truthy(args[1]);
-      json_tmp_stack.push_back(result);
-      json_eval_stack.push(&json_tmp_stack.back());
+      result_ptr = std::make_shared<json>(truthy(args[0]) && truthy(args[1]));
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
     } break;
     case Op::Or: {
       auto args = get_arguments<2>(node);
-      bool result = truthy(args[0]) || truthy(args[1]);
-      json_tmp_stack.push_back(result);
-      json_eval_stack.push(&json_tmp_stack.back());
+      result_ptr = std::make_shared<json>(truthy(args[0]) || truthy(args[1]));
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
     } break;
     case Op::In: {
       auto args = get_arguments<2>(node);
-      bool result = std::find(args[1]->begin(), args[1]->end(), *args[0]) != args[1]->end();
-      json_tmp_stack.push_back(result);
-      json_eval_stack.push(&json_tmp_stack.back());
+      result_ptr = std::make_shared<json>(std::find(args[1]->begin(), args[1]->end(), *args[0]) != args[1]->end());
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
     } break;
     case Op::Equal: {
       auto args = get_arguments<2>(node);
-      bool result = (*args[0] == *args[1]);
-      json_tmp_stack.push_back(result);
-      json_eval_stack.push(&json_tmp_stack.back());
+      result_ptr = std::make_shared<json>(*args[0] == *args[1]);
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
     } break;
     case Op::NotEqual: {
       auto args = get_arguments<2>(node);
-      bool result = (*args[0] != *args[1]);
-      json_tmp_stack.push_back(result);
-      json_eval_stack.push(&json_tmp_stack.back());
+      result_ptr = std::make_shared<json>(*args[0] != *args[1]);
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
     } break;
     case Op::Greater: {
       auto args = get_arguments<2>(node);
-      bool result = (*args[0] > *args[1]);
-      json_tmp_stack.push_back(result);
-      json_eval_stack.push(&json_tmp_stack.back());
+      result_ptr = std::make_shared<json>(*args[0] > *args[1]);
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
     } break;
     case Op::GreaterEqual: {
       auto args = get_arguments<2>(node);
-      bool result = (*args[0] >= *args[1]);
-      json_tmp_stack.push_back(result);
-      json_eval_stack.push(&json_tmp_stack.back());
+      result_ptr = std::make_shared<json>(*args[0] >= *args[1]);
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
     } break;
     case Op::Less: {
       auto args = get_arguments<2>(node);
-      bool result = (*args[0] < *args[1]);
-      json_tmp_stack.push_back(result);
-      json_eval_stack.push(&json_tmp_stack.back());
+      result_ptr = std::make_shared<json>(*args[0] < *args[1]);
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
     } break;
     case Op::LessEqual: {
       auto args = get_arguments<2>(node);
-      bool result = (*args[0] <= *args[1]);
-      json_tmp_stack.push_back(result);
-      json_eval_stack.push(&json_tmp_stack.back());
+      result_ptr = std::make_shared<json>(*args[0] <= *args[1]);
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
     } break;
     case Op::Add: {
       auto args = get_arguments<2>(node);
       if (args[0]->is_string() && args[1]->is_string()) {
-        std::string result = args[0]->get<std::string>() + args[1]->get<std::string>();
-        json_tmp_stack.push_back(result);
+        result_ptr = std::make_shared<json>(args[0]->get<std::string>() + args[1]->get<std::string>());
+        json_tmp_stack.push_back(result_ptr);
       } else if (args[0]->is_number_integer() && args[1]->is_number_integer()) {
-        int result = args[0]->get<int>() + args[1]->get<int>();
-        json_tmp_stack.push_back(result);
+        result_ptr = std::make_shared<json>(args[0]->get<int>() + args[1]->get<int>());
+        json_tmp_stack.push_back(result_ptr);
       } else {
-        double result = args[0]->get<double>() + args[1]->get<double>();
-        json_tmp_stack.push_back(result);
+        result_ptr = std::make_shared<json>(args[0]->get<double>() + args[1]->get<double>());
+        json_tmp_stack.push_back(result_ptr);
       }
-      json_eval_stack.push(&json_tmp_stack.back());
+      json_eval_stack.push(result_ptr.get());
     } break;
     case Op::Subtract: {
       auto args = get_arguments<2>(node);
       if (args[0]->is_number_integer() && args[1]->is_number_integer()) {
-        int result = args[0]->get<int>() - args[1]->get<int>();
-        json_tmp_stack.push_back(result);
+        result_ptr = std::make_shared<json>(args[0]->get<int>() - args[1]->get<int>());
+        json_tmp_stack.push_back(result_ptr);
       } else {
-        double result = args[0]->get<double>() - args[1]->get<double>();
-        json_tmp_stack.push_back(result);
+        result_ptr = std::make_shared<json>(args[0]->get<double>() - args[1]->get<double>());
+        json_tmp_stack.push_back(result_ptr);
       }
-      json_eval_stack.push(&json_tmp_stack.back());
+      json_eval_stack.push(result_ptr.get());
     } break;
     case Op::Multiplication: {
       auto args = get_arguments<2>(node);
       if (args[0]->is_number_integer() && args[1]->is_number_integer()) {
-        int result = args[0]->get<int>() * args[1]->get<int>();
-        json_tmp_stack.push_back(result);
+        result_ptr = std::make_shared<json>(args[0]->get<int>() * args[1]->get<int>());
+        json_tmp_stack.push_back(result_ptr);
       } else {
-        double result = args[0]->get<double>() * args[1]->get<double>();
-        json_tmp_stack.push_back(result);
+        result_ptr = std::make_shared<json>(args[0]->get<double>() * args[1]->get<double>());
+        json_tmp_stack.push_back(result_ptr);
       }
-      json_eval_stack.push(&json_tmp_stack.back());
+      json_eval_stack.push(result_ptr.get());
     } break;
     case Op::Division: {
       auto args = get_arguments<2>(node);
       if (args[1]->get<double>() == 0) {
         throw_renderer_error("division by zero", node);
       }
-      double result = args[0]->get<double>() / args[1]->get<double>();
-      json_tmp_stack.push_back(result);
-      json_eval_stack.push(&json_tmp_stack.back());
+      result_ptr = std::make_shared<json>(args[0]->get<double>() / args[1]->get<double>());
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
     } break;
     case Op::Power: {
       auto args = get_arguments<2>(node);
-      double result = std::pow(args[0]->get<double>(), args[1]->get<int>());
-      json_tmp_stack.push_back(result);
-      json_eval_stack.push(&json_tmp_stack.back());
+      if (args[0]->is_number_integer() && args[1]->get<int>() >= 0) {
+        int result = std::pow(args[0]->get<int>(), args[1]->get<int>());
+        result_ptr = std::make_shared<json>(std::move(result));
+        json_tmp_stack.push_back(result_ptr);
+      } else {
+        double result = std::pow(args[0]->get<int>(), args[1]->get<int>());
+        result_ptr = std::make_shared<json>(std::move(result));
+        json_tmp_stack.push_back(result_ptr);
+      }
+      json_eval_stack.push(result_ptr.get());
     } break;
     case Op::Modulo: {
       auto args = get_arguments<2>(node);
-      double result = args[0]->get<int>() % args[1]->get<int>();
-      json_tmp_stack.push_back(result);
-      json_eval_stack.push(&json_tmp_stack.back());
+      result_ptr = std::make_shared<json>(args[0]->get<int>() % args[1]->get<int>());
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
     } break;
     case Op::At: {
       auto args = get_arguments<2>(node);
-      auto result = &args[0]->at(args[1]->get<int>());
-      json_eval_stack.push(result);
+      json_eval_stack.push(&args[0]->at(args[1]->get<int>()));
     } break;
     case Op::Default: {
       auto default_arg = get_arguments<1>(node)[0];
       auto test_arg = get_arguments<1, false>(node)[0];
-      auto result = test_arg ? test_arg : default_arg;
-      json_eval_stack.push(result);
+      json_eval_stack.push(test_arg ? test_arg : default_arg);
     } break;
     case Op::DivisibleBy: {
       auto args = get_arguments<2>(node);
       int divisor = args[1]->get<int>();
-      bool result = (divisor != 0) && (args[0]->get<int>() % divisor == 0);
-      json_tmp_stack.push_back(result);
-      json_eval_stack.push(&json_tmp_stack.back());
+      result_ptr = std::make_shared<json>((divisor != 0) && (args[0]->get<int>() % divisor == 0));
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
     } break;
     case Op::Even: {
-      bool result = (get_arguments<1>(node)[0]->get<int>() % 2 == 0);
-      json_tmp_stack.push_back(result);
-      json_eval_stack.push(&json_tmp_stack.back());
+      result_ptr = std::make_shared<json>(get_arguments<1>(node)[0]->get<int>() % 2 == 0);
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
     } break;
     case Op::Exists: {
       auto &&name = get_arguments<1>(node)[0]->get_ref<const std::string &>();
-      bool result = (json_input->find(name) != json_input->end());
-      json_tmp_stack.push_back(result);
-      json_eval_stack.push(&json_tmp_stack.back());
+      result_ptr = std::make_shared<json>(json_input->find(name) != json_input->end());
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
     } break;
     case Op::ExistsInObject: {
       auto args = get_arguments<2>(node);
       auto &&name = args[1]->get_ref<const std::string &>();
-      bool result = (args[0]->find(name) != args[0]->end());
-      json_tmp_stack.push_back(result);
-      json_eval_stack.push(&json_tmp_stack.back());
+      result_ptr = std::make_shared<json>(args[0]->find(name) != args[0]->end());
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
     } break;
     case Op::First: {
       auto result = &get_arguments<1>(node)[0]->front();
       json_eval_stack.push(result);
     } break;
     case Op::Float: {
-      double result = std::stod(get_arguments<1>(node)[0]->get_ref<const std::string &>());
-      json_tmp_stack.push_back(result);
-      json_eval_stack.push(&json_tmp_stack.back());
+      result_ptr = std::make_shared<json>(std::stod(get_arguments<1>(node)[0]->get_ref<const std::string &>()));
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
     } break;
     case Op::Int: {
-      int result = std::stoi(get_arguments<1>(node)[0]->get_ref<const std::string &>());
-      json_tmp_stack.push_back(result);
-      json_eval_stack.push(&json_tmp_stack.back());
+      result_ptr = std::make_shared<json>(std::stoi(get_arguments<1>(node)[0]->get_ref<const std::string &>()));
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
     } break;
     case Op::Last: {
       auto result = &get_arguments<1>(node)[0]->back();
@@ -3602,20 +3610,20 @@ public:
     } break;
     case Op::Length: {
       auto val = get_arguments<1>(node)[0];
-      size_t result;
       if (val->is_string()) {
-        result = val->get_ref<const std::string &>().length();
+        result_ptr = std::make_shared<json>(val->get_ref<const std::string &>().length());
       } else {
-        result = val->size();
+        result_ptr = std::make_shared<json>(val->size());
       }
-      json_tmp_stack.push_back(result);
-      json_eval_stack.push(&json_tmp_stack.back());
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
     } break;
     case Op::Lower: {
-      auto result = get_arguments<1>(node)[0]->get<std::string>();
+      std::string result = get_arguments<1>(node)[0]->get<std::string>();
       std::transform(result.begin(), result.end(), result.begin(), ::tolower);
-      json_tmp_stack.push_back(result);
-      json_eval_stack.push(&json_tmp_stack.back());
+      result_ptr = std::make_shared<json>(std::move(result));
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
     } break;
     case Op::Max: {
       auto args = get_arguments<1>(node);
@@ -3628,75 +3636,78 @@ public:
       json_eval_stack.push(&(*result));
     } break;
     case Op::Odd: {
-      bool result = (get_arguments<1>(node)[0]->get<int>() % 2 != 0);
-      json_tmp_stack.push_back(result);
-      json_eval_stack.push(&json_tmp_stack.back());
+      result_ptr = std::make_shared<json>(get_arguments<1>(node)[0]->get<int>() % 2 != 0);
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
     } break;
     case Op::Range: {
       std::vector<int> result(get_arguments<1>(node)[0]->get<int>());
-      std::iota(std::begin(result), std::end(result), 0);
-      json_tmp_stack.push_back(result);
-      json_eval_stack.push(&json_tmp_stack.back());
+      std::iota(result.begin(), result.end(), 0);
+      result_ptr = std::make_shared<json>(std::move(result));
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
     } break;
     case Op::Round: {
       auto args = get_arguments<2>(node);
       int precision = args[1]->get<int>();
-      auto result = std::round(args[0]->get<double>() * std::pow(10.0, precision)) / std::pow(10.0, precision);
-      json_tmp_stack.push_back(result);
-      json_eval_stack.push(&json_tmp_stack.back());
+      double result = std::round(args[0]->get<double>() * std::pow(10.0, precision)) / std::pow(10.0, precision);
+      result_ptr = std::make_shared<json>(std::move(result));
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
     } break;
     case Op::Sort: {
-      auto result = get_arguments<1>(node)[0]->get<std::vector<json>>();
-      std::sort(result.begin(), result.end());
-      json_tmp_stack.push_back(result);
-      json_eval_stack.push(&json_tmp_stack.back());
+      result_ptr = std::make_shared<json>(get_arguments<1>(node)[0]->get<std::vector<json>>());
+      std::sort(result_ptr->begin(), result_ptr->end());
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
     } break;
     case Op::Upper: {
-      auto result = get_arguments<1>(node)[0]->get<std::string>();
+      std::string result = get_arguments<1>(node)[0]->get<std::string>();
       std::transform(result.begin(), result.end(), result.begin(), ::toupper);
-      json_tmp_stack.push_back(result);
-      json_eval_stack.push(&json_tmp_stack.back());
+      result_ptr = std::make_shared<json>(std::move(result));
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
     } break;
     case Op::IsBoolean: {
-      bool result = get_arguments<1>(node)[0]->is_boolean();
-      json_tmp_stack.push_back(result);
-      json_eval_stack.push(&json_tmp_stack.back());
+      result_ptr = std::make_shared<json>(get_arguments<1>(node)[0]->is_boolean());
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
     } break;
     case Op::IsNumber: {
-      bool result = get_arguments<1>(node)[0]->is_number();
-      json_tmp_stack.push_back(result);
-      json_eval_stack.push(&json_tmp_stack.back());
+      result_ptr = std::make_shared<json>(get_arguments<1>(node)[0]->is_number());
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
     } break;
     case Op::IsInteger: {
-      bool result = get_arguments<1>(node)[0]->is_number_integer();
-      json_tmp_stack.push_back(result);
-      json_eval_stack.push(&json_tmp_stack.back());
+      result_ptr = std::make_shared<json>(get_arguments<1>(node)[0]->is_number_integer());
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
     } break;
     case Op::IsFloat: {
-      bool result = get_arguments<1>(node)[0]->is_number_float();
-      json_tmp_stack.push_back(result);
-      json_eval_stack.push(&json_tmp_stack.back());
+      result_ptr = std::make_shared<json>(get_arguments<1>(node)[0]->is_number_float());
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
     } break;
     case Op::IsObject: {
-      bool result = get_arguments<1>(node)[0]->is_object();
-      json_tmp_stack.push_back(result);
-      json_eval_stack.push(&json_tmp_stack.back());
+      result_ptr = std::make_shared<json>(get_arguments<1>(node)[0]->is_object());
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
     } break;
     case Op::IsArray: {
-      bool result = get_arguments<1>(node)[0]->is_array();
-      json_tmp_stack.push_back(result);
-      json_eval_stack.push(&json_tmp_stack.back());
+      result_ptr = std::make_shared<json>(get_arguments<1>(node)[0]->is_array());
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
     } break;
     case Op::IsString: {
-      bool result = get_arguments<1>(node)[0]->is_string();
-      json_tmp_stack.push_back(result);
-      json_eval_stack.push(&json_tmp_stack.back());
+      result_ptr = std::make_shared<json>(get_arguments<1>(node)[0]->is_string());
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
     } break;
     case Op::Callback: {
       auto args = get_argument_vector(node.number_args, node);
-      json result = node.callback(args);
-      json_tmp_stack.push_back(result);
-      json_eval_stack.push(&json_tmp_stack.back());
+      result_ptr = std::make_shared<json>(node.callback(args));
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
     } break;
     case Op::ParenLeft:
     case Op::ParenRight:
