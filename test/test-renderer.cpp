@@ -92,6 +92,7 @@ TEST_CASE("types") {
     ]
 }
 )DELIM");
+
     CHECK(env.render(R"DELIM(
 {% for o in outer %}{% for i in o.inner %}{{loop.parent.index}}:{{loop.index}}::{{loop.parent.is_last}}
 {% for ii in i.in2%}{{ii}},{%endfor%}

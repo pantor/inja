@@ -38,7 +38,7 @@ class Renderer : public NodeVisitor  {
 
   std::vector<json> json_tmp_stack;
   std::stack<const json*> json_eval_stack;
-  std::stack<const JsonNode*> not_found_stack; 
+  std::stack<const JsonNode*> not_found_stack;
 
   bool truthy(const json* data) const {
     if (data->empty()) {
@@ -75,7 +75,7 @@ class Renderer : public NodeVisitor  {
 
     if (json_eval_stack.size() != 1) {
       throw_renderer_error("malformed expression", expression_list);
-    } 
+    }
 
     auto result = json_eval_stack.top();
     json_eval_stack.pop();
@@ -179,7 +179,7 @@ public:
         auto value = function_data.callback(empty_args);
         json_tmp_stack.push_back(value);
         json_eval_stack.push(&json_tmp_stack.back());
-      
+
       } else {
         json_eval_stack.push(nullptr);
         not_found_stack.emplace(&node);
@@ -480,7 +480,8 @@ public:
     }
 
     if (!current_loop_data->empty()) {
-      (*current_loop_data)["parent"] = std::move(*current_loop_data);
+      auto tmp = *current_loop_data; // Because of clang-3
+      (*current_loop_data)["parent"] = std::move(tmp);
     }
 
     for (auto it = result->begin(); it != result->end(); ++it) {
@@ -497,7 +498,8 @@ public:
 
     json_loop_data[static_cast<std::string>(node.value)].clear();
     if (!(*current_loop_data)["parent"].empty()) {
-      *current_loop_data = std::move((*current_loop_data)["parent"]);
+      auto tmp = (*current_loop_data)["parent"];
+      *current_loop_data = std::move(tmp);
     } else {
       current_loop_data = &json_loop_data["loop"];
     }
