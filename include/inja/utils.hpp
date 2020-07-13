@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Pantor. All rights reserved.
+// Copyright (c) 2020 Pantor. All rights reserved.
 
 #ifndef INCLUDE_INJA_UTILS_HPP_
 #define INCLUDE_INJA_UTILS_HPP_
@@ -28,7 +28,7 @@ namespace string_view {
 inline nonstd::string_view slice(nonstd::string_view view, size_t start, size_t end) {
   start = std::min(start, view.size());
   end = std::min(std::max(start, end), view.size());
-  return view.substr(start, end - start); // StringRef(Data + Start, End - Start);
+  return view.substr(start, end - start);
 }
 
 inline std::pair<nonstd::string_view, nonstd::string_view> split(nonstd::string_view view, char Separator) {

@@ -109,10 +109,6 @@ Environment env_1 {"../path/templates/"};
 // With separate input and output path
 Environment env_2 {"../path/templates/", "../path/results/"};
 
-// Choose between dot notation (like Jinja2) and JSON pointer to access elements
-env.set_element_notation(ElementNotation::Dot); // (default) e.g. time.start
-env.set_element_notation(ElementNotation::Pointer); // e.g. time/start
-
 // With other opening and closing strings (here the defaults)
 env.set_expression("{{", "}}"); // Expressions
 env.set_comment("{#", "#}"); // Comments
@@ -270,15 +266,15 @@ Stripping behind a statement also remove any newlines.
 
 ### Callbacks
 
-You can create your own and more complex functions with callbacks.
+You can create your own and more complex functions with callbacks. These are implemented with `std::function`, so you can for example use C++ lambdas. Inja `Arguments` are a vector of json pointers.
 ```.cpp
 Environment env;
 
 /*
  * Callbacks are defined by its:
- * - name
- * - number of arguments
- * - callback function. Implemented with std::function, you can for example use lambdas.
+ * - name,
+ * - (optional) number of arguments,
+ * - callback function.
  */
 env.add_callback("double", 1, [](Arguments& args) {
 	int number = args.at(0)->get<int>(); // Adapt the index and type of the argument
@@ -287,6 +283,14 @@ env.add_callback("double", 1, [](Arguments& args) {
 
 // You can then use a callback like a regular function
 env.render("{{ double(16) }}", data); // "32"
+
+// Inja falls back to variadic callbacks if the number of expected arguments is omitted.
+env.add_callback("argmax", [](Arguments& args) {
+  auto result = std::max_element(args.begin(), args.end(), [](const json* a, const json* b) { return *a < *b;});
+  return std::distance(args.begin(), result);
+});
+env.render("{{ argmax(4, 2, 6) }}", data); // "2"
+env.render("{{ argmax(0, 2, 6, 8, 3) }}", data); // "3"
 
 // A callback without argument can be used like a dynamic variable:
 std::string greet = "Hello";

@@ -4,10 +4,13 @@
 #define INCLUDE_INJA_TEMPLATE_HPP_
 
 #include <map>
+#include <memory>
 #include <string>
 #include <vector>
 
 #include "node.hpp"
+#include "statistics.hpp"
+
 
 namespace inja {
 
@@ -15,7 +18,7 @@ namespace inja {
  * \brief The main inja Template.
  */
 struct Template {
-  std::vector<Node> nodes;
+  BlockNode root;
   std::string content;
 
   explicit Template() { }
@@ -23,9 +26,9 @@ struct Template {
 
   /// Return number of variables (total number, not distinct ones) in the template
   int count_variables() {
-    return std::count_if(nodes.cbegin(), nodes.cend(), [](const inja::Node &node) {
-      return (node.flags == Node::Flag::ValueLookupDot || node.flags == Node::Flag::ValueLookupPointer);
-    });
+    auto statistic_visitor = StatisticsVisitor();
+    root.accept(statistic_visitor);
+    return statistic_visitor.variable_counter;
   }
 };
 

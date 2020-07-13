@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Pantor. All rights reserved.
+// Copyright (c) 2020 Pantor. All rights reserved.
 
 #ifndef INCLUDE_INJA_LEXER_HPP_
 #define INCLUDE_INJA_LEXER_HPP_
@@ -27,12 +27,18 @@ class Lexer {
     StatementStartForceLstrip,
     StatementBody,
     CommentStart,
-    CommentBody
+    CommentBody,
   };
-  
+
+  enum class MinusState {
+    Operator,
+    Number,
+  };
+
   const LexerConfig &config;
 
   State state;
+  MinusState minus_state;
   nonstd::string_view m_in;
   size_t tok_start;
   size_t pos;
@@ -77,10 +83,31 @@ class Lexer {
 
     pos = tok_start + 1;
     if (std::isalpha(ch)) {
+      minus_state = MinusState::Operator;
       return scan_id();
     }
 
+    MinusState current_minus_state = minus_state;
+    if (minus_state == MinusState::Operator) {
+      minus_state = MinusState::Number;
+    }
+
     switch (ch) {
+    case '+':
+      return make_token(Token::Kind::Plus);
+    case '-':
+      if (current_minus_state == MinusState::Operator) {
+        return make_token(Token::Kind::Minus);
+      }
+      return scan_number();
+    case '*':
+      return make_token(Token::Kind::Times);
+    case '/':
+      return make_token(Token::Kind::Slash);
+    case '^':
+      return make_token(Token::Kind::Power);
+    case '%':
+      return make_token(Token::Kind::Percent);
     case ',':
       return make_token(Token::Kind::Comma);
     case ':':
@@ -88,14 +115,17 @@ class Lexer {
     case '(':
       return make_token(Token::Kind::LeftParen);
     case ')':
+      minus_state = MinusState::Operator;
       return make_token(Token::Kind::RightParen);
     case '[':
       return make_token(Token::Kind::LeftBracket);
     case ']':
+      minus_state = MinusState::Operator;
       return make_token(Token::Kind::RightBracket);
     case '{':
       return make_token(Token::Kind::LeftBrace);
     case '}':
+      minus_state = MinusState::Operator;
       return make_token(Token::Kind::RightBrace);
     case '>':
       if (pos < m_in.size() && m_in[pos] == '=') {
@@ -133,9 +163,10 @@ class Lexer {
     case '7':
     case '8':
     case '9':
-    case '-':
+      minus_state = MinusState::Operator;
       return scan_number();
     case '_':
+      minus_state = MinusState::Operator;
       return scan_id();
     default:
       return make_token(Token::Kind::Unknown);
@@ -246,6 +277,7 @@ public:
     tok_start = 0;
     pos = 0;
     state = State::Text;
+    minus_state = MinusState::Number;
   }
 
   Token scan() {
@@ -255,7 +287,7 @@ public:
     if (tok_start >= m_in.size()) {
       return make_token(Token::Kind::Eof);
     }
-    
+
     switch (state) {
     default:
     case State::Text: {

@@ -85,11 +85,6 @@ public:
   }
 
   /// Sets the element notation syntax
-  void set_element_notation(ElementNotation notation) {
-    parser_config.notation = notation;
-  }
-
-  /// Sets the element notation syntax
   void set_search_included_templates_in_files(bool search_in_files) {
     parser_config.search_included_templates_in_files = search_in_files;
   }
@@ -100,12 +95,12 @@ public:
   }
 
   Template parse(nonstd::string_view input) {
-    Parser parser(parser_config, lexer_config, template_storage);
+    Parser parser(parser_config, lexer_config, template_storage, function_storage);
     return parser.parse(input);
   }
 
   Template parse_template(const std::string &filename) {
-    Parser parser(parser_config, lexer_config, template_storage);
+    Parser parser(parser_config, lexer_config, template_storage, function_storage);
     auto result = Template(parser.load_file(input_path + static_cast<std::string>(filename)));
     parser.parse_into_template(result, input_path + static_cast<std::string>(filename));
     return result;
@@ -157,7 +152,7 @@ public:
   }
 
   std::string load_file(const std::string &filename) {
-    Parser parser(parser_config, lexer_config, template_storage);
+    Parser parser(parser_config, lexer_config, template_storage, function_storage);
     return parser.load_file(input_path + filename);
   }
 
@@ -168,8 +163,18 @@ public:
     return j;
   }
 
-  void add_callback(const std::string &name, unsigned int numArgs, const CallbackFunction &callback) {
-    function_storage.add_callback(name, numArgs, callback);
+  /*!
+  @brief Adds a variadic callback
+  */
+  void add_callback(const std::string &name, const CallbackFunction &callback) {
+    function_storage.add_callback(name, -1, callback);
+  }
+
+  /*!
+  @brief Adds a callback with given number or arguments
+  */
+  void add_callback(const std::string &name, int num_args, const CallbackFunction &callback) {
+    function_storage.add_callback(name, num_args, callback);
   }
 
   /** Includes a template with a given name into the environment.

@@ -3,6 +3,8 @@
 #ifndef INCLUDE_INJA_INJA_HPP_
 #define INCLUDE_INJA_INJA_HPP_
 
+#include <iostream>
+
 #include <nlohmann/json.hpp>
 
 // #include "environment.hpp"
@@ -1448,8 +1450,6 @@ nssv_RESTORE_WARNINGS()
 
 namespace inja {
 
-enum class ElementNotation { Dot, Pointer };
-
 /*!
  * \brief Class for lexer configuration.
  */
@@ -1496,7 +1496,6 @@ struct LexerConfig {
  * \brief Class for parser configuration.
  */
 struct ParserConfig {
-  ElementNotation notation {ElementNotation::Dot};
   bool search_included_templates_in_files {true};
 };
 
@@ -1512,146 +1511,12 @@ struct RenderConfig {
 #endif // INCLUDE_INJA_CONFIG_HPP_
 
 // #include "function_storage.hpp"
-// Copyright (c) 2019 Pantor. All rights reserved.
+// Copyright (c) 2020 Pantor. All rights reserved.
 
 #ifndef INCLUDE_INJA_FUNCTION_STORAGE_HPP_
 #define INCLUDE_INJA_FUNCTION_STORAGE_HPP_
 
 #include <vector>
-
-// #include "node.hpp"
-// Copyright (c) 2019 Pantor. All rights reserved.
-
-#ifndef INCLUDE_INJA_NODE_HPP_
-#define INCLUDE_INJA_NODE_HPP_
-
-#include <string>
-#include <utility>
-
-#include <nlohmann/json.hpp>
-
-// #include "string_view.hpp"
-
-
-namespace inja {
-
-using json = nlohmann::json;
-
-struct Node {
-  enum class Op : uint8_t {
-    Nop,
-    // print StringRef (always immediate)
-    PrintText,
-    // print value
-    PrintValue,
-    // push value onto stack (always immediate)
-    Push,
-
-    // builtin functions
-    // result is pushed to stack
-    // args specify number of arguments
-    // all functions can take their "last" argument either immediate
-    // or popped off stack (e.g. if immediate, it's like the immediate was
-    // just pushed to the stack)
-    Not,
-    And,
-    Or,
-    In,
-    Equal,
-    Greater,
-    GreaterEqual,
-    Less,
-    LessEqual,
-    At,
-    Different,
-    DivisibleBy,
-    Even,
-    First,
-    Float,
-    Int,
-    Last,
-    Length,
-    Lower,
-    Max,
-    Min,
-    Odd,
-    Range,
-    Result,
-    Round,
-    Sort,
-    Upper,
-    Exists,
-    ExistsInObject,
-    IsBoolean,
-    IsNumber,
-    IsInteger,
-    IsFloat,
-    IsObject,
-    IsArray,
-    IsString,
-    Default,
-
-    // include another template
-    // value is the template name
-    Include,
-
-    // callback function
-    // str is the function name (this means it cannot be a lookup)
-    // args specify number of arguments
-    // as with builtin functions, "last" argument can be immediate
-    Callback,
-
-    // unconditional jump
-    // args is the index of the node to jump to.
-    Jump,
-
-    // conditional jump
-    // value popped off stack is checked for truthyness
-    // if false, args is the index of the node to jump to.
-    // if true, no action is taken (falls through)
-    ConditionalJump,
-
-    // start loop
-    // value popped off stack is what is iterated over
-    // args is index of node after end loop (jumped to if iterable is empty)
-    // immediate value is key name (for maps)
-    // str is value name
-    StartLoop,
-
-    // end a loop
-    // args is index of the first node in the loop body
-    EndLoop,
-  };
-
-  enum Flag {
-    // location of value for value-taking ops (mask)
-    ValueMask = 0x03,
-    // pop value off stack
-    ValuePop = 0x00,
-    // value is immediate rather than on stack
-    ValueImmediate = 0x01,
-    // lookup immediate str (dot notation)
-    ValueLookupDot = 0x02,
-    // lookup immediate str (json pointer notation)
-    ValueLookupPointer = 0x03,
-  };
-
-  Op op {Op::Nop};
-  uint32_t args : 30;
-  uint32_t flags : 2;
-
-  json value;
-  std::string str;
-  size_t pos;
-
-  explicit Node(Op op, unsigned int args, size_t pos) : op(op), args(args), flags(0), pos(pos) {}
-  explicit Node(Op op, nonstd::string_view str, unsigned int flags, size_t pos) : op(op), args(0), flags(flags), str(str), pos(pos) {}
-  explicit Node(Op op, json &&value, unsigned int flags, size_t pos) : op(op), args(0), flags(flags), value(std::move(value)), pos(pos) {}
-};
-
-} // namespace inja
-
-#endif // INCLUDE_INJA_NODE_HPP_
 
 // #include "string_view.hpp"
 
@@ -1667,63 +1532,116 @@ using CallbackFunction = std::function<json(Arguments &args)>;
  * \brief Class for builtin functions and user-defined callbacks.
  */
 class FunctionStorage {
-  struct FunctionData {
-    unsigned int num_args {0};
-    Node::Op op {Node::Op::Nop}; // for builtins
-    CallbackFunction function; // for callbacks
+public:
+  enum class Operation {
+    Not,
+    And,
+    Or,
+    In,
+    Equal,
+    NotEqual,
+    Greater,
+    GreaterEqual,
+    Less,
+    LessEqual,
+    Add,
+    Subtract,
+    Multiplication,
+    Division,
+    Power,
+    Modulo,
+    At,
+    Default,
+    DivisibleBy,
+    Even,
+    Exists,
+    ExistsInObject,
+    First,
+    Float,
+    Int,
+    IsArray,
+    IsBoolean,
+    IsFloat,
+    IsInteger,
+    IsNumber,
+    IsObject,
+    IsString,
+    Last,
+    Length,
+    Lower,
+    Max,
+    Min,
+    Odd,
+    Range,
+    Round,
+    Sort,
+    Upper,
+    Callback,
+    ParenLeft,
+    ParenRight,
+    None,
   };
 
-  std::map<std::string, std::vector<FunctionData>> storage;
+  const int VARIADIC {-1};
 
-  FunctionData &get_or_new(nonstd::string_view name, unsigned int num_args) {
-    auto &vec = storage[static_cast<std::string>(name)];
-    for (auto &i : vec) {
-      if (i.num_args == num_args) {
-        return i;
-      }
-    }
-    vec.emplace_back();
-    vec.back().num_args = num_args;
-    return vec.back();
-  }
+  struct FunctionData {
+    Operation operation;
 
-  const FunctionData *get(nonstd::string_view name, unsigned int num_args) const {
-    auto it = storage.find(static_cast<std::string>(name));
-    if (it == storage.end()) {
-      return nullptr;
-    }
+    CallbackFunction callback;
+  };
 
-    for (auto &&i : it->second) {
-      if (i.num_args == num_args) {
-        return &i;
-      }
-    }
-    return nullptr;
-  }
+  std::map<std::pair<std::string, int>, FunctionData> function_storage = {
+    {std::make_pair("at", 2), FunctionData { Operation::At }},
+    {std::make_pair("default", 2), FunctionData { Operation::Default }},
+    {std::make_pair("divisibleBy", 2), FunctionData { Operation::DivisibleBy }},
+    {std::make_pair("even", 1), FunctionData { Operation::Even }},
+    {std::make_pair("exists", 1), FunctionData { Operation::Exists }},
+    {std::make_pair("existsIn", 2), FunctionData { Operation::ExistsInObject }},
+    {std::make_pair("first", 1), FunctionData { Operation::First }},
+    {std::make_pair("float", 1), FunctionData { Operation::Float }},
+    {std::make_pair("int", 1), FunctionData { Operation::Int }},
+    {std::make_pair("isArray", 1), FunctionData { Operation::IsArray }},
+    {std::make_pair("isBoolean", 1), FunctionData { Operation::IsBoolean }},
+    {std::make_pair("isFloat", 1), FunctionData { Operation::IsFloat }},
+    {std::make_pair("isInteger", 1), FunctionData { Operation::IsInteger }},
+    {std::make_pair("isNumber", 1), FunctionData { Operation::IsNumber }},
+    {std::make_pair("isObject", 1), FunctionData { Operation::IsObject }},
+    {std::make_pair("isString", 1), FunctionData { Operation::IsString }},
+    {std::make_pair("last", 1), FunctionData { Operation::Last }},
+    {std::make_pair("length", 1), FunctionData { Operation::Length }},
+    {std::make_pair("lower", 1), FunctionData { Operation::Lower }},
+    {std::make_pair("max", 1), FunctionData { Operation::Max }},
+    {std::make_pair("min", 1), FunctionData { Operation::Min }},
+    {std::make_pair("odd", 1), FunctionData { Operation::Odd }},
+    {std::make_pair("range", 1), FunctionData { Operation::Range }},
+    {std::make_pair("round", 2), FunctionData { Operation::Round }},
+    {std::make_pair("sort", 1), FunctionData { Operation::Sort }},
+    {std::make_pair("upper", 1), FunctionData { Operation::Upper }},
+  };
 
 public:
-  void add_builtin(nonstd::string_view name, unsigned int num_args, Node::Op op) {
-    auto &data = get_or_new(name, num_args);
-    data.op = op;
+  void add_builtin(nonstd::string_view name, int num_args, Operation op) {
+    function_storage.emplace(std::make_pair(static_cast<std::string>(name), num_args), FunctionData { op });
   }
 
-  void add_callback(nonstd::string_view name, unsigned int num_args, const CallbackFunction &function) {
-    auto &data = get_or_new(name, num_args);
-    data.function = function;
+  void add_callback(nonstd::string_view name, int num_args, const CallbackFunction &callback) {
+    function_storage.emplace(std::make_pair(static_cast<std::string>(name), num_args), FunctionData { Operation::Callback, callback });
   }
 
-  Node::Op find_builtin(nonstd::string_view name, unsigned int num_args) const {
-    if (auto ptr = get(name, num_args)) {
-      return ptr->op;
+  FunctionData find_function(nonstd::string_view name, int num_args) const {
+    auto it = function_storage.find(std::make_pair(static_cast<std::string>(name), num_args));
+    if (it != function_storage.end()) {
+      return it->second;
+
+    // Find variadic function
+    } else if (num_args > 0) {
+      it = function_storage.find(std::make_pair(static_cast<std::string>(name), VARIADIC));
+      if (it != function_storage.end()) {
+        return it->second;
+      }
     }
-    return Node::Op::Nop;
-  }
 
-  CallbackFunction find_callback(nonstd::string_view name, unsigned int num_args) const {
-    if (auto ptr = get(name, num_args)) {
-      return ptr->function;
-    }
-    return nullptr;
+    return { Operation::None };
   }
 };
 
@@ -1732,14 +1650,16 @@ public:
 #endif // INCLUDE_INJA_FUNCTION_STORAGE_HPP_
 
 // #include "parser.hpp"
-// Copyright (c) 2019 Pantor. All rights reserved.
+// Copyright (c) 2020 Pantor. All rights reserved.
 
 #ifndef INCLUDE_INJA_PARSER_HPP_
 #define INCLUDE_INJA_PARSER_HPP_
 
 #include <limits>
+#include <stack>
 #include <string>
 #include <utility>
+#include <queue>
 #include <vector>
 
 // #include "config.hpp"
@@ -1803,7 +1723,7 @@ struct JsonError : public InjaError {
 // #include "function_storage.hpp"
 
 // #include "lexer.hpp"
-// Copyright (c) 2019 Pantor. All rights reserved.
+// Copyright (c) 2020 Pantor. All rights reserved.
 
 #ifndef INCLUDE_INJA_LEXER_HPP_
 #define INCLUDE_INJA_LEXER_HPP_
@@ -1814,7 +1734,7 @@ struct JsonError : public InjaError {
 // #include "config.hpp"
 
 // #include "token.hpp"
-// Copyright (c) 2019 Pantor. All rights reserved.
+// Copyright (c) 2020 Pantor. All rights reserved.
 
 #ifndef INCLUDE_INJA_TOKEN_HPP_
 #define INCLUDE_INJA_TOKEN_HPP_
@@ -1843,6 +1763,12 @@ struct Token {
     Id,                 // this, this.foo
     Number,             // 1, 2, -1, 5.2, -5.3
     String,             // "this"
+    Plus,               // +
+    Minus,              // -
+    Times,              // *
+    Slash,              // /
+    Percent,            // %
+    Power,              // ^
     Comma,              // ,
     Colon,              // :
     LeftParen,          // (
@@ -1852,13 +1778,13 @@ struct Token {
     LeftBrace,          // {
     RightBrace,         // }
     Equal,              // ==
+    NotEqual,           // !=
     GreaterThan,        // >
     GreaterEqual,       // >=
     LessThan,           // <
     LessEqual,          // <=
-    NotEqual,           // !=
     Unknown,
-    Eof
+    Eof,
   };
   
   Kind kind {Kind::Unknown};
@@ -1886,7 +1812,7 @@ struct Token {
 #endif // INCLUDE_INJA_TOKEN_HPP_
 
 // #include "utils.hpp"
-// Copyright (c) 2019 Pantor. All rights reserved.
+// Copyright (c) 2020 Pantor. All rights reserved.
 
 #ifndef INCLUDE_INJA_UTILS_HPP_
 #define INCLUDE_INJA_UTILS_HPP_
@@ -1918,7 +1844,7 @@ namespace string_view {
 inline nonstd::string_view slice(nonstd::string_view view, size_t start, size_t end) {
   start = std::min(start, view.size());
   end = std::min(std::max(start, end), view.size());
-  return view.substr(start, end - start); // StringRef(Data + Start, End - Start);
+  return view.substr(start, end - start);
 }
 
 inline std::pair<nonstd::string_view, nonstd::string_view> split(nonstd::string_view view, char Separator) {
@@ -1979,12 +1905,18 @@ class Lexer {
     StatementStartForceLstrip,
     StatementBody,
     CommentStart,
-    CommentBody
+    CommentBody,
   };
-  
+
+  enum class MinusState {
+    Operator,
+    Number,
+  };
+
   const LexerConfig &config;
 
   State state;
+  MinusState minus_state;
   nonstd::string_view m_in;
   size_t tok_start;
   size_t pos;
@@ -2029,10 +1961,31 @@ class Lexer {
 
     pos = tok_start + 1;
     if (std::isalpha(ch)) {
+      minus_state = MinusState::Operator;
       return scan_id();
     }
 
+    MinusState current_minus_state = minus_state;
+    if (minus_state == MinusState::Operator) {
+      minus_state = MinusState::Number;
+    }
+
     switch (ch) {
+    case '+':
+      return make_token(Token::Kind::Plus);
+    case '-':
+      if (current_minus_state == MinusState::Operator) {
+        return make_token(Token::Kind::Minus);
+      }
+      return scan_number();
+    case '*':
+      return make_token(Token::Kind::Times);
+    case '/':
+      return make_token(Token::Kind::Slash);
+    case '^':
+      return make_token(Token::Kind::Power);
+    case '%':
+      return make_token(Token::Kind::Percent);
     case ',':
       return make_token(Token::Kind::Comma);
     case ':':
@@ -2040,14 +1993,17 @@ class Lexer {
     case '(':
       return make_token(Token::Kind::LeftParen);
     case ')':
+      minus_state = MinusState::Operator;
       return make_token(Token::Kind::RightParen);
     case '[':
       return make_token(Token::Kind::LeftBracket);
     case ']':
+      minus_state = MinusState::Operator;
       return make_token(Token::Kind::RightBracket);
     case '{':
       return make_token(Token::Kind::LeftBrace);
     case '}':
+      minus_state = MinusState::Operator;
       return make_token(Token::Kind::RightBrace);
     case '>':
       if (pos < m_in.size() && m_in[pos] == '=') {
@@ -2085,9 +2041,10 @@ class Lexer {
     case '7':
     case '8':
     case '9':
-    case '-':
+      minus_state = MinusState::Operator;
       return scan_number();
     case '_':
+      minus_state = MinusState::Operator;
       return scan_id();
     default:
       return make_token(Token::Kind::Unknown);
@@ -2198,6 +2155,7 @@ public:
     tok_start = 0;
     pos = 0;
     state = State::Text;
+    minus_state = MinusState::Number;
   }
 
   Token scan() {
@@ -2207,7 +2165,7 @@ public:
     if (tok_start >= m_in.size()) {
       return make_token(Token::Kind::Eof);
     }
-    
+
     switch (state) {
     default:
     case State::Text: {
@@ -2320,6 +2278,315 @@ public:
 
 #endif // INCLUDE_INJA_LEXER_HPP_
 
+// #include "node.hpp"
+// Copyright (c) 2020 Pantor. All rights reserved.
+
+#ifndef INCLUDE_INJA_NODE_HPP_
+#define INCLUDE_INJA_NODE_HPP_
+
+#include <string>
+#include <utility>
+
+#include <nlohmann/json.hpp>
+
+// #include "function_storage.hpp"
+
+// #include "string_view.hpp"
+
+
+
+namespace inja {
+
+class NodeVisitor;
+class BlockNode;
+class TextNode;
+class ExpressionNode;
+class LiteralNode;
+class JsonNode;
+class FunctionNode;
+class ExpressionListNode;
+class StatementNode;
+class ForStatementNode;
+class ForArrayStatementNode;
+class ForObjectStatementNode;
+class IfStatementNode;
+class IncludeStatementNode;
+
+
+class NodeVisitor {
+public:
+  virtual void visit(const BlockNode& node) = 0;
+  virtual void visit(const TextNode& node) = 0;
+  virtual void visit(const ExpressionNode& node) = 0;
+  virtual void visit(const LiteralNode& node) = 0;
+  virtual void visit(const JsonNode& node) = 0;
+  virtual void visit(const FunctionNode& node) = 0;
+  virtual void visit(const ExpressionListNode& node) = 0;
+  virtual void visit(const StatementNode& node) = 0;
+  virtual void visit(const ForStatementNode& node) = 0;
+  virtual void visit(const ForArrayStatementNode& node) = 0;
+  virtual void visit(const ForObjectStatementNode& node) = 0;
+  virtual void visit(const IfStatementNode& node) = 0;
+  virtual void visit(const IncludeStatementNode& node) = 0;
+};
+
+
+class AstNode {
+public:
+  virtual void accept(NodeVisitor& v) const = 0;
+
+  size_t pos;
+
+  AstNode(size_t pos) : pos(pos) { }
+  virtual ~AstNode() { };
+};
+
+
+class BlockNode : public AstNode {
+public:
+  std::vector<std::shared_ptr<AstNode>> nodes;
+
+  explicit BlockNode() : AstNode(0) {}
+
+  void accept(NodeVisitor& v) const {
+    v.visit(*this);
+  }
+};
+
+class TextNode : public AstNode {
+public:
+  std::string content;
+
+  explicit TextNode(nonstd::string_view content, size_t pos): AstNode(pos), content(content) { }
+
+  void accept(NodeVisitor& v) const {
+    v.visit(*this);
+  }
+};
+
+class ExpressionNode : public AstNode {
+public:
+  explicit ExpressionNode(size_t pos) : AstNode(pos) {}
+
+  void accept(NodeVisitor& v) const {
+    v.visit(*this);
+  }
+};
+
+class LiteralNode : public ExpressionNode {
+public:
+  nlohmann::json value;
+
+  explicit LiteralNode(const nlohmann::json& value, size_t pos) : ExpressionNode(pos), value(value) { }
+
+  void accept(NodeVisitor& v) const {
+    v.visit(*this);
+  }
+};
+
+class JsonNode : public ExpressionNode {
+public:
+  std::string name;
+  std::string ptr {""};
+
+  explicit JsonNode(nonstd::string_view ptr_name, size_t pos) : ExpressionNode(pos), name(ptr_name) {
+    // Convert dot notation to json pointer notation
+    do {
+      nonstd::string_view part;
+      std::tie(part, ptr_name) = string_view::split(ptr_name, '.');
+      ptr.push_back('/');
+      ptr.append(part.begin(), part.end());
+    } while (!ptr_name.empty());
+  }
+
+  void accept(NodeVisitor& v) const {
+    v.visit(*this);
+  }
+};
+
+class FunctionNode : public ExpressionNode {
+  using Op = FunctionStorage::Operation;
+
+public:
+  enum class Associativity {
+    Left,
+    Right,
+  };
+
+  unsigned int precedence;
+  Associativity associativity;
+
+  Op operation;
+
+  std::string name;
+  size_t number_args;
+  CallbackFunction callback;
+
+  explicit FunctionNode(nonstd::string_view name, size_t pos) : ExpressionNode(pos), precedence(5), associativity(Associativity::Left), operation(Op::Callback), name(name), number_args(1) { }
+  explicit FunctionNode(Op operation, size_t pos) : ExpressionNode(pos), operation(operation), number_args(1) {
+    switch (operation) {
+      case Op::Not: {
+        precedence = 4;
+        associativity = Associativity::Left;
+      } break;
+      case Op::And: {
+        precedence = 1;
+        associativity = Associativity::Left;
+      } break;
+      case Op::Or: {
+        precedence = 1;
+        associativity = Associativity::Left;
+      } break;
+      case Op::In: {
+        precedence = 2;
+        associativity = Associativity::Left;
+      } break;
+      case Op::Equal: {
+        precedence = 2;
+        associativity = Associativity::Left;
+      } break;
+      case Op::NotEqual: {
+        precedence = 2;
+        associativity = Associativity::Left;
+      } break;
+      case Op::Greater: {
+        precedence = 2;
+        associativity = Associativity::Left;
+      } break;
+      case Op::GreaterEqual: {
+        precedence = 2;
+        associativity = Associativity::Left;
+      } break;
+      case Op::Less: {
+        precedence = 2;
+        associativity = Associativity::Left;
+      } break;
+      case Op::LessEqual: {
+        precedence = 2;
+        associativity = Associativity::Left;
+      } break;
+      case Op::Add: {
+        precedence = 3;
+        associativity = Associativity::Left;
+      } break;
+      case Op::Subtract: {
+        precedence = 3;
+        associativity = Associativity::Left;
+      } break;
+      case Op::Multiplication: {
+        precedence = 4;
+        associativity = Associativity::Left;
+      } break;
+      case Op::Division: {
+        precedence = 4;
+        associativity = Associativity::Left;
+      } break;
+      case Op::Power: {
+        precedence = 5;
+        associativity = Associativity::Right;
+      } break;
+      case Op::Modulo: {
+        precedence = 4;
+        associativity = Associativity::Left;
+      } break;
+      default: {
+        precedence = 1;
+        associativity = Associativity::Left;
+      }
+    }
+  }
+
+  void accept(NodeVisitor& v) const {
+    v.visit(*this);
+  }
+};
+
+class ExpressionListNode : public AstNode {
+public:
+  std::vector<std::shared_ptr<ExpressionNode>> rpn_output;
+
+  explicit ExpressionListNode() : AstNode(0) { }
+  explicit ExpressionListNode(size_t pos) : AstNode(pos) { }
+
+  void accept(NodeVisitor& v) const {
+    v.visit(*this);
+  }
+};
+
+class StatementNode : public AstNode {
+public:
+  StatementNode(size_t pos) : AstNode(pos) { }
+
+  virtual void accept(NodeVisitor& v) const = 0;
+};
+
+class ForStatementNode : public StatementNode {
+public:
+  ExpressionListNode condition;
+  BlockNode body;
+  BlockNode *parent;
+
+  ForStatementNode(size_t pos) : StatementNode(pos) { }
+
+  virtual void accept(NodeVisitor& v) const = 0;
+};
+
+class ForArrayStatementNode : public ForStatementNode {
+public:
+  nonstd::string_view value;
+
+  explicit ForArrayStatementNode(nonstd::string_view value, size_t pos) : ForStatementNode(pos), value(value) { }
+
+  void accept(NodeVisitor& v) const {
+    v.visit(*this);
+  }
+};
+
+class ForObjectStatementNode : public ForStatementNode {
+public:
+  nonstd::string_view key;
+  nonstd::string_view value;
+
+  explicit ForObjectStatementNode(nonstd::string_view key, nonstd::string_view value, size_t pos) : ForStatementNode(pos), key(key), value(value) { }
+
+  void accept(NodeVisitor& v) const {
+    v.visit(*this);
+  }
+};
+
+class IfStatementNode : public StatementNode {
+public:
+  ExpressionListNode condition;
+  BlockNode true_statement;
+  BlockNode false_statement;
+  BlockNode *parent;
+
+  bool is_nested;
+  bool has_false_statement {false};
+
+  explicit IfStatementNode(size_t pos) : StatementNode(pos), is_nested(false) { }
+  explicit IfStatementNode(bool is_nested, size_t pos) : StatementNode(pos), is_nested(is_nested) { }
+
+  void accept(NodeVisitor& v) const {
+    v.visit(*this);
+  }
+};
+
+class IncludeStatementNode : public StatementNode {
+public:
+  std::string file;
+
+  explicit IncludeStatementNode(const std::string& file, size_t pos) : StatementNode(pos), file(file) { }
+
+  void accept(NodeVisitor& v) const {
+    v.visit(*this);
+  };
+};
+
+} // namespace inja
+
+#endif // INCLUDE_INJA_NODE_HPP_
+
 // #include "template.hpp"
 // Copyright (c) 2019 Pantor. All rights reserved.
 
@@ -2327,10 +2594,80 @@ public:
 #define INCLUDE_INJA_TEMPLATE_HPP_
 
 #include <map>
+#include <memory>
 #include <string>
 #include <vector>
 
 // #include "node.hpp"
+
+// #include "statistics.hpp"
+// Copyright (c) 2019 Pantor. All rights reserved.
+
+#ifndef INCLUDE_INJA_STATISTICS_HPP_
+#define INCLUDE_INJA_STATISTICS_HPP_
+
+// #include "node.hpp"
+
+
+
+namespace inja {
+
+/*!
+ * \brief A class for counting statistics on a Template.
+ */
+struct StatisticsVisitor : public NodeVisitor {
+  unsigned int variable_counter;
+
+  explicit StatisticsVisitor() : variable_counter(0) { }
+
+  void visit(const BlockNode& node) {
+    for (auto& n : node.nodes) {
+      n->accept(*this);
+    }
+  }
+
+  void visit(const TextNode&) { }
+  void visit(const ExpressionNode&) { }
+  void visit(const LiteralNode&) { }
+
+  void visit(const JsonNode&) {
+    variable_counter += 1;
+  }
+
+  void visit(const FunctionNode&) { }
+
+  void visit(const ExpressionListNode& node) {
+    for (auto& n : node.rpn_output) {
+      n->accept(*this);
+    }
+  }
+
+  void visit(const StatementNode&) { }
+  void visit(const ForStatementNode&) { }
+
+  void visit(const ForArrayStatementNode& node) {
+    node.condition.accept(*this);
+    node.body.accept(*this);
+  }
+
+  void visit(const ForObjectStatementNode& node) {
+    node.condition.accept(*this);
+    node.body.accept(*this);
+  }
+
+  void visit(const IfStatementNode& node) {
+    node.condition.accept(*this);
+    node.true_statement.accept(*this);
+    node.false_statement.accept(*this);
+  }
+
+  void visit(const IncludeStatementNode&) { }
+};
+
+} // namespace inja
+
+#endif // INCLUDE_INJA_STATISTICS_HPP_
+
 
 
 namespace inja {
@@ -2339,7 +2676,7 @@ namespace inja {
  * \brief The main inja Template.
  */
 struct Template {
-  std::vector<Node> nodes;
+  BlockNode root;
   std::string content;
 
   explicit Template() { }
@@ -2347,9 +2684,9 @@ struct Template {
 
   /// Return number of variables (total number, not distinct ones) in the template
   int count_variables() {
-    return std::count_if(nodes.cbegin(), nodes.cend(), [](const inja::Node &node) {
-      return (node.flags == Node::Flag::ValueLookupDot || node.flags == Node::Flag::ValueLookupPointer);
-    });
+    auto statistic_visitor = StatisticsVisitor();
+    root.accept(statistic_visitor);
+    return statistic_visitor.variable_counter;
   }
 };
 
@@ -2358,8 +2695,6 @@ using TemplateStorage = std::map<std::string, Template>;
 } // namespace inja
 
 #endif // INCLUDE_INJA_TEMPLATE_HPP_
-
-// #include "node.hpp"
 
 // #include "token.hpp"
 
@@ -2370,73 +2705,32 @@ using TemplateStorage = std::map<std::string, Template>;
 
 namespace inja {
 
-class ParserStatic {
-  ParserStatic() {
-    function_storage.add_builtin("at", 2, Node::Op::At);
-    function_storage.add_builtin("default", 2, Node::Op::Default);
-    function_storage.add_builtin("divisibleBy", 2, Node::Op::DivisibleBy);
-    function_storage.add_builtin("even", 1, Node::Op::Even);
-    function_storage.add_builtin("first", 1, Node::Op::First);
-    function_storage.add_builtin("float", 1, Node::Op::Float);
-    function_storage.add_builtin("int", 1, Node::Op::Int);
-    function_storage.add_builtin("last", 1, Node::Op::Last);
-    function_storage.add_builtin("length", 1, Node::Op::Length);
-    function_storage.add_builtin("lower", 1, Node::Op::Lower);
-    function_storage.add_builtin("max", 1, Node::Op::Max);
-    function_storage.add_builtin("min", 1, Node::Op::Min);
-    function_storage.add_builtin("odd", 1, Node::Op::Odd);
-    function_storage.add_builtin("range", 1, Node::Op::Range);
-    function_storage.add_builtin("round", 2, Node::Op::Round);
-    function_storage.add_builtin("sort", 1, Node::Op::Sort);
-    function_storage.add_builtin("upper", 1, Node::Op::Upper);
-    function_storage.add_builtin("exists", 1, Node::Op::Exists);
-    function_storage.add_builtin("existsIn", 2, Node::Op::ExistsInObject);
-    function_storage.add_builtin("isBoolean", 1, Node::Op::IsBoolean);
-    function_storage.add_builtin("isNumber", 1, Node::Op::IsNumber);
-    function_storage.add_builtin("isInteger", 1, Node::Op::IsInteger);
-    function_storage.add_builtin("isFloat", 1, Node::Op::IsFloat);
-    function_storage.add_builtin("isObject", 1, Node::Op::IsObject);
-    function_storage.add_builtin("isArray", 1, Node::Op::IsArray);
-    function_storage.add_builtin("isString", 1, Node::Op::IsString);
-  }
-
-public:
-  ParserStatic(const ParserStatic &) = delete;
-  ParserStatic &operator=(const ParserStatic &) = delete;
-
-  static const ParserStatic &get_instance() {
-    static ParserStatic instance;
-    return instance;
-  }
-
-  FunctionStorage function_storage;
-};
-
-
 /*!
  * \brief Class for parsing an inja Template.
  */
 class Parser {
-  struct IfData {
-    using jump_t = size_t;
-    jump_t prev_cond_jump;
-    std::vector<jump_t> uncond_jumps;
-
-    explicit IfData(jump_t condJump) : prev_cond_jump(condJump) {}
-  };
-
-
-  const ParserStatic &parser_static;
   const ParserConfig &config;
+
   Lexer lexer;
   TemplateStorage &template_storage;
+  const FunctionStorage &function_storage;
 
-  Token tok;
-  Token peek_tok;
+  Token tok, peek_tok;
   bool have_peek_tok {false};
 
-  std::vector<IfData> if_stack;
-  std::vector<size_t> loop_stack;
+  size_t current_paren_level {0};
+  size_t current_bracket_level {0};
+  size_t current_brace_level {0};
+
+  nonstd::string_view json_literal_start;
+
+  BlockNode *current_block {nullptr};
+  ExpressionListNode *current_expression_list {nullptr};
+  std::stack<std::pair<FunctionNode*, size_t>> function_stack;
+
+  std::stack<std::shared_ptr<FunctionNode>> operator_stack;
+  std::stack<IfStatementNode*> if_statement_stack;
+  std::stack<ForStatementNode*> for_statement_stack;
 
   void throw_parser_error(const std::string &message) {
     throw ParserError(message, lexer.current_position());
@@ -2458,240 +2752,245 @@ class Parser {
     }
   }
 
+  void add_json_literal(const char* content_ptr) {
+    nonstd::string_view json_text(json_literal_start.data(), tok.text.data() - json_literal_start.data() + tok.text.size());
+    current_expression_list->rpn_output.emplace_back(std::make_shared<LiteralNode>(json::parse(json_text), json_text.data() - content_ptr));
+  }
+
 
 public:
   explicit Parser(const ParserConfig &parser_config, const LexerConfig &lexer_config,
-                  TemplateStorage &included_templates)
-      : config(parser_config), lexer(lexer_config), template_storage(included_templates),
-        parser_static(ParserStatic::get_instance()) {}
+                  TemplateStorage &template_storage, const FunctionStorage &function_storage)
+      : config(parser_config), lexer(lexer_config), template_storage(template_storage), function_storage(function_storage) { }
 
-  bool parse_expression(Template &tmpl) {
-    if (!parse_expression_and(tmpl)) {
-      return false;
-    }
-    if (tok.kind != Token::Kind::Id || tok.text != static_cast<decltype(tok.text)>("or")) {
-      return true;
-    }
-    get_next_token();
-    if (!parse_expression_and(tmpl)) {
-      return false;
-    }
-    append_function(tmpl, Node::Op::Or, 2);
-    return true;
-  }
-
-  bool parse_expression_and(Template &tmpl) {
-    if (!parse_expression_not(tmpl)) {
-      return false;
-    } 
-    if (tok.kind != Token::Kind::Id || tok.text != static_cast<decltype(tok.text)>("and")) {
-      return true;
-    }
-    get_next_token();
-    if (!parse_expression_not(tmpl)) {
-      return false;
-    }
-    append_function(tmpl, Node::Op::And, 2);
-    return true;
-  }
-
-  bool parse_expression_not(Template &tmpl) {
-    if (tok.kind == Token::Kind::Id && tok.text == static_cast<decltype(tok.text)>("not")) {
-      get_next_token();
-      if (!parse_expression_not(tmpl)) {
-        return false;
-      }
-      append_function(tmpl, Node::Op::Not, 1);
-      return true;
-    } else {
-      return parse_expression_comparison(tmpl);
-    }
-  }
-
-  bool parse_expression_comparison(Template &tmpl) {
-    if (!parse_expression_datum(tmpl)) {
-      return false;
-    }
-    Node::Op op;
-    switch (tok.kind) {
-    case Token::Kind::Id:
-      if (tok.text == static_cast<decltype(tok.text)>("in")) {
-        op = Node::Op::In;
-      } else {
-        return true;
-      }
-      break;
-    case Token::Kind::Equal:
-      op = Node::Op::Equal;
-      break;
-    case Token::Kind::GreaterThan:
-      op = Node::Op::Greater;
-      break;
-    case Token::Kind::LessThan:
-      op = Node::Op::Less;
-      break;
-    case Token::Kind::LessEqual:
-      op = Node::Op::LessEqual;
-      break;
-    case Token::Kind::GreaterEqual:
-      op = Node::Op::GreaterEqual;
-      break;
-    case Token::Kind::NotEqual:
-      op = Node::Op::Different;
-      break;
-    default:
-      return true;
-    }
-    get_next_token();
-    if (!parse_expression_datum(tmpl)) {
-      return false;
-    }
-    append_function(tmpl, op, 2);
-    return true;
-  }
-
-  bool parse_expression_datum(Template &tmpl) {
-    nonstd::string_view json_first;
-    size_t bracket_level = 0;
-    size_t brace_level = 0;
-
-    for (;;) {
+  bool parse_expression(Template &tmpl, Token::Kind closing) {
+    while (tok.kind != closing && tok.kind != Token::Kind::Eof) {
+      // Literals
       switch (tok.kind) {
-      case Token::Kind::LeftParen: {
-        get_next_token();
-        if (!parse_expression(tmpl)) {
-          return false;
+      case Token::Kind::String: {
+        if (current_brace_level == 0 && current_bracket_level == 0) {
+          json_literal_start = tok.text;
+          add_json_literal(tmpl.content.c_str());
         }
-        if (tok.kind != Token::Kind::RightParen) {
-          throw_parser_error("unmatched '('");
-        }
-        get_next_token();
-        return true;
-      }
-      case Token::Kind::Id:
-        get_peek_token();
-        if (peek_tok.kind == Token::Kind::LeftParen) {
-          // function call, parse arguments
-          Token func_token = tok;
-          get_next_token(); // id
-          get_next_token(); // leftParen
-          unsigned int num_args = 0;
-          if (tok.kind == Token::Kind::RightParen) {
-            // no args
-            get_next_token();
-          } else {
-            for (;;) {
-              if (!parse_expression(tmpl)) {
-                throw_parser_error("expected expression, got '" + tok.describe() + "'");
-              }
-              num_args += 1;
-              if (tok.kind == Token::Kind::RightParen) {
-                get_next_token();
-                break;
-              }
-              if (tok.kind != Token::Kind::Comma) {
-                throw_parser_error("expected ')' or ',', got '" + tok.describe() + "'");
-              }
-              get_next_token();
-            }
-          }
 
-          auto op = parser_static.function_storage.find_builtin(func_token.text, num_args);
+      } break;
+      case Token::Kind::Number: {
+        if (current_brace_level == 0 && current_bracket_level == 0) {
+          json_literal_start = tok.text;
+          add_json_literal(tmpl.content.c_str());
+        }
 
-          if (op != Node::Op::Nop) {
-            // swap arguments for default(); see comment in RenderTo()
-            if (op == Node::Op::Default) {
-              std::swap(tmpl.nodes.back(), *(tmpl.nodes.rbegin() + 1));
-            }
-            append_function(tmpl, op, num_args);
-            return true;
-          } else {
-            append_callback(tmpl, func_token.text, num_args);
-            return true;
-          }
-        } else if (tok.text == static_cast<decltype(tok.text)>("true") ||
-                   tok.text == static_cast<decltype(tok.text)>("false") ||
-                   tok.text == static_cast<decltype(tok.text)>("null")) {
-          // true, false, null are json literals
-          if (brace_level == 0 && bracket_level == 0) {
-            json_first = tok.text;
-            goto returnJson;
-          }
-          break;
-        } else {
-          // normal literal (json read)
+      } break;
+      case Token::Kind::LeftBracket: {
+        if (current_brace_level == 0 && current_bracket_level == 0) {
+          json_literal_start = tok.text;
+        }
+        current_bracket_level += 1;
 
-          auto flag = config.notation == ElementNotation::Pointer ? Node::Flag::ValueLookupPointer : Node::Flag::ValueLookupDot;
-          tmpl.nodes.emplace_back(Node::Op::Push, tok.text, flag, tok.text.data() - tmpl.content.c_str());
-          get_next_token();
-          return true;
+      } break;
+      case Token::Kind::LeftBrace: {
+        if (current_brace_level == 0 && current_bracket_level == 0) {
+          json_literal_start = tok.text;
         }
-      // json passthrough
-      case Token::Kind::Number:
-      case Token::Kind::String:
-        if (brace_level == 0 && bracket_level == 0) {
-          json_first = tok.text;
-          goto returnJson;
-        }
-        break;
-      case Token::Kind::Comma:
-      case Token::Kind::Colon:
-        if (brace_level == 0 && bracket_level == 0) {
-          throw_parser_error("unexpected token '" + tok.describe() + "'");
-        }
-        break;
-      case Token::Kind::LeftBracket:
-        if (brace_level == 0 && bracket_level == 0) {
-          json_first = tok.text;
-        }
-        bracket_level += 1;
-        break;
-      case Token::Kind::LeftBrace:
-        if (brace_level == 0 && bracket_level == 0) {
-          json_first = tok.text;
-        }
-        brace_level += 1;
-        break;
-      case Token::Kind::RightBracket:
-        if (bracket_level == 0) {
+        current_brace_level += 1;
+
+      } break;
+      case Token::Kind::RightBracket: {
+        if (current_bracket_level == 0) {
           throw_parser_error("unexpected ']'");
         }
-        bracket_level -= 1;
-        if (brace_level == 0 && bracket_level == 0) {
-          goto returnJson;
+
+        current_bracket_level -= 1;
+        if (current_brace_level == 0 && current_bracket_level == 0) {
+          add_json_literal(tmpl.content.c_str());
         }
-        break;
-      case Token::Kind::RightBrace:
-        if (brace_level == 0) {
+
+      } break;
+      case Token::Kind::RightBrace: {
+        if (current_brace_level == 0) {
           throw_parser_error("unexpected '}'");
         }
-        brace_level -= 1;
-        if (brace_level == 0 && bracket_level == 0) {
-          goto returnJson;
+
+        current_brace_level -= 1;
+        if (current_brace_level == 0 && current_bracket_level == 0) {
+          add_json_literal(tmpl.content.c_str());
         }
-        break;
+
+      } break;
+      case Token::Kind::Id: {
+        get_peek_token();
+
+        // Json Literal
+        if (tok.text == static_cast<decltype(tok.text)>("true") || tok.text == static_cast<decltype(tok.text)>("false") || tok.text == static_cast<decltype(tok.text)>("null")) {
+          if (current_brace_level == 0 && current_bracket_level == 0) {
+            json_literal_start = tok.text;
+            add_json_literal(tmpl.content.c_str());
+          }
+
+        // Functions
+        } else if (peek_tok.kind == Token::Kind::LeftParen) {
+          operator_stack.emplace(std::make_shared<FunctionNode>(static_cast<std::string>(tok.text), tok.text.data() - tmpl.content.c_str()));
+          function_stack.emplace(operator_stack.top().get(), current_paren_level);
+
+        // Operator
+        } else if (tok.text == "and" || tok.text == "or" || tok.text == "in" || tok.text == "not") {
+          goto parse_operator;
+
+        // Variables
+        } else {
+          current_expression_list->rpn_output.emplace_back(std::make_shared<JsonNode>(static_cast<std::string>(tok.text), tok.text.data() - tmpl.content.c_str()));
+        }
+
+      // Operators
+      } break;
+      case Token::Kind::Equal:
+      case Token::Kind::NotEqual:
+      case Token::Kind::GreaterThan:
+      case Token::Kind::GreaterEqual:
+      case Token::Kind::LessThan:
+      case Token::Kind::LessEqual:
+      case Token::Kind::Plus:
+      case Token::Kind::Minus:
+      case Token::Kind::Times:
+      case Token::Kind::Slash:
+      case Token::Kind::Power:
+      case Token::Kind::Percent: {
+
+  parse_operator:
+        FunctionStorage::Operation operation;
+        switch (tok.kind) {
+        case Token::Kind::Id: {
+          if (tok.text == "and") {
+            operation = FunctionStorage::Operation::And;
+          } else if (tok.text == "or") {
+            operation = FunctionStorage::Operation::Or;
+          } else if (tok.text == "in") {
+            operation = FunctionStorage::Operation::In;
+          } else if (tok.text == "not") {
+            operation = FunctionStorage::Operation::Not;
+          } else {
+            throw_parser_error("unknown operator in parser.");
+          }
+        } break;
+        case Token::Kind::Equal: {
+          operation = FunctionStorage::Operation::Equal;
+        } break;
+        case Token::Kind::NotEqual: {
+          operation = FunctionStorage::Operation::NotEqual;
+        } break;
+        case Token::Kind::GreaterThan: {
+          operation = FunctionStorage::Operation::Greater;
+        } break;
+        case Token::Kind::GreaterEqual: {
+          operation = FunctionStorage::Operation::GreaterEqual;
+        } break;
+        case Token::Kind::LessThan: {
+          operation = FunctionStorage::Operation::Less;
+        } break;
+        case Token::Kind::LessEqual: {
+          operation = FunctionStorage::Operation::LessEqual;
+        } break;
+        case Token::Kind::Plus: {
+          operation = FunctionStorage::Operation::Add;
+        } break;
+        case Token::Kind::Minus: {
+          operation = FunctionStorage::Operation::Subtract;
+        } break;
+        case Token::Kind::Times: {
+          operation = FunctionStorage::Operation::Multiplication;
+        } break;
+        case Token::Kind::Slash: {
+          operation = FunctionStorage::Operation::Division;
+        } break;
+        case Token::Kind::Power: {
+          operation = FunctionStorage::Operation::Power;
+        } break;
+        case Token::Kind::Percent: {
+          operation = FunctionStorage::Operation::Modulo;
+        } break;
+        default: {
+          throw_parser_error("unknown operator in parser.");
+        }
+        }
+        auto function_node = std::make_shared<FunctionNode>(operation, tok.text.data() - tmpl.content.c_str());
+
+        while (!operator_stack.empty() && ((operator_stack.top()->precedence > function_node->precedence) || (operator_stack.top()->precedence == function_node->precedence && function_node->associativity == FunctionNode::Associativity::Left)) && (operator_stack.top()->operation != FunctionStorage::Operation::ParenLeft)) {
+          current_expression_list->rpn_output.emplace_back(operator_stack.top());
+          operator_stack.pop();
+        }
+
+        operator_stack.emplace(function_node);
+
+      } break;
+      case Token::Kind::Comma: {
+        if (current_brace_level == 0 && current_bracket_level == 0) {
+          if (function_stack.empty()) {
+            throw_parser_error("unexpected ','");
+          }
+
+          function_stack.top().first->number_args += 1;
+        }
+
+      } break;
+      case Token::Kind::Colon: {
+        if (current_brace_level == 0 && current_bracket_level == 0) {
+          throw_parser_error("unexpected ':'");
+        }
+
+      } break;
+      case Token::Kind::LeftParen: {
+        current_paren_level += 1;
+        operator_stack.emplace(std::make_shared<FunctionNode>(FunctionStorage::Operation::ParenLeft, tok.text.data() - tmpl.content.c_str()));
+
+        get_peek_token();
+        if (peek_tok.kind == Token::Kind::RightParen) {
+          if (!function_stack.empty() && function_stack.top().second == current_paren_level - 1) {
+            function_stack.top().first->number_args = 0;
+          }
+        }
+
+      } break;
+      case Token::Kind::RightParen: {
+        current_paren_level -= 1;
+        while (operator_stack.top()->operation != FunctionStorage::Operation::ParenLeft) {
+          current_expression_list->rpn_output.emplace_back(operator_stack.top());
+          operator_stack.pop();
+        }
+
+        if (operator_stack.top()->operation == FunctionStorage::Operation::ParenLeft) {
+          operator_stack.pop();
+        }
+
+        if (!function_stack.empty() && function_stack.top().second == current_paren_level) {
+          auto func = function_stack.top().first;
+          auto function_data = function_storage.find_function(func->name, func->number_args);
+          if (function_data.operation == FunctionStorage::Operation::None) {
+            throw_parser_error("unknown function " + func->name);
+          }
+          func->operation = function_data.operation;
+          if (function_data.operation == FunctionStorage::Operation::Callback) {
+            func->callback = function_data.callback;
+          }
+
+          function_stack.pop();
+        }
+      }
       default:
-        if (brace_level != 0) {
-          throw_parser_error("unmatched '{'");
-        }
-        if (bracket_level != 0) {
-          throw_parser_error("unmatched '['");
-        }
-        return false;
+        break;
       }
 
       get_next_token();
     }
 
-  returnJson:
-    // bridge across all intermediate tokens
-    nonstd::string_view json_text(json_first.data(), tok.text.data() - json_first.data() + tok.text.size());
-    tmpl.nodes.emplace_back(Node::Op::Push, json::parse(json_text), Node::Flag::ValueImmediate, tok.text.data() - tmpl.content.c_str());
-    get_next_token();
+    while (!operator_stack.empty()) {
+      current_expression_list->rpn_output.emplace_back(operator_stack.top());
+      operator_stack.pop();
+    }
+
     return true;
   }
 
-  bool parse_statement(Template &tmpl, nonstd::string_view path) {
+  bool parse_statement(Template &tmpl, Token::Kind closing, nonstd::string_view path) {
     if (tok.kind != Token::Kind::Id) {
       return false;
     }
@@ -2699,66 +2998,59 @@ public:
     if (tok.text == static_cast<decltype(tok.text)>("if")) {
       get_next_token();
 
-      // evaluate expression
-      if (!parse_expression(tmpl)) {
+      auto if_statement_node = std::make_shared<IfStatementNode>(tok.text.data() - tmpl.content.c_str());
+      current_block->nodes.emplace_back(if_statement_node);
+      if_statement_node->parent = current_block;
+      if_statement_stack.emplace(if_statement_node.get());
+      current_block = &if_statement_node->true_statement;
+      current_expression_list = &if_statement_node->condition;
+
+      if (!parse_expression(tmpl, closing)) {
         return false;
       }
 
-      // start a new if block on if stack
-      if_stack.emplace_back(static_cast<decltype(if_stack)::value_type::jump_t>(tmpl.nodes.size()));
-
-      // conditional jump; destination will be filled in by else or endif
-      tmpl.nodes.emplace_back(Node::Op::ConditionalJump, 0, tok.text.data() - tmpl.content.c_str());
-    } else if (tok.text == static_cast<decltype(tok.text)>("endif")) {
-      if (if_stack.empty()) {
-        throw_parser_error("endif without matching if");
-      }
-      auto &if_data = if_stack.back();
-      get_next_token();
-
-      // previous conditional jump jumps here
-      if (if_data.prev_cond_jump != std::numeric_limits<unsigned int>::max()) {
-        tmpl.nodes[if_data.prev_cond_jump].args = tmpl.nodes.size();
-      }
-
-      // update all previous unconditional jumps to here
-      for (size_t i : if_data.uncond_jumps) {
-        tmpl.nodes[i].args = tmpl.nodes.size();
-      }
-
-      // pop if stack
-      if_stack.pop_back();
     } else if (tok.text == static_cast<decltype(tok.text)>("else")) {
-      if (if_stack.empty()) {
+      if (if_statement_stack.empty()) {
         throw_parser_error("else without matching if");
       }
-      auto &if_data = if_stack.back();
+      auto &if_statement_data = if_statement_stack.top();
       get_next_token();
 
-      // end previous block with unconditional jump to endif; destination will be
-      // filled in by endif
-      if_data.uncond_jumps.push_back(tmpl.nodes.size());
-      tmpl.nodes.emplace_back(Node::Op::Jump, 0, tok.text.data() - tmpl.content.c_str());
+      if_statement_data->has_false_statement = true;
+      current_block = &if_statement_data->false_statement;
 
-      // previous conditional jump jumps here
-      tmpl.nodes[if_data.prev_cond_jump].args = tmpl.nodes.size();
-      if_data.prev_cond_jump = std::numeric_limits<unsigned int>::max();
-
-      // chained else if
+      // Chained else if
       if (tok.kind == Token::Kind::Id && tok.text == static_cast<decltype(tok.text)>("if")) {
         get_next_token();
 
-        // evaluate expression
-        if (!parse_expression(tmpl)) {
+        auto if_statement_node = std::make_shared<IfStatementNode>(true, tok.text.data() - tmpl.content.c_str());
+        current_block->nodes.emplace_back(if_statement_node);
+        if_statement_node->parent = current_block;
+        if_statement_stack.emplace(if_statement_node.get());
+        current_block = &if_statement_node->true_statement;
+        current_expression_list = &if_statement_node->condition;
+
+        if (!parse_expression(tmpl, closing)) {
           return false;
         }
-
-        // update "previous jump"
-        if_data.prev_cond_jump = tmpl.nodes.size();
-
-        // conditional jump; destination will be filled in by else or endif
-        tmpl.nodes.emplace_back(Node::Op::ConditionalJump, 0, tok.text.data() - tmpl.content.c_str());
       }
+
+    } else if (tok.text == static_cast<decltype(tok.text)>("endif")) {
+      if (if_statement_stack.empty()) {
+        throw_parser_error("endif without matching if");
+      }
+
+      // Nested if statements
+      while (if_statement_stack.top()->is_nested) {
+        if_statement_stack.pop();
+      }
+
+      auto &if_statement_data = if_statement_stack.top();
+      get_next_token();
+
+      current_block = if_statement_data->parent;
+      if_statement_stack.pop();
+
     } else if (tok.text == static_cast<decltype(tok.text)>("for")) {
       get_next_token();
 
@@ -2766,48 +3058,55 @@ public:
       if (tok.kind != Token::Kind::Id) {
         throw_parser_error("expected id, got '" + tok.describe() + "'");
       }
+
       Token value_token = tok;
       get_next_token();
 
-      Token key_token;
+      // Object type
+      std::shared_ptr<ForStatementNode> for_statement_node;
       if (tok.kind == Token::Kind::Comma) {
         get_next_token();
         if (tok.kind != Token::Kind::Id) {
           throw_parser_error("expected id, got '" + tok.describe() + "'");
         }
-        key_token = std::move(value_token);
+
+        Token key_token = std::move(value_token);
         value_token = tok;
         get_next_token();
+
+        for_statement_node = std::make_shared<ForObjectStatementNode>(key_token.text, value_token.text, tok.text.data() - tmpl.content.c_str());
+
+      // Array type
+      } else {
+        for_statement_node = std::make_shared<ForArrayStatementNode>(value_token.text, tok.text.data() - tmpl.content.c_str());
       }
+
+      current_block->nodes.emplace_back(for_statement_node);
+      for_statement_node->parent = current_block;
+      for_statement_stack.emplace(for_statement_node.get());
+      current_block = &for_statement_node->body;
+      current_expression_list = &for_statement_node->condition;
 
       if (tok.kind != Token::Kind::Id || tok.text != static_cast<decltype(tok.text)>("in")) {
         throw_parser_error("expected 'in', got '" + tok.describe() + "'");
       }
       get_next_token();
 
-      if (!parse_expression(tmpl)) {
+      if (!parse_expression(tmpl, closing)) {
         return false;
       }
 
-      loop_stack.push_back(tmpl.nodes.size());
-
-      tmpl.nodes.emplace_back(Node::Op::StartLoop, 0, tok.text.data() - tmpl.content.c_str());
-      if (!key_token.text.empty()) {
-        tmpl.nodes.back().value = key_token.text;
-      }
-      tmpl.nodes.back().str = static_cast<std::string>(value_token.text);
     } else if (tok.text == static_cast<decltype(tok.text)>("endfor")) {
-      get_next_token();
-      if (loop_stack.empty()) {
+      if (for_statement_stack.empty()) {
         throw_parser_error("endfor without matching for");
       }
 
-      // update loop with EndLoop index (for empty case)
-      tmpl.nodes[loop_stack.back()].args = tmpl.nodes.size();
+      auto &for_statement_data = for_statement_stack.top();
+      get_next_token();
 
-      tmpl.nodes.emplace_back(Node::Op::EndLoop, 0, tok.text.data() - tmpl.content.c_str());
-      tmpl.nodes.back().args = loop_stack.back() + 1; // loop body
-      loop_stack.pop_back();
+      current_block = for_statement_data->parent;
+      for_statement_stack.pop();
+
     } else if (tok.text == static_cast<decltype(tok.text)>("include")) {
       get_next_token();
 
@@ -2815,7 +3114,7 @@ public:
         throw_parser_error("expected string, got '" + tok.describe() + "'");
       }
 
-      // build the relative path
+      // Build the relative path
       json json_name = json::parse(tok.text);
       std::string pathname = static_cast<std::string>(path);
       pathname += json_name.get_ref<const std::string &>();
@@ -2827,104 +3126,79 @@ public:
       if (config.search_included_templates_in_files && template_storage.find(pathname) == template_storage.end()) {
         auto include_template = Template(load_file(pathname));
         template_storage.emplace(pathname, include_template);
-        parse_into_template(template_storage.at(pathname), pathname);
+        parse_into_template(template_storage[pathname], pathname);
       }
 
-      // generate a reference node
-      tmpl.nodes.emplace_back(Node::Op::Include, json(pathname), Node::Flag::ValueImmediate, tok.text.data() - tmpl.content.c_str());
+      current_block->nodes.emplace_back(std::make_shared<IncludeStatementNode>(pathname, tok.text.data() - tmpl.content.c_str()));
 
       get_next_token();
+
     } else {
       return false;
     }
     return true;
   }
 
-  void append_function(Template &tmpl, Node::Op op, unsigned int num_args) {
-    // we can merge with back-to-back push
-    if (!tmpl.nodes.empty()) {
-      Node &last = tmpl.nodes.back();
-      if (last.op == Node::Op::Push) {
-        last.op = op;
-        last.args = num_args;
-        return;
-      }
-    }
-
-    // otherwise just add it to the end
-    tmpl.nodes.emplace_back(op, num_args, tok.text.data() - tmpl.content.c_str());
-  }
-
-  void append_callback(Template &tmpl, nonstd::string_view name, unsigned int num_args) {
-    // we can merge with back-to-back push value (not lookup)
-    if (!tmpl.nodes.empty()) {
-      Node &last = tmpl.nodes.back();
-      if (last.op == Node::Op::Push && (last.flags & Node::Flag::ValueMask) == Node::Flag::ValueImmediate) {
-        last.op = Node::Op::Callback;
-        last.args = num_args;
-        last.str = static_cast<std::string>(name);
-        last.pos = name.data() - tmpl.content.c_str();
-        return;
-      }
-    }
-
-    // otherwise just add it to the end
-    tmpl.nodes.emplace_back(Node::Op::Callback, num_args, tok.text.data() - tmpl.content.c_str());
-    tmpl.nodes.back().str = static_cast<std::string>(name);
-  }
-
   void parse_into(Template &tmpl, nonstd::string_view path) {
     lexer.start(tmpl.content);
+    current_block = &tmpl.root;
 
     for (;;) {
       get_next_token();
       switch (tok.kind) {
-      case Token::Kind::Eof:
-        if (!if_stack.empty()) {
+      case Token::Kind::Eof: {
+        if (!if_statement_stack.empty()) {
           throw_parser_error("unmatched if");
         }
-        if (!loop_stack.empty()) {
+        if (!for_statement_stack.empty()) {
           throw_parser_error("unmatched for");
         }
-        return;
-      case Token::Kind::Text:
-        tmpl.nodes.emplace_back(Node::Op::PrintText, tok.text, 0u, tok.text.data() - tmpl.content.c_str());
-        break;
-      case Token::Kind::StatementOpen:
+      } return;
+      case Token::Kind::Text: {
+        current_block->nodes.emplace_back(std::make_shared<TextNode>(tok.text, tok.text.data() - tmpl.content.c_str()));
+      } break;
+      case Token::Kind::StatementOpen: {
         get_next_token();
-        if (!parse_statement(tmpl, path)) {
+        if (!parse_statement(tmpl, Token::Kind::StatementClose, path)) {
           throw_parser_error("expected statement, got '" + tok.describe() + "'");
         }
         if (tok.kind != Token::Kind::StatementClose) {
           throw_parser_error("expected statement close, got '" + tok.describe() + "'");
         }
-        break;
-      case Token::Kind::LineStatementOpen:
+      } break;
+      case Token::Kind::LineStatementOpen: {
         get_next_token();
-        parse_statement(tmpl, path);
+        if (!parse_statement(tmpl, Token::Kind::LineStatementClose, path)) {
+          throw_parser_error("expected statement, got '" + tok.describe() + "'");
+        }
         if (tok.kind != Token::Kind::LineStatementClose && tok.kind != Token::Kind::Eof) {
           throw_parser_error("expected line statement close, got '" + tok.describe() + "'");
         }
-        break;
-      case Token::Kind::ExpressionOpen:
+      } break;
+      case Token::Kind::ExpressionOpen: {
         get_next_token();
-        if (!parse_expression(tmpl)) {
+
+        auto expression_list_node = std::make_shared<ExpressionListNode>(tok.text.data() - tmpl.content.c_str());
+        current_block->nodes.emplace_back(expression_list_node);
+        current_expression_list = expression_list_node.get();
+
+        if (!parse_expression(tmpl, Token::Kind::ExpressionClose)) {
           throw_parser_error("expected expression, got '" + tok.describe() + "'");
         }
-        append_function(tmpl, Node::Op::PrintValue, 1);
+
         if (tok.kind != Token::Kind::ExpressionClose) {
           throw_parser_error("expected expression close, got '" + tok.describe() + "'");
         }
-        break;
-      case Token::Kind::CommentOpen:
+      } break;
+      case Token::Kind::CommentOpen: {
         get_next_token();
         if (tok.kind != Token::Kind::CommentClose) {
           throw_parser_error("expected comment close, got '" + tok.describe() + "'");
         }
-        break;
-      default:
+      } break;
+      default: {
         throw_parser_error("unexpected token '" + tok.describe() + "'");
-        break;
+      } break;
       }
     }
   }
@@ -2941,9 +3215,9 @@ public:
 
   void parse_into_template(Template& tmpl, nonstd::string_view filename) {
     nonstd::string_view path = filename.substr(0, filename.find_last_of("/\\") + 1);
-    
+
     // StringRef path = sys::path::parent_path(filename);
-    auto sub_parser = Parser(config, lexer.get_config(), template_storage);
+    auto sub_parser = Parser(config, lexer.get_config(), template_storage, function_storage);
     sub_parser.parse_into(tmpl, path);
   }
 
@@ -2959,7 +3233,7 @@ public:
 #endif // INCLUDE_INJA_PARSER_HPP_
 
 // #include "renderer.hpp"
-// Copyright (c) 2019 Pantor. All rights reserved.
+// Copyright (c) 2020 Pantor. All rights reserved.
 
 #ifndef INCLUDE_INJA_RENDERER_HPP_
 #define INCLUDE_INJA_RENDERER_HPP_
@@ -2985,589 +3259,565 @@ public:
 
 namespace inja {
 
-inline nonstd::string_view convert_dot_to_json_pointer(nonstd::string_view dot, std::string &out) {
-  out.clear();
-  do {
-    nonstd::string_view part;
-    std::tie(part, dot) = string_view::split(dot, '.');
-    out.push_back('/');
-    out.append(part.begin(), part.end());
-  } while (!dot.empty());
-  return nonstd::string_view(out.data(), out.size());
-}
-
 /*!
  * \brief Class for rendering a Template with data.
  */
-class Renderer {
-  std::vector<const json *> &get_args(const Node &node) {
-    m_tmp_args.clear();
+class Renderer : public NodeVisitor  {
+  using Op = FunctionStorage::Operation;
 
-    bool has_imm = ((node.flags & Node::Flag::ValueMask) != Node::Flag::ValuePop);
+  const RenderConfig config;
+  const Template *current_template;
+  const TemplateStorage &template_storage;
+  const FunctionStorage &function_storage;
 
-    // get args from stack
-    unsigned int pop_args = node.args;
-    if (has_imm) {
-      pop_args -= 1;
-    }
+  const json *json_input;
+  std::ostream *output_stream;
 
-    for (auto i = std::prev(m_stack.end(), pop_args); i != m_stack.end(); i++) {
-      m_tmp_args.push_back(&(*i));
-    }
+  json json_loop_data;
+  json* current_loop_data = &json_loop_data["loop"];
 
-    // get immediate arg
-    if (has_imm) {
-      m_tmp_args.push_back(get_imm(node));
-    }
+  std::vector<std::shared_ptr<json>> json_tmp_stack;
+  std::stack<const json*> json_eval_stack;
+  std::stack<const JsonNode*> not_found_stack;
 
-    return m_tmp_args;
-  }
-
-  void pop_args(const Node &node) {
-    unsigned int pop_args = node.args;
-    if ((node.flags & Node::Flag::ValueMask) != Node::Flag::ValuePop) {
-      pop_args -= 1;
-    }
-    for (unsigned int i = 0; i < pop_args; ++i) {
-      m_stack.pop_back();
-    }
-  }
-
-  const json *get_imm(const Node &node) {
-    std::string ptr_buffer;
-    nonstd::string_view ptr;
-    switch (node.flags & Node::Flag::ValueMask) {
-    case Node::Flag::ValuePop:
-      return nullptr;
-    case Node::Flag::ValueImmediate:
-      return &node.value;
-    case Node::Flag::ValueLookupDot:
-      ptr = convert_dot_to_json_pointer(node.str, ptr_buffer);
-      break;
-    case Node::Flag::ValueLookupPointer:
-      ptr_buffer += '/';
-      ptr_buffer += node.str;
-      ptr = ptr_buffer;
-      break;
-    }
-    
-    json::json_pointer json_ptr(ptr.data());
-    try {
-      // first try to evaluate as a loop variable
-      // Using contains() is faster than unsucessful at() and throwing an exception
-      if (m_loop_data && m_loop_data->contains(json_ptr)) {
-        return &m_loop_data->at(json_ptr);
-      }
-      return &m_data->at(json_ptr);
-    } catch (std::exception &) {
-      // try to evaluate as a no-argument callback
-      if (auto callback = function_storage.find_callback(node.str, 0)) {
-        std::vector<const json *> arguments {};
-        m_tmp_val = callback(arguments);
-        return &m_tmp_val;
-      }
-
-      throw_renderer_error("variable '" + static_cast<std::string>(node.str) + "' not found", node);
-      return nullptr;
-    }
-  }
-
-  bool truthy(const json &var) const {
-    if (var.empty()) {
+  bool truthy(const json* data) const {
+    if (data->empty()) {
       return false;
-    } else if (var.is_number()) {
-      return (var != 0);
-    } else if (var.is_string()) {
-      return !var.empty();
+    } else if (data->is_number()) {
+      return (*data != 0);
+    } else if (data->is_string()) {
+      return !data->empty();
     }
 
     try {
-      return var.get<bool>();
+      return data->get<bool>();
     } catch (json::type_error &e) {
       throw JsonError(e.what());
     }
   }
 
-  void update_loop_data() {
-    LoopLevel &level = m_loop_stack.back();
-
-    if (level.loop_type == LoopLevel::Type::Array) {
-      level.data[static_cast<std::string>(level.value_name)] = level.values.at(level.index); // *level.it;
+  void print_json(const json* value) {
+    if (value->is_string()) {
+      *output_stream << value->get_ref<const std::string &>();
     } else {
-      level.data[static_cast<std::string>(level.key_name)] = level.map_it->first;
-      level.data[static_cast<std::string>(level.value_name)] = *level.map_it->second;
+      *output_stream << value->dump();
     }
-    auto &loop_data = level.data["loop"];
-    loop_data["index"] = level.index;
-    loop_data["index1"] = level.index + 1;
-    loop_data["is_first"] = (level.index == 0);
-    loop_data["is_last"] = (level.index == level.size - 1);
   }
 
-  void throw_renderer_error(const std::string &message, const Node& node) {
+  const std::shared_ptr<json> eval_expression_list(const ExpressionListNode& expression_list) {
+    for (auto& expression : expression_list.rpn_output) {
+      expression->accept(*this);
+    }
+
+    if (json_eval_stack.empty()) {
+      throw_renderer_error("empty expression", expression_list);
+    }
+
+    if (json_eval_stack.size() != 1) {
+      throw_renderer_error("malformed expression", expression_list);
+    }
+
+    auto result = json_eval_stack.top();
+    json_eval_stack.pop();
+
+    if (!result) {
+      if (not_found_stack.empty()) {
+        throw_renderer_error("expression could not be evaluated", expression_list);
+      }
+
+      auto node = not_found_stack.top();
+      not_found_stack.pop();
+
+      throw_renderer_error("variable '" + static_cast<std::string>(node->name) + "' not found", *node);
+    }
+    return std::make_shared<json>(*result);
+  }
+
+  void throw_renderer_error(const std::string &message, const AstNode& node) {
     SourceLocation loc = get_source_location(current_template->content, node.pos);
     throw RenderError(message, loc);
   }
 
-  struct LoopLevel {
-    enum class Type { Map, Array };
+  template<size_t N, bool throw_not_found=true>
+  std::array<const json*, N> get_arguments(const AstNode& node) {
+    if (json_eval_stack.size() < N) {
+      throw_renderer_error("function needs " + std::to_string(N) + " variables, but has only found " + std::to_string(json_eval_stack.size()), node);
+    }
 
-    Type loop_type;
-    nonstd::string_view key_name;   // variable name for keys
-    nonstd::string_view value_name; // variable name for values
-    json data;                      // data with loop info added
+    std::array<const json*, N> result;
+    for (size_t i = 0; i < N; i += 1) {
+      result[N - i - 1] = json_eval_stack.top();
+      json_eval_stack.pop();
 
-    json values; // values to iterate over
+      if (!result[N - i - 1]) {
+        auto json_node = not_found_stack.top();
+        not_found_stack.pop();
 
-    // loop over list
-    size_t index; // current list index
-    size_t size;  // length of list
+        if (throw_not_found) {
+          throw_renderer_error("variable '" + static_cast<std::string>(json_node->name) + "' not found", *json_node);
+        }
+      }
+    }
+    return result;
+  }
 
-    // loop over map
-    using KeyValue = std::pair<nonstd::string_view, json *>;
-    using MapValues = std::vector<KeyValue>;
-    MapValues map_values;       // values to iterate over
-    MapValues::iterator map_it; // iterator over values
-  };
+  template<bool throw_not_found=true>
+  Arguments get_argument_vector(size_t N, const AstNode& node) {
+    Arguments result {N};
+    for (size_t i = 0; i < N; i += 1) {
+      result[N - i - 1] = json_eval_stack.top();
+      json_eval_stack.pop();
 
-  const TemplateStorage &template_storage;
-  const FunctionStorage &function_storage;
+      if (!result[N - i - 1]) {
+        auto json_node = not_found_stack.top();
+        not_found_stack.pop();
 
-  const Template *current_template;
-  std::vector<json> m_stack;
-  std::vector<LoopLevel> m_loop_stack;
-  json *m_loop_data;
-
-  const json *m_data;
-  std::vector<const json *> m_tmp_args;
-  json m_tmp_val;
-
-  RenderConfig config;
+        if (throw_not_found) {
+          throw_renderer_error("variable '" + static_cast<std::string>(json_node->name) + "' not found", *json_node);
+        }
+      }
+    }
+    return result;
+  }
 
 public:
-  Renderer(const RenderConfig& config, const TemplateStorage &included_templates, const FunctionStorage &callbacks)
-      : config(config), template_storage(included_templates), function_storage(callbacks) {
-    m_stack.reserve(16);
-    m_tmp_args.reserve(4);
-    m_loop_stack.reserve(16);
+  Renderer(const RenderConfig& config, const TemplateStorage &template_storage, const FunctionStorage &function_storage)
+      : config(config), template_storage(template_storage), function_storage(function_storage) { }
+
+  void visit(const BlockNode& node) {
+    for (auto& n : node.nodes) {
+      n->accept(*this);
+    }
+  }
+
+  void visit(const TextNode& node) {
+    *output_stream << node.content;
+  }
+
+  void visit(const ExpressionNode&) { }
+
+  void visit(const LiteralNode& node) {
+    json_eval_stack.push(&node.value);
+  }
+
+  void visit(const JsonNode& node) {
+    auto ptr = json::json_pointer(node.ptr);
+
+    try {
+      // First try to evaluate as a loop variable
+      if (json_loop_data.contains(ptr)) {
+        json_eval_stack.push(&json_loop_data.at(ptr));
+      } else {
+        json_eval_stack.push(&json_input->at(ptr));
+      }
+
+    } catch (std::exception &) {
+      // Try to evaluate as a no-argument callback
+      auto function_data = function_storage.find_function(node.name, 0);
+      if (function_data.operation == FunctionStorage::Operation::Callback) {
+        Arguments empty_args {};
+        auto value = std::make_shared<json>(function_data.callback(empty_args));
+        json_tmp_stack.push_back(value);
+        json_eval_stack.push(value.get());
+
+      } else {
+        json_eval_stack.push(nullptr);
+        not_found_stack.emplace(&node);
+      }
+    }
+  }
+
+  void visit(const FunctionNode& node) {
+    std::shared_ptr<json> result_ptr;
+
+    switch (node.operation) {
+    case Op::Not: {
+      auto args = get_arguments<1>(node);
+      result_ptr = std::make_shared<json>(!truthy(args[0]));
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::And: {
+      auto args = get_arguments<2>(node);
+      result_ptr = std::make_shared<json>(truthy(args[0]) && truthy(args[1]));
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::Or: {
+      auto args = get_arguments<2>(node);
+      result_ptr = std::make_shared<json>(truthy(args[0]) || truthy(args[1]));
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::In: {
+      auto args = get_arguments<2>(node);
+      result_ptr = std::make_shared<json>(std::find(args[1]->begin(), args[1]->end(), *args[0]) != args[1]->end());
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::Equal: {
+      auto args = get_arguments<2>(node);
+      result_ptr = std::make_shared<json>(*args[0] == *args[1]);
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::NotEqual: {
+      auto args = get_arguments<2>(node);
+      result_ptr = std::make_shared<json>(*args[0] != *args[1]);
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::Greater: {
+      auto args = get_arguments<2>(node);
+      result_ptr = std::make_shared<json>(*args[0] > *args[1]);
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::GreaterEqual: {
+      auto args = get_arguments<2>(node);
+      result_ptr = std::make_shared<json>(*args[0] >= *args[1]);
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::Less: {
+      auto args = get_arguments<2>(node);
+      result_ptr = std::make_shared<json>(*args[0] < *args[1]);
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::LessEqual: {
+      auto args = get_arguments<2>(node);
+      result_ptr = std::make_shared<json>(*args[0] <= *args[1]);
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::Add: {
+      auto args = get_arguments<2>(node);
+      if (args[0]->is_string() && args[1]->is_string()) {
+        result_ptr = std::make_shared<json>(args[0]->get<std::string>() + args[1]->get<std::string>());
+        json_tmp_stack.push_back(result_ptr);
+      } else if (args[0]->is_number_integer() && args[1]->is_number_integer()) {
+        result_ptr = std::make_shared<json>(args[0]->get<int>() + args[1]->get<int>());
+        json_tmp_stack.push_back(result_ptr);
+      } else {
+        result_ptr = std::make_shared<json>(args[0]->get<double>() + args[1]->get<double>());
+        json_tmp_stack.push_back(result_ptr);
+      }
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::Subtract: {
+      auto args = get_arguments<2>(node);
+      if (args[0]->is_number_integer() && args[1]->is_number_integer()) {
+        result_ptr = std::make_shared<json>(args[0]->get<int>() - args[1]->get<int>());
+        json_tmp_stack.push_back(result_ptr);
+      } else {
+        result_ptr = std::make_shared<json>(args[0]->get<double>() - args[1]->get<double>());
+        json_tmp_stack.push_back(result_ptr);
+      }
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::Multiplication: {
+      auto args = get_arguments<2>(node);
+      if (args[0]->is_number_integer() && args[1]->is_number_integer()) {
+        result_ptr = std::make_shared<json>(args[0]->get<int>() * args[1]->get<int>());
+        json_tmp_stack.push_back(result_ptr);
+      } else {
+        result_ptr = std::make_shared<json>(args[0]->get<double>() * args[1]->get<double>());
+        json_tmp_stack.push_back(result_ptr);
+      }
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::Division: {
+      auto args = get_arguments<2>(node);
+      if (args[1]->get<double>() == 0) {
+        throw_renderer_error("division by zero", node);
+      }
+      result_ptr = std::make_shared<json>(args[0]->get<double>() / args[1]->get<double>());
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::Power: {
+      auto args = get_arguments<2>(node);
+      if (args[0]->is_number_integer() && args[1]->get<int>() >= 0) {
+        int result = std::pow(args[0]->get<int>(), args[1]->get<int>());
+        result_ptr = std::make_shared<json>(std::move(result));
+        json_tmp_stack.push_back(result_ptr);
+      } else {
+        double result = std::pow(args[0]->get<int>(), args[1]->get<int>());
+        result_ptr = std::make_shared<json>(std::move(result));
+        json_tmp_stack.push_back(result_ptr);
+      }
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::Modulo: {
+      auto args = get_arguments<2>(node);
+      result_ptr = std::make_shared<json>(args[0]->get<int>() % args[1]->get<int>());
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::At: {
+      auto args = get_arguments<2>(node);
+      json_eval_stack.push(&args[0]->at(args[1]->get<int>()));
+    } break;
+    case Op::Default: {
+      auto default_arg = get_arguments<1>(node)[0];
+      auto test_arg = get_arguments<1, false>(node)[0];
+      json_eval_stack.push(test_arg ? test_arg : default_arg);
+    } break;
+    case Op::DivisibleBy: {
+      auto args = get_arguments<2>(node);
+      int divisor = args[1]->get<int>();
+      result_ptr = std::make_shared<json>((divisor != 0) && (args[0]->get<int>() % divisor == 0));
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::Even: {
+      result_ptr = std::make_shared<json>(get_arguments<1>(node)[0]->get<int>() % 2 == 0);
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::Exists: {
+      auto &&name = get_arguments<1>(node)[0]->get_ref<const std::string &>();
+      result_ptr = std::make_shared<json>(json_input->find(name) != json_input->end());
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::ExistsInObject: {
+      auto args = get_arguments<2>(node);
+      auto &&name = args[1]->get_ref<const std::string &>();
+      result_ptr = std::make_shared<json>(args[0]->find(name) != args[0]->end());
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::First: {
+      auto result = &get_arguments<1>(node)[0]->front();
+      json_eval_stack.push(result);
+    } break;
+    case Op::Float: {
+      result_ptr = std::make_shared<json>(std::stod(get_arguments<1>(node)[0]->get_ref<const std::string &>()));
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::Int: {
+      result_ptr = std::make_shared<json>(std::stoi(get_arguments<1>(node)[0]->get_ref<const std::string &>()));
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::Last: {
+      auto result = &get_arguments<1>(node)[0]->back();
+      json_eval_stack.push(result);
+    } break;
+    case Op::Length: {
+      auto val = get_arguments<1>(node)[0];
+      if (val->is_string()) {
+        result_ptr = std::make_shared<json>(val->get_ref<const std::string &>().length());
+      } else {
+        result_ptr = std::make_shared<json>(val->size());
+      }
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::Lower: {
+      std::string result = get_arguments<1>(node)[0]->get<std::string>();
+      std::transform(result.begin(), result.end(), result.begin(), ::tolower);
+      result_ptr = std::make_shared<json>(std::move(result));
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::Max: {
+      auto args = get_arguments<1>(node);
+      auto result = std::max_element(args[0]->begin(), args[0]->end());
+      json_eval_stack.push(&(*result));
+    } break;
+    case Op::Min: {
+      auto args = get_arguments<1>(node);
+      auto result = std::min_element(args[0]->begin(), args[0]->end());
+      json_eval_stack.push(&(*result));
+    } break;
+    case Op::Odd: {
+      result_ptr = std::make_shared<json>(get_arguments<1>(node)[0]->get<int>() % 2 != 0);
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::Range: {
+      std::vector<int> result(get_arguments<1>(node)[0]->get<int>());
+      std::iota(result.begin(), result.end(), 0);
+      result_ptr = std::make_shared<json>(std::move(result));
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::Round: {
+      auto args = get_arguments<2>(node);
+      int precision = args[1]->get<int>();
+      double result = std::round(args[0]->get<double>() * std::pow(10.0, precision)) / std::pow(10.0, precision);
+      result_ptr = std::make_shared<json>(std::move(result));
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::Sort: {
+      result_ptr = std::make_shared<json>(get_arguments<1>(node)[0]->get<std::vector<json>>());
+      std::sort(result_ptr->begin(), result_ptr->end());
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::Upper: {
+      std::string result = get_arguments<1>(node)[0]->get<std::string>();
+      std::transform(result.begin(), result.end(), result.begin(), ::toupper);
+      result_ptr = std::make_shared<json>(std::move(result));
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::IsBoolean: {
+      result_ptr = std::make_shared<json>(get_arguments<1>(node)[0]->is_boolean());
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::IsNumber: {
+      result_ptr = std::make_shared<json>(get_arguments<1>(node)[0]->is_number());
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::IsInteger: {
+      result_ptr = std::make_shared<json>(get_arguments<1>(node)[0]->is_number_integer());
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::IsFloat: {
+      result_ptr = std::make_shared<json>(get_arguments<1>(node)[0]->is_number_float());
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::IsObject: {
+      result_ptr = std::make_shared<json>(get_arguments<1>(node)[0]->is_object());
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::IsArray: {
+      result_ptr = std::make_shared<json>(get_arguments<1>(node)[0]->is_array());
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::IsString: {
+      result_ptr = std::make_shared<json>(get_arguments<1>(node)[0]->is_string());
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::Callback: {
+      auto args = get_argument_vector(node.number_args, node);
+      result_ptr = std::make_shared<json>(node.callback(args));
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::ParenLeft:
+    case Op::ParenRight:
+    case Op::None:
+      break;
+    }
+  }
+
+  void visit(const ExpressionListNode& node) {
+    print_json(eval_expression_list(node).get());
+  }
+
+  void visit(const StatementNode&) { }
+
+  void visit(const ForStatementNode&) { }
+
+  void visit(const ForArrayStatementNode& node) {
+    auto result = eval_expression_list(node.condition);
+    if (!result->is_array()) {
+      throw_renderer_error("object must be an array", node);
+    }
+
+    if (!current_loop_data->empty()) {
+      auto tmp = *current_loop_data; // Because of clang-3
+      (*current_loop_data)["parent"] = std::move(tmp);
+    }
+
+    for (auto it = result->begin(); it != result->end(); ++it) {
+      json_loop_data[static_cast<std::string>(node.value)] = *it;
+
+      size_t index = std::distance(result->begin(), it);
+      (*current_loop_data)["index"] = index;
+      (*current_loop_data)["index1"] = index + 1;
+      (*current_loop_data)["is_first"] = (index == 0);
+      (*current_loop_data)["is_last"] = (index == result->size() - 1);
+
+      node.body.accept(*this);
+    }
+
+    json_loop_data[static_cast<std::string>(node.value)].clear();
+    if (!(*current_loop_data)["parent"].empty()) {
+      auto tmp = (*current_loop_data)["parent"];
+      *current_loop_data = std::move(tmp);
+    } else {
+      current_loop_data = &json_loop_data["loop"];
+    }
+  }
+
+  void visit(const ForObjectStatementNode& node) {
+    auto result = eval_expression_list(node.condition);
+    if (!result->is_object()) {
+      throw_renderer_error("object must be an object", node);
+    }
+
+    if (!current_loop_data->empty()) {
+      (*current_loop_data)["parent"] = std::move(*current_loop_data);
+    }
+
+    for (auto it = result->begin(); it != result->end(); ++it) {
+      json_loop_data[static_cast<std::string>(node.key)] = it.key();
+      json_loop_data[static_cast<std::string>(node.value)] = it.value();
+
+      size_t index = std::distance(result->begin(), it);
+      (*current_loop_data)["index"] = index;
+      (*current_loop_data)["index1"] = index + 1;
+      (*current_loop_data)["is_first"] = (index == 0);
+      (*current_loop_data)["is_last"] = (index == result->size() - 1);
+
+      node.body.accept(*this);
+    }
+
+    json_loop_data[static_cast<std::string>(node.key)].clear();
+    json_loop_data[static_cast<std::string>(node.value)].clear();
+    if (!(*current_loop_data)["parent"].empty()) {
+      *current_loop_data = std::move((*current_loop_data)["parent"]);
+    } else {
+      current_loop_data = &json_loop_data["loop"];
+    }
+  }
+
+  void visit(const IfStatementNode& node) {
+    auto result = eval_expression_list(node.condition);
+    if (truthy(result.get())) {
+      node.true_statement.accept(*this);
+    } else if (node.has_false_statement) {
+      node.false_statement.accept(*this);
+    }
+  }
+
+  void visit(const IncludeStatementNode& node) {
+    auto sub_renderer = Renderer(config, template_storage, function_storage);
+    auto included_template_it = template_storage.find(node.file);
+
+    if (included_template_it != template_storage.end()) {
+      sub_renderer.render_to(*output_stream, included_template_it->second, *json_input, &json_loop_data);
+    } else if (config.throw_at_missing_includes) {
+      throw_renderer_error("include '" + node.file + "' not found", node);
+    }
   }
 
   void render_to(std::ostream &os, const Template &tmpl, const json &data, json *loop_data = nullptr) {
+    output_stream = &os;
     current_template = &tmpl;
-    m_data = &data;
-    m_loop_data = loop_data;
-
-    for (size_t i = 0; i < tmpl.nodes.size(); ++i) {
-      const auto &node = tmpl.nodes[i];
-
-      switch (node.op) {
-      case Node::Op::Nop: {
-        break;
-      }
-      case Node::Op::PrintText: {
-        os << node.str;
-        break;
-      }
-      case Node::Op::PrintValue: {
-        const json &val = *get_args(node)[0];
-        if (val.is_string()) {
-          os << val.get_ref<const std::string &>();
-        } else {
-          os << val.dump();
-        }
-        pop_args(node);
-        break;
-      }
-      case Node::Op::Push: {
-        m_stack.emplace_back(*get_imm(node));
-        break;
-      }
-      case Node::Op::Upper: {
-        auto result = get_args(node)[0]->get<std::string>();
-        std::transform(result.begin(), result.end(), result.begin(), ::toupper);
-        pop_args(node);
-        m_stack.emplace_back(std::move(result));
-        break;
-      }
-      case Node::Op::Lower: {
-        auto result = get_args(node)[0]->get<std::string>();
-        std::transform(result.begin(), result.end(), result.begin(), ::tolower);
-        pop_args(node);
-        m_stack.emplace_back(std::move(result));
-        break;
-      }
-      case Node::Op::Range: {
-        int number = get_args(node)[0]->get<int>();
-        std::vector<int> result(number);
-        std::iota(std::begin(result), std::end(result), 0);
-        pop_args(node);
-        m_stack.emplace_back(std::move(result));
-        break;
-      }
-      case Node::Op::Length: {
-        const json &val = *get_args(node)[0];
-
-        size_t result;
-        if (val.is_string()) {
-          result = val.get_ref<const std::string &>().length();
-        } else {
-          result = val.size();
-        }
-
-        pop_args(node);
-        m_stack.emplace_back(result);
-        break;
-      }
-      case Node::Op::Sort: {
-        auto result = get_args(node)[0]->get<std::vector<json>>();
-        std::sort(result.begin(), result.end());
-        pop_args(node);
-        m_stack.emplace_back(std::move(result));
-        break;
-      }
-      case Node::Op::At: {
-        auto args = get_args(node);
-        auto result = args[0]->at(args[1]->get<int>());
-        pop_args(node);
-        m_stack.emplace_back(result);
-        break;
-      }
-      case Node::Op::First: {
-        auto result = get_args(node)[0]->front();
-        pop_args(node);
-        m_stack.emplace_back(result);
-        break;
-      }
-      case Node::Op::Last: {
-        auto result = get_args(node)[0]->back();
-        pop_args(node);
-        m_stack.emplace_back(result);
-        break;
-      }
-      case Node::Op::Round: {
-        auto args = get_args(node);
-        double number = args[0]->get<double>();
-        int precision = args[1]->get<int>();
-        pop_args(node);
-        m_stack.emplace_back(std::round(number * std::pow(10.0, precision)) / std::pow(10.0, precision));
-        break;
-      }
-      case Node::Op::DivisibleBy: {
-        auto args = get_args(node);
-        int number = args[0]->get<int>();
-        int divisor = args[1]->get<int>();
-        pop_args(node);
-        m_stack.emplace_back((divisor != 0) && (number % divisor == 0));
-        break;
-      }
-      case Node::Op::Odd: {
-        int number = get_args(node)[0]->get<int>();
-        pop_args(node);
-        m_stack.emplace_back(number % 2 != 0);
-        break;
-      }
-      case Node::Op::Even: {
-        int number = get_args(node)[0]->get<int>();
-        pop_args(node);
-        m_stack.emplace_back(number % 2 == 0);
-        break;
-      }
-      case Node::Op::Max: {
-        auto args = get_args(node);
-        auto result = *std::max_element(args[0]->begin(), args[0]->end());
-        pop_args(node);
-        m_stack.emplace_back(std::move(result));
-        break;
-      }
-      case Node::Op::Min: {
-        auto args = get_args(node);
-        auto result = *std::min_element(args[0]->begin(), args[0]->end());
-        pop_args(node);
-        m_stack.emplace_back(std::move(result));
-        break;
-      }
-      case Node::Op::Not: {
-        bool result = !truthy(*get_args(node)[0]);
-        pop_args(node);
-        m_stack.emplace_back(result);
-        break;
-      }
-      case Node::Op::And: {
-        auto args = get_args(node);
-        bool result = truthy(*args[0]) && truthy(*args[1]);
-        pop_args(node);
-        m_stack.emplace_back(result);
-        break;
-      }
-      case Node::Op::Or: {
-        auto args = get_args(node);
-        bool result = truthy(*args[0]) || truthy(*args[1]);
-        pop_args(node);
-        m_stack.emplace_back(result);
-        break;
-      }
-      case Node::Op::In: {
-        auto args = get_args(node);
-        bool result = std::find(args[1]->begin(), args[1]->end(), *args[0]) != args[1]->end();
-        pop_args(node);
-        m_stack.emplace_back(result);
-        break;
-      }
-      case Node::Op::Equal: {
-        auto args = get_args(node);
-        bool result = (*args[0] == *args[1]);
-        pop_args(node);
-        m_stack.emplace_back(result);
-        break;
-      }
-      case Node::Op::Greater: {
-        auto args = get_args(node);
-        bool result = (*args[0] > *args[1]);
-        pop_args(node);
-        m_stack.emplace_back(result);
-        break;
-      }
-      case Node::Op::Less: {
-        auto args = get_args(node);
-        bool result = (*args[0] < *args[1]);
-        pop_args(node);
-        m_stack.emplace_back(result);
-        break;
-      }
-      case Node::Op::GreaterEqual: {
-        auto args = get_args(node);
-        bool result = (*args[0] >= *args[1]);
-        pop_args(node);
-        m_stack.emplace_back(result);
-        break;
-      }
-      case Node::Op::LessEqual: {
-        auto args = get_args(node);
-        bool result = (*args[0] <= *args[1]);
-        pop_args(node);
-        m_stack.emplace_back(result);
-        break;
-      }
-      case Node::Op::Different: {
-        auto args = get_args(node);
-        bool result = (*args[0] != *args[1]);
-        pop_args(node);
-        m_stack.emplace_back(result);
-        break;
-      }
-      case Node::Op::Float: {
-        double result = std::stod(get_args(node)[0]->get_ref<const std::string &>());
-        pop_args(node);
-        m_stack.emplace_back(result);
-        break;
-      }
-      case Node::Op::Int: {
-        int result = std::stoi(get_args(node)[0]->get_ref<const std::string &>());
-        pop_args(node);
-        m_stack.emplace_back(result);
-        break;
-      }
-      case Node::Op::Exists: {
-        auto &&name = get_args(node)[0]->get_ref<const std::string &>();
-        bool result = (data.find(name) != data.end());
-        pop_args(node);
-        m_stack.emplace_back(result);
-        break;
-      }
-      case Node::Op::ExistsInObject: {
-        auto args = get_args(node);
-        auto &&name = args[1]->get_ref<const std::string &>();
-        bool result = (args[0]->find(name) != args[0]->end());
-        pop_args(node);
-        m_stack.emplace_back(result);
-        break;
-      }
-      case Node::Op::IsBoolean: {
-        bool result = get_args(node)[0]->is_boolean();
-        pop_args(node);
-        m_stack.emplace_back(result);
-        break;
-      }
-      case Node::Op::IsNumber: {
-        bool result = get_args(node)[0]->is_number();
-        pop_args(node);
-        m_stack.emplace_back(result);
-        break;
-      }
-      case Node::Op::IsInteger: {
-        bool result = get_args(node)[0]->is_number_integer();
-        pop_args(node);
-        m_stack.emplace_back(result);
-        break;
-      }
-      case Node::Op::IsFloat: {
-        bool result = get_args(node)[0]->is_number_float();
-        pop_args(node);
-        m_stack.emplace_back(result);
-        break;
-      }
-      case Node::Op::IsObject: {
-        bool result = get_args(node)[0]->is_object();
-        pop_args(node);
-        m_stack.emplace_back(result);
-        break;
-      }
-      case Node::Op::IsArray: {
-        bool result = get_args(node)[0]->is_array();
-        pop_args(node);
-        m_stack.emplace_back(result);
-        break;
-      }
-      case Node::Op::IsString: {
-        bool result = get_args(node)[0]->is_string();
-        pop_args(node);
-        m_stack.emplace_back(result);
-        break;
-      }
-      case Node::Op::Default: {
-        // default needs to be a bit "magic"; we can't evaluate the first
-        // argument during the push operation, so we swap the arguments during
-        // the parse phase so the second argument is pushed on the stack and
-        // the first argument is in the immediate
-        try {
-          const json *imm = get_imm(node);
-          // if no exception was raised, replace the stack value with it
-          m_stack.back() = *imm;
-        } catch (std::exception &) {
-          // couldn't read immediate, just leave the stack as is
-        }
-        break;
-      }
-      case Node::Op::Include: {
-        auto sub_renderer = Renderer(config, template_storage, function_storage);
-        auto include_name = get_imm(node)->get_ref<const std::string &>();
-        auto included_template_it = template_storage.find(include_name);
-        if (included_template_it != template_storage.end()) {
-          sub_renderer.render_to(os, included_template_it->second, *m_data, m_loop_data);
-        } else if (config.throw_at_missing_includes) {
-          throw_renderer_error("include '" + include_name + "' not found", node);
-        }
-        break;
-      }
-      case Node::Op::Callback: {
-        auto callback = function_storage.find_callback(node.str, node.args);
-        if (!callback) {
-          throw_renderer_error("function '" + static_cast<std::string>(node.str) + "' (" +
-                            std::to_string(static_cast<unsigned int>(node.args)) + ") not found", node);
-        }
-        json result = callback(get_args(node));
-        pop_args(node);
-        m_stack.emplace_back(std::move(result));
-        break;
-      }
-      case Node::Op::Jump: {
-        i = node.args - 1; // -1 due to ++i in loop
-        break;
-      }
-      case Node::Op::ConditionalJump: {
-        if (!truthy(m_stack.back())) {
-          i = node.args - 1; // -1 due to ++i in loop
-        }
-        m_stack.pop_back();
-        break;
-      }
-      case Node::Op::StartLoop: {
-        // jump past loop body if empty
-        if (m_stack.back().empty()) {
-          m_stack.pop_back();
-          i = node.args; // ++i in loop will take it past EndLoop
-          break;
-        }
-
-        m_loop_stack.emplace_back();
-        LoopLevel &level = m_loop_stack.back();
-        level.value_name = node.str;
-        level.values = std::move(m_stack.back());
-        if (m_loop_data) {
-          level.data = *m_loop_data;
-        }
-        level.index = 0;
-        m_stack.pop_back();
-
-        if (node.value.is_string()) {
-          // map iterator
-          if (!level.values.is_object()) {
-            m_loop_stack.pop_back();
-            throw_renderer_error("for key, value requires object", node);
-          }
-          level.loop_type = LoopLevel::Type::Map;
-          level.key_name = node.value.get_ref<const std::string &>();
-
-          // sort by key
-          for (auto it = level.values.begin(), end = level.values.end(); it != end; ++it) {
-            level.map_values.emplace_back(it.key(), &it.value());
-          }
-          auto sort_lambda = [](const LoopLevel::KeyValue &a, const LoopLevel::KeyValue &b) {
-            return a.first < b.first;
-          };
-          std::sort(level.map_values.begin(), level.map_values.end(), sort_lambda);
-          level.map_it = level.map_values.begin();
-          level.size = level.map_values.size();
-        } else {
-          if (!level.values.is_array()) {
-            m_loop_stack.pop_back();
-            throw_renderer_error("type must be array", node);
-          }
-
-          // list iterator
-          level.loop_type = LoopLevel::Type::Array;
-          level.size = level.values.size();
-        }
-
-        // provide parent access in nested loop
-        auto parent_loop_it = level.data.find("loop");
-        if (parent_loop_it != level.data.end()) {
-          json loop_copy = *parent_loop_it;
-          (*parent_loop_it)["parent"] = std::move(loop_copy);
-        }
-
-        // set "current" loop data to this level
-        m_loop_data = &level.data;
-        update_loop_data();
-        break;
-      }
-      case Node::Op::EndLoop: {
-        if (m_loop_stack.empty()) {
-          throw_renderer_error("unexpected state in renderer", node);
-        }
-        LoopLevel &level = m_loop_stack.back();
-
-        bool done;
-        level.index += 1;
-        if (level.loop_type == LoopLevel::Type::Array) {
-          done = (level.index == level.values.size());
-        } else {
-          level.map_it += 1;
-          done = (level.map_it == level.map_values.end());
-        }
-
-        if (done) {
-          m_loop_stack.pop_back();
-          // set "current" data to outer loop data or main data as appropriate
-          if (!m_loop_stack.empty()) {
-            m_loop_data = &m_loop_stack.back().data;
-          } else {
-            m_loop_data = loop_data;
-          }
-          break;
-        }
-
-        update_loop_data();
-
-        // jump back to start of loop
-        i = node.args - 1; // -1 due to ++i in loop
-        break;
-      }
-      default: {
-        throw_renderer_error("unknown operation in renderer: " + std::to_string(static_cast<unsigned int>(node.op)), node);
-      }
-      }
+    json_input = &data;
+    if (loop_data) {
+      json_loop_data = *loop_data;
     }
+
+    current_template->root.accept(*this);
+
+    json_tmp_stack.clear();
   }
 };
 
@@ -3649,11 +3899,6 @@ public:
   }
 
   /// Sets the element notation syntax
-  void set_element_notation(ElementNotation notation) {
-    parser_config.notation = notation;
-  }
-
-  /// Sets the element notation syntax
   void set_search_included_templates_in_files(bool search_in_files) {
     parser_config.search_included_templates_in_files = search_in_files;
   }
@@ -3664,12 +3909,12 @@ public:
   }
 
   Template parse(nonstd::string_view input) {
-    Parser parser(parser_config, lexer_config, template_storage);
+    Parser parser(parser_config, lexer_config, template_storage, function_storage);
     return parser.parse(input);
   }
 
   Template parse_template(const std::string &filename) {
-    Parser parser(parser_config, lexer_config, template_storage);
+    Parser parser(parser_config, lexer_config, template_storage, function_storage);
     auto result = Template(parser.load_file(input_path + static_cast<std::string>(filename)));
     parser.parse_into_template(result, input_path + static_cast<std::string>(filename));
     return result;
@@ -3721,7 +3966,7 @@ public:
   }
 
   std::string load_file(const std::string &filename) {
-    Parser parser(parser_config, lexer_config, template_storage);
+    Parser parser(parser_config, lexer_config, template_storage, function_storage);
     return parser.load_file(input_path + filename);
   }
 
@@ -3732,8 +3977,18 @@ public:
     return j;
   }
 
-  void add_callback(const std::string &name, unsigned int numArgs, const CallbackFunction &callback) {
-    function_storage.add_callback(name, numArgs, callback);
+  /*!
+  @brief Adds a variadic callback
+  */
+  void add_callback(const std::string &name, const CallbackFunction &callback) {
+    function_storage.add_callback(name, -1, callback);
+  }
+
+  /*!
+  @brief Adds a callback with given number or arguments
+  */
+  void add_callback(const std::string &name, int num_args, const CallbackFunction &callback) {
+    function_storage.add_callback(name, num_args, callback);
   }
 
   /** Includes a template with a given name into the environment.

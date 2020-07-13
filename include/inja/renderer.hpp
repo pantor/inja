@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Pantor. All rights reserved.
+// Copyright (c) 2020 Pantor. All rights reserved.
 
 #ifndef INCLUDE_INJA_RENDERER_HPP_
 #define INCLUDE_INJA_RENDERER_HPP_
@@ -19,589 +19,565 @@
 
 namespace inja {
 
-inline nonstd::string_view convert_dot_to_json_pointer(nonstd::string_view dot, std::string &out) {
-  out.clear();
-  do {
-    nonstd::string_view part;
-    std::tie(part, dot) = string_view::split(dot, '.');
-    out.push_back('/');
-    out.append(part.begin(), part.end());
-  } while (!dot.empty());
-  return nonstd::string_view(out.data(), out.size());
-}
-
 /*!
  * \brief Class for rendering a Template with data.
  */
-class Renderer {
-  std::vector<const json *> &get_args(const Node &node) {
-    m_tmp_args.clear();
+class Renderer : public NodeVisitor  {
+  using Op = FunctionStorage::Operation;
 
-    bool has_imm = ((node.flags & Node::Flag::ValueMask) != Node::Flag::ValuePop);
+  const RenderConfig config;
+  const Template *current_template;
+  const TemplateStorage &template_storage;
+  const FunctionStorage &function_storage;
 
-    // get args from stack
-    unsigned int pop_args = node.args;
-    if (has_imm) {
-      pop_args -= 1;
-    }
+  const json *json_input;
+  std::ostream *output_stream;
 
-    for (auto i = std::prev(m_stack.end(), pop_args); i != m_stack.end(); i++) {
-      m_tmp_args.push_back(&(*i));
-    }
+  json json_loop_data;
+  json* current_loop_data = &json_loop_data["loop"];
 
-    // get immediate arg
-    if (has_imm) {
-      m_tmp_args.push_back(get_imm(node));
-    }
+  std::vector<std::shared_ptr<json>> json_tmp_stack;
+  std::stack<const json*> json_eval_stack;
+  std::stack<const JsonNode*> not_found_stack;
 
-    return m_tmp_args;
-  }
-
-  void pop_args(const Node &node) {
-    unsigned int pop_args = node.args;
-    if ((node.flags & Node::Flag::ValueMask) != Node::Flag::ValuePop) {
-      pop_args -= 1;
-    }
-    for (unsigned int i = 0; i < pop_args; ++i) {
-      m_stack.pop_back();
-    }
-  }
-
-  const json *get_imm(const Node &node) {
-    std::string ptr_buffer;
-    nonstd::string_view ptr;
-    switch (node.flags & Node::Flag::ValueMask) {
-    case Node::Flag::ValuePop:
-      return nullptr;
-    case Node::Flag::ValueImmediate:
-      return &node.value;
-    case Node::Flag::ValueLookupDot:
-      ptr = convert_dot_to_json_pointer(node.str, ptr_buffer);
-      break;
-    case Node::Flag::ValueLookupPointer:
-      ptr_buffer += '/';
-      ptr_buffer += node.str;
-      ptr = ptr_buffer;
-      break;
-    }
-    
-    json::json_pointer json_ptr(ptr.data());
-    try {
-      // first try to evaluate as a loop variable
-      // Using contains() is faster than unsucessful at() and throwing an exception
-      if (m_loop_data && m_loop_data->contains(json_ptr)) {
-        return &m_loop_data->at(json_ptr);
-      }
-      return &m_data->at(json_ptr);
-    } catch (std::exception &) {
-      // try to evaluate as a no-argument callback
-      if (auto callback = function_storage.find_callback(node.str, 0)) {
-        std::vector<const json *> arguments {};
-        m_tmp_val = callback(arguments);
-        return &m_tmp_val;
-      }
-
-      throw_renderer_error("variable '" + static_cast<std::string>(node.str) + "' not found", node);
-      return nullptr;
-    }
-  }
-
-  bool truthy(const json &var) const {
-    if (var.empty()) {
+  bool truthy(const json* data) const {
+    if (data->empty()) {
       return false;
-    } else if (var.is_number()) {
-      return (var != 0);
-    } else if (var.is_string()) {
-      return !var.empty();
+    } else if (data->is_number()) {
+      return (*data != 0);
+    } else if (data->is_string()) {
+      return !data->empty();
     }
 
     try {
-      return var.get<bool>();
+      return data->get<bool>();
     } catch (json::type_error &e) {
       throw JsonError(e.what());
     }
   }
 
-  void update_loop_data() {
-    LoopLevel &level = m_loop_stack.back();
-
-    if (level.loop_type == LoopLevel::Type::Array) {
-      level.data[static_cast<std::string>(level.value_name)] = level.values.at(level.index); // *level.it;
+  void print_json(const json* value) {
+    if (value->is_string()) {
+      *output_stream << value->get_ref<const std::string &>();
     } else {
-      level.data[static_cast<std::string>(level.key_name)] = level.map_it->first;
-      level.data[static_cast<std::string>(level.value_name)] = *level.map_it->second;
+      *output_stream << value->dump();
     }
-    auto &loop_data = level.data["loop"];
-    loop_data["index"] = level.index;
-    loop_data["index1"] = level.index + 1;
-    loop_data["is_first"] = (level.index == 0);
-    loop_data["is_last"] = (level.index == level.size - 1);
   }
 
-  void throw_renderer_error(const std::string &message, const Node& node) {
+  const std::shared_ptr<json> eval_expression_list(const ExpressionListNode& expression_list) {
+    for (auto& expression : expression_list.rpn_output) {
+      expression->accept(*this);
+    }
+
+    if (json_eval_stack.empty()) {
+      throw_renderer_error("empty expression", expression_list);
+    }
+
+    if (json_eval_stack.size() != 1) {
+      throw_renderer_error("malformed expression", expression_list);
+    }
+
+    auto result = json_eval_stack.top();
+    json_eval_stack.pop();
+
+    if (!result) {
+      if (not_found_stack.empty()) {
+        throw_renderer_error("expression could not be evaluated", expression_list);
+      }
+
+      auto node = not_found_stack.top();
+      not_found_stack.pop();
+
+      throw_renderer_error("variable '" + static_cast<std::string>(node->name) + "' not found", *node);
+    }
+    return std::make_shared<json>(*result);
+  }
+
+  void throw_renderer_error(const std::string &message, const AstNode& node) {
     SourceLocation loc = get_source_location(current_template->content, node.pos);
     throw RenderError(message, loc);
   }
 
-  struct LoopLevel {
-    enum class Type { Map, Array };
+  template<size_t N, bool throw_not_found=true>
+  std::array<const json*, N> get_arguments(const AstNode& node) {
+    if (json_eval_stack.size() < N) {
+      throw_renderer_error("function needs " + std::to_string(N) + " variables, but has only found " + std::to_string(json_eval_stack.size()), node);
+    }
 
-    Type loop_type;
-    nonstd::string_view key_name;   // variable name for keys
-    nonstd::string_view value_name; // variable name for values
-    json data;                      // data with loop info added
+    std::array<const json*, N> result;
+    for (size_t i = 0; i < N; i += 1) {
+      result[N - i - 1] = json_eval_stack.top();
+      json_eval_stack.pop();
 
-    json values; // values to iterate over
+      if (!result[N - i - 1]) {
+        auto json_node = not_found_stack.top();
+        not_found_stack.pop();
 
-    // loop over list
-    size_t index; // current list index
-    size_t size;  // length of list
+        if (throw_not_found) {
+          throw_renderer_error("variable '" + static_cast<std::string>(json_node->name) + "' not found", *json_node);
+        }
+      }
+    }
+    return result;
+  }
 
-    // loop over map
-    using KeyValue = std::pair<nonstd::string_view, json *>;
-    using MapValues = std::vector<KeyValue>;
-    MapValues map_values;       // values to iterate over
-    MapValues::iterator map_it; // iterator over values
-  };
+  template<bool throw_not_found=true>
+  Arguments get_argument_vector(size_t N, const AstNode& node) {
+    Arguments result {N};
+    for (size_t i = 0; i < N; i += 1) {
+      result[N - i - 1] = json_eval_stack.top();
+      json_eval_stack.pop();
 
-  const TemplateStorage &template_storage;
-  const FunctionStorage &function_storage;
+      if (!result[N - i - 1]) {
+        auto json_node = not_found_stack.top();
+        not_found_stack.pop();
 
-  const Template *current_template;
-  std::vector<json> m_stack;
-  std::vector<LoopLevel> m_loop_stack;
-  json *m_loop_data;
-
-  const json *m_data;
-  std::vector<const json *> m_tmp_args;
-  json m_tmp_val;
-
-  RenderConfig config;
+        if (throw_not_found) {
+          throw_renderer_error("variable '" + static_cast<std::string>(json_node->name) + "' not found", *json_node);
+        }
+      }
+    }
+    return result;
+  }
 
 public:
-  Renderer(const RenderConfig& config, const TemplateStorage &included_templates, const FunctionStorage &callbacks)
-      : config(config), template_storage(included_templates), function_storage(callbacks) {
-    m_stack.reserve(16);
-    m_tmp_args.reserve(4);
-    m_loop_stack.reserve(16);
+  Renderer(const RenderConfig& config, const TemplateStorage &template_storage, const FunctionStorage &function_storage)
+      : config(config), template_storage(template_storage), function_storage(function_storage) { }
+
+  void visit(const BlockNode& node) {
+    for (auto& n : node.nodes) {
+      n->accept(*this);
+    }
+  }
+
+  void visit(const TextNode& node) {
+    *output_stream << node.content;
+  }
+
+  void visit(const ExpressionNode&) { }
+
+  void visit(const LiteralNode& node) {
+    json_eval_stack.push(&node.value);
+  }
+
+  void visit(const JsonNode& node) {
+    auto ptr = json::json_pointer(node.ptr);
+
+    try {
+      // First try to evaluate as a loop variable
+      if (json_loop_data.contains(ptr)) {
+        json_eval_stack.push(&json_loop_data.at(ptr));
+      } else {
+        json_eval_stack.push(&json_input->at(ptr));
+      }
+
+    } catch (std::exception &) {
+      // Try to evaluate as a no-argument callback
+      auto function_data = function_storage.find_function(node.name, 0);
+      if (function_data.operation == FunctionStorage::Operation::Callback) {
+        Arguments empty_args {};
+        auto value = std::make_shared<json>(function_data.callback(empty_args));
+        json_tmp_stack.push_back(value);
+        json_eval_stack.push(value.get());
+
+      } else {
+        json_eval_stack.push(nullptr);
+        not_found_stack.emplace(&node);
+      }
+    }
+  }
+
+  void visit(const FunctionNode& node) {
+    std::shared_ptr<json> result_ptr;
+
+    switch (node.operation) {
+    case Op::Not: {
+      auto args = get_arguments<1>(node);
+      result_ptr = std::make_shared<json>(!truthy(args[0]));
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::And: {
+      auto args = get_arguments<2>(node);
+      result_ptr = std::make_shared<json>(truthy(args[0]) && truthy(args[1]));
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::Or: {
+      auto args = get_arguments<2>(node);
+      result_ptr = std::make_shared<json>(truthy(args[0]) || truthy(args[1]));
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::In: {
+      auto args = get_arguments<2>(node);
+      result_ptr = std::make_shared<json>(std::find(args[1]->begin(), args[1]->end(), *args[0]) != args[1]->end());
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::Equal: {
+      auto args = get_arguments<2>(node);
+      result_ptr = std::make_shared<json>(*args[0] == *args[1]);
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::NotEqual: {
+      auto args = get_arguments<2>(node);
+      result_ptr = std::make_shared<json>(*args[0] != *args[1]);
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::Greater: {
+      auto args = get_arguments<2>(node);
+      result_ptr = std::make_shared<json>(*args[0] > *args[1]);
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::GreaterEqual: {
+      auto args = get_arguments<2>(node);
+      result_ptr = std::make_shared<json>(*args[0] >= *args[1]);
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::Less: {
+      auto args = get_arguments<2>(node);
+      result_ptr = std::make_shared<json>(*args[0] < *args[1]);
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::LessEqual: {
+      auto args = get_arguments<2>(node);
+      result_ptr = std::make_shared<json>(*args[0] <= *args[1]);
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::Add: {
+      auto args = get_arguments<2>(node);
+      if (args[0]->is_string() && args[1]->is_string()) {
+        result_ptr = std::make_shared<json>(args[0]->get<std::string>() + args[1]->get<std::string>());
+        json_tmp_stack.push_back(result_ptr);
+      } else if (args[0]->is_number_integer() && args[1]->is_number_integer()) {
+        result_ptr = std::make_shared<json>(args[0]->get<int>() + args[1]->get<int>());
+        json_tmp_stack.push_back(result_ptr);
+      } else {
+        result_ptr = std::make_shared<json>(args[0]->get<double>() + args[1]->get<double>());
+        json_tmp_stack.push_back(result_ptr);
+      }
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::Subtract: {
+      auto args = get_arguments<2>(node);
+      if (args[0]->is_number_integer() && args[1]->is_number_integer()) {
+        result_ptr = std::make_shared<json>(args[0]->get<int>() - args[1]->get<int>());
+        json_tmp_stack.push_back(result_ptr);
+      } else {
+        result_ptr = std::make_shared<json>(args[0]->get<double>() - args[1]->get<double>());
+        json_tmp_stack.push_back(result_ptr);
+      }
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::Multiplication: {
+      auto args = get_arguments<2>(node);
+      if (args[0]->is_number_integer() && args[1]->is_number_integer()) {
+        result_ptr = std::make_shared<json>(args[0]->get<int>() * args[1]->get<int>());
+        json_tmp_stack.push_back(result_ptr);
+      } else {
+        result_ptr = std::make_shared<json>(args[0]->get<double>() * args[1]->get<double>());
+        json_tmp_stack.push_back(result_ptr);
+      }
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::Division: {
+      auto args = get_arguments<2>(node);
+      if (args[1]->get<double>() == 0) {
+        throw_renderer_error("division by zero", node);
+      }
+      result_ptr = std::make_shared<json>(args[0]->get<double>() / args[1]->get<double>());
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::Power: {
+      auto args = get_arguments<2>(node);
+      if (args[0]->is_number_integer() && args[1]->get<int>() >= 0) {
+        int result = std::pow(args[0]->get<int>(), args[1]->get<int>());
+        result_ptr = std::make_shared<json>(std::move(result));
+        json_tmp_stack.push_back(result_ptr);
+      } else {
+        double result = std::pow(args[0]->get<int>(), args[1]->get<int>());
+        result_ptr = std::make_shared<json>(std::move(result));
+        json_tmp_stack.push_back(result_ptr);
+      }
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::Modulo: {
+      auto args = get_arguments<2>(node);
+      result_ptr = std::make_shared<json>(args[0]->get<int>() % args[1]->get<int>());
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::At: {
+      auto args = get_arguments<2>(node);
+      json_eval_stack.push(&args[0]->at(args[1]->get<int>()));
+    } break;
+    case Op::Default: {
+      auto default_arg = get_arguments<1>(node)[0];
+      auto test_arg = get_arguments<1, false>(node)[0];
+      json_eval_stack.push(test_arg ? test_arg : default_arg);
+    } break;
+    case Op::DivisibleBy: {
+      auto args = get_arguments<2>(node);
+      int divisor = args[1]->get<int>();
+      result_ptr = std::make_shared<json>((divisor != 0) && (args[0]->get<int>() % divisor == 0));
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::Even: {
+      result_ptr = std::make_shared<json>(get_arguments<1>(node)[0]->get<int>() % 2 == 0);
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::Exists: {
+      auto &&name = get_arguments<1>(node)[0]->get_ref<const std::string &>();
+      result_ptr = std::make_shared<json>(json_input->find(name) != json_input->end());
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::ExistsInObject: {
+      auto args = get_arguments<2>(node);
+      auto &&name = args[1]->get_ref<const std::string &>();
+      result_ptr = std::make_shared<json>(args[0]->find(name) != args[0]->end());
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::First: {
+      auto result = &get_arguments<1>(node)[0]->front();
+      json_eval_stack.push(result);
+    } break;
+    case Op::Float: {
+      result_ptr = std::make_shared<json>(std::stod(get_arguments<1>(node)[0]->get_ref<const std::string &>()));
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::Int: {
+      result_ptr = std::make_shared<json>(std::stoi(get_arguments<1>(node)[0]->get_ref<const std::string &>()));
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::Last: {
+      auto result = &get_arguments<1>(node)[0]->back();
+      json_eval_stack.push(result);
+    } break;
+    case Op::Length: {
+      auto val = get_arguments<1>(node)[0];
+      if (val->is_string()) {
+        result_ptr = std::make_shared<json>(val->get_ref<const std::string &>().length());
+      } else {
+        result_ptr = std::make_shared<json>(val->size());
+      }
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::Lower: {
+      std::string result = get_arguments<1>(node)[0]->get<std::string>();
+      std::transform(result.begin(), result.end(), result.begin(), ::tolower);
+      result_ptr = std::make_shared<json>(std::move(result));
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::Max: {
+      auto args = get_arguments<1>(node);
+      auto result = std::max_element(args[0]->begin(), args[0]->end());
+      json_eval_stack.push(&(*result));
+    } break;
+    case Op::Min: {
+      auto args = get_arguments<1>(node);
+      auto result = std::min_element(args[0]->begin(), args[0]->end());
+      json_eval_stack.push(&(*result));
+    } break;
+    case Op::Odd: {
+      result_ptr = std::make_shared<json>(get_arguments<1>(node)[0]->get<int>() % 2 != 0);
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::Range: {
+      std::vector<int> result(get_arguments<1>(node)[0]->get<int>());
+      std::iota(result.begin(), result.end(), 0);
+      result_ptr = std::make_shared<json>(std::move(result));
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::Round: {
+      auto args = get_arguments<2>(node);
+      int precision = args[1]->get<int>();
+      double result = std::round(args[0]->get<double>() * std::pow(10.0, precision)) / std::pow(10.0, precision);
+      result_ptr = std::make_shared<json>(std::move(result));
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::Sort: {
+      result_ptr = std::make_shared<json>(get_arguments<1>(node)[0]->get<std::vector<json>>());
+      std::sort(result_ptr->begin(), result_ptr->end());
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::Upper: {
+      std::string result = get_arguments<1>(node)[0]->get<std::string>();
+      std::transform(result.begin(), result.end(), result.begin(), ::toupper);
+      result_ptr = std::make_shared<json>(std::move(result));
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::IsBoolean: {
+      result_ptr = std::make_shared<json>(get_arguments<1>(node)[0]->is_boolean());
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::IsNumber: {
+      result_ptr = std::make_shared<json>(get_arguments<1>(node)[0]->is_number());
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::IsInteger: {
+      result_ptr = std::make_shared<json>(get_arguments<1>(node)[0]->is_number_integer());
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::IsFloat: {
+      result_ptr = std::make_shared<json>(get_arguments<1>(node)[0]->is_number_float());
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::IsObject: {
+      result_ptr = std::make_shared<json>(get_arguments<1>(node)[0]->is_object());
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::IsArray: {
+      result_ptr = std::make_shared<json>(get_arguments<1>(node)[0]->is_array());
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::IsString: {
+      result_ptr = std::make_shared<json>(get_arguments<1>(node)[0]->is_string());
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::Callback: {
+      auto args = get_argument_vector(node.number_args, node);
+      result_ptr = std::make_shared<json>(node.callback(args));
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::ParenLeft:
+    case Op::ParenRight:
+    case Op::None:
+      break;
+    }
+  }
+
+  void visit(const ExpressionListNode& node) {
+    print_json(eval_expression_list(node).get());
+  }
+
+  void visit(const StatementNode&) { }
+
+  void visit(const ForStatementNode&) { }
+
+  void visit(const ForArrayStatementNode& node) {
+    auto result = eval_expression_list(node.condition);
+    if (!result->is_array()) {
+      throw_renderer_error("object must be an array", node);
+    }
+
+    if (!current_loop_data->empty()) {
+      auto tmp = *current_loop_data; // Because of clang-3
+      (*current_loop_data)["parent"] = std::move(tmp);
+    }
+
+    for (auto it = result->begin(); it != result->end(); ++it) {
+      json_loop_data[static_cast<std::string>(node.value)] = *it;
+
+      size_t index = std::distance(result->begin(), it);
+      (*current_loop_data)["index"] = index;
+      (*current_loop_data)["index1"] = index + 1;
+      (*current_loop_data)["is_first"] = (index == 0);
+      (*current_loop_data)["is_last"] = (index == result->size() - 1);
+
+      node.body.accept(*this);
+    }
+
+    json_loop_data[static_cast<std::string>(node.value)].clear();
+    if (!(*current_loop_data)["parent"].empty()) {
+      auto tmp = (*current_loop_data)["parent"];
+      *current_loop_data = std::move(tmp);
+    } else {
+      current_loop_data = &json_loop_data["loop"];
+    }
+  }
+
+  void visit(const ForObjectStatementNode& node) {
+    auto result = eval_expression_list(node.condition);
+    if (!result->is_object()) {
+      throw_renderer_error("object must be an object", node);
+    }
+
+    if (!current_loop_data->empty()) {
+      (*current_loop_data)["parent"] = std::move(*current_loop_data);
+    }
+
+    for (auto it = result->begin(); it != result->end(); ++it) {
+      json_loop_data[static_cast<std::string>(node.key)] = it.key();
+      json_loop_data[static_cast<std::string>(node.value)] = it.value();
+
+      size_t index = std::distance(result->begin(), it);
+      (*current_loop_data)["index"] = index;
+      (*current_loop_data)["index1"] = index + 1;
+      (*current_loop_data)["is_first"] = (index == 0);
+      (*current_loop_data)["is_last"] = (index == result->size() - 1);
+
+      node.body.accept(*this);
+    }
+
+    json_loop_data[static_cast<std::string>(node.key)].clear();
+    json_loop_data[static_cast<std::string>(node.value)].clear();
+    if (!(*current_loop_data)["parent"].empty()) {
+      *current_loop_data = std::move((*current_loop_data)["parent"]);
+    } else {
+      current_loop_data = &json_loop_data["loop"];
+    }
+  }
+
+  void visit(const IfStatementNode& node) {
+    auto result = eval_expression_list(node.condition);
+    if (truthy(result.get())) {
+      node.true_statement.accept(*this);
+    } else if (node.has_false_statement) {
+      node.false_statement.accept(*this);
+    }
+  }
+
+  void visit(const IncludeStatementNode& node) {
+    auto sub_renderer = Renderer(config, template_storage, function_storage);
+    auto included_template_it = template_storage.find(node.file);
+
+    if (included_template_it != template_storage.end()) {
+      sub_renderer.render_to(*output_stream, included_template_it->second, *json_input, &json_loop_data);
+    } else if (config.throw_at_missing_includes) {
+      throw_renderer_error("include '" + node.file + "' not found", node);
+    }
   }
 
   void render_to(std::ostream &os, const Template &tmpl, const json &data, json *loop_data = nullptr) {
+    output_stream = &os;
     current_template = &tmpl;
-    m_data = &data;
-    m_loop_data = loop_data;
-
-    for (size_t i = 0; i < tmpl.nodes.size(); ++i) {
-      const auto &node = tmpl.nodes[i];
-
-      switch (node.op) {
-      case Node::Op::Nop: {
-        break;
-      }
-      case Node::Op::PrintText: {
-        os << node.str;
-        break;
-      }
-      case Node::Op::PrintValue: {
-        const json &val = *get_args(node)[0];
-        if (val.is_string()) {
-          os << val.get_ref<const std::string &>();
-        } else {
-          os << val.dump();
-        }
-        pop_args(node);
-        break;
-      }
-      case Node::Op::Push: {
-        m_stack.emplace_back(*get_imm(node));
-        break;
-      }
-      case Node::Op::Upper: {
-        auto result = get_args(node)[0]->get<std::string>();
-        std::transform(result.begin(), result.end(), result.begin(), ::toupper);
-        pop_args(node);
-        m_stack.emplace_back(std::move(result));
-        break;
-      }
-      case Node::Op::Lower: {
-        auto result = get_args(node)[0]->get<std::string>();
-        std::transform(result.begin(), result.end(), result.begin(), ::tolower);
-        pop_args(node);
-        m_stack.emplace_back(std::move(result));
-        break;
-      }
-      case Node::Op::Range: {
-        int number = get_args(node)[0]->get<int>();
-        std::vector<int> result(number);
-        std::iota(std::begin(result), std::end(result), 0);
-        pop_args(node);
-        m_stack.emplace_back(std::move(result));
-        break;
-      }
-      case Node::Op::Length: {
-        const json &val = *get_args(node)[0];
-
-        size_t result;
-        if (val.is_string()) {
-          result = val.get_ref<const std::string &>().length();
-        } else {
-          result = val.size();
-        }
-
-        pop_args(node);
-        m_stack.emplace_back(result);
-        break;
-      }
-      case Node::Op::Sort: {
-        auto result = get_args(node)[0]->get<std::vector<json>>();
-        std::sort(result.begin(), result.end());
-        pop_args(node);
-        m_stack.emplace_back(std::move(result));
-        break;
-      }
-      case Node::Op::At: {
-        auto args = get_args(node);
-        auto result = args[0]->at(args[1]->get<int>());
-        pop_args(node);
-        m_stack.emplace_back(result);
-        break;
-      }
-      case Node::Op::First: {
-        auto result = get_args(node)[0]->front();
-        pop_args(node);
-        m_stack.emplace_back(result);
-        break;
-      }
-      case Node::Op::Last: {
-        auto result = get_args(node)[0]->back();
-        pop_args(node);
-        m_stack.emplace_back(result);
-        break;
-      }
-      case Node::Op::Round: {
-        auto args = get_args(node);
-        double number = args[0]->get<double>();
-        int precision = args[1]->get<int>();
-        pop_args(node);
-        m_stack.emplace_back(std::round(number * std::pow(10.0, precision)) / std::pow(10.0, precision));
-        break;
-      }
-      case Node::Op::DivisibleBy: {
-        auto args = get_args(node);
-        int number = args[0]->get<int>();
-        int divisor = args[1]->get<int>();
-        pop_args(node);
-        m_stack.emplace_back((divisor != 0) && (number % divisor == 0));
-        break;
-      }
-      case Node::Op::Odd: {
-        int number = get_args(node)[0]->get<int>();
-        pop_args(node);
-        m_stack.emplace_back(number % 2 != 0);
-        break;
-      }
-      case Node::Op::Even: {
-        int number = get_args(node)[0]->get<int>();
-        pop_args(node);
-        m_stack.emplace_back(number % 2 == 0);
-        break;
-      }
-      case Node::Op::Max: {
-        auto args = get_args(node);
-        auto result = *std::max_element(args[0]->begin(), args[0]->end());
-        pop_args(node);
-        m_stack.emplace_back(std::move(result));
-        break;
-      }
-      case Node::Op::Min: {
-        auto args = get_args(node);
-        auto result = *std::min_element(args[0]->begin(), args[0]->end());
-        pop_args(node);
-        m_stack.emplace_back(std::move(result));
-        break;
-      }
-      case Node::Op::Not: {
-        bool result = !truthy(*get_args(node)[0]);
-        pop_args(node);
-        m_stack.emplace_back(result);
-        break;
-      }
-      case Node::Op::And: {
-        auto args = get_args(node);
-        bool result = truthy(*args[0]) && truthy(*args[1]);
-        pop_args(node);
-        m_stack.emplace_back(result);
-        break;
-      }
-      case Node::Op::Or: {
-        auto args = get_args(node);
-        bool result = truthy(*args[0]) || truthy(*args[1]);
-        pop_args(node);
-        m_stack.emplace_back(result);
-        break;
-      }
-      case Node::Op::In: {
-        auto args = get_args(node);
-        bool result = std::find(args[1]->begin(), args[1]->end(), *args[0]) != args[1]->end();
-        pop_args(node);
-        m_stack.emplace_back(result);
-        break;
-      }
-      case Node::Op::Equal: {
-        auto args = get_args(node);
-        bool result = (*args[0] == *args[1]);
-        pop_args(node);
-        m_stack.emplace_back(result);
-        break;
-      }
-      case Node::Op::Greater: {
-        auto args = get_args(node);
-        bool result = (*args[0] > *args[1]);
-        pop_args(node);
-        m_stack.emplace_back(result);
-        break;
-      }
-      case Node::Op::Less: {
-        auto args = get_args(node);
-        bool result = (*args[0] < *args[1]);
-        pop_args(node);
-        m_stack.emplace_back(result);
-        break;
-      }
-      case Node::Op::GreaterEqual: {
-        auto args = get_args(node);
-        bool result = (*args[0] >= *args[1]);
-        pop_args(node);
-        m_stack.emplace_back(result);
-        break;
-      }
-      case Node::Op::LessEqual: {
-        auto args = get_args(node);
-        bool result = (*args[0] <= *args[1]);
-        pop_args(node);
-        m_stack.emplace_back(result);
-        break;
-      }
-      case Node::Op::Different: {
-        auto args = get_args(node);
-        bool result = (*args[0] != *args[1]);
-        pop_args(node);
-        m_stack.emplace_back(result);
-        break;
-      }
-      case Node::Op::Float: {
-        double result = std::stod(get_args(node)[0]->get_ref<const std::string &>());
-        pop_args(node);
-        m_stack.emplace_back(result);
-        break;
-      }
-      case Node::Op::Int: {
-        int result = std::stoi(get_args(node)[0]->get_ref<const std::string &>());
-        pop_args(node);
-        m_stack.emplace_back(result);
-        break;
-      }
-      case Node::Op::Exists: {
-        auto &&name = get_args(node)[0]->get_ref<const std::string &>();
-        bool result = (data.find(name) != data.end());
-        pop_args(node);
-        m_stack.emplace_back(result);
-        break;
-      }
-      case Node::Op::ExistsInObject: {
-        auto args = get_args(node);
-        auto &&name = args[1]->get_ref<const std::string &>();
-        bool result = (args[0]->find(name) != args[0]->end());
-        pop_args(node);
-        m_stack.emplace_back(result);
-        break;
-      }
-      case Node::Op::IsBoolean: {
-        bool result = get_args(node)[0]->is_boolean();
-        pop_args(node);
-        m_stack.emplace_back(result);
-        break;
-      }
-      case Node::Op::IsNumber: {
-        bool result = get_args(node)[0]->is_number();
-        pop_args(node);
-        m_stack.emplace_back(result);
-        break;
-      }
-      case Node::Op::IsInteger: {
-        bool result = get_args(node)[0]->is_number_integer();
-        pop_args(node);
-        m_stack.emplace_back(result);
-        break;
-      }
-      case Node::Op::IsFloat: {
-        bool result = get_args(node)[0]->is_number_float();
-        pop_args(node);
-        m_stack.emplace_back(result);
-        break;
-      }
-      case Node::Op::IsObject: {
-        bool result = get_args(node)[0]->is_object();
-        pop_args(node);
-        m_stack.emplace_back(result);
-        break;
-      }
-      case Node::Op::IsArray: {
-        bool result = get_args(node)[0]->is_array();
-        pop_args(node);
-        m_stack.emplace_back(result);
-        break;
-      }
-      case Node::Op::IsString: {
-        bool result = get_args(node)[0]->is_string();
-        pop_args(node);
-        m_stack.emplace_back(result);
-        break;
-      }
-      case Node::Op::Default: {
-        // default needs to be a bit "magic"; we can't evaluate the first
-        // argument during the push operation, so we swap the arguments during
-        // the parse phase so the second argument is pushed on the stack and
-        // the first argument is in the immediate
-        try {
-          const json *imm = get_imm(node);
-          // if no exception was raised, replace the stack value with it
-          m_stack.back() = *imm;
-        } catch (std::exception &) {
-          // couldn't read immediate, just leave the stack as is
-        }
-        break;
-      }
-      case Node::Op::Include: {
-        auto sub_renderer = Renderer(config, template_storage, function_storage);
-        auto include_name = get_imm(node)->get_ref<const std::string &>();
-        auto included_template_it = template_storage.find(include_name);
-        if (included_template_it != template_storage.end()) {
-          sub_renderer.render_to(os, included_template_it->second, *m_data, m_loop_data);
-        } else if (config.throw_at_missing_includes) {
-          throw_renderer_error("include '" + include_name + "' not found", node);
-        }
-        break;
-      }
-      case Node::Op::Callback: {
-        auto callback = function_storage.find_callback(node.str, node.args);
-        if (!callback) {
-          throw_renderer_error("function '" + static_cast<std::string>(node.str) + "' (" +
-                            std::to_string(static_cast<unsigned int>(node.args)) + ") not found", node);
-        }
-        json result = callback(get_args(node));
-        pop_args(node);
-        m_stack.emplace_back(std::move(result));
-        break;
-      }
-      case Node::Op::Jump: {
-        i = node.args - 1; // -1 due to ++i in loop
-        break;
-      }
-      case Node::Op::ConditionalJump: {
-        if (!truthy(m_stack.back())) {
-          i = node.args - 1; // -1 due to ++i in loop
-        }
-        m_stack.pop_back();
-        break;
-      }
-      case Node::Op::StartLoop: {
-        // jump past loop body if empty
-        if (m_stack.back().empty()) {
-          m_stack.pop_back();
-          i = node.args; // ++i in loop will take it past EndLoop
-          break;
-        }
-
-        m_loop_stack.emplace_back();
-        LoopLevel &level = m_loop_stack.back();
-        level.value_name = node.str;
-        level.values = std::move(m_stack.back());
-        if (m_loop_data) {
-          level.data = *m_loop_data;
-        }
-        level.index = 0;
-        m_stack.pop_back();
-
-        if (node.value.is_string()) {
-          // map iterator
-          if (!level.values.is_object()) {
-            m_loop_stack.pop_back();
-            throw_renderer_error("for key, value requires object", node);
-          }
-          level.loop_type = LoopLevel::Type::Map;
-          level.key_name = node.value.get_ref<const std::string &>();
-
-          // sort by key
-          for (auto it = level.values.begin(), end = level.values.end(); it != end; ++it) {
-            level.map_values.emplace_back(it.key(), &it.value());
-          }
-          auto sort_lambda = [](const LoopLevel::KeyValue &a, const LoopLevel::KeyValue &b) {
-            return a.first < b.first;
-          };
-          std::sort(level.map_values.begin(), level.map_values.end(), sort_lambda);
-          level.map_it = level.map_values.begin();
-          level.size = level.map_values.size();
-        } else {
-          if (!level.values.is_array()) {
-            m_loop_stack.pop_back();
-            throw_renderer_error("type must be array", node);
-          }
-
-          // list iterator
-          level.loop_type = LoopLevel::Type::Array;
-          level.size = level.values.size();
-        }
-
-        // provide parent access in nested loop
-        auto parent_loop_it = level.data.find("loop");
-        if (parent_loop_it != level.data.end()) {
-          json loop_copy = *parent_loop_it;
-          (*parent_loop_it)["parent"] = std::move(loop_copy);
-        }
-
-        // set "current" loop data to this level
-        m_loop_data = &level.data;
-        update_loop_data();
-        break;
-      }
-      case Node::Op::EndLoop: {
-        if (m_loop_stack.empty()) {
-          throw_renderer_error("unexpected state in renderer", node);
-        }
-        LoopLevel &level = m_loop_stack.back();
-
-        bool done;
-        level.index += 1;
-        if (level.loop_type == LoopLevel::Type::Array) {
-          done = (level.index == level.values.size());
-        } else {
-          level.map_it += 1;
-          done = (level.map_it == level.map_values.end());
-        }
-
-        if (done) {
-          m_loop_stack.pop_back();
-          // set "current" data to outer loop data or main data as appropriate
-          if (!m_loop_stack.empty()) {
-            m_loop_data = &m_loop_stack.back().data;
-          } else {
-            m_loop_data = loop_data;
-          }
-          break;
-        }
-
-        update_loop_data();
-
-        // jump back to start of loop
-        i = node.args - 1; // -1 due to ++i in loop
-        break;
-      }
-      default: {
-        throw_renderer_error("unknown operation in renderer: " + std::to_string(static_cast<unsigned int>(node.op)), node);
-      }
-      }
+    json_input = &data;
+    if (loop_data) {
+      json_loop_data = *loop_data;
     }
+
+    current_template->root.accept(*this);
+
+    json_tmp_stack.clear();
   }
 };
 

@@ -1,11 +1,7 @@
 // Copyright (c) 2019 Pantor. All rights reserved.
 
-#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
-
 #include "doctest/doctest.h"
 #include "inja/inja.hpp"
-
-using json = nlohmann::json;
 
 
 TEST_CASE("source location") {
