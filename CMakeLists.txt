@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.5)
 
 
-project(inja LANGUAGES CXX VERSION 2.3.0)
+project(inja LANGUAGES CXX VERSION 3.0.0)
 
 
 option(INJA_USE_EMBEDDED_JSON "Use the shipped json header if not available on the system" ON)
