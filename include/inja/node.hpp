@@ -47,7 +47,9 @@ public:
   virtual void visit(const IncludeStatementNode& node) = 0;
 };
 
-
+/*!
+ * \brief Base node class for the abstract syntax tree (AST).
+ */
 class AstNode {
 public:
   virtual void accept(NodeVisitor& v) const = 0;

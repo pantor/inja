@@ -11,11 +11,7 @@ namespace inja {
 /*!
  * \brief A class for counting statistics on a Template.
  */
-struct StatisticsVisitor : public NodeVisitor {
-  unsigned int variable_counter;
-
-  explicit StatisticsVisitor() : variable_counter(0) { }
-
+class StatisticsVisitor : public NodeVisitor {
   void visit(const BlockNode& node) {
     for (auto& n : node.nodes) {
       n->accept(*this);
@@ -58,6 +54,11 @@ struct StatisticsVisitor : public NodeVisitor {
   }
 
   void visit(const IncludeStatementNode&) { }
+
+public:
+  unsigned int variable_counter;
+
+  explicit StatisticsVisitor() : variable_counter(0) { }
 };
 
 } // namespace inja

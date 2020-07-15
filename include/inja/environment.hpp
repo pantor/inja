@@ -106,6 +106,10 @@ public:
     return result;
   }
 
+  Template parse_file(const std::string &filename) {
+    return parse_template(filename);
+  }
+
   std::string render(nonstd::string_view input, const json &data) { return render(parse(input), data); }
 
   std::string render(const Template &tmpl, const json &data) {

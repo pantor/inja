@@ -5,13 +5,13 @@
 
 
 TEST_CASE("source location") {
-  std::string content = R"DELIM(Lorem Ipsum
+  std::string content = R""""(Lorem Ipsum
   Dolor
 Amid
 Set ().$
 Try this
 
-)DELIM";
+)"""";
 
   CHECK(inja::get_source_location(content, 0).line == 1);
   CHECK(inja::get_source_location(content, 0).column == 1);

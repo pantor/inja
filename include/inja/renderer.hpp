@@ -140,10 +140,6 @@ class Renderer : public NodeVisitor  {
     return result;
   }
 
-public:
-  Renderer(const RenderConfig& config, const TemplateStorage &template_storage, const FunctionStorage &function_storage)
-      : config(config), template_storage(template_storage), function_storage(function_storage) { }
-
   void visit(const BlockNode& node) {
     for (auto& n : node.nodes) {
       n->accept(*this);
@@ -566,6 +562,10 @@ public:
       throw_renderer_error("include '" + node.file + "' not found", node);
     }
   }
+
+public:
+  Renderer(const RenderConfig& config, const TemplateStorage &template_storage, const FunctionStorage &function_storage)
+      : config(config), template_storage(template_storage), function_storage(function_storage) { }
 
   void render_to(std::ostream &os, const Template &tmpl, const json &data, json *loop_data = nullptr) {
     output_stream = &os;

@@ -74,8 +74,7 @@ TEST_CASE("types") {
   }
 
   SUBCASE("nested loops") {
-    auto ldata = json::parse(
-        R"DELIM(
+    auto ldata = json::parse(R""""(
 { "outer" : [
     { "inner" : [
         { "in2" : [ 1, 2 ] },
@@ -91,13 +90,13 @@ TEST_CASE("types") {
     }
     ]
 }
-)DELIM");
+)"""");
 
-    CHECK(env.render(R"DELIM(
+    CHECK(env.render(R""""(
 {% for o in outer %}{% for i in o.inner %}{{loop.parent.index}}:{{loop.index}}::{{loop.parent.is_last}}
 {% for ii in i.in2%}{{ii}},{%endfor%}
 {%endfor%}{%endfor%}
-)DELIM",
+)"""",
                      ldata) == "\n0:0::false\n1,2,\n0:1::false\n\n0:2::false\n\n2:0::true\n3,4,\n2:1::true\n5,6,\n\n");
   }
 
@@ -124,19 +123,19 @@ TEST_CASE("types") {
   }
 
   SUBCASE("line statements") {
-    CHECK(env.render(R"(## if is_happy
+    CHECK(env.render(R""""(## if is_happy
 Yeah!
-## endif)",
-                     data) == R"(Yeah!
-)");
+## endif)"""",
+                     data) == R""""(Yeah!
+)"""");
 
-    CHECK(env.render(R"(## if is_happy
+    CHECK(env.render(R""""(## if is_happy
 ## if is_happy
 Yeah!
 ## endif
-## endif    )",
-                     data) == R"(Yeah!
-)");
+## endif    )"""",
+                     data) == R""""(Yeah!
+)"""");
   }
 }
 
@@ -253,11 +252,11 @@ TEST_CASE("other syntax") {
     env.set_line_statement("$$");
     env.set_expression("<%", "%>");
 
-    std::string string_template = R"DELIM(Hello <%name%>
+    std::string string_template = R""""(Hello <%name%>
 $$ if name == "Peter"
     You really are <%name%>
 $$ endif
-)DELIM";
+)"""";
 
     CHECK(env.render(string_template, data) == "Hello Peter\n    You really are Peter\n");
   }

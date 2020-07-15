@@ -75,12 +75,6 @@ class Parser {
     current_expression_list->rpn_output.emplace_back(std::make_shared<LiteralNode>(json::parse(json_text), json_text.data() - content_ptr));
   }
 
-
-public:
-  explicit Parser(const ParserConfig &parser_config, const LexerConfig &lexer_config,
-                  TemplateStorage &template_storage, const FunctionStorage &function_storage)
-      : config(parser_config), lexer(lexer_config), template_storage(template_storage), function_storage(function_storage) { }
-
   bool parse_expression(Template &tmpl, Token::Kind closing) {
     while (tok.kind != closing && tok.kind != Token::Kind::Eof) {
       // Literals
@@ -520,6 +514,12 @@ public:
       }
     }
   }
+
+
+public:
+  explicit Parser(const ParserConfig &parser_config, const LexerConfig &lexer_config,
+                  TemplateStorage &template_storage, const FunctionStorage &function_storage)
+      : config(parser_config), lexer(lexer_config), template_storage(template_storage), function_storage(function_storage) { }
 
   Template parse(nonstd::string_view input, nonstd::string_view path) {
     auto result = Template(static_cast<std::string>(input));
