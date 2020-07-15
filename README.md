@@ -316,4 +316,4 @@ Inja uses `string_view` from C++17, but includes the [polyfill](https://github.c
 - Clang 3.5 - 9 (and possibly later)
 - Microsoft Visual C++ 2016 - 2019 (and possibly later)
 
-A complete list of supported compiler / os versions can be found in the [CI definition](https://github.com/pantor/inja/blob/master/.github/workflows/ci.yml).
+The unit tests fail to compile with GCC 4.8 but should just work fine. A complete list of supported compiler / os versions can be found in the [CI definition](https://github.com/pantor/inja/blob/master/.github/workflows/ci.yml).

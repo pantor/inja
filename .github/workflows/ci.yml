@@ -16,7 +16,7 @@ jobs:
       fail-fast: false
       matrix:
         name: [
-          ubuntu-18.04-gcc-4.8,
+          ubuntu-18.04-gcc-4.9,
           ubuntu-18.04-gcc-5,
           ubuntu-18.04-gcc-6,
           ubuntu-18.04-gcc-7,
@@ -46,10 +46,10 @@ jobs:
         ]
 
         include:
-          - name: ubuntu-18.04-gcc-4.8
+          - name: ubuntu-18.04-gcc-4.9
             os: ubuntu-18.04
             compiler: gcc
-            version: "4.8"
+            version: "4.9"
 
           - name: ubuntu-18.04-gcc-5
             os: ubuntu-18.04
