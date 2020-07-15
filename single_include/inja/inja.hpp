@@ -2328,7 +2328,9 @@ public:
   virtual void visit(const IncludeStatementNode& node) = 0;
 };
 
-
+/*!
+ * \brief Base node class for the abstract syntax tree (AST).
+ */
 class AstNode {
 public:
   virtual void accept(NodeVisitor& v) const = 0;
@@ -2613,11 +2615,7 @@ namespace inja {
 /*!
  * \brief A class for counting statistics on a Template.
  */
-struct StatisticsVisitor : public NodeVisitor {
-  unsigned int variable_counter;
-
-  explicit StatisticsVisitor() : variable_counter(0) { }
-
+class StatisticsVisitor : public NodeVisitor {
   void visit(const BlockNode& node) {
     for (auto& n : node.nodes) {
       n->accept(*this);
@@ -2660,6 +2658,11 @@ struct StatisticsVisitor : public NodeVisitor {
   }
 
   void visit(const IncludeStatementNode&) { }
+
+public:
+  unsigned int variable_counter;
+
+  explicit StatisticsVisitor() : variable_counter(0) { }
 };
 
 } // namespace inja
@@ -2754,12 +2757,6 @@ class Parser {
     nonstd::string_view json_text(json_literal_start.data(), tok.text.data() - json_literal_start.data() + tok.text.size());
     current_expression_list->rpn_output.emplace_back(std::make_shared<LiteralNode>(json::parse(json_text), json_text.data() - content_ptr));
   }
-
-
-public:
-  explicit Parser(const ParserConfig &parser_config, const LexerConfig &lexer_config,
-                  TemplateStorage &template_storage, const FunctionStorage &function_storage)
-      : config(parser_config), lexer(lexer_config), template_storage(template_storage), function_storage(function_storage) { }
 
   bool parse_expression(Template &tmpl, Token::Kind closing) {
     while (tok.kind != closing && tok.kind != Token::Kind::Eof) {
@@ -3201,6 +3198,12 @@ public:
     }
   }
 
+
+public:
+  explicit Parser(const ParserConfig &parser_config, const LexerConfig &lexer_config,
+                  TemplateStorage &template_storage, const FunctionStorage &function_storage)
+      : config(parser_config), lexer(lexer_config), template_storage(template_storage), function_storage(function_storage) { }
+
   Template parse(nonstd::string_view input, nonstd::string_view path) {
     auto result = Template(static_cast<std::string>(input));
     parse_into(result, path);
@@ -3378,10 +3381,6 @@ class Renderer : public NodeVisitor  {
     }
     return result;
   }
-
-public:
-  Renderer(const RenderConfig& config, const TemplateStorage &template_storage, const FunctionStorage &function_storage)
-      : config(config), template_storage(template_storage), function_storage(function_storage) { }
 
   void visit(const BlockNode& node) {
     for (auto& n : node.nodes) {
@@ -3806,6 +3805,10 @@ public:
     }
   }
 
+public:
+  Renderer(const RenderConfig& config, const TemplateStorage &template_storage, const FunctionStorage &function_storage)
+      : config(config), template_storage(template_storage), function_storage(function_storage) { }
+
   void render_to(std::ostream &os, const Template &tmpl, const json &data, json *loop_data = nullptr) {
     output_stream = &os;
     current_template = &tmpl;
@@ -3917,6 +3920,10 @@ public:
     auto result = Template(parser.load_file(input_path + static_cast<std::string>(filename)));
     parser.parse_into_template(result, input_path + static_cast<std::string>(filename));
     return result;
+  }
+
+  Template parse_file(const std::string &filename) {
+    return parse_template(filename);
   }
 
   std::string render(nonstd::string_view input, const json &data) { return render(parse(input), data); }
