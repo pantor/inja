@@ -157,7 +157,8 @@ public:
   }
 
   json load_json(const std::string &filename) {
-    std::ifstream file = open_file_or_throw(input_path + filename);
+    std::ifstream file;
+    open_file_or_throw(input_path + filename, file);
     json j;
     file >> j;
     return j;

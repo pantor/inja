@@ -1829,15 +1829,13 @@ struct Token {
 
 namespace inja {
 
-inline std::ifstream open_file_or_throw(const std::string &path) {
-  std::ifstream file;
+inline void open_file_or_throw(const std::string &path, std::ifstream &file) {
   file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
   try {
     file.open(path);
   } catch (const std::ios_base::failure & /*e*/) {
     throw FileError("failed accessing file at '" + path + "'");
   }
-  return file;
 }
 
 namespace string_view {
@@ -3222,7 +3220,8 @@ public:
   }
 
   std::string load_file(nonstd::string_view filename) {
-    std::ifstream file = open_file_or_throw(static_cast<std::string>(filename));
+    std::ifstream file;
+    open_file_or_throw(static_cast<std::string>(filename), file);
     std::string text((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
     return text;
   }
@@ -3971,7 +3970,8 @@ public:
   }
 
   json load_json(const std::string &filename) {
-    std::ifstream file = open_file_or_throw(input_path + filename);
+    std::ifstream file;
+    open_file_or_throw(input_path + filename, file);
     json j;
     file >> j;
     return j;

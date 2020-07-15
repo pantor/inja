@@ -540,7 +540,8 @@ public:
   }
 
   std::string load_file(nonstd::string_view filename) {
-    std::ifstream file = open_file_or_throw(static_cast<std::string>(filename));
+    std::ifstream file;
+    open_file_or_throw(static_cast<std::string>(filename), file);
     std::string text((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
     return text;
   }
