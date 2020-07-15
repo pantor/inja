@@ -13,15 +13,13 @@
 
 namespace inja {
 
-inline std::ifstream open_file_or_throw(const std::string &path) {
-  std::ifstream file;
+inline void open_file_or_throw(const std::string &path, std::ifstream &file) {
   file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
   try {
     file.open(path);
   } catch (const std::ios_base::failure & /*e*/) {
     throw FileError("failed accessing file at '" + path + "'");
   }
-  return file;
 }
 
 namespace string_view {
