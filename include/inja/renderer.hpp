@@ -311,6 +311,16 @@ class Renderer : public NodeVisitor  {
       json_tmp_stack.push_back(result_ptr);
       json_eval_stack.push(result_ptr.get());
     } break;
+    case Op::AtId: {
+      json_eval_stack.pop(); // Pop id nullptr
+      auto container = get_arguments<1, false>(node)[0];
+      if (not_found_stack.empty()) {
+        throw_renderer_error("could not find element with given name", node);
+      }
+      auto id_node = not_found_stack.top();
+      not_found_stack.pop();
+      json_eval_stack.push(&container->at(id_node->name));
+    } break;
     case Op::At: {
       auto args = get_arguments<2>(node);
       json_eval_stack.push(&args[0]->at(args[1]->get<int>()));

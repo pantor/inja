@@ -166,7 +166,8 @@ class Parser {
       case Token::Kind::Times:
       case Token::Kind::Slash:
       case Token::Kind::Power:
-      case Token::Kind::Percent: {
+      case Token::Kind::Percent:
+      case Token::Kind::Dot: {
 
   parse_operator:
         FunctionStorage::Operation operation;
@@ -219,6 +220,9 @@ class Parser {
         } break;
         case Token::Kind::Percent: {
           operation = FunctionStorage::Operation::Modulo;
+        } break;
+        case Token::Kind::Dot: {
+          operation = FunctionStorage::Operation::AtId;
         } break;
         default: {
           throw_parser_error("unknown operator in parser.");

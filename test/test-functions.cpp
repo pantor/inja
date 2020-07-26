@@ -254,6 +254,7 @@ TEST_CASE("combinations") {
   data["brother"]["daughters"] = {"Maria", "Helen"};
   data["brother"]["daughter0"] = {{"name", "Maria"}};
   data["is_happy"] = true;
+  data["list_of_objects"] = {{{"a", 2}}, {{"b", 3}}, {{"c", 4}}, {{"d", 5}}};
 
   CHECK(env.render("{% if upper(\"Peter\") == \"PETER\" %}TRUE{% endif %}", data) == "TRUE");
   CHECK(env.render("{% if lower(upper(name)) == \"peter\" %}TRUE{% endif %}", data) == "TRUE");
@@ -263,4 +264,7 @@ TEST_CASE("combinations") {
   CHECK(env.render("{{ upper(first(sort(brother.daughters)) + \"_test\") }}", data) == "HELEN_TEST");
   CHECK(env.render("{% for i in range(3) %}{{ at(names, i) }}{% endfor %}", data) == "JeffSebChris");
   CHECK(env.render("{% if not is_happy or age > 26 %}TRUE{% endif %}", data) == "TRUE");
+  CHECK(env.render("{{ last(list_of_objects).d * 2}}", data) == "10");
+  CHECK(env.render("{{ last(range(5)) * 2 }}", data) == "8");
+  CHECK(env.render("{{ last(range(5 * 2)) }}", data) == "9");
 }

@@ -141,7 +141,7 @@ public:
   size_t number_args;
   CallbackFunction callback;
 
-  explicit FunctionNode(nonstd::string_view name, size_t pos) : ExpressionNode(pos), precedence(5), associativity(Associativity::Left), operation(Op::Callback), name(name), number_args(1) { }
+  explicit FunctionNode(nonstd::string_view name, size_t pos) : ExpressionNode(pos), precedence(8), associativity(Associativity::Left), operation(Op::Callback), name(name), number_args(1) { }
   explicit FunctionNode(Op operation, size_t pos) : ExpressionNode(pos), operation(operation), number_args(1) {
     switch (operation) {
       case Op::Not: {
@@ -206,6 +206,10 @@ public:
       } break;
       case Op::Modulo: {
         precedence = 4;
+        associativity = Associativity::Left;
+      } break;
+      case Op::AtId: {
+        precedence = 8;
         associativity = Associativity::Left;
       } break;
       default: {

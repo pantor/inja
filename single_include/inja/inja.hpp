@@ -1550,6 +1550,7 @@ public:
     Division,
     Power,
     Modulo,
+    AtId,
     At,
     Default,
     DivisibleBy,
@@ -1770,6 +1771,7 @@ struct Token {
     Percent,            // %
     Power,              // ^
     Comma,              // ,
+    Dot,                // .
     Colon,              // :
     LeftParen,          // (
     RightParen,         // )
@@ -1984,6 +1986,8 @@ class Lexer {
       return make_token(Token::Kind::Power);
     case '%':
       return make_token(Token::Kind::Percent);
+    case '.':
+      return make_token(Token::Kind::Dot);
     case ',':
       return make_token(Token::Kind::Comma);
     case ':':
@@ -2849,7 +2853,8 @@ class Parser {
       case Token::Kind::Times:
       case Token::Kind::Slash:
       case Token::Kind::Power:
-      case Token::Kind::Percent: {
+      case Token::Kind::Percent:
+      case Token::Kind::Dot: {
 
   parse_operator:
         FunctionStorage::Operation operation;
@@ -2902,6 +2907,10 @@ class Parser {
         } break;
         case Token::Kind::Percent: {
           operation = FunctionStorage::Operation::Modulo;
+        } break;
+        case Token::Kind::Dot: {
+          std::cout << "test" << std::endl;
+          operation = FunctionStorage::Operation::AtId;
         } break;
         default: {
           throw_parser_error("unknown operator in parser.");
@@ -3552,6 +3561,21 @@ class Renderer : public NodeVisitor  {
       result_ptr = std::make_shared<json>(args[0]->get<int>() % args[1]->get<int>());
       json_tmp_stack.push_back(result_ptr);
       json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::AtId: {
+      std::cout << "test" << std::endl;
+      auto container = get_arguments<1, false>(node)[0];
+      auto id = get_arguments<1, false>(node)[0];
+      if (id == nullptr) {
+        auto id_node = not_found_stack.top();
+        not_found_stack.pop();
+
+        auto ptr = json::json_pointer(id_node->ptr);
+        json_eval_stack.push(&container->at(ptr));
+      
+      } else {
+        json_eval_stack.push(id);
+      }
     } break;
     case Op::At: {
       auto args = get_arguments<2>(node);

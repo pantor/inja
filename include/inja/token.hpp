@@ -33,6 +33,7 @@ struct Token {
     Percent,            // %
     Power,              // ^
     Comma,              // ,
+    Dot,                // .
     Colon,              // :
     LeftParen,          // (
     RightParen,         // )

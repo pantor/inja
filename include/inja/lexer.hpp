@@ -108,6 +108,8 @@ class Lexer {
       return make_token(Token::Kind::Power);
     case '%':
       return make_token(Token::Kind::Percent);
+    case '.':
+      return make_token(Token::Kind::Dot);
     case ',':
       return make_token(Token::Kind::Comma);
     case ':':
