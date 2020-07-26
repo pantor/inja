@@ -299,7 +299,7 @@ class Renderer : public NodeVisitor  {
         result_ptr = std::make_shared<json>(std::move(result));
         json_tmp_stack.push_back(result_ptr);
       } else {
-        double result = std::pow(args[0]->get<int>(), args[1]->get<int>());
+        double result = std::pow(args[0]->get<double>(), args[1]->get<int>());
         result_ptr = std::make_shared<json>(std::move(result));
         json_tmp_stack.push_back(result_ptr);
       }

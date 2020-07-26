@@ -143,7 +143,7 @@ public:
   Op operation;
 
   std::string name;
-  size_t number_args;
+  int number_args; // Should also be negative -> -1 for unknown number
   CallbackFunction callback;
 
   explicit FunctionNode(nonstd::string_view name, size_t pos) : ExpressionNode(pos), precedence(8), associativity(Associativity::Left), operation(Op::Callback), name(name), number_args(1) { }

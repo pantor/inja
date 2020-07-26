@@ -2359,9 +2359,9 @@ public:
 
 class TextNode : public AstNode {
 public:
-  std::string content;
+  size_t length;
 
-  explicit TextNode(nonstd::string_view content, size_t pos): AstNode(pos), content(content) { }
+  explicit TextNode(size_t pos, size_t length): AstNode(pos), length(length) { }
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);
@@ -2393,14 +2393,19 @@ public:
   std::string name;
   std::string ptr {""};
 
-  explicit JsonNode(nonstd::string_view ptr_name, size_t pos) : ExpressionNode(pos), name(ptr_name) {
-    // Convert dot notation to json pointer notation
+  static std::string convert_dot_to_json_ptr(nonstd::string_view ptr_name) {
+    std::string result;
     do {
       nonstd::string_view part;
       std::tie(part, ptr_name) = string_view::split(ptr_name, '.');
-      ptr.push_back('/');
-      ptr.append(part.begin(), part.end());
+      result.push_back('/');
+      result.append(part.begin(), part.end());
     } while (!ptr_name.empty());
+    return result;
+  }
+
+  explicit JsonNode(nonstd::string_view ptr_name, size_t pos) : ExpressionNode(pos), name(ptr_name) {
+    ptr = convert_dot_to_json_ptr(ptr_name);
   }
 
   void accept(NodeVisitor& v) const {
@@ -2423,10 +2428,10 @@ public:
   Op operation;
 
   std::string name;
-  size_t number_args;
+  int number_args; // Should also be negative -> -1 for unknown number
   CallbackFunction callback;
 
-  explicit FunctionNode(nonstd::string_view name, size_t pos) : ExpressionNode(pos), precedence(5), associativity(Associativity::Left), operation(Op::Callback), name(name), number_args(1) { }
+  explicit FunctionNode(nonstd::string_view name, size_t pos) : ExpressionNode(pos), precedence(8), associativity(Associativity::Left), operation(Op::Callback), name(name), number_args(1) { }
   explicit FunctionNode(Op operation, size_t pos) : ExpressionNode(pos), operation(operation), number_args(1) {
     switch (operation) {
       case Op::Not: {
@@ -2491,6 +2496,10 @@ public:
       } break;
       case Op::Modulo: {
         precedence = 4;
+        associativity = Associativity::Left;
+      } break;
+      case Op::AtId: {
+        precedence = 8;
         associativity = Associativity::Left;
       } break;
       default: {
@@ -2909,7 +2918,6 @@ class Parser {
           operation = FunctionStorage::Operation::Modulo;
         } break;
         case Token::Kind::Dot: {
-          std::cout << "test" << std::endl;
           operation = FunctionStorage::Operation::AtId;
         } break;
         default: {
@@ -3159,7 +3167,7 @@ class Parser {
         }
       } return;
       case Token::Kind::Text: {
-        current_block->nodes.emplace_back(std::make_shared<TextNode>(tok.text, tok.text.data() - tmpl.content.c_str()));
+        current_block->nodes.emplace_back(std::make_shared<TextNode>(tok.text.data() - tmpl.content.c_str(), tok.text.size()));
       } break;
       case Token::Kind::StatementOpen: {
         get_next_token();
@@ -3398,7 +3406,7 @@ class Renderer : public NodeVisitor  {
   }
 
   void visit(const TextNode& node) {
-    *output_stream << node.content;
+    output_stream->write(current_template->content.c_str() + node.pos, node.length);
   }
 
   void visit(const ExpressionNode&) { }
@@ -3550,7 +3558,7 @@ class Renderer : public NodeVisitor  {
         result_ptr = std::make_shared<json>(std::move(result));
         json_tmp_stack.push_back(result_ptr);
       } else {
-        double result = std::pow(args[0]->get<int>(), args[1]->get<int>());
+        double result = std::pow(args[0]->get<double>(), args[1]->get<int>());
         result_ptr = std::make_shared<json>(std::move(result));
         json_tmp_stack.push_back(result_ptr);
       }
@@ -3563,19 +3571,14 @@ class Renderer : public NodeVisitor  {
       json_eval_stack.push(result_ptr.get());
     } break;
     case Op::AtId: {
-      std::cout << "test" << std::endl;
+      json_eval_stack.pop(); // Pop id nullptr
       auto container = get_arguments<1, false>(node)[0];
-      auto id = get_arguments<1, false>(node)[0];
-      if (id == nullptr) {
-        auto id_node = not_found_stack.top();
-        not_found_stack.pop();
-
-        auto ptr = json::json_pointer(id_node->ptr);
-        json_eval_stack.push(&container->at(ptr));
-      
-      } else {
-        json_eval_stack.push(id);
+      if (not_found_stack.empty()) {
+        throw_renderer_error("could not find element with given name", node);
       }
+      auto id_node = not_found_stack.top();
+      not_found_stack.pop();
+      json_eval_stack.push(&container->at(id_node->name));
     } break;
     case Op::At: {
       auto args = get_arguments<2>(node);
@@ -3600,7 +3603,7 @@ class Renderer : public NodeVisitor  {
     } break;
     case Op::Exists: {
       auto &&name = get_arguments<1>(node)[0]->get_ref<const std::string &>();
-      result_ptr = std::make_shared<json>(json_input->contains(json::json_pointer(JsonNode(name, 0).ptr)));
+      result_ptr = std::make_shared<json>(json_input->contains(json::json_pointer(JsonNode::convert_dot_to_json_ptr(name))));
       json_tmp_stack.push_back(result_ptr);
       json_eval_stack.push(result_ptr.get());
     } break;
