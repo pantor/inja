@@ -471,7 +471,7 @@ class Parser {
         }
       } return;
       case Token::Kind::Text: {
-        current_block->nodes.emplace_back(std::make_shared<TextNode>(tok.text, tok.text.data() - tmpl.content.c_str()));
+        current_block->nodes.emplace_back(std::make_shared<TextNode>(tok.text.data() - tmpl.content.c_str(), tok.text.size()));
       } break;
       case Token::Kind::StatementOpen: {
         get_next_token();

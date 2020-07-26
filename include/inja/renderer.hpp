@@ -147,7 +147,7 @@ class Renderer : public NodeVisitor  {
   }
 
   void visit(const TextNode& node) {
-    *output_stream << node.content;
+    output_stream->write(current_template->content.c_str() + node.pos, node.length);
   }
 
   void visit(const ExpressionNode&) { }
@@ -344,7 +344,7 @@ class Renderer : public NodeVisitor  {
     } break;
     case Op::Exists: {
       auto &&name = get_arguments<1>(node)[0]->get_ref<const std::string &>();
-      result_ptr = std::make_shared<json>(json_input->contains(json::json_pointer(JsonNode(name, 0).ptr)));
+      result_ptr = std::make_shared<json>(json_input->contains(json::json_pointer(JsonNode::convert_dot_to_json_ptr(name))));
       json_tmp_stack.push_back(result_ptr);
       json_eval_stack.push(result_ptr.get());
     } break;

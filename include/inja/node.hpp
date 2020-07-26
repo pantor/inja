@@ -74,9 +74,9 @@ public:
 
 class TextNode : public AstNode {
 public:
-  std::string content;
+  size_t length;
 
-  explicit TextNode(nonstd::string_view content, size_t pos): AstNode(pos), content(content) { }
+  explicit TextNode(size_t pos, size_t length): AstNode(pos), length(length) { }
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);
@@ -108,14 +108,19 @@ public:
   std::string name;
   std::string ptr {""};
 
-  explicit JsonNode(nonstd::string_view ptr_name, size_t pos) : ExpressionNode(pos), name(ptr_name) {
-    // Convert dot notation to json pointer notation
+  static std::string convert_dot_to_json_ptr(nonstd::string_view ptr_name) {
+    std::string result;
     do {
       nonstd::string_view part;
       std::tie(part, ptr_name) = string_view::split(ptr_name, '.');
-      ptr.push_back('/');
-      ptr.append(part.begin(), part.end());
+      result.push_back('/');
+      result.append(part.begin(), part.end());
     } while (!ptr_name.empty());
+    return result;
+  }
+
+  explicit JsonNode(nonstd::string_view ptr_name, size_t pos) : ExpressionNode(pos), name(ptr_name) {
+    ptr = convert_dot_to_json_ptr(ptr_name);
   }
 
   void accept(NodeVisitor& v) const {
