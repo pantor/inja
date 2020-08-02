@@ -161,11 +161,11 @@ class Renderer : public NodeVisitor  {
 
     try {
       // First try to evaluate as a loop variable
-      if (json_loop_data.contains(ptr)) {
-        json_eval_stack.push(&json_loop_data.at(ptr));
-      } else {
-        json_eval_stack.push(&json_input->at(ptr));
-      }
+      try {
+	      json_eval_stack.push(&json_loop_data.at(ptr));
+	    }  catch (json::out_of_range & ) {
+	      json_eval_stack.push(&json_input->at(ptr));
+	    }
 
     } catch (std::exception &) {
       // Try to evaluate as a no-argument callback
