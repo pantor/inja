@@ -2835,14 +2835,14 @@ class Parser {
             add_json_literal(tmpl.content.c_str());
           }
 
+	// Operator
+        } else if (tok.text == "and" || tok.text == "or" || tok.text == "in" || tok.text == "not") {
+          goto parse_operator;
+
         // Functions
         } else if (peek_tok.kind == Token::Kind::LeftParen) {
           operator_stack.emplace(std::make_shared<FunctionNode>(static_cast<std::string>(tok.text), tok.text.data() - tmpl.content.c_str()));
-          function_stack.emplace(operator_stack.top().get(), current_paren_level);
-
-        // Operator
-        } else if (tok.text == "and" || tok.text == "or" || tok.text == "in" || tok.text == "not") {
-          goto parse_operator;
+          function_stack.emplace(operator_stack.top().get(), current_paren_level);       
 
         // Variables
         } else {
