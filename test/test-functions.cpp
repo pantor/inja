@@ -268,4 +268,7 @@ TEST_CASE("combinations") {
   CHECK(env.render("{{ last(list_of_objects).d * 2}}", data) == "10");
   CHECK(env.render("{{ last(range(5)) * 2 }}", data) == "8");
   CHECK(env.render("{{ last(range(5 * 2)) }}", data) == "9");
+  CHECK(env.render("{{ not true }}", data) == "false");
+  CHECK(env.render("{{ not (true) }}", data) == "false");
+  CHECK(env.render("{{ true or (true or true) }}", data) == "true");
 }
