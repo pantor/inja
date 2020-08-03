@@ -38,7 +38,7 @@ inja::render("Hello {{ name }}!", data); // Returns "Hello world!"
 
 ## Integration
 
-Inja is a headers only library, which can be downloaded from the [releases](https://github.com/pantor/inja/releases) or directly from the `include/` or `single_include/` folder. Inja uses `nlohmann/json.hpp` as its single dependency, so make sure it can be included from `inja.hpp`. json can be downloaded [here](https://github.com/nlohmann/json/releases). Then integration is as easy as:
+Inja is a headers only library, which can be downloaded from the [releases](https://github.com/pantor/inja/releases) or directly from the `include/` or `single_include/` folder. Inja uses `nlohmann/json.hpp` (>= v3.8.0) as its single dependency, so make sure it can be included from `inja.hpp`. json can be downloaded [here](https://github.com/nlohmann/json/releases). Then integration is as easy as:
 
 ```.cpp
 #include <inja.hpp>
@@ -307,6 +307,13 @@ Comments can be written with the `{# ... #}` syntax.
 render("Hello{# Todo #}!", data); // "Hello!"
 ```
 
+
+### Set Statements
+
+Variables can also be defined within the template using the set statment.
+```.cpp
+render("{% set new_hour=23 %}{{ new_hour }}pm", data); // "23pm"
+```
 
 ## Supported compilers
 

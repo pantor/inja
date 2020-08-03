@@ -449,6 +449,29 @@ class Parser {
 
       get_next_token();
 
+    } else if (tok.text == static_cast<decltype(tok.text)>("set")) {
+      get_next_token();
+
+      if (tok.kind != Token::Kind::Id) {
+        throw_parser_error("expected variable name, got '" + tok.describe() + "'");
+      }
+
+      std::string key = static_cast<std::string>(tok.text);
+      get_next_token();
+
+      auto set_statement_node = std::make_shared<SetStatementNode>(key, tok.text.data() - tmpl.content.c_str());
+      current_block->nodes.emplace_back(set_statement_node);
+      current_expression_list = &set_statement_node->expression;
+
+      if (tok.text != static_cast<decltype(tok.text)>("=")) {
+        throw_parser_error("expected '=', got '" + tok.describe() + "'");
+      }
+      get_next_token();
+
+      if (!parse_expression(tmpl, closing)) {
+        return false;
+      }
+
     } else {
       return false;
     }

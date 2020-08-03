@@ -28,6 +28,7 @@ class ForArrayStatementNode;
 class ForObjectStatementNode;
 class IfStatementNode;
 class IncludeStatementNode;
+class SetStatementNode;
 
 
 class NodeVisitor {
@@ -45,6 +46,7 @@ public:
   virtual void visit(const ForObjectStatementNode& node) = 0;
   virtual void visit(const IfStatementNode& node) = 0;
   virtual void visit(const IncludeStatementNode& node) = 0;
+  virtual void visit(const SetStatementNode& node) = 0;
 };
 
 /*!
@@ -305,6 +307,18 @@ public:
   std::string file;
 
   explicit IncludeStatementNode(const std::string& file, size_t pos) : StatementNode(pos), file(file) { }
+
+  void accept(NodeVisitor& v) const {
+    v.visit(*this);
+  };
+};
+
+class SetStatementNode : public StatementNode {
+public:
+  std::string key;
+  ExpressionListNode expression;
+
+  explicit SetStatementNode(const std::string& key, size_t pos) : StatementNode(pos), key(key) { }
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);

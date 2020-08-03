@@ -122,6 +122,13 @@ TEST_CASE("types") {
                       "[inja.exception.parser_error] (at 1:43) expected statement, got 'end'");
   }
 
+  SUBCASE("set statements") {
+    CHECK(env.render("{% set predefined=true %}{% if predefined %}a{% endif %}", data) == "a");
+    CHECK(env.render("{% set predefined=false %}{% if predefined %}a{% endif %}", data) == "");
+    CHECK_THROWS_WITH(env.render("{% if predefined %}{% endif %}", data), 
+                      "[inja.exception.render_error] (at 1:7) variable 'predefined' not found");
+  }
+
   SUBCASE("line statements") {
     CHECK(env.render(R""""(## if is_happy
 Yeah!
