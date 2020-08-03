@@ -500,16 +500,17 @@ class Renderer : public NodeVisitor  {
       (*current_loop_data)["parent"] = std::move(tmp);
     }
 
+    size_t index = 0;
     for (auto it = result->begin(); it != result->end(); ++it) {
       json_loop_data[static_cast<std::string>(node.value)] = *it;
 
-      size_t index = std::distance(result->begin(), it);
       (*current_loop_data)["index"] = index;
       (*current_loop_data)["index1"] = index + 1;
       (*current_loop_data)["is_first"] = (index == 0);
       (*current_loop_data)["is_last"] = (index == result->size() - 1);
 
       node.body.accept(*this);
+      ++index;
     }
 
     json_loop_data[static_cast<std::string>(node.value)].clear();
@@ -531,17 +532,18 @@ class Renderer : public NodeVisitor  {
       (*current_loop_data)["parent"] = std::move(*current_loop_data);
     }
 
+    size_t index = 0;
     for (auto it = result->begin(); it != result->end(); ++it) {
       json_loop_data[static_cast<std::string>(node.key)] = it.key();
       json_loop_data[static_cast<std::string>(node.value)] = it.value();
 
-      size_t index = std::distance(result->begin(), it);
       (*current_loop_data)["index"] = index;
       (*current_loop_data)["index1"] = index + 1;
       (*current_loop_data)["is_first"] = (index == 0);
       (*current_loop_data)["is_last"] = (index == result->size() - 1);
 
       node.body.accept(*this);
+      ++index;
     }
 
     json_loop_data[static_cast<std::string>(node.key)].clear();
