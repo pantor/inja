@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Pantor. All rights reserved.
+// Copyright (c) 2020 Pantor. All rights reserved.
 
 #ifndef INCLUDE_INJA_INJA_HPP_
 #define INCLUDE_INJA_INJA_HPP_
@@ -2313,6 +2313,7 @@ class ForArrayStatementNode;
 class ForObjectStatementNode;
 class IfStatementNode;
 class IncludeStatementNode;
+class SetStatementNode;
 
 
 class NodeVisitor {
@@ -2330,6 +2331,7 @@ public:
   virtual void visit(const ForObjectStatementNode& node) = 0;
   virtual void visit(const IfStatementNode& node) = 0;
   virtual void visit(const IncludeStatementNode& node) = 0;
+  virtual void visit(const SetStatementNode& node) = 0;
 };
 
 /*!
@@ -2596,6 +2598,18 @@ public:
   };
 };
 
+class SetStatementNode : public StatementNode {
+public:
+  std::string key;
+  ExpressionListNode expression;
+
+  explicit SetStatementNode(const std::string& key, size_t pos) : StatementNode(pos), key(key) { }
+
+  void accept(NodeVisitor& v) const {
+    v.visit(*this);
+  };
+};
+
 } // namespace inja
 
 #endif // INCLUDE_INJA_NODE_HPP_
@@ -2671,6 +2685,8 @@ class StatisticsVisitor : public NodeVisitor {
   }
 
   void visit(const IncludeStatementNode&) { }
+
+  void visit(const SetStatementNode&) { }
 
 public:
   unsigned int variable_counter;
@@ -3145,6 +3161,29 @@ class Parser {
 
       get_next_token();
 
+    } else if (tok.text == static_cast<decltype(tok.text)>("set")) {
+      get_next_token();
+
+      if (tok.kind != Token::Kind::Id) {
+        throw_parser_error("expected variable name, got '" + tok.describe() + "'");
+      }
+
+      std::string key = static_cast<std::string>(tok.text);
+      get_next_token();
+
+      auto set_statement_node = std::make_shared<SetStatementNode>(key, tok.text.data() - tmpl.content.c_str());
+      current_block->nodes.emplace_back(set_statement_node);
+      current_expression_list = &set_statement_node->expression;
+
+      if (tok.text != static_cast<decltype(tok.text)>("=")) {
+        throw_parser_error("expected '=', got '" + tok.describe() + "'");
+      }
+      get_next_token();
+
+      if (!parse_expression(tmpl, closing)) {
+        return false;
+      }
+
     } else {
       return false;
     }
@@ -3292,8 +3331,8 @@ class Renderer : public NodeVisitor  {
   const json *json_input;
   std::ostream *output_stream;
 
-  json json_loop_data;
-  json* current_loop_data = &json_loop_data["loop"];
+  json json_additional_data;
+  json* current_loop_data = &json_additional_data["loop"];
 
   std::vector<std::shared_ptr<json>> json_tmp_stack;
   std::stack<const json*> json_eval_stack;
@@ -3420,8 +3459,8 @@ class Renderer : public NodeVisitor  {
 
     try {
       // First try to evaluate as a loop variable
-      if (json_loop_data.contains(ptr)) {
-        json_eval_stack.push(&json_loop_data.at(ptr));
+      if (json_additional_data.contains(ptr)) {
+        json_eval_stack.push(&json_additional_data.at(ptr));
       } else {
         json_eval_stack.push(&json_input->at(ptr));
       }
@@ -3761,7 +3800,7 @@ class Renderer : public NodeVisitor  {
 
     size_t index = 0;
     for (auto it = result->begin(); it != result->end(); ++it) {
-      json_loop_data[static_cast<std::string>(node.value)] = *it;
+      json_additional_data[static_cast<std::string>(node.value)] = *it;
 
       (*current_loop_data)["index"] = index;
       (*current_loop_data)["index1"] = index + 1;
@@ -3772,12 +3811,12 @@ class Renderer : public NodeVisitor  {
       ++index;
     }
 
-    json_loop_data[static_cast<std::string>(node.value)].clear();
+    json_additional_data[static_cast<std::string>(node.value)].clear();
     if (!(*current_loop_data)["parent"].empty()) {
       auto tmp = (*current_loop_data)["parent"];
       *current_loop_data = std::move(tmp);
     } else {
-      current_loop_data = &json_loop_data["loop"];
+      current_loop_data = &json_additional_data["loop"];
     }
   }
 
@@ -3793,8 +3832,8 @@ class Renderer : public NodeVisitor  {
 
     size_t index = 0;
     for (auto it = result->begin(); it != result->end(); ++it) {
-      json_loop_data[static_cast<std::string>(node.key)] = it.key();
-      json_loop_data[static_cast<std::string>(node.value)] = it.value();
+      json_additional_data[static_cast<std::string>(node.key)] = it.key();
+      json_additional_data[static_cast<std::string>(node.value)] = it.value();
 
       (*current_loop_data)["index"] = index;
       (*current_loop_data)["index1"] = index + 1;
@@ -3805,12 +3844,12 @@ class Renderer : public NodeVisitor  {
       ++index;
     }
 
-    json_loop_data[static_cast<std::string>(node.key)].clear();
-    json_loop_data[static_cast<std::string>(node.value)].clear();
+    json_additional_data[static_cast<std::string>(node.key)].clear();
+    json_additional_data[static_cast<std::string>(node.value)].clear();
     if (!(*current_loop_data)["parent"].empty()) {
       *current_loop_data = std::move((*current_loop_data)["parent"]);
     } else {
-      current_loop_data = &json_loop_data["loop"];
+      current_loop_data = &json_additional_data["loop"];
     }
   }
 
@@ -3828,10 +3867,14 @@ class Renderer : public NodeVisitor  {
     auto included_template_it = template_storage.find(node.file);
 
     if (included_template_it != template_storage.end()) {
-      sub_renderer.render_to(*output_stream, included_template_it->second, *json_input, &json_loop_data);
+      sub_renderer.render_to(*output_stream, included_template_it->second, *json_input, &json_additional_data);
     } else if (config.throw_at_missing_includes) {
       throw_renderer_error("include '" + node.file + "' not found", node);
     }
+  }
+
+  void visit(const SetStatementNode& node) {
+    json_additional_data[node.key] = *eval_expression_list(node.expression);
   }
 
 public:
@@ -3843,7 +3886,7 @@ public:
     current_template = &tmpl;
     json_input = &data;
     if (loop_data) {
-      json_loop_data = *loop_data;
+      json_additional_data = *loop_data;
     }
 
     current_template->root.accept(*this);
