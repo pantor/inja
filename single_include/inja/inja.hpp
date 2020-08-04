@@ -3000,10 +3000,13 @@ class Parser {
             func->callback = function_data.callback;
           }
 
-          function_stack.pop();
-          
+          if (operator_stack.empty()) {
+            throw_parser_error("internal error at function " + func->name);
+          }
+
           current_expression_list->rpn_output.emplace_back(operator_stack.top());
           operator_stack.pop();
+          function_stack.pop();
         }
       }
       default:

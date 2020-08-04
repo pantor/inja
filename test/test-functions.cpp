@@ -223,6 +223,11 @@ TEST_CASE("callbacks") {
     return number1 * number2 * number3;
   });
 
+  env.add_callback("length", 1, [](inja::Arguments args) {
+    auto number1 = args.at(0)->get<std::string>();
+    return number1.length();
+  });
+
   env.add_callback("multiply", 0, [](inja::Arguments args) { return 1.0; });
 
   CHECK(env.render("{{ double(age) }}", data) == "56");
@@ -230,6 +235,8 @@ TEST_CASE("callbacks") {
   CHECK(env.render("{{ double-greetings }}", data) == "Hello Hello!");
   CHECK(env.render("{{ double-greetings() }}", data) == "Hello Hello!");
   CHECK(env.render("{{ multiply(4, 5) }}", data) == "20.0");
+  CHECK(env.render("{{ multiply(length(\"tester\"), 5) }}", data) == "30.0");
+  CHECK(env.render("{{ multiply(5, length(\"t\")) }}", data) == "5.0");
   CHECK(env.render("{{ multiply(3, 4, 5) }}", data) == "60.0");
   CHECK(env.render("{{ multiply }}", data) == "1.0");
 
@@ -267,6 +274,7 @@ TEST_CASE("combinations") {
   CHECK(env.render("{% if not is_happy or age > 26 %}TRUE{% endif %}", data) == "TRUE");
   CHECK(env.render("{{ last(list_of_objects).d * 2}}", data) == "10");
   CHECK(env.render("{{ last(range(5)) * 2 }}", data) == "8");
+  CHECK(env.render("{{ last(range(5 * 2)) }}", data) == "9");
   CHECK(env.render("{{ last(range(5 * 2)) }}", data) == "9");
   CHECK(env.render("{{ not true }}", data) == "false");
   CHECK(env.render("{{ not (true) }}", data) == "false");
