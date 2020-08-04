@@ -2851,7 +2851,7 @@ class Parser {
             add_json_literal(tmpl.content.c_str());
           }
 
-	// Operator
+	      // Operator
         } else if (tok.text == "and" || tok.text == "or" || tok.text == "in" || tok.text == "not") {
           goto parse_operator;
 
@@ -2980,12 +2980,12 @@ class Parser {
       } break;
       case Token::Kind::RightParen: {
         current_paren_level -= 1;
-        while (operator_stack.top()->operation != FunctionStorage::Operation::ParenLeft) {
+        while (!operator_stack.empty() && operator_stack.top()->operation != FunctionStorage::Operation::ParenLeft) {
           current_expression_list->rpn_output.emplace_back(operator_stack.top());
           operator_stack.pop();
         }
 
-        if (operator_stack.top()->operation == FunctionStorage::Operation::ParenLeft) {
+        if (!operator_stack.empty() && operator_stack.top()->operation == FunctionStorage::Operation::ParenLeft) {
           operator_stack.pop();
         }
 
