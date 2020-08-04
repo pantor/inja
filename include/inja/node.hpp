@@ -108,7 +108,7 @@ public:
 class JsonNode : public ExpressionNode {
 public:
   std::string name;
-  std::string ptr {""};
+  json::json_pointer ptr;
 
   static std::string convert_dot_to_json_ptr(nonstd::string_view ptr_name) {
     std::string result;
@@ -122,7 +122,7 @@ public:
   }
 
   explicit JsonNode(nonstd::string_view ptr_name, size_t pos) : ExpressionNode(pos), name(ptr_name) {
-    ptr = convert_dot_to_json_ptr(ptr_name);
+    ptr = json::json_pointer(convert_dot_to_json_ptr(ptr_name));
   }
 
   void accept(NodeVisitor& v) const {
@@ -263,9 +263,9 @@ public:
 
 class ForArrayStatementNode : public ForStatementNode {
 public:
-  nonstd::string_view value;
+  std::string value;
 
-  explicit ForArrayStatementNode(nonstd::string_view value, size_t pos) : ForStatementNode(pos), value(value) { }
+  explicit ForArrayStatementNode(const std::string& value, size_t pos) : ForStatementNode(pos), value(value) { }
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);
@@ -274,10 +274,10 @@ public:
 
 class ForObjectStatementNode : public ForStatementNode {
 public:
-  nonstd::string_view key;
-  nonstd::string_view value;
+  std::string key;
+  std::string value;
 
-  explicit ForObjectStatementNode(nonstd::string_view key, nonstd::string_view value, size_t pos) : ForStatementNode(pos), key(key), value(value) { }
+  explicit ForObjectStatementNode(const std::string& key, const std::string& value, size_t pos) : ForStatementNode(pos), key(key), value(value) { }
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);

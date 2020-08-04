@@ -56,7 +56,7 @@ class Renderer : public NodeVisitor  {
     }
   }
 
-  void print_json(const json* value) {
+  void print_json(const std::shared_ptr<json> value) {
     if (value->is_string()) {
       *output_stream << value->get_ref<const std::string &>();
     } else {
@@ -71,9 +71,8 @@ class Renderer : public NodeVisitor  {
 
     if (json_eval_stack.empty()) {
       throw_renderer_error("empty expression", expression_list);
-    }
-
-    if (json_eval_stack.size() != 1) {
+    
+    } else if (json_eval_stack.size() != 1) {
       throw_renderer_error("malformed expression", expression_list);
     }
 
@@ -157,17 +156,13 @@ class Renderer : public NodeVisitor  {
   }
 
   void visit(const JsonNode& node) {
-    auto ptr = json::json_pointer(node.ptr);
-
-    try {
-      // First try to evaluate as a loop variable
-      if (json_additional_data.contains(ptr)) {
-        json_eval_stack.push(&json_additional_data.at(ptr));
-      } else {
-        json_eval_stack.push(&json_input->at(ptr));
-      }
-
-    } catch (std::exception &) {
+    if (json_additional_data.contains(node.ptr)) {
+      json_eval_stack.push(&json_additional_data[node.ptr]);
+    
+    } else if (json_input->contains(node.ptr)) {
+      json_eval_stack.push(&(*json_input)[node.ptr]);
+    
+    } else {
       // Try to evaluate as a no-argument callback
       auto function_data = function_storage.find_function(node.name, 0);
       if (function_data.operation == FunctionStorage::Operation::Callback) {
@@ -482,7 +477,7 @@ class Renderer : public NodeVisitor  {
   }
 
   void visit(const ExpressionListNode& node) {
-    print_json(eval_expression_list(node).get());
+    print_json(eval_expression_list(node));
   }
 
   void visit(const StatementNode&) { }
@@ -501,13 +496,19 @@ class Renderer : public NodeVisitor  {
     }
 
     size_t index = 0;
+    (*current_loop_data)["is_first"] = true;
+    (*current_loop_data)["is_last"] = (result->size() <= 1);
     for (auto it = result->begin(); it != result->end(); ++it) {
       json_additional_data[static_cast<std::string>(node.value)] = *it;
 
       (*current_loop_data)["index"] = index;
       (*current_loop_data)["index1"] = index + 1;
-      (*current_loop_data)["is_first"] = (index == 0);
-      (*current_loop_data)["is_last"] = (index == result->size() - 1);
+      if (index == 1) {
+        (*current_loop_data)["is_first"] = false;
+      }
+      if (index == result->size() - 1) {
+        (*current_loop_data)["is_last"] = true;
+      }
 
       node.body.accept(*this);
       ++index;
@@ -533,14 +534,20 @@ class Renderer : public NodeVisitor  {
     }
 
     size_t index = 0;
+    (*current_loop_data)["is_first"] = true;
+    (*current_loop_data)["is_last"] = (result->size() <= 1);
     for (auto it = result->begin(); it != result->end(); ++it) {
       json_additional_data[static_cast<std::string>(node.key)] = it.key();
       json_additional_data[static_cast<std::string>(node.value)] = it.value();
 
       (*current_loop_data)["index"] = index;
       (*current_loop_data)["index1"] = index + 1;
-      (*current_loop_data)["is_first"] = (index == 0);
-      (*current_loop_data)["is_last"] = (index == result->size() - 1);
+      if (index == 1) {
+        (*current_loop_data)["is_first"] = false;
+      }
+      if (index == result->size() - 1) {
+        (*current_loop_data)["is_last"] = true;
+      }
 
       node.body.accept(*this);
       ++index;

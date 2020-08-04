@@ -390,11 +390,11 @@ class Parser {
         value_token = tok;
         get_next_token();
 
-        for_statement_node = std::make_shared<ForObjectStatementNode>(key_token.text, value_token.text, tok.text.data() - tmpl.content.c_str());
+        for_statement_node = std::make_shared<ForObjectStatementNode>(static_cast<std::string>(key_token.text), static_cast<std::string>(value_token.text), tok.text.data() - tmpl.content.c_str());
 
       // Array type
       } else {
-        for_statement_node = std::make_shared<ForArrayStatementNode>(value_token.text, tok.text.data() - tmpl.content.c_str());
+        for_statement_node = std::make_shared<ForArrayStatementNode>(static_cast<std::string>(value_token.text), tok.text.data() - tmpl.content.c_str());
       }
 
       current_block->nodes.emplace_back(for_statement_node);

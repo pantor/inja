@@ -2393,7 +2393,7 @@ public:
 class JsonNode : public ExpressionNode {
 public:
   std::string name;
-  std::string ptr {""};
+  json::json_pointer ptr;
 
   static std::string convert_dot_to_json_ptr(nonstd::string_view ptr_name) {
     std::string result;
@@ -2407,7 +2407,7 @@ public:
   }
 
   explicit JsonNode(nonstd::string_view ptr_name, size_t pos) : ExpressionNode(pos), name(ptr_name) {
-    ptr = convert_dot_to_json_ptr(ptr_name);
+    ptr = json::json_pointer(convert_dot_to_json_ptr(ptr_name));
   }
 
   void accept(NodeVisitor& v) const {
@@ -2548,9 +2548,9 @@ public:
 
 class ForArrayStatementNode : public ForStatementNode {
 public:
-  nonstd::string_view value;
+  std::string value;
 
-  explicit ForArrayStatementNode(nonstd::string_view value, size_t pos) : ForStatementNode(pos), value(value) { }
+  explicit ForArrayStatementNode(const std::string& value, size_t pos) : ForStatementNode(pos), value(value) { }
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);
@@ -2559,10 +2559,10 @@ public:
 
 class ForObjectStatementNode : public ForStatementNode {
 public:
-  nonstd::string_view key;
-  nonstd::string_view value;
+  std::string key;
+  std::string value;
 
-  explicit ForObjectStatementNode(nonstd::string_view key, nonstd::string_view value, size_t pos) : ForStatementNode(pos), key(key), value(value) { }
+  explicit ForObjectStatementNode(const std::string& key, const std::string& value, size_t pos) : ForStatementNode(pos), key(key), value(value) { }
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);
@@ -3102,11 +3102,11 @@ class Parser {
         value_token = tok;
         get_next_token();
 
-        for_statement_node = std::make_shared<ForObjectStatementNode>(key_token.text, value_token.text, tok.text.data() - tmpl.content.c_str());
+        for_statement_node = std::make_shared<ForObjectStatementNode>(static_cast<std::string>(key_token.text), static_cast<std::string>(value_token.text), tok.text.data() - tmpl.content.c_str());
 
       // Array type
       } else {
-        for_statement_node = std::make_shared<ForArrayStatementNode>(value_token.text, tok.text.data() - tmpl.content.c_str());
+        for_statement_node = std::make_shared<ForArrayStatementNode>(static_cast<std::string>(value_token.text), tok.text.data() - tmpl.content.c_str());
       }
 
       current_block->nodes.emplace_back(for_statement_node);
@@ -3354,7 +3354,7 @@ class Renderer : public NodeVisitor  {
     }
   }
 
-  void print_json(const json* value) {
+  void print_json(const std::shared_ptr<json> value) {
     if (value->is_string()) {
       *output_stream << value->get_ref<const std::string &>();
     } else {
@@ -3369,9 +3369,8 @@ class Renderer : public NodeVisitor  {
 
     if (json_eval_stack.empty()) {
       throw_renderer_error("empty expression", expression_list);
-    }
-
-    if (json_eval_stack.size() != 1) {
+    
+    } else if (json_eval_stack.size() != 1) {
       throw_renderer_error("malformed expression", expression_list);
     }
 
@@ -3455,17 +3454,13 @@ class Renderer : public NodeVisitor  {
   }
 
   void visit(const JsonNode& node) {
-    auto ptr = json::json_pointer(node.ptr);
-
-    try {
-      // First try to evaluate as a loop variable
-      if (json_additional_data.contains(ptr)) {
-        json_eval_stack.push(&json_additional_data.at(ptr));
-      } else {
-        json_eval_stack.push(&json_input->at(ptr));
-      }
-
-    } catch (std::exception &) {
+    if (json_additional_data.contains(node.ptr)) {
+      json_eval_stack.push(&json_additional_data[node.ptr]);
+    
+    } else if (json_input->contains(node.ptr)) {
+      json_eval_stack.push(&(*json_input)[node.ptr]);
+    
+    } else {
       // Try to evaluate as a no-argument callback
       auto function_data = function_storage.find_function(node.name, 0);
       if (function_data.operation == FunctionStorage::Operation::Callback) {
@@ -3780,7 +3775,7 @@ class Renderer : public NodeVisitor  {
   }
 
   void visit(const ExpressionListNode& node) {
-    print_json(eval_expression_list(node).get());
+    print_json(eval_expression_list(node));
   }
 
   void visit(const StatementNode&) { }
@@ -3799,13 +3794,19 @@ class Renderer : public NodeVisitor  {
     }
 
     size_t index = 0;
+    (*current_loop_data)["is_first"] = true;
+    (*current_loop_data)["is_last"] = (result->size() <= 1);
     for (auto it = result->begin(); it != result->end(); ++it) {
       json_additional_data[static_cast<std::string>(node.value)] = *it;
 
       (*current_loop_data)["index"] = index;
       (*current_loop_data)["index1"] = index + 1;
-      (*current_loop_data)["is_first"] = (index == 0);
-      (*current_loop_data)["is_last"] = (index == result->size() - 1);
+      if (index == 1) {
+        (*current_loop_data)["is_first"] = false;
+      }
+      if (index == result->size() - 1) {
+        (*current_loop_data)["is_last"] = true;
+      }
 
       node.body.accept(*this);
       ++index;
@@ -3831,14 +3832,20 @@ class Renderer : public NodeVisitor  {
     }
 
     size_t index = 0;
+    (*current_loop_data)["is_first"] = true;
+    (*current_loop_data)["is_last"] = (result->size() <= 1);
     for (auto it = result->begin(); it != result->end(); ++it) {
       json_additional_data[static_cast<std::string>(node.key)] = it.key();
       json_additional_data[static_cast<std::string>(node.value)] = it.value();
 
       (*current_loop_data)["index"] = index;
       (*current_loop_data)["index1"] = index + 1;
-      (*current_loop_data)["is_first"] = (index == 0);
-      (*current_loop_data)["is_last"] = (index == result->size() - 1);
+      if (index == 1) {
+        (*current_loop_data)["is_first"] = false;
+      }
+      if (index == result->size() - 1) {
+        (*current_loop_data)["is_last"] = true;
+      }
 
       node.body.accept(*this);
       ++index;
