@@ -156,13 +156,16 @@ if(INJA_INSTALL)
     NO_CHECK_REQUIRED_COMPONENTS_MACRO
   )
 
-  install(DIRECTORY include/inja DESTINATION ${INJA_INSTALL_INCLUDE_DIR} FILES_MATCHING PATTERN "*.hpp")
-  install(FILES
-    "${CMAKE_CURRENT_SOURCE_DIR}/third_party/include/nlohmann/json.hpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/third_party/include/nlohmann/LICENSE.MIT"
-    DESTINATION "${INJA_INSTALL_INCLUDE_DIR}/inja/json/include/nlohmann"
+  install(
+    DIRECTORY include/inja
+    DESTINATION ${INJA_INSTALL_INCLUDE_DIR}
+    FILES_MATCHING PATTERN "*.hpp"
   )
-
+  install(
+    DIRECTORY third_party/include/nlohmann
+    DESTINATION ${INJA_INSTALL_INCLUDE_DIR}
+    FILES_MATCHING PATTERN "*.hpp"
+  )
   install(
     FILES
       "${CMAKE_CURRENT_BINARY_DIR}/${INJA_CONFIG_PATH}/injaConfig.cmake"
