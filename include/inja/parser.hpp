@@ -289,6 +289,9 @@ class Parser {
           }
 
           function_stack.pop();
+          
+          current_expression_list->rpn_output.emplace_back(operator_stack.top());
+          operator_stack.pop();
         }
       }
       default:
