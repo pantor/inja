@@ -3345,19 +3345,14 @@ class Renderer : public NodeVisitor  {
   std::stack<const JsonNode*> not_found_stack;
 
   bool truthy(const json* data) const {
-    if (data->empty()) {
-      return false;
+    if (data->is_boolean()) {
+      return data->get<bool>();
     } else if (data->is_number()) {
       return (*data != 0);
-    } else if (data->is_string()) {
-      return !data->empty();
+    } else if (data->is_null()) {
+      return false;
     }
-
-    try {
-      return data->get<bool>();
-    } catch (json::type_error &e) {
-      throw JsonError(e.what());
-    }
+    return !data->empty();
   }
 
   void print_json(const std::shared_ptr<json> value) {
@@ -3375,7 +3370,6 @@ class Renderer : public NodeVisitor  {
 
     if (json_eval_stack.empty()) {
       throw_renderer_error("empty expression", expression_list);
-    
     } else if (json_eval_stack.size() != 1) {
       throw_renderer_error("malformed expression", expression_list);
     }
