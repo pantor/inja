@@ -27,7 +27,7 @@
 </p>
 
 
-Inja is a template engine for modern C++, loosely inspired by [jinja](http://jinja.pocoo.org) for python. It has an easy and yet powerful template syntax with all variables, loops, conditions, includes, callbacks, comments you need, nested and combined as you like. Inja uses the wonderful [json](https://github.com/nlohmann/json) library by nlohmann for data input and handling. Most importantly, *inja* needs only two header files, which is (nearly) as trivial as integration in C++ can get. Of course, everything is tested on all relevant compilers. Here is what it looks like:
+Inja is a template engine for modern C++, loosely inspired by [jinja](http://jinja.pocoo.org) for python. It has an easy and yet powerful template syntax with all variables, loops, conditions, includes, callbacks, and comments you need, nested and combined as you like. Inja uses the wonderful [json](https://github.com/nlohmann/json) library by nlohmann for data input. Most importantly, *inja* needs only two header files, which is (nearly) as trivial as integration in C++ can get. Of course, everything is tested on all relevant compilers. Here is what it looks like:
 
 ```.cpp
 json data;
@@ -38,7 +38,7 @@ inja::render("Hello {{ name }}!", data); // Returns "Hello world!"
 
 ## Integration
 
-Inja is a headers only library, which can be downloaded from the [releases](https://github.com/pantor/inja/releases) or directly from the `include/` or `single_include/` folder. Inja uses `nlohmann/json.hpp` as its single dependency, so make sure it can be included from `inja.hpp`. json can be downloaded [here](https://github.com/nlohmann/json/releases). Then integration is as easy as:
+Inja is a headers only library, which can be downloaded from the [releases](https://github.com/pantor/inja/releases) or directly from the `include/` or `single_include/` folder. Inja uses `nlohmann/json.hpp` (>= v3.8.0) as its single dependency, so make sure it can be included from `inja.hpp`. json can be downloaded [here](https://github.com/nlohmann/json/releases). Then integration is as easy as:
 
 ```.cpp
 #include <inja.hpp>
@@ -72,7 +72,7 @@ json data;
 data["name"] = "world";
 
 render("Hello {{ name }}!", data); // Returns std::string "Hello world!"
-render_to(std::cout, "Hello {{ name }}!", data); // Prints "Hello world!"
+render_to(std::cout, "Hello {{ name }}!", data); // Writes "Hello world!" to stream
 ```
 
 For more advanced usage, an environment is recommended.
@@ -132,7 +132,7 @@ render("{{ guests.1 }}", data); // "Tom"
 // Objects
 render("{{ time.start }} to {{ time.end + 1 }}pm", data); // "16 to 23pm"
 ```
-In general, the variables can be fetched using the [JSON Pointer](https://tools.ietf.org/html/rfc6901) syntax. For convenience, the leading `/` can be omitted. If no variable is found, valid JSON is printed directly, otherwise an error is thrown.
+If no variable is found, valid JSON is printed directly, otherwise an `inja::RenderError` is thrown.
 
 
 ### Statements
@@ -189,6 +189,14 @@ env.set_search_included_templates_in_files(false);
 ```
 
 Inja will throw an `inja::RenderError` if an included file is not found. To disable this error, you can call `env.set_throw_at_missing_includes(false);`.
+
+#### Set Variables
+
+Variables can also be defined within the template using the set statment.
+```.cpp
+render("{% set new_hour=23 %}{{ new_hour }}pm", data); // "23pm"
+```
+
 
 ### Functions
 
