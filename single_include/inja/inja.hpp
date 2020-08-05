@@ -2314,6 +2314,7 @@ class ForObjectStatementNode;
 class IfStatementNode;
 class IncludeStatementNode;
 class SetStatementNode;
+class ExecuteStatementNode;
 
 
 class NodeVisitor {
@@ -2332,6 +2333,7 @@ public:
   virtual void visit(const IfStatementNode& node) = 0;
   virtual void visit(const IncludeStatementNode& node) = 0;
   virtual void visit(const SetStatementNode& node) = 0;
+  virtual void visit(const ExecuteStatementNode& node) = 0;
 };
 
 /*!
@@ -2610,6 +2612,17 @@ public:
   };
 };
 
+class ExecuteStatementNode : public StatementNode {
+public:
+  ExpressionListNode expression;
+
+  explicit ExecuteStatementNode(size_t pos) : StatementNode(pos) { }
+
+  void accept(NodeVisitor& v) const {
+    v.visit(*this);
+  };
+};
+
 } // namespace inja
 
 #endif // INCLUDE_INJA_NODE_HPP_
@@ -2687,6 +2700,8 @@ class StatisticsVisitor : public NodeVisitor {
   void visit(const IncludeStatementNode&) { }
 
   void visit(const SetStatementNode&) { }
+  
+  void visit(const ExecuteStatementNode&) { }
 
 public:
   unsigned int variable_counter;
@@ -3189,7 +3204,20 @@ class Parser {
       if (!parse_expression(tmpl, closing)) {
         return false;
       }
+      
 
+    } else if (tok.text == static_cast<decltype(tok.text)>("execute")) {
+      get_next_token();
+      
+      auto execute_statement_node = std::make_shared<ExecuteStatementNode>(tok.text.data() - tmpl.content.c_str());
+      current_block->nodes.emplace_back(execute_statement_node);
+      current_expression_list = &execute_statement_node->expression;
+      
+      if (!parse_expression(tmpl, closing)) {
+        return false;
+      }
+      
+    	
     } else {
       return false;
     }
@@ -3882,6 +3910,10 @@ class Renderer : public NodeVisitor  {
 
   void visit(const SetStatementNode& node) {
     json_additional_data[node.key] = *eval_expression_list(node.expression);
+  }
+  
+  void visit(const ExecuteStatementNode& node) {
+		eval_expression_list(node.expression);
   }
 
 public:

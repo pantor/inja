@@ -29,6 +29,7 @@ class ForObjectStatementNode;
 class IfStatementNode;
 class IncludeStatementNode;
 class SetStatementNode;
+class ExecuteStatementNode;
 
 
 class NodeVisitor {
@@ -47,6 +48,7 @@ public:
   virtual void visit(const IfStatementNode& node) = 0;
   virtual void visit(const IncludeStatementNode& node) = 0;
   virtual void visit(const SetStatementNode& node) = 0;
+  virtual void visit(const ExecuteStatementNode& node) = 0;
 };
 
 /*!
@@ -319,6 +321,17 @@ public:
   ExpressionListNode expression;
 
   explicit SetStatementNode(const std::string& key, size_t pos) : StatementNode(pos), key(key) { }
+
+  void accept(NodeVisitor& v) const {
+    v.visit(*this);
+  };
+};
+
+class ExecuteStatementNode : public StatementNode {
+public:
+  ExpressionListNode expression;
+
+  explicit ExecuteStatementNode(size_t pos) : StatementNode(pos) { }
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);

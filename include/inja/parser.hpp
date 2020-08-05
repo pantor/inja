@@ -477,7 +477,20 @@ class Parser {
       if (!parse_expression(tmpl, closing)) {
         return false;
       }
+      
 
+    } else if (tok.text == static_cast<decltype(tok.text)>("execute")) {
+      get_next_token();
+      
+      auto execute_statement_node = std::make_shared<ExecuteStatementNode>(tok.text.data() - tmpl.content.c_str());
+      current_block->nodes.emplace_back(execute_statement_node);
+      current_expression_list = &execute_statement_node->expression;
+      
+      if (!parse_expression(tmpl, closing)) {
+        return false;
+      }
+      
+    	
     } else {
       return false;
     }

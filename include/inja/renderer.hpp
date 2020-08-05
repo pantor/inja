@@ -579,6 +579,10 @@ class Renderer : public NodeVisitor  {
   void visit(const SetStatementNode& node) {
     json_additional_data[node.key] = *eval_expression_list(node.expression);
   }
+  
+  void visit(const ExecuteStatementNode& node) {
+		eval_expression_list(node.expression);
+  }
 
 public:
   Renderer(const RenderConfig& config, const TemplateStorage &template_storage, const FunctionStorage &function_storage)

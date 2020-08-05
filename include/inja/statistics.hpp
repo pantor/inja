@@ -56,6 +56,8 @@ class StatisticsVisitor : public NodeVisitor {
   void visit(const IncludeStatementNode&) { }
 
   void visit(const SetStatementNode&) { }
+  
+  void visit(const ExecuteStatementNode&) { }
 
 public:
   unsigned int variable_counter;

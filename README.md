@@ -196,7 +196,12 @@ Variables can also be defined within the template using the set statment.
 ```.cpp
 render("{% set new_hour=23 %}{{ new_hour }}pm", data); // "23pm"
 ```
+#### Execute Statement
 
+Functions can be executed without being rendered.
+```.cpp
+render("{% execute max(4) %}{{ neightbour }}", data); // "Peter", max(4) is executed
+```
 
 ### Functions
 
