@@ -27,7 +27,7 @@
 </p>
 
 
-Inja is a template engine for modern C++, loosely inspired by [jinja](http://jinja.pocoo.org) for python. It has an easy and yet powerful template syntax with all variables, loops, conditions, includes, callbacks, and comments you need, nested and combined as you like. Inja uses the wonderful [json](https://github.com/nlohmann/json) library by nlohmann for data input. Most importantly, *inja* needs only two header files, which is (nearly) as trivial as integration in C++ can get. Of course, everything is tested on all relevant compilers. Here is what it looks like:
+Inja is a template engine for modern C++, loosely inspired by [jinja](http://jinja.pocoo.org) for python. It has an easy and yet powerful template syntax with all variables, loops, conditions, includes, callbacks, and comments you need, nested and combined as you like. Inja uses the wonderful [json](https://github.com/nlohmann/json) library by nlohmann for data input. Most importantly, inja needs only two header files, which is (nearly) as trivial as integration in C++ can get. Of course, everything is tested on all relevant compilers. Here is what it looks like:
 
 ```.cpp
 json data;
@@ -190,7 +190,7 @@ env.set_search_included_templates_in_files(false);
 
 Inja will throw an `inja::RenderError` if an included file is not found. To disable this error, you can call `env.set_throw_at_missing_includes(false);`.
 
-#### Set Variables
+#### Assignments
 
 Variables can also be defined within the template using the set statment.
 ```.cpp
