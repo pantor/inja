@@ -320,9 +320,8 @@ class Parser {
     if (tok.text == static_cast<decltype(tok.text)>("if")) {
       get_next_token();
 
-      auto if_statement_node = std::make_shared<IfStatementNode>(tok.text.data() - tmpl.content.c_str());
+      auto if_statement_node = std::make_shared<IfStatementNode>(current_block, tok.text.data() - tmpl.content.c_str());
       current_block->nodes.emplace_back(if_statement_node);
-      if_statement_node->parent = current_block;
       if_statement_stack.emplace(if_statement_node.get());
       current_block = &if_statement_node->true_statement;
       current_expression_list = &if_statement_node->condition;
@@ -345,9 +344,8 @@ class Parser {
       if (tok.kind == Token::Kind::Id && tok.text == static_cast<decltype(tok.text)>("if")) {
         get_next_token();
 
-        auto if_statement_node = std::make_shared<IfStatementNode>(true, tok.text.data() - tmpl.content.c_str());
+        auto if_statement_node = std::make_shared<IfStatementNode>(true, current_block, tok.text.data() - tmpl.content.c_str());
         current_block->nodes.emplace_back(if_statement_node);
-        if_statement_node->parent = current_block;
         if_statement_stack.emplace(if_statement_node.get());
         current_block = &if_statement_node->true_statement;
         current_expression_list = &if_statement_node->condition;
@@ -396,15 +394,14 @@ class Parser {
         value_token = tok;
         get_next_token();
 
-        for_statement_node = std::make_shared<ForObjectStatementNode>(static_cast<std::string>(key_token.text), static_cast<std::string>(value_token.text), tok.text.data() - tmpl.content.c_str());
+        for_statement_node = std::make_shared<ForObjectStatementNode>(static_cast<std::string>(key_token.text), static_cast<std::string>(value_token.text), current_block, tok.text.data() - tmpl.content.c_str());
 
       // Array type
       } else {
-        for_statement_node = std::make_shared<ForArrayStatementNode>(static_cast<std::string>(value_token.text), tok.text.data() - tmpl.content.c_str());
+        for_statement_node = std::make_shared<ForArrayStatementNode>(static_cast<std::string>(value_token.text), current_block, tok.text.data() - tmpl.content.c_str());
       }
 
       current_block->nodes.emplace_back(for_statement_node);
-      for_statement_node->parent = current_block;
       for_statement_stack.emplace(for_statement_node.get());
       current_block = &for_statement_node->body;
       current_expression_list = &for_statement_node->condition;

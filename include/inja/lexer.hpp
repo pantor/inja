@@ -37,8 +37,8 @@ class Lexer {
 
   const LexerConfig &config;
 
-  State state;
-  MinusState minus_state;
+  State state {State::Text};
+  MinusState minus_state {MinusState::Number};
   nonstd::string_view m_in;
   size_t tok_start;
   size_t pos;

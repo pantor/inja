@@ -1684,36 +1684,32 @@ struct InjaError : public std::runtime_error {
   std::string type;
   std::string message;
 
-  bool has_location {false};
   SourceLocation location;
 
-  InjaError(const std::string &type, const std::string &message)
+  explicit InjaError(const std::string &type, const std::string &message)
       : std::runtime_error("[inja.exception." + type + "] " + message), type(type), message(message) {}
 
-  InjaError(const std::string &type, const std::string &message, SourceLocation location)
+  explicit InjaError(const std::string &type, const std::string &message, SourceLocation location)
       : std::runtime_error("[inja.exception." + type + "] (at " + std::to_string(location.line) + ":" +
                            std::to_string(location.column) + ") " + message),
-        type(type), message(message), has_location(true), location(location) {}
+        type(type), message(message), location(location) {}
 };
 
 struct ParserError : public InjaError {
-  ParserError(const std::string &message) : InjaError("parser_error", message) {}
-  ParserError(const std::string &message, SourceLocation location) : InjaError("parser_error", message, location) {}
+  explicit ParserError(const std::string &message, SourceLocation location) : InjaError("parser_error", message, location) {}
 };
 
 struct RenderError : public InjaError {
-  RenderError(const std::string &message) : InjaError("render_error", message) {}
-  RenderError(const std::string &message, SourceLocation location) : InjaError("render_error", message, location) {}
+  explicit RenderError(const std::string &message, SourceLocation location) : InjaError("render_error", message, location) {}
 };
 
 struct FileError : public InjaError {
-  FileError(const std::string &message) : InjaError("file_error", message) {}
-  FileError(const std::string &message, SourceLocation location) : InjaError("file_error", message, location) {}
+  explicit FileError(const std::string &message) : InjaError("file_error", message) {}
+  explicit FileError(const std::string &message, SourceLocation location) : InjaError("file_error", message, location) {}
 };
 
 struct JsonError : public InjaError {
-  JsonError(const std::string &message) : InjaError("json_error", message) {}
-  JsonError(const std::string &message, SourceLocation location) : InjaError("json_error", message, location) {}
+  explicit JsonError(const std::string &message, SourceLocation location) : InjaError("json_error", message, location) {}
 };
 
 } // namespace inja
@@ -1914,8 +1910,8 @@ class Lexer {
 
   const LexerConfig &config;
 
-  State state;
-  MinusState minus_state;
+  State state {State::Text};
+  MinusState minus_state {MinusState::Number};
   nonstd::string_view m_in;
   size_t tok_start;
   size_t pos;
@@ -2405,9 +2401,7 @@ public:
     return result;
   }
 
-  explicit JsonNode(nonstd::string_view ptr_name, size_t pos) : ExpressionNode(pos), name(ptr_name) {
-    ptr = json::json_pointer(convert_dot_to_json_ptr(ptr_name));
-  }
+  explicit JsonNode(nonstd::string_view ptr_name, size_t pos) : ExpressionNode(pos), name(ptr_name), ptr(json::json_pointer(convert_dot_to_json_ptr(ptr_name))) { }
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);
@@ -2538,9 +2532,9 @@ class ForStatementNode : public StatementNode {
 public:
   ExpressionListNode condition;
   BlockNode body;
-  BlockNode *parent;
+  BlockNode *const parent;
 
-  ForStatementNode(size_t pos) : StatementNode(pos) { }
+  ForStatementNode(BlockNode *const parent, size_t pos) : StatementNode(pos), parent(parent) { }
 
   virtual void accept(NodeVisitor& v) const = 0;
 };
@@ -2549,7 +2543,7 @@ class ForArrayStatementNode : public ForStatementNode {
 public:
   std::string value;
 
-  explicit ForArrayStatementNode(const std::string& value, size_t pos) : ForStatementNode(pos), value(value) { }
+  explicit ForArrayStatementNode(const std::string& value, BlockNode *const parent, size_t pos) : ForStatementNode(parent, pos), value(value) { }
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);
@@ -2561,7 +2555,7 @@ public:
   std::string key;
   std::string value;
 
-  explicit ForObjectStatementNode(const std::string& key, const std::string& value, size_t pos) : ForStatementNode(pos), key(key), value(value) { }
+  explicit ForObjectStatementNode(const std::string& key, const std::string& value, BlockNode *const parent, size_t pos) : ForStatementNode(parent, pos), key(key), value(value) { }
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);
@@ -2573,13 +2567,13 @@ public:
   ExpressionListNode condition;
   BlockNode true_statement;
   BlockNode false_statement;
-  BlockNode *parent;
+  BlockNode *const parent;
 
   bool is_nested;
   bool has_false_statement {false};
 
-  explicit IfStatementNode(size_t pos) : StatementNode(pos), is_nested(false) { }
-  explicit IfStatementNode(bool is_nested, size_t pos) : StatementNode(pos), is_nested(is_nested) { }
+  explicit IfStatementNode(BlockNode *const parent, size_t pos) : StatementNode(pos), parent(parent), is_nested(false) { }
+  explicit IfStatementNode(bool is_nested, BlockNode *const parent, size_t pos) : StatementNode(pos), parent(parent), is_nested(is_nested) { }
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);
@@ -3031,9 +3025,8 @@ class Parser {
     if (tok.text == static_cast<decltype(tok.text)>("if")) {
       get_next_token();
 
-      auto if_statement_node = std::make_shared<IfStatementNode>(tok.text.data() - tmpl.content.c_str());
+      auto if_statement_node = std::make_shared<IfStatementNode>(current_block, tok.text.data() - tmpl.content.c_str());
       current_block->nodes.emplace_back(if_statement_node);
-      if_statement_node->parent = current_block;
       if_statement_stack.emplace(if_statement_node.get());
       current_block = &if_statement_node->true_statement;
       current_expression_list = &if_statement_node->condition;
@@ -3056,9 +3049,8 @@ class Parser {
       if (tok.kind == Token::Kind::Id && tok.text == static_cast<decltype(tok.text)>("if")) {
         get_next_token();
 
-        auto if_statement_node = std::make_shared<IfStatementNode>(true, tok.text.data() - tmpl.content.c_str());
+        auto if_statement_node = std::make_shared<IfStatementNode>(true, current_block, tok.text.data() - tmpl.content.c_str());
         current_block->nodes.emplace_back(if_statement_node);
-        if_statement_node->parent = current_block;
         if_statement_stack.emplace(if_statement_node.get());
         current_block = &if_statement_node->true_statement;
         current_expression_list = &if_statement_node->condition;
@@ -3107,15 +3099,14 @@ class Parser {
         value_token = tok;
         get_next_token();
 
-        for_statement_node = std::make_shared<ForObjectStatementNode>(static_cast<std::string>(key_token.text), static_cast<std::string>(value_token.text), tok.text.data() - tmpl.content.c_str());
+        for_statement_node = std::make_shared<ForObjectStatementNode>(static_cast<std::string>(key_token.text), static_cast<std::string>(value_token.text), current_block, tok.text.data() - tmpl.content.c_str());
 
       // Array type
       } else {
-        for_statement_node = std::make_shared<ForArrayStatementNode>(static_cast<std::string>(value_token.text), tok.text.data() - tmpl.content.c_str());
+        for_statement_node = std::make_shared<ForArrayStatementNode>(static_cast<std::string>(value_token.text), current_block, tok.text.data() - tmpl.content.c_str());
       }
 
       current_block->nodes.emplace_back(for_statement_node);
-      for_statement_node->parent = current_block;
       for_statement_stack.emplace(for_statement_node.get());
       current_block = &for_statement_node->body;
       current_expression_list = &for_statement_node->condition;

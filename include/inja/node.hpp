@@ -121,9 +121,7 @@ public:
     return result;
   }
 
-  explicit JsonNode(nonstd::string_view ptr_name, size_t pos) : ExpressionNode(pos), name(ptr_name) {
-    ptr = json::json_pointer(convert_dot_to_json_ptr(ptr_name));
-  }
+  explicit JsonNode(nonstd::string_view ptr_name, size_t pos) : ExpressionNode(pos), name(ptr_name), ptr(json::json_pointer(convert_dot_to_json_ptr(ptr_name))) { }
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);
@@ -254,9 +252,9 @@ class ForStatementNode : public StatementNode {
 public:
   ExpressionListNode condition;
   BlockNode body;
-  BlockNode *parent;
+  BlockNode *const parent;
 
-  ForStatementNode(size_t pos) : StatementNode(pos) { }
+  ForStatementNode(BlockNode *const parent, size_t pos) : StatementNode(pos), parent(parent) { }
 
   virtual void accept(NodeVisitor& v) const = 0;
 };
@@ -265,7 +263,7 @@ class ForArrayStatementNode : public ForStatementNode {
 public:
   std::string value;
 
-  explicit ForArrayStatementNode(const std::string& value, size_t pos) : ForStatementNode(pos), value(value) { }
+  explicit ForArrayStatementNode(const std::string& value, BlockNode *const parent, size_t pos) : ForStatementNode(parent, pos), value(value) { }
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);
@@ -277,7 +275,7 @@ public:
   std::string key;
   std::string value;
 
-  explicit ForObjectStatementNode(const std::string& key, const std::string& value, size_t pos) : ForStatementNode(pos), key(key), value(value) { }
+  explicit ForObjectStatementNode(const std::string& key, const std::string& value, BlockNode *const parent, size_t pos) : ForStatementNode(parent, pos), key(key), value(value) { }
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);
@@ -289,13 +287,13 @@ public:
   ExpressionListNode condition;
   BlockNode true_statement;
   BlockNode false_statement;
-  BlockNode *parent;
+  BlockNode *const parent;
 
   bool is_nested;
   bool has_false_statement {false};
 
-  explicit IfStatementNode(size_t pos) : StatementNode(pos), is_nested(false) { }
-  explicit IfStatementNode(bool is_nested, size_t pos) : StatementNode(pos), is_nested(is_nested) { }
+  explicit IfStatementNode(BlockNode *const parent, size_t pos) : StatementNode(pos), parent(parent), is_nested(false) { }
+  explicit IfStatementNode(bool is_nested, BlockNode *const parent, size_t pos) : StatementNode(pos), parent(parent), is_nested(is_nested) { }
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);

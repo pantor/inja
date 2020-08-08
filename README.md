@@ -26,7 +26,6 @@
   </a>
 </p>
 
-
 Inja is a template engine for modern C++, loosely inspired by [jinja](http://jinja.pocoo.org) for python. It has an easy and yet powerful template syntax with all variables, loops, conditions, includes, callbacks, and comments you need, nested and combined as you like. Inja uses the wonderful [json](https://github.com/nlohmann/json) library by nlohmann for data input. Most importantly, inja needs only two header files, which is (nearly) as trivial as integration in C++ can get. Of course, everything is tested on all relevant compilers. Here is what it looks like:
 
 ```.cpp
@@ -57,7 +56,6 @@ You can also integrate inja in your project using [Hunter](https://github.com/cp
 If you are using [vcpkg](https://github.com/Microsoft/vcpkg) on your project for external dependencies, then you can use the [inja package](https://github.com/Microsoft/vcpkg/tree/master/ports/inja). Please see the vcpkg project for any issues regarding the packaging.
 
 If you are using [cget](https://cget.readthedocs.io/en/latest/), you can install the latest development version with `cget install pantor/inja`. A specific version can be installed with `cget install pantor/inja@v2.1.0`.
-
 
 ## Tutorial
 
@@ -134,7 +132,6 @@ render("{{ time.start }} to {{ time.end + 1 }}pm", data); // "16 to 23pm"
 ```
 If no variable is found, valid JSON is printed directly, otherwise an `inja::RenderError` is thrown.
 
-
 ### Statements
 
 Statements can be written either with the `{% ... %}` syntax or the `##` syntax for entire lines. Note that `##` needs to start the line without indentation. The most important statements are loops, conditions and file includes. All statements can be nested.
@@ -196,7 +193,6 @@ Variables can also be defined within the template using the set statment.
 ```.cpp
 render("{% set new_hour=23 %}{{ new_hour }}pm", data); // "23pm"
 ```
-
 
 ### Functions
 
@@ -315,13 +311,12 @@ Comments can be written with the `{# ... #}` syntax.
 render("Hello{# Todo #}!", data); // "Hello!"
 ```
 
-
 ## Supported compilers
 
 Inja uses `string_view` from C++17, but includes the [polyfill](https://github.com/martinmoene/string-view-lite) from martinmoene. This way, the minimum version is C++11. Currently, the following compilers are tested:
 
-- GCC 4.8 - 9 (and possibly later)
-- Clang 3.5 - 9 (and possibly later)
-- Microsoft Visual C++ 2016 - 2019 (and possibly later)
+  - GCC 4.8 - 9 (and possibly later)
+  - Clang 3.5 - 9 (and possibly later)
+  - Microsoft Visual C++ 2016 - 2019 (and possibly later)
 
 The unit tests fail to compile with GCC 4.8 but should just work fine. A complete list of supported compiler / os versions can be found in the [CI definition](https://github.com/pantor/inja/blob/master/.github/workflows/ci.yml).
