@@ -20,7 +20,7 @@ struct InjaError : public std::runtime_error {
   SourceLocation location;
 
   explicit InjaError(const std::string &type, const std::string &message)
-      : std::runtime_error("[inja.exception." + type + "] " + message), type(type), message(message) {}
+      : std::runtime_error("[inja.exception." + type + "] " + message), type(type), message(message), location({0, 0}) {}
 
   explicit InjaError(const std::string &type, const std::string &message, SourceLocation location)
       : std::runtime_error("[inja.exception." + type + "] (at " + std::to_string(location.line) + ":" +

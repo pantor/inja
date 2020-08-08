@@ -37,8 +37,8 @@ class Lexer {
 
   const LexerConfig &config;
 
-  State state {State::Text};
-  MinusState minus_state {MinusState::Number};
+  State state;
+  MinusState minus_state;
   nonstd::string_view m_in;
   size_t tok_start;
   size_t pos;
@@ -268,7 +268,7 @@ class Lexer {
   }
 
 public:
-  explicit Lexer(const LexerConfig &config) : config(config) {}
+  explicit Lexer(const LexerConfig &config) : config(config), state(State::Text), minus_state(MinusState::Number) {}
 
   SourceLocation current_position() const {
     return get_source_location(m_in, tok_start);

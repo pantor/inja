@@ -1687,7 +1687,7 @@ struct InjaError : public std::runtime_error {
   SourceLocation location;
 
   explicit InjaError(const std::string &type, const std::string &message)
-      : std::runtime_error("[inja.exception." + type + "] " + message), type(type), message(message) {}
+      : std::runtime_error("[inja.exception." + type + "] " + message), type(type), message(message), location({0, 0}) {}
 
   explicit InjaError(const std::string &type, const std::string &message, SourceLocation location)
       : std::runtime_error("[inja.exception." + type + "] (at " + std::to_string(location.line) + ":" +
@@ -1869,7 +1869,7 @@ inline SourceLocation get_source_location(nonstd::string_view content, size_t po
   size_t search_start = 0;
   while (search_start <= sliced.size()) {
     search_start = sliced.find("\n", search_start) + 1;
-    if (search_start <= 0) {
+    if (search_start == 0) {
       break;
     }
     count_lines += 1;
@@ -1910,8 +1910,8 @@ class Lexer {
 
   const LexerConfig &config;
 
-  State state {State::Text};
-  MinusState minus_state {MinusState::Number};
+  State state;
+  MinusState minus_state;
   nonstd::string_view m_in;
   size_t tok_start;
   size_t pos;
@@ -2141,7 +2141,7 @@ class Lexer {
   }
 
 public:
-  explicit Lexer(const LexerConfig &config) : config(config) {}
+  explicit Lexer(const LexerConfig &config) : config(config), state(State::Text), minus_state(MinusState::Number) {}
 
   SourceLocation current_position() const {
     return get_source_location(m_in, tok_start);

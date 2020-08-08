@@ -56,7 +56,7 @@ inline SourceLocation get_source_location(nonstd::string_view content, size_t po
   size_t search_start = 0;
   while (search_start <= sliced.size()) {
     search_start = sliced.find("\n", search_start) + 1;
-    if (search_start <= 0) {
+    if (search_start == 0) {
       break;
     }
     count_lines += 1;
