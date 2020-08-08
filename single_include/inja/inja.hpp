@@ -1582,13 +1582,13 @@ public:
     None,
   };
 
-  const int VARIADIC {-1};
-
   struct FunctionData {
-    Operation operation;
-
-    CallbackFunction callback;
+    const Operation operation;
+    const CallbackFunction callback;
   };
+
+private:
+  const int VARIADIC {-1};
 
   std::map<std::pair<std::string, int>, FunctionData> function_storage = {
     {std::make_pair("at", 2), FunctionData { Operation::At }},
@@ -1681,10 +1681,10 @@ struct SourceLocation {
 };
 
 struct InjaError : public std::runtime_error {
-  std::string type;
-  std::string message;
+  const std::string type;
+  const std::string message;
 
-  SourceLocation location;
+  const SourceLocation location;
 
   explicit InjaError(const std::string &type, const std::string &message)
       : std::runtime_error("[inja.exception." + type + "] " + message), type(type), message(message), location({0, 0}) {}
@@ -2356,7 +2356,7 @@ public:
 
 class TextNode : public AstNode {
 public:
-  size_t length;
+  const size_t length;
 
   explicit TextNode(size_t pos, size_t length): AstNode(pos), length(length) { }
 
@@ -2376,7 +2376,7 @@ public:
 
 class LiteralNode : public ExpressionNode {
 public:
-  nlohmann::json value;
+  const nlohmann::json value;
 
   explicit LiteralNode(const nlohmann::json& value, size_t pos) : ExpressionNode(pos), value(value) { }
 
@@ -2387,8 +2387,8 @@ public:
 
 class JsonNode : public ExpressionNode {
 public:
-  std::string name;
-  json::json_pointer ptr;
+  const std::string name;
+  const json::json_pointer ptr;
 
   static std::string convert_dot_to_json_ptr(nonstd::string_view ptr_name) {
     std::string result;
@@ -2541,7 +2541,7 @@ public:
 
 class ForArrayStatementNode : public ForStatementNode {
 public:
-  std::string value;
+  const std::string value;
 
   explicit ForArrayStatementNode(const std::string& value, BlockNode *const parent, size_t pos) : ForStatementNode(parent, pos), value(value) { }
 
@@ -2552,8 +2552,8 @@ public:
 
 class ForObjectStatementNode : public ForStatementNode {
 public:
-  std::string key;
-  std::string value;
+  const std::string key;
+  const std::string value;
 
   explicit ForObjectStatementNode(const std::string& key, const std::string& value, BlockNode *const parent, size_t pos) : ForStatementNode(parent, pos), key(key), value(value) { }
 
@@ -2569,7 +2569,7 @@ public:
   BlockNode false_statement;
   BlockNode *const parent;
 
-  bool is_nested;
+  const bool is_nested;
   bool has_false_statement {false};
 
   explicit IfStatementNode(BlockNode *const parent, size_t pos) : StatementNode(pos), parent(parent), is_nested(false) { }
@@ -2582,7 +2582,7 @@ public:
 
 class IncludeStatementNode : public StatementNode {
 public:
-  std::string file;
+  const std::string file;
 
   explicit IncludeStatementNode(const std::string& file, size_t pos) : StatementNode(pos), file(file) { }
 
@@ -2593,7 +2593,7 @@ public:
 
 class SetStatementNode : public StatementNode {
 public:
-  std::string key;
+  const std::string key;
   ExpressionListNode expression;
 
   explicit SetStatementNode(const std::string& key, size_t pos) : StatementNode(pos), key(key) { }

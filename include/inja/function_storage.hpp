@@ -69,13 +69,13 @@ public:
     None,
   };
 
-  const int VARIADIC {-1};
-
   struct FunctionData {
-    Operation operation;
-
-    CallbackFunction callback;
+    const Operation operation;
+    const CallbackFunction callback;
   };
+
+private:
+  const int VARIADIC {-1};
 
   std::map<std::pair<std::string, int>, FunctionData> function_storage = {
     {std::make_pair("at", 2), FunctionData { Operation::At }},

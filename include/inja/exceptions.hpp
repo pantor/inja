@@ -14,10 +14,10 @@ struct SourceLocation {
 };
 
 struct InjaError : public std::runtime_error {
-  std::string type;
-  std::string message;
+  const std::string type;
+  const std::string message;
 
-  SourceLocation location;
+  const SourceLocation location;
 
   explicit InjaError(const std::string &type, const std::string &message)
       : std::runtime_error("[inja.exception." + type + "] " + message), type(type), message(message), location({0, 0}) {}
