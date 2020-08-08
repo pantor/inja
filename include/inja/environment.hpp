@@ -4,6 +4,7 @@
 #define INCLUDE_INJA_ENVIRONMENT_HPP_
 
 #include <fstream>
+#include <iostream>
 #include <memory>
 #include <sstream>
 #include <string>
