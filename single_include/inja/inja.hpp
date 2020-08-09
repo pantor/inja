@@ -3347,7 +3347,11 @@ class Renderer : public NodeVisitor  {
 
   void print_json(const std::shared_ptr<json> value) {
     if (value->is_string()) {
-      *output_stream << value->get_ref<const std::string &>();
+      *output_stream << value->get_ref<const json::string_t&>();
+    } else if (value->is_number_float()) {
+      *output_stream << value->dump();
+    } else if (value->is_number_integer()) {
+      *output_stream << value->get<const json::number_integer_t>();
     } else {
       *output_stream << value->dump();
     }
@@ -3445,7 +3449,7 @@ class Renderer : public NodeVisitor  {
 
   void visit(const JsonNode& node) {
     if (json_additional_data.contains(node.ptr)) {
-      json_eval_stack.push(&json_additional_data[node.ptr]);
+      json_eval_stack.push(&(json_additional_data[node.ptr]));
     
     } else if (json_input->contains(node.ptr)) {
       json_eval_stack.push(&(*json_input)[node.ptr]);
@@ -3533,7 +3537,7 @@ class Renderer : public NodeVisitor  {
     case Op::Add: {
       auto args = get_arguments<2>(node);
       if (args[0]->is_string() && args[1]->is_string()) {
-        result_ptr = std::make_shared<json>(args[0]->get<std::string>() + args[1]->get<std::string>());
+        result_ptr = std::make_shared<json>(args[0]->get_ref<const std::string&>() + args[1]->get_ref<const std::string&>());
         json_tmp_stack.push_back(result_ptr);
       } else if (args[0]->is_number_integer() && args[1]->is_number_integer()) {
         result_ptr = std::make_shared<json>(args[0]->get<int>() + args[1]->get<int>());
