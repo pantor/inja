@@ -302,8 +302,9 @@ env.add_callback("double-greetings", 0, [greet](Arguments args) {
 	return greet + " " + greet + "!";
 });
 env.render("{{ double-greetings }}", data); // "Hello Hello!"
-
-// You can also add a callback without return variable, e.g. for debugging:
+```
+You can also add a void callback without return variable, e.g. for debugging:
+```.cpp
 env.add_void_callback("log", 1, [greet](Arguments args) {
 	std::cout << "logging: " << args[0] << std::endl;
 });
