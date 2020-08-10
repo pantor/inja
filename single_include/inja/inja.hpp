@@ -1526,6 +1526,7 @@ using json = nlohmann::json;
 
 using Arguments = std::vector<const json *>;
 using CallbackFunction = std::function<json(Arguments &args)>;
+using VoidCallbackFunction = std::function<void(Arguments &args)>;
 
 /*!
  * \brief Class for builtin functions and user-defined callbacks.
@@ -3348,10 +3349,9 @@ class Renderer : public NodeVisitor  {
   void print_json(const std::shared_ptr<json> value) {
     if (value->is_string()) {
       *output_stream << value->get_ref<const json::string_t&>();
-    } else if (value->is_number_float()) {
-      *output_stream << value->dump();
     } else if (value->is_number_integer()) {
       *output_stream << value->get<const json::number_integer_t>();
+    } else if (value->is_null()) {
     } else {
       *output_stream << value->dump();
     }
@@ -4061,7 +4061,14 @@ public:
   @brief Adds a variadic callback
   */
   void add_callback(const std::string &name, const CallbackFunction &callback) {
-    function_storage.add_callback(name, -1, callback);
+    add_callback(name, -1, callback);
+  }
+
+  /*!
+  @brief Adds a variadic void callback
+  */
+  void add_void_callback(const std::string &name, const VoidCallbackFunction &callback) {
+    add_void_callback(name, -1, callback);
   }
 
   /*!
@@ -4069,6 +4076,13 @@ public:
   */
   void add_callback(const std::string &name, int num_args, const CallbackFunction &callback) {
     function_storage.add_callback(name, num_args, callback);
+  }
+
+  /*!
+  @brief Adds a void callback with given number or arguments
+  */
+  void add_void_callback(const std::string &name, int num_args, const VoidCallbackFunction &callback) {
+    function_storage.add_callback(name, num_args, [callback](Arguments& args) { callback(args); return json(); });
   }
 
   /** Includes a template with a given name into the environment.

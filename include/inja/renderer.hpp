@@ -54,10 +54,9 @@ class Renderer : public NodeVisitor  {
   void print_json(const std::shared_ptr<json> value) {
     if (value->is_string()) {
       *output_stream << value->get_ref<const json::string_t&>();
-    } else if (value->is_number_float()) {
-      *output_stream << value->dump();
     } else if (value->is_number_integer()) {
       *output_stream << value->get<const json::number_integer_t>();
+    } else if (value->is_null()) {
     } else {
       *output_stream << value->dump();
     }

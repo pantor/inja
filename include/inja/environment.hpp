@@ -173,7 +173,14 @@ public:
   @brief Adds a variadic callback
   */
   void add_callback(const std::string &name, const CallbackFunction &callback) {
-    function_storage.add_callback(name, -1, callback);
+    add_callback(name, -1, callback);
+  }
+
+  /*!
+  @brief Adds a variadic void callback
+  */
+  void add_void_callback(const std::string &name, const VoidCallbackFunction &callback) {
+    add_void_callback(name, -1, callback);
   }
 
   /*!
@@ -181,6 +188,13 @@ public:
   */
   void add_callback(const std::string &name, int num_args, const CallbackFunction &callback) {
     function_storage.add_callback(name, num_args, callback);
+  }
+
+  /*!
+  @brief Adds a void callback with given number or arguments
+  */
+  void add_void_callback(const std::string &name, int num_args, const VoidCallbackFunction &callback) {
+    function_storage.add_callback(name, num_args, [callback](Arguments& args) { callback(args); return json(); });
   }
 
   /** Includes a template with a given name into the environment.

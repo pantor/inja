@@ -228,10 +228,15 @@ TEST_CASE("callbacks") {
     return number1.length();
   });
 
+  env.add_void_callback("log", 1, [](inja::Arguments args) {
+    int a = 2;
+  });
+
   env.add_callback("multiply", 0, [](inja::Arguments args) { return 1.0; });
 
   CHECK(env.render("{{ double(age) }}", data) == "56");
   CHECK(env.render("{{ half(age) }}", data) == "14");
+  CHECK(env.render("{{ log(age) }}", data) == "");
   CHECK(env.render("{{ double-greetings }}", data) == "Hello Hello!");
   CHECK(env.render("{{ double-greetings() }}", data) == "Hello Hello!");
   CHECK(env.render("{{ multiply(4, 5) }}", data) == "20.0");
