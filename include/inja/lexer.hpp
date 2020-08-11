@@ -19,6 +19,7 @@ class Lexer {
   enum class State {
     Text,
     ExpressionStart,
+    ExpressionStartForceLstrip,
     ExpressionBody,
     LineStart,
     LineBody,
@@ -306,7 +307,12 @@ public:
       nonstd::string_view open_str = m_in.substr(pos);
       bool must_lstrip = false;
       if (inja::string_view::starts_with(open_str, config.expression_open)) {
-        state = State::ExpressionStart;
+        if (inja::string_view::starts_with(open_str, config.expression_open_force_lstrip)) {
+          state = State::ExpressionStartForceLstrip;
+          must_lstrip = true;
+        } else {
+          state = State::ExpressionStart;
+        }
       } else if (inja::string_view::starts_with(open_str, config.statement_open)) {
         if (inja::string_view::starts_with(open_str, config.statement_open_no_lstrip)) {
           state = State::StatementStartNoLstrip;
@@ -343,6 +349,11 @@ public:
       pos += config.expression_open.size();
       return make_token(Token::Kind::ExpressionOpen);
     }
+    case State::ExpressionStartForceLstrip: {
+      state = State::ExpressionBody;
+      pos += config.expression_open_force_lstrip.size();
+      return make_token(Token::Kind::ExpressionOpen);
+    }
     case State::LineStart: {
       state = State::LineBody;
       pos += config.line_statement.size();
@@ -369,7 +380,7 @@ public:
       return make_token(Token::Kind::CommentOpen);
     }
     case State::ExpressionBody:
-      return scan_body(config.expression_close, Token::Kind::ExpressionClose);
+      return scan_body(config.expression_close, Token::Kind::ExpressionClose, config.expression_close_force_rstrip);
     case State::LineBody:
       return scan_body("\n", Token::Kind::LineStatementClose);
     case State::StatementBody:

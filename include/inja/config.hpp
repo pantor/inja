@@ -21,7 +21,9 @@ struct LexerConfig {
   std::string statement_close_force_rstrip {"-%}"};
   std::string line_statement {"##"};
   std::string expression_open {"{{"};
+  std::string expression_open_force_lstrip {"{{-"};
   std::string expression_close {"}}"};
+  std::string expression_close_force_rstrip {"-}}"};
   std::string comment_open {"{#"};
   std::string comment_close {"#}"};
   std::string open_chars {"#{"};
@@ -45,6 +47,9 @@ struct LexerConfig {
     }
     if (open_chars.find(expression_open[0]) == std::string::npos) {
       open_chars += expression_open[0];
+    }
+    if (open_chars.find(expression_open_force_lstrip[0]) == std::string::npos) {
+      open_chars += expression_open_force_lstrip[0];
     }
     if (open_chars.find(comment_open[0]) == std::string::npos) {
       open_chars += comment_open[0];
