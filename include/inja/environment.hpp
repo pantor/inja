@@ -64,7 +64,9 @@ public:
   /// Sets the opener and closer for template expressions
   void set_expression(const std::string &open, const std::string &close) {
     lexer_config.expression_open = open;
+    lexer_config.expression_open_force_lstrip = open + "-";
     lexer_config.expression_close = close;
+    lexer_config.expression_close_force_rstrip = "-" + close;
     lexer_config.update_open_chars();
   }
 
