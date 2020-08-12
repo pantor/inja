@@ -204,6 +204,10 @@ TEST_CASE("templates") {
     CHECK(env.render("Test\n   {%- if is_happy %}{{ name }}{% endif %}   ", data) == "Test\nPeter   ");
     CHECK(env.render("   {%+ if is_happy %}{{ name }}{% endif %}", data) == "   Peter");
     CHECK(env.render("   {%- if is_happy %}{{ name }}{% endif -%}   \n   ", data) == "Peter");
+    
+    CHECK(env.render("   {{- name -}}   \n   ", data) == "Peter");
+    CHECK(env.render("Test\n   {{- name }}   ", data) == "Test\nPeter   ");
+    CHECK(env.render("   {{ name }}\n ", data) == "   Peter\n ");
 
     // Nothing will be stripped if there are other characters before the start of the block.
     CHECK(env.render(".  {%- if is_happy %}{{ name }}{% endif -%}\n", data) == ".  Peter");

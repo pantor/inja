@@ -260,13 +260,14 @@ env.set_trim_blocks(true);
 env.set_lstrip_blocks(true);
 ```
 
-With both `trim_blocks` and `lstrip_blocks` enabled, you can put statements on their own lines. Furthermore, you can also strip whitespaces by hand. If you add a minus sign (`-`) to the start or end of a statement, the whitespaces before or after that block will be removed:
+With both `trim_blocks` and `lstrip_blocks` enabled, you can put statements on their own lines. Furthermore, you can also strip whitespaces for both statements and expressions by hand. If you add a minus sign (`-`) to the start or end, the whitespaces before or after that block will be removed:
 
 ```.cpp
+render("Hello       {{- name -}}     !", data); // "Hello Inja!"
 render("{% if neighbour in guests -%}   I was there{% endif -%}   !", data); // Renders without any whitespaces
 ```
 
-Stripping behind a statement also remove any newlines.
+Stripping behind a statement or expression also removes any newlines.
 
 ### Callbacks
 
