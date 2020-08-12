@@ -3888,6 +3888,7 @@ public:
     json_input = &data;
     if (loop_data) {
       json_additional_data = *loop_data;
+      current_loop_data = &json_additional_data["loop"];
     }
 
     current_template->root.accept(*this);
