@@ -2160,6 +2160,11 @@ public:
     pos = 0;
     state = State::Text;
     minus_state = MinusState::Number;
+
+    // Consume byte order mark (BOM) for UTF-8
+    if (inja::string_view::starts_with(m_in, "\xEF\xBB\xBF")) {
+      m_in = m_in.substr(3);
+    }
   }
 
   Token scan() {
@@ -2205,8 +2210,7 @@ public:
       } else if (inja::string_view::starts_with(open_str, config.comment_open)) {
         state = State::CommentStart;
         must_lstrip = config.lstrip_blocks;
-      } else if ((pos == 0 || m_in[pos - 1] == '\n') &&
-                 inja::string_view::starts_with(open_str, config.line_statement)) {
+      } else if ((pos == 0 || m_in[pos - 1] == '\n') && inja::string_view::starts_with(open_str, config.line_statement)) {
         state = State::LineStart;
       } else {
         pos += 1; // wasn't actually an opening sequence
