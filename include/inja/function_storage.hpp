@@ -72,7 +72,7 @@ public:
 
   struct FunctionData {
     const Operation operation;
-    const CallbackFunction callback;
+    const CallbackFunction callback {};
   };
 
 private:
