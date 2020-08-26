@@ -71,7 +71,7 @@ public:
   };
 
   struct FunctionData {
-    const Operation operation;
+    const Operation operation {};
     const CallbackFunction callback {};
   };
 
