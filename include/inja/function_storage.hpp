@@ -71,6 +71,7 @@ public:
   };
 
   struct FunctionData {
+    explicit FunctionData(const Operation &op, const CallbackFunction &cb = CallbackFunction{}) : operation(op), callback(cb) {}
     const Operation operation;
     const CallbackFunction callback;
   };
@@ -129,7 +130,7 @@ public:
       }
     }
 
-    return { Operation::None };
+    return FunctionData { Operation::None };
   }
 };
 
