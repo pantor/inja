@@ -57,6 +57,8 @@ If you are using [vcpkg](https://github.com/Microsoft/vcpkg) on your project for
 
 If you are using [cget](https://cget.readthedocs.io/en/latest/), you can install the latest development version with `cget install pantor/inja`. A specific version can be installed with `cget install pantor/inja@v2.1.0`.
 
+On macOS, you can install inja via [Homebrew](https://formulae.brew.sh/formula/inja#default) and `brew install inja`.
+
 ## Tutorial
 
 This tutorial will give you an idea how to use inja. It will explain the most important concepts and give practical advices using examples and executable code. Beside this tutorial, you may check out the [documentation](https://pantor.github.io/inja).
