@@ -214,6 +214,7 @@ jobs:
           brew install ninja
           if [ "${{ matrix.compiler }}" = "gcc" ]; then
             brew install gcc@${{ matrix.version }}
+            brew link gcc@${{ matrix.version }}
             echo "CC=gcc-${{ matrix.version }}" >> $GITHUB_ENV
             echo "CXX=g++-${{ matrix.version }}" >> $GITHUB_ENV
           else
