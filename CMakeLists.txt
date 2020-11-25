@@ -161,11 +161,13 @@ if(INJA_INSTALL)
     DESTINATION ${INJA_INSTALL_INCLUDE_DIR}
     FILES_MATCHING PATTERN "*.hpp"
   )
-  install(
-    DIRECTORY third_party/include/nlohmann
-    DESTINATION ${INJA_INSTALL_INCLUDE_DIR}
-    FILES_MATCHING PATTERN "*.hpp"
-  )
+  if(INJA_USE_EMBEDDED_JSON)
+    install(
+      DIRECTORY third_party/include/nlohmann
+      DESTINATION ${INJA_INSTALL_INCLUDE_DIR}
+      FILES_MATCHING PATTERN "*.hpp"
+    )
+  endif()
   install(
     FILES
       "${CMAKE_CURRENT_BINARY_DIR}/${INJA_CONFIG_PATH}/injaConfig.cmake"
