@@ -41,8 +41,8 @@ jobs:
           macOS-10.15-gcc-7,
           macOS-10.15-gcc-8,
           macOS-10.15-gcc-9,
-          macOS-latest-xcode-11.0,
           macOS-latest-xcode-11.3,
+          macOS-latest-xcode-12.2,
         ]
 
         include:
@@ -163,15 +163,15 @@ jobs:
             compiler: gcc
             version: "9"
 
-          - name: macOS-latest-xcode-11.0
-            os: macOS-latest
-            compiler: xcode
-            version: "11"
-
           - name: macOS-latest-xcode-11.3
             os: macOS-latest
             compiler: xcode
             version: "11.3"
+
+          - name: macOS-latest-xcode-12.2
+            os: macOS-latest
+            compiler: xcode
+            version: "12.2"
 
     steps:
       - uses: actions/checkout@v1
@@ -211,7 +211,7 @@ jobs:
       - name: Install (macOS)
         if: runner.os == 'macOS'
         run: |
-          brew install cmake ninja
+          brew install ninja
           if [ "${{ matrix.compiler }}" = "gcc" ]; then
             brew install gcc@${{ matrix.version }}
             echo "CC=gcc-${{ matrix.version }}" >> $GITHUB_ENV
