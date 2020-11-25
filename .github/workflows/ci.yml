@@ -200,12 +200,12 @@ jobs:
           sudo apt-get install -y ninja-build valgrind libc6-dbg:i386
           if [ "${{ matrix.compiler }}" = "gcc" ]; then
             sudo apt-get install -y g++-${{ matrix.version }} g++-${{ matrix.version }}-multilib
-            echo "::set-env name=CC::gcc-${{ matrix.version }}"
-            echo "::set-env name=CXX::g++-${{ matrix.version }}"
+            echo "CC=gcc-${{ matrix.version }}" >> $GITHUB_ENV
+            echo "CXX=g++-${{ matrix.version }}" >> $GITHUB_ENV
           else
             sudo apt-get install -y clang-${{ matrix.version }} g++-multilib
-            echo "::set-env name=CC::clang-${{ matrix.version }}"
-            echo "::set-env name=CXX::clang++-${{ matrix.version }}"
+            echo "CC=clang-${{ matrix.version }}" >> $GITHUB_ENV
+            echo "CXX=clang++-${{ matrix.version }}" >> $GITHUB_ENV
           fi
       
       - name: Install (macOS)
@@ -214,12 +214,12 @@ jobs:
           brew install cmake ninja
           if [ "${{ matrix.compiler }}" = "gcc" ]; then
             brew install gcc@${{ matrix.version }}
-            echo "::set-env name=CC::gcc-${{ matrix.version }}"
-            echo "::set-env name=CXX::g++-${{ matrix.version }}"
+            echo "CC=gcc-${{ matrix.version }}" >> $GITHUB_ENV
+            echo "CXX=g++-${{ matrix.version }}" >> $GITHUB_ENV
           else
             sudo xcode-select -switch /Applications/Xcode_${{ matrix.version }}.app
-            echo "::set-env name=CC::clang"
-            echo "::set-env name=CXX::clang++"
+            echo "CC=clang" >> $GITHUB_ENV
+            echo "CXX=clang++" >> $GITHUB_ENV
           fi
       
       - name: Install (Windows)
@@ -236,17 +236,17 @@ jobs:
             # See: https://github.com/DaanDeMeyer/doctest/runs/231595515
             # See: https://github.community/t5/GitHub-Actions/Something-is-wrong-with-the-chocolatey-installed-version-of-gcc/td-p/32413
             scoop install gcc --global
-            echo "::set-env name=CC::gcc"
-            echo "::set-env name=CXX::g++"
+            echo "CC=gcc" >> $GITHUB_ENV
+            echo "CXX=g++" >> $GITHUB_ENV
           } elseif ("${{ matrix.compiler }}" -eq "clang") {
-            echo "::set-env name=CC::clang"
-            echo "::set-env name=CXX::clang++"
+            echo "CC=clang" >> $GITHUB_ENV
+            echo "CXX=clang++" >> $GITHUB_ENV
           } else {
-            echo "::set-env name=CC::${{ matrix.compiler }}"
-            echo "::set-env name=CXX::${{ matrix.compiler }}"
+            echo "CC=${{ matrix.compiler }}" >> $GITHUB_ENV
+            echo "CXX=${{ matrix.compiler }}" >> $GITHUB_ENV
           }
           # Scoop modifies the PATH so we make the modified PATH global.
-          echo "::set-env name=PATH::$env:PATH"
+          echo "PATH=$env:PATH" >> $GITHUB_ENV
       
       - name: Configure
         if: runner.os == 'Windows'
