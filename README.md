@@ -1,4 +1,4 @@
-[<div align="center"><img width="500" src="https://raw.githubusercontent.com/pantor/inja/master/doc/logo.jpg"></div>](https://github.com/pantor/inja/releases)
+[<div align="center"><img width="500" src="https://raw.githubusercontent.com/pantor/inja/master/doc/logo.svg?sanitize=true"></div>](https://github.com/pantor/inja/releases)
 
 <p align="center">
   <a href="https://github.com/pantor/inja/actions">
