@@ -169,6 +169,8 @@ class Lexer {
       minus_state = MinusState::Operator;
       return scan_number();
     case '_':
+    case '@':
+    case '$':
       minus_state = MinusState::Operator;
       return scan_id();
     default:

@@ -161,6 +161,8 @@ TEST_CASE("functions") {
     CHECK(env.render("{{ exists(\"zipcode\") }}", data) == "false");
     CHECK(env.render("{{ exists(name) }}", data) == "false");
     CHECK(env.render("{{ exists(property) }}", data) == "true");
+
+    // CHECK(env.render("{{ exists(\"keywords\") and length(keywords) > 0 }}", data) == "false");
   }
 
   SUBCASE("existsIn") {
