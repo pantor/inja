@@ -321,6 +321,11 @@ Comments can be written with the `{# ... #}` syntax.
 render("Hello{# Todo #}!", data); // "Hello!"
 ```
 
+### Exceptions
+
+Inja uses exceptions to handle ill-formed template input. However, exceptions can be switched off with either using the compiler flag `-fno-exceptions` or by defining the symbol `INJA_NOEXCEPTION`. In this case, exceptions are replaced by `abort()` calls.
+
+
 ## Supported compilers
 
 Inja uses `string_view` from C++17, but includes the [polyfill](https://github.com/martinmoene/string-view-lite) from martinmoene. This way, the minimum version is C++11. Currently, the following compilers are tested:

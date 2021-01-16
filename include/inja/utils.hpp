@@ -18,7 +18,7 @@ inline void open_file_or_throw(const std::string &path, std::ifstream &file) {
   try {
     file.open(path);
   } catch (const std::ios_base::failure & /*e*/) {
-    throw FileError("failed accessing file at '" + path + "'");
+    INJA_THROW(FileError("failed accessing file at '" + path + "'"));
   }
 }
 

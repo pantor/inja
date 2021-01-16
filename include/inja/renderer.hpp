@@ -91,7 +91,7 @@ class Renderer : public NodeVisitor  {
 
   void throw_renderer_error(const std::string &message, const AstNode& node) {
     SourceLocation loc = get_source_location(current_template->content, node.pos);
-    throw RenderError(message, loc);
+    INJA_THROW(RenderError(message, loc));
   }
 
   template<size_t N, bool throw_not_found=true>

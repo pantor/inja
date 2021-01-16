@@ -1,9 +1,5 @@
 // Copyright (c) 2020 Pantor. All rights reserved.
 
-#include "doctest/doctest.h"
-#include "inja/inja.hpp"
-
-
 TEST_CASE("source location") {
   std::string content = R""""(Lorem Ipsum
   Dolor

@@ -5,6 +5,13 @@
 
 #include <nlohmann/json.hpp>
 
+#if (defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND)) && !defined(INJA_NOEXCEPTION)
+    #define INJA_THROW(exception) throw exception
+#else
+    #include <cstdlib>
+    #define INJA_THROW(exception) std::abort()
+#endif
+
 #include "environment.hpp"
 #include "exceptions.hpp"
 #include "parser.hpp"

@@ -5,6 +5,13 @@
 
 #include <nlohmann/json.hpp>
 
+#if (defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND)) && !defined(INJA_NOEXCEPTION)
+    #define INJA_THROW(exception) throw exception
+#else
+    #include <cstdlib>
+    #define INJA_THROW(exception) std::abort()
+#endif
+
 // #include "environment.hpp"
 // Copyright (c) 2019 Pantor. All rights reserved.
 
@@ -1838,7 +1845,7 @@ inline void open_file_or_throw(const std::string &path, std::ifstream &file) {
   try {
     file.open(path);
   } catch (const std::ios_base::failure & /*e*/) {
-    throw FileError("failed accessing file at '" + path + "'");
+    INJA_THROW(FileError("failed accessing file at '" + path + "'"));
   }
 }
 
@@ -2780,7 +2787,7 @@ class Parser {
   std::stack<ForStatementNode*> for_statement_stack;
 
   void throw_parser_error(const std::string &message) {
-    throw ParserError(message, lexer.current_position());
+    INJA_THROW(ParserError(message, lexer.current_position()));
   }
 
   void get_next_token() {
@@ -3409,7 +3416,7 @@ class Renderer : public NodeVisitor  {
 
   void throw_renderer_error(const std::string &message, const AstNode& node) {
     SourceLocation loc = get_source_location(current_template->content, node.pos);
-    throw RenderError(message, loc);
+    INJA_THROW(RenderError(message, loc));
   }
 
   template<size_t N, bool throw_not_found=true>

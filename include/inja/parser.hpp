@@ -51,7 +51,7 @@ class Parser {
   std::stack<ForStatementNode*> for_statement_stack;
 
   void throw_parser_error(const std::string &message) {
-    throw ParserError(message, lexer.current_position());
+    INJA_THROW(ParserError(message, lexer.current_position()));
   }
 
   void get_next_token() {
