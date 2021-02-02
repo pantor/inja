@@ -189,7 +189,7 @@ jobs:
           
           sudo apt-get update
           # libc6-dbg:i386 is required for running valgrind on x86.
-          sudo apt-get install -y ninja-build valgrind libc6-dbg:i386
+          sudo apt-get install -y ninja-build valgrind libc6-dbg:i386 -o APT::Immediate-Configure=0
           if [ "${{ matrix.compiler }}" = "gcc" ]; then
             sudo apt-get install -y g++-${{ matrix.version }} g++-${{ matrix.version }}-multilib
             echo "CC=gcc-${{ matrix.version }}" >> $GITHUB_ENV
