@@ -26,17 +26,13 @@ amalg_tgt = run_target( 'amalg',
 
 inja_test = executable(
   'inja_test',
-  'test/unit.cpp',
-  'test/unit-files.cpp',
-  'test/unit-renderer.cpp',
+  'test/test.cpp',
   dependencies: inja_dep
 )
 
 inja_single_test = executable(
   'inja_single_test',
-  'test/unit.cpp',
-  'test/unit-files.cpp',
-  'test/unit-renderer.cpp',
+  'test/test.cpp',
   'single_include/inja/inja.hpp',
   dependencies: [inja_dep]
 )
