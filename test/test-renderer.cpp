@@ -129,6 +129,12 @@ TEST_CASE("types") {
                       "[inja.exception.render_error] (at 1:7) variable 'predefined' not found");
   }
 
+  SUBCASE("short circuit evaluation") {
+    CHECK(env.render("{% if 0 and undefined %}do{% else %}nothing{% endif %}", data) == "nothing");
+    CHECK_THROWS_WITH(env.render("{% if 1 and undefined %}do{% else %}nothing{% endif %}", data),
+                      "[inja.exception.render_error] (at 1:13) variable 'undefined' not found");
+  }
+
   SUBCASE("line statements") {
     CHECK(env.render(R""""(## if is_happy
 Yeah!
