@@ -3205,22 +3205,22 @@ class Parser {
         throw_parser_error("expected string, got '" + tok.describe() + "'");
       }
 
-      // Build the relative path
-      json json_name = json::parse(tok.text);
-      std::string pathname = static_cast<std::string>(path);
-      pathname += json_name.get_ref<const std::string &>();
-      if (pathname.compare(0, 2, "./") == 0) {
-        pathname.erase(0, 2);
-      }
-      // sys::path::remove_dots(pathname, true, sys::path::Style::posix);
+      std::string template_name = json::parse(tok.text).get_ref<const std::string &>();
+      if (config.search_included_templates_in_files && template_storage.find(template_name) == template_storage.end()) {
+        // Build the relative path
+        template_name = static_cast<std::string>(path) + template_name;
+        if (template_name.compare(0, 2, "./") == 0) {
+          template_name.erase(0, 2);
+        }
 
-      if (config.search_included_templates_in_files && template_storage.find(pathname) == template_storage.end()) {
-        auto include_template = Template(load_file(pathname));
-        template_storage.emplace(pathname, include_template);
-        parse_into_template(template_storage[pathname], pathname);
+        if (template_storage.find(template_name) == template_storage.end()) {
+          auto include_template = Template(load_file(template_name));
+          template_storage.emplace(template_name, include_template);
+          parse_into_template(template_storage[template_name], template_name);
+        }
       }
 
-      current_block->nodes.emplace_back(std::make_shared<IncludeStatementNode>(pathname, tok.text.data() - tmpl.content.c_str()));
+      current_block->nodes.emplace_back(std::make_shared<IncludeStatementNode>(template_name, tok.text.data() - tmpl.content.c_str()));
 
       get_next_token();
 
