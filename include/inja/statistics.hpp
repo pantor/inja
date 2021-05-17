@@ -26,12 +26,14 @@ class StatisticsVisitor : public NodeVisitor {
     variable_counter += 1;
   }
 
-  void visit(const FunctionNode&) { }
-
-  void visit(const ExpressionListNode& node) {
-    for (auto& n : node.rpn_output) {
+  void visit(const FunctionNode& node) {
+    for (auto& n : node.arguments) {
       n->accept(*this);
     }
+  }
+
+  void visit(const ExpressionListNode& node) {
+    node.root->accept(*this);
   }
 
   void visit(const StatementNode&) { }

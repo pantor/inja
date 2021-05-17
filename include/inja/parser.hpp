@@ -45,16 +45,17 @@ class Parser {
   BlockNode *current_block {nullptr};
   ExpressionListNode *current_expression_list {nullptr};
   std::stack<std::pair<FunctionNode*, size_t>> function_stack;
+  std::vector<std::shared_ptr<ExpressionNode>> arguments;
 
   std::stack<std::shared_ptr<FunctionNode>> operator_stack;
   std::stack<IfStatementNode*> if_statement_stack;
   std::stack<ForStatementNode*> for_statement_stack;
 
-  void throw_parser_error(const std::string &message) {
+  inline void throw_parser_error(const std::string &message) {
     INJA_THROW(ParserError(message, lexer.current_position()));
   }
 
-  void get_next_token() {
+  inline void get_next_token() {
     if (have_peek_tok) {
       tok = peek_tok;
       have_peek_tok = false;
@@ -63,16 +64,27 @@ class Parser {
     }
   }
 
-  void get_peek_token() {
+  inline void get_peek_token() {
     if (!have_peek_tok) {
       peek_tok = lexer.scan();
       have_peek_tok = true;
     }
   }
 
-  void add_json_literal(const char* content_ptr) {
+  inline void add_json_literal(const char* content_ptr) {
     nonstd::string_view json_text(json_literal_start.data(), tok.text.data() - json_literal_start.data() + tok.text.size());
-    current_expression_list->rpn_output.emplace_back(std::make_shared<LiteralNode>(json::parse(json_text), json_text.data() - content_ptr));
+    arguments.emplace_back(std::make_shared<LiteralNode>(json::parse(json_text), json_text.data() - content_ptr));
+  }
+
+  inline void add_operator() {
+    auto function = operator_stack.top();
+    operator_stack.pop();
+
+    for (size_t i = 0; i < function->number_args; ++i) {
+      function->arguments.insert(function->arguments.begin(), arguments.back());
+      arguments.pop_back();
+    }
+    arguments.emplace_back(function);
   }
 
   bool parse_expression(Template &tmpl, Token::Kind closing) {
@@ -150,7 +162,7 @@ class Parser {
 
         // Variables
         } else {
-          current_expression_list->rpn_output.emplace_back(std::make_shared<JsonNode>(static_cast<std::string>(tok.text), tok.text.data() - tmpl.content.c_str()));
+          arguments.emplace_back(std::make_shared<JsonNode>(static_cast<std::string>(tok.text), tok.text.data() - tmpl.content.c_str()));
         }
 
       // Operators
@@ -231,8 +243,7 @@ class Parser {
         auto function_node = std::make_shared<FunctionNode>(operation, tok.text.data() - tmpl.content.c_str());
 
         while (!operator_stack.empty() && ((operator_stack.top()->precedence > function_node->precedence) || (operator_stack.top()->precedence == function_node->precedence && function_node->associativity == FunctionNode::Associativity::Left)) && (operator_stack.top()->operation != FunctionStorage::Operation::ParenLeft)) {
-          current_expression_list->rpn_output.emplace_back(operator_stack.top());
-          operator_stack.pop();
+          add_operator();
         }
 
         operator_stack.emplace(function_node);
@@ -269,8 +280,7 @@ class Parser {
       case Token::Kind::RightParen: {
         current_paren_level -= 1;
         while (!operator_stack.empty() && operator_stack.top()->operation != FunctionStorage::Operation::ParenLeft) {
-          current_expression_list->rpn_output.emplace_back(operator_stack.top());
-          operator_stack.pop();
+          add_operator();
         }
 
         if (!operator_stack.empty() && operator_stack.top()->operation == FunctionStorage::Operation::ParenLeft) {
@@ -292,8 +302,7 @@ class Parser {
             throw_parser_error("internal error at function " + func->name);
           }
 
-          current_expression_list->rpn_output.emplace_back(operator_stack.top());
-          operator_stack.pop();
+          add_operator();
           function_stack.pop();
         }
       }
@@ -305,10 +314,17 @@ class Parser {
     }
 
     while (!operator_stack.empty()) {
-      current_expression_list->rpn_output.emplace_back(operator_stack.top());
-      operator_stack.pop();
+      add_operator();
     }
 
+    if (arguments.size() == 1) {
+      current_expression_list->root = arguments[0];
+      arguments = {};
+
+    } else if (arguments.size() > 1) {
+      throw_parser_error("malformed expression");
+    }
+    
     return true;
   }
 

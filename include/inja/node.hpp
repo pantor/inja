@@ -144,76 +144,94 @@ public:
 
   std::string name;
   int number_args; // Should also be negative -> -1 for unknown number
+  std::vector<std::shared_ptr<ExpressionNode>> arguments;
   CallbackFunction callback;
 
   explicit FunctionNode(nonstd::string_view name, size_t pos) : ExpressionNode(pos), precedence(8), associativity(Associativity::Left), operation(Op::Callback), name(name), number_args(1) { }
   explicit FunctionNode(Op operation, size_t pos) : ExpressionNode(pos), operation(operation), number_args(1) {
     switch (operation) {
       case Op::Not: {
+        number_args = 1;
         precedence = 4;
         associativity = Associativity::Left;
       } break;
       case Op::And: {
+        number_args = 2;
         precedence = 1;
         associativity = Associativity::Left;
       } break;
       case Op::Or: {
+        number_args = 2;
         precedence = 1;
         associativity = Associativity::Left;
       } break;
       case Op::In: {
+        number_args = 2;
         precedence = 2;
         associativity = Associativity::Left;
       } break;
       case Op::Equal: {
+        number_args = 2;
         precedence = 2;
         associativity = Associativity::Left;
       } break;
       case Op::NotEqual: {
+        number_args = 2;
         precedence = 2;
         associativity = Associativity::Left;
       } break;
       case Op::Greater: {
+        number_args = 2;
         precedence = 2;
         associativity = Associativity::Left;
       } break;
       case Op::GreaterEqual: {
+        number_args = 2;
         precedence = 2;
         associativity = Associativity::Left;
       } break;
       case Op::Less: {
+        number_args = 2;
         precedence = 2;
         associativity = Associativity::Left;
       } break;
       case Op::LessEqual: {
+        number_args = 2;
         precedence = 2;
         associativity = Associativity::Left;
       } break;
       case Op::Add: {
+        number_args = 2;
         precedence = 3;
         associativity = Associativity::Left;
       } break;
       case Op::Subtract: {
+        number_args = 2;
         precedence = 3;
         associativity = Associativity::Left;
       } break;
       case Op::Multiplication: {
+        number_args = 2;
         precedence = 4;
         associativity = Associativity::Left;
       } break;
       case Op::Division: {
+        number_args = 2;
         precedence = 4;
         associativity = Associativity::Left;
       } break;
       case Op::Power: {
+        number_args = 2;
         precedence = 5;
         associativity = Associativity::Right;
       } break;
       case Op::Modulo: {
+        number_args = 2;
         precedence = 4;
         associativity = Associativity::Left;
       } break;
       case Op::AtId: {
+        number_args = 2;
         precedence = 8;
         associativity = Associativity::Left;
       } break;
@@ -231,7 +249,7 @@ public:
 
 class ExpressionListNode : public AstNode {
 public:
-  std::vector<std::shared_ptr<ExpressionNode>> rpn_output;
+  std::shared_ptr<ExpressionNode> root;
 
   explicit ExpressionListNode() : AstNode(0) { }
   explicit ExpressionListNode(size_t pos) : AstNode(pos) { }

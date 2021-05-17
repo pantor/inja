@@ -2455,76 +2455,94 @@ public:
 
   std::string name;
   int number_args; // Should also be negative -> -1 for unknown number
+  std::vector<std::shared_ptr<ExpressionNode>> arguments;
   CallbackFunction callback;
 
   explicit FunctionNode(nonstd::string_view name, size_t pos) : ExpressionNode(pos), precedence(8), associativity(Associativity::Left), operation(Op::Callback), name(name), number_args(1) { }
   explicit FunctionNode(Op operation, size_t pos) : ExpressionNode(pos), operation(operation), number_args(1) {
     switch (operation) {
       case Op::Not: {
+        number_args = 1;
         precedence = 4;
         associativity = Associativity::Left;
       } break;
       case Op::And: {
+        number_args = 2;
         precedence = 1;
         associativity = Associativity::Left;
       } break;
       case Op::Or: {
+        number_args = 2;
         precedence = 1;
         associativity = Associativity::Left;
       } break;
       case Op::In: {
+        number_args = 2;
         precedence = 2;
         associativity = Associativity::Left;
       } break;
       case Op::Equal: {
+        number_args = 2;
         precedence = 2;
         associativity = Associativity::Left;
       } break;
       case Op::NotEqual: {
+        number_args = 2;
         precedence = 2;
         associativity = Associativity::Left;
       } break;
       case Op::Greater: {
+        number_args = 2;
         precedence = 2;
         associativity = Associativity::Left;
       } break;
       case Op::GreaterEqual: {
+        number_args = 2;
         precedence = 2;
         associativity = Associativity::Left;
       } break;
       case Op::Less: {
+        number_args = 2;
         precedence = 2;
         associativity = Associativity::Left;
       } break;
       case Op::LessEqual: {
+        number_args = 2;
         precedence = 2;
         associativity = Associativity::Left;
       } break;
       case Op::Add: {
+        number_args = 2;
         precedence = 3;
         associativity = Associativity::Left;
       } break;
       case Op::Subtract: {
+        number_args = 2;
         precedence = 3;
         associativity = Associativity::Left;
       } break;
       case Op::Multiplication: {
+        number_args = 2;
         precedence = 4;
         associativity = Associativity::Left;
       } break;
       case Op::Division: {
+        number_args = 2;
         precedence = 4;
         associativity = Associativity::Left;
       } break;
       case Op::Power: {
+        number_args = 2;
         precedence = 5;
         associativity = Associativity::Right;
       } break;
       case Op::Modulo: {
+        number_args = 2;
         precedence = 4;
         associativity = Associativity::Left;
       } break;
       case Op::AtId: {
+        number_args = 2;
         precedence = 8;
         associativity = Associativity::Left;
       } break;
@@ -2542,7 +2560,7 @@ public:
 
 class ExpressionListNode : public AstNode {
 public:
-  std::vector<std::shared_ptr<ExpressionNode>> rpn_output;
+  std::shared_ptr<ExpressionNode> root;
 
   explicit ExpressionListNode() : AstNode(0) { }
   explicit ExpressionListNode(size_t pos) : AstNode(pos) { }
@@ -2681,12 +2699,14 @@ class StatisticsVisitor : public NodeVisitor {
     variable_counter += 1;
   }
 
-  void visit(const FunctionNode&) { }
-
-  void visit(const ExpressionListNode& node) {
-    for (auto& n : node.rpn_output) {
+  void visit(const FunctionNode& node) {
+    for (auto& n : node.arguments) {
       n->accept(*this);
     }
+  }
+
+  void visit(const ExpressionListNode& node) {
+    node.root->accept(*this);
   }
 
   void visit(const StatementNode&) { }
@@ -2781,16 +2801,17 @@ class Parser {
   BlockNode *current_block {nullptr};
   ExpressionListNode *current_expression_list {nullptr};
   std::stack<std::pair<FunctionNode*, size_t>> function_stack;
+  std::vector<std::shared_ptr<ExpressionNode>> arguments;
 
   std::stack<std::shared_ptr<FunctionNode>> operator_stack;
   std::stack<IfStatementNode*> if_statement_stack;
   std::stack<ForStatementNode*> for_statement_stack;
 
-  void throw_parser_error(const std::string &message) {
+  inline void throw_parser_error(const std::string &message) {
     INJA_THROW(ParserError(message, lexer.current_position()));
   }
 
-  void get_next_token() {
+  inline void get_next_token() {
     if (have_peek_tok) {
       tok = peek_tok;
       have_peek_tok = false;
@@ -2799,16 +2820,27 @@ class Parser {
     }
   }
 
-  void get_peek_token() {
+  inline void get_peek_token() {
     if (!have_peek_tok) {
       peek_tok = lexer.scan();
       have_peek_tok = true;
     }
   }
 
-  void add_json_literal(const char* content_ptr) {
+  inline void add_json_literal(const char* content_ptr) {
     nonstd::string_view json_text(json_literal_start.data(), tok.text.data() - json_literal_start.data() + tok.text.size());
-    current_expression_list->rpn_output.emplace_back(std::make_shared<LiteralNode>(json::parse(json_text), json_text.data() - content_ptr));
+    arguments.emplace_back(std::make_shared<LiteralNode>(json::parse(json_text), json_text.data() - content_ptr));
+  }
+
+  inline void add_operator() {
+    auto function = operator_stack.top();
+    operator_stack.pop();
+
+    for (size_t i = 0; i < function->number_args; ++i) {
+      function->arguments.insert(function->arguments.begin(), arguments.back());
+      arguments.pop_back();
+    }
+    arguments.emplace_back(function);
   }
 
   bool parse_expression(Template &tmpl, Token::Kind closing) {
@@ -2886,7 +2918,7 @@ class Parser {
 
         // Variables
         } else {
-          current_expression_list->rpn_output.emplace_back(std::make_shared<JsonNode>(static_cast<std::string>(tok.text), tok.text.data() - tmpl.content.c_str()));
+          arguments.emplace_back(std::make_shared<JsonNode>(static_cast<std::string>(tok.text), tok.text.data() - tmpl.content.c_str()));
         }
 
       // Operators
@@ -2967,8 +2999,7 @@ class Parser {
         auto function_node = std::make_shared<FunctionNode>(operation, tok.text.data() - tmpl.content.c_str());
 
         while (!operator_stack.empty() && ((operator_stack.top()->precedence > function_node->precedence) || (operator_stack.top()->precedence == function_node->precedence && function_node->associativity == FunctionNode::Associativity::Left)) && (operator_stack.top()->operation != FunctionStorage::Operation::ParenLeft)) {
-          current_expression_list->rpn_output.emplace_back(operator_stack.top());
-          operator_stack.pop();
+          add_operator();
         }
 
         operator_stack.emplace(function_node);
@@ -3005,8 +3036,7 @@ class Parser {
       case Token::Kind::RightParen: {
         current_paren_level -= 1;
         while (!operator_stack.empty() && operator_stack.top()->operation != FunctionStorage::Operation::ParenLeft) {
-          current_expression_list->rpn_output.emplace_back(operator_stack.top());
-          operator_stack.pop();
+          add_operator();
         }
 
         if (!operator_stack.empty() && operator_stack.top()->operation == FunctionStorage::Operation::ParenLeft) {
@@ -3028,8 +3058,7 @@ class Parser {
             throw_parser_error("internal error at function " + func->name);
           }
 
-          current_expression_list->rpn_output.emplace_back(operator_stack.top());
-          operator_stack.pop();
+          add_operator();
           function_stack.pop();
         }
       }
@@ -3041,10 +3070,17 @@ class Parser {
     }
 
     while (!operator_stack.empty()) {
-      current_expression_list->rpn_output.emplace_back(operator_stack.top());
-      operator_stack.pop();
+      add_operator();
     }
 
+    if (arguments.size() == 1) {
+      current_expression_list->root = arguments[0];
+      arguments = {};
+
+    } else if (arguments.size() > 1) {
+      throw_parser_error("malformed expression");
+    }
+    
     return true;
   }
 
@@ -3388,9 +3424,11 @@ class Renderer : public NodeVisitor  {
   }
 
   const std::shared_ptr<json> eval_expression_list(const ExpressionListNode& expression_list) {
-    for (auto& expression : expression_list.rpn_output) {
-      expression->accept(*this);
+    if (!expression_list.root) {
+      throw_renderer_error("empty expression", expression_list);
     }
+
+    expression_list.root->accept(*this);
 
     if (json_eval_stack.empty()) {
       throw_renderer_error("empty expression", expression_list);
@@ -3419,8 +3457,16 @@ class Renderer : public NodeVisitor  {
     INJA_THROW(RenderError(message, loc));
   }
 
-  template<size_t N, bool throw_not_found=true>
-  std::array<const json*, N> get_arguments(const AstNode& node) {
+  template<size_t N, size_t N_start = 0, bool throw_not_found=true>
+  std::array<const json*, N> get_arguments(const FunctionNode& node) {
+    if (node.arguments.size() < N_start + N) {
+      throw_renderer_error("function needs " + std::to_string(N_start + N) + " variables, but has only found " + std::to_string(node.arguments.size()), node);
+    }
+
+    for (size_t i = N_start; i < N_start + N; i += 1) {
+      node.arguments[i]->accept(*this);
+    }
+
     if (json_eval_stack.size() < N) {
       throw_renderer_error("function needs " + std::to_string(N) + " variables, but has only found " + std::to_string(json_eval_stack.size()), node);
     }
@@ -3443,7 +3489,12 @@ class Renderer : public NodeVisitor  {
   }
 
   template<bool throw_not_found=true>
-  Arguments get_argument_vector(size_t N, const AstNode& node) {
+  Arguments get_argument_vector(const FunctionNode& node) {
+    const size_t N = node.arguments.size();
+    for (auto a: node.arguments) {
+      a->accept(*this);
+    }
+
     if (json_eval_stack.size() < N) {
       throw_renderer_error("function needs " + std::to_string(N) + " variables, but has only found " + std::to_string(json_eval_stack.size()), node);
     }
@@ -3515,14 +3566,12 @@ class Renderer : public NodeVisitor  {
       json_eval_stack.push(result_ptr.get());
     } break;
     case Op::And: {
-      auto args = get_arguments<2>(node);
-      result_ptr = std::make_shared<json>(truthy(args[0]) && truthy(args[1]));
+      result_ptr = std::make_shared<json>(truthy(get_arguments<1, 0>(node)[0]) && truthy(get_arguments<1, 1>(node)[0]));
       json_tmp_stack.push_back(result_ptr);
       json_eval_stack.push(result_ptr.get());
     } break;
     case Op::Or: {
-      auto args = get_arguments<2>(node);
-      result_ptr = std::make_shared<json>(truthy(args[0]) || truthy(args[1]));
+      result_ptr = std::make_shared<json>(truthy(get_arguments<1, 0>(node)[0]) || truthy(get_arguments<1, 1>(node)[0]));
       json_tmp_stack.push_back(result_ptr);
       json_eval_stack.push(result_ptr.get());
     } break;
@@ -3633,13 +3682,14 @@ class Renderer : public NodeVisitor  {
       json_eval_stack.push(result_ptr.get());
     } break;
     case Op::AtId: {
-      json_eval_stack.pop(); // Pop id nullptr
-      auto container = get_arguments<1, false>(node)[0];
+      auto container = get_arguments<1, 0, false>(node)[0];
+      node.arguments[1]->accept(*this);
       if (not_found_stack.empty()) {
         throw_renderer_error("could not find element with given name", node);
       }
       auto id_node = not_found_stack.top();
       not_found_stack.pop();
+      json_eval_stack.pop();
       json_eval_stack.push(&container->at(id_node->name));
     } break;
     case Op::At: {
@@ -3647,9 +3697,8 @@ class Renderer : public NodeVisitor  {
       json_eval_stack.push(&args[0]->at(args[1]->get<int>()));
     } break;
     case Op::Default: {
-      auto default_arg = get_arguments<1>(node)[0];
-      auto test_arg = get_arguments<1, false>(node)[0];
-      json_eval_stack.push(test_arg ? test_arg : default_arg);
+      auto test_arg = get_arguments<1, 0, false>(node)[0];
+      json_eval_stack.push(test_arg ? test_arg : get_arguments<1, 1>(node)[0]);
     } break;
     case Op::DivisibleBy: {
       auto args = get_arguments<2>(node);
@@ -3790,7 +3839,7 @@ class Renderer : public NodeVisitor  {
       json_eval_stack.push(result_ptr.get());
     } break;
     case Op::Callback: {
-      auto args = get_argument_vector(node.number_args, node);
+      auto args = get_argument_vector(node);
       result_ptr = std::make_shared<json>(node.callback(args));
       json_tmp_stack.push_back(result_ptr);
       json_eval_stack.push(result_ptr.get());

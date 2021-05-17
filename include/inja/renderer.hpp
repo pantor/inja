@@ -63,9 +63,11 @@ class Renderer : public NodeVisitor  {
   }
 
   const std::shared_ptr<json> eval_expression_list(const ExpressionListNode& expression_list) {
-    for (auto& expression : expression_list.rpn_output) {
-      expression->accept(*this);
+    if (!expression_list.root) {
+      throw_renderer_error("empty expression", expression_list);
     }
+
+    expression_list.root->accept(*this);
 
     if (json_eval_stack.empty()) {
       throw_renderer_error("empty expression", expression_list);
@@ -94,8 +96,16 @@ class Renderer : public NodeVisitor  {
     INJA_THROW(RenderError(message, loc));
   }
 
-  template<size_t N, bool throw_not_found=true>
-  std::array<const json*, N> get_arguments(const AstNode& node) {
+  template<size_t N, size_t N_start = 0, bool throw_not_found=true>
+  std::array<const json*, N> get_arguments(const FunctionNode& node) {
+    if (node.arguments.size() < N_start + N) {
+      throw_renderer_error("function needs " + std::to_string(N_start + N) + " variables, but has only found " + std::to_string(node.arguments.size()), node);
+    }
+
+    for (size_t i = N_start; i < N_start + N; i += 1) {
+      node.arguments[i]->accept(*this);
+    }
+
     if (json_eval_stack.size() < N) {
       throw_renderer_error("function needs " + std::to_string(N) + " variables, but has only found " + std::to_string(json_eval_stack.size()), node);
     }
@@ -118,7 +128,12 @@ class Renderer : public NodeVisitor  {
   }
 
   template<bool throw_not_found=true>
-  Arguments get_argument_vector(size_t N, const AstNode& node) {
+  Arguments get_argument_vector(const FunctionNode& node) {
+    const size_t N = node.arguments.size();
+    for (auto a: node.arguments) {
+      a->accept(*this);
+    }
+
     if (json_eval_stack.size() < N) {
       throw_renderer_error("function needs " + std::to_string(N) + " variables, but has only found " + std::to_string(json_eval_stack.size()), node);
     }
@@ -190,14 +205,12 @@ class Renderer : public NodeVisitor  {
       json_eval_stack.push(result_ptr.get());
     } break;
     case Op::And: {
-      auto args = get_arguments<2>(node);
-      result_ptr = std::make_shared<json>(truthy(args[0]) && truthy(args[1]));
+      result_ptr = std::make_shared<json>(truthy(get_arguments<1, 0>(node)[0]) && truthy(get_arguments<1, 1>(node)[0]));
       json_tmp_stack.push_back(result_ptr);
       json_eval_stack.push(result_ptr.get());
     } break;
     case Op::Or: {
-      auto args = get_arguments<2>(node);
-      result_ptr = std::make_shared<json>(truthy(args[0]) || truthy(args[1]));
+      result_ptr = std::make_shared<json>(truthy(get_arguments<1, 0>(node)[0]) || truthy(get_arguments<1, 1>(node)[0]));
       json_tmp_stack.push_back(result_ptr);
       json_eval_stack.push(result_ptr.get());
     } break;
@@ -308,13 +321,14 @@ class Renderer : public NodeVisitor  {
       json_eval_stack.push(result_ptr.get());
     } break;
     case Op::AtId: {
-      json_eval_stack.pop(); // Pop id nullptr
-      auto container = get_arguments<1, false>(node)[0];
+      auto container = get_arguments<1, 0, false>(node)[0];
+      node.arguments[1]->accept(*this);
       if (not_found_stack.empty()) {
         throw_renderer_error("could not find element with given name", node);
       }
       auto id_node = not_found_stack.top();
       not_found_stack.pop();
+      json_eval_stack.pop();
       json_eval_stack.push(&container->at(id_node->name));
     } break;
     case Op::At: {
@@ -322,9 +336,8 @@ class Renderer : public NodeVisitor  {
       json_eval_stack.push(&args[0]->at(args[1]->get<int>()));
     } break;
     case Op::Default: {
-      auto default_arg = get_arguments<1>(node)[0];
-      auto test_arg = get_arguments<1, false>(node)[0];
-      json_eval_stack.push(test_arg ? test_arg : default_arg);
+      auto test_arg = get_arguments<1, 0, false>(node)[0];
+      json_eval_stack.push(test_arg ? test_arg : get_arguments<1, 1>(node)[0]);
     } break;
     case Op::DivisibleBy: {
       auto args = get_arguments<2>(node);
@@ -465,7 +478,7 @@ class Renderer : public NodeVisitor  {
       json_eval_stack.push(result_ptr.get());
     } break;
     case Op::Callback: {
-      auto args = get_argument_vector(node.number_args, node);
+      auto args = get_argument_vector(node);
       result_ptr = std::make_shared<json>(node.callback(args));
       json_tmp_stack.push_back(result_ptr);
       json_eval_stack.push(result_ptr.get());
