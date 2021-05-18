@@ -10,6 +10,9 @@
 #else
     #include <cstdlib>
     #define INJA_THROW(exception) std::abort()
+    #ifndef INJA_NOEXCEPTION
+      #define INJA_NOEXCEPTION
+    #endif
 #endif
 
 #include "environment.hpp"
