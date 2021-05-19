@@ -10,6 +10,9 @@
 #else
     #include <cstdlib>
     #define INJA_THROW(exception) std::abort()
+    #ifndef INJA_NOEXCEPTION
+      #define INJA_NOEXCEPTION
+    #endif
 #endif
 
 // #include "environment.hpp"
@@ -1842,11 +1845,15 @@ namespace inja {
 
 inline void open_file_or_throw(const std::string &path, std::ifstream &file) {
   file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+#ifndef INJA_NOEXCEPTION
   try {
     file.open(path);
   } catch (const std::ios_base::failure & /*e*/) {
     INJA_THROW(FileError("failed accessing file at '" + path + "'"));
   }
+#else
+  file.open(path);
+#endif
 }
 
 namespace string_view {
