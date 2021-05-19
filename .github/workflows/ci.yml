@@ -21,6 +21,8 @@ jobs:
           ubuntu-18.04-gcc-7,
           ubuntu-18.04-gcc-8,
           ubuntu-18.04-gcc-9,
+          ubuntu-20.04-gcc-10,
+          ubuntu-20.04-gcc-11,
           ubuntu-18.04-clang-3.8,
           ubuntu-18.04-clang-4.0,
           ubuntu-18.04-clang-5.0,
@@ -71,6 +73,16 @@ jobs:
             os: ubuntu-18.04
             compiler: gcc
             version: "9"
+
+          - name: ubuntu-20.04-gcc-10
+            os: ubuntu-20.04
+            compiler: gcc
+            version: "10"
+
+          - name: ubuntu-20.04-gcc-11
+            os: ubuntu-20.04
+            compiler: gcc
+            version: "11"
 
           - name: ubuntu-18.04-clang-3.8
             os: ubuntu-18.04
