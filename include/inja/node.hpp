@@ -33,6 +33,8 @@ class SetStatementNode;
 
 class NodeVisitor {
 public:
+  virtual ~NodeVisitor() = default;
+
   virtual void visit(const BlockNode& node) = 0;
   virtual void visit(const TextNode& node) = 0;
   virtual void visit(const ExpressionNode& node) = 0;
