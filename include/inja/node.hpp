@@ -33,6 +33,8 @@ class SetStatementNode;
 
 class NodeVisitor {
 public:
+  virtual ~NodeVisitor() = default;
+
   virtual void visit(const BlockNode& node) = 0;
   virtual void visit(const TextNode& node) = 0;
   virtual void visit(const ExpressionNode& node) = 0;
@@ -59,7 +61,7 @@ public:
   size_t pos;
 
   AstNode(size_t pos) : pos(pos) { }
-  virtual ~AstNode() { };
+  virtual ~AstNode() { }
 };
 
 
@@ -326,7 +328,7 @@ public:
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);
-  };
+  }
 };
 
 class SetStatementNode : public StatementNode {
@@ -338,7 +340,7 @@ public:
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);
-  };
+  }
 };
 
 } // namespace inja

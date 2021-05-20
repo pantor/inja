@@ -304,7 +304,7 @@ class Renderer : public NodeVisitor  {
     case Op::Power: {
       auto args = get_arguments<2>(node);
       if (args[0]->is_number_integer() && args[1]->get<int>() >= 0) {
-        int result = std::pow(args[0]->get<int>(), args[1]->get<int>());
+        int result = static_cast<int>(std::pow(args[0]->get<int>(), args[1]->get<int>()));
         result_ptr = std::make_shared<json>(std::move(result));
         json_tmp_stack.push_back(result_ptr);
       } else {

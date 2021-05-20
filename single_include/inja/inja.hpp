@@ -2351,6 +2351,8 @@ class SetStatementNode;
 
 class NodeVisitor {
 public:
+  virtual ~NodeVisitor() = default;
+
   virtual void visit(const BlockNode& node) = 0;
   virtual void visit(const TextNode& node) = 0;
   virtual void visit(const ExpressionNode& node) = 0;
@@ -2377,7 +2379,7 @@ public:
   size_t pos;
 
   AstNode(size_t pos) : pos(pos) { }
-  virtual ~AstNode() { };
+  virtual ~AstNode() { }
 };
 
 
@@ -2644,7 +2646,7 @@ public:
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);
-  };
+  }
 };
 
 class SetStatementNode : public StatementNode {
@@ -2656,7 +2658,7 @@ public:
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);
-  };
+  }
 };
 
 } // namespace inja
@@ -3672,7 +3674,7 @@ class Renderer : public NodeVisitor  {
     case Op::Power: {
       auto args = get_arguments<2>(node);
       if (args[0]->is_number_integer() && args[1]->get<int>() >= 0) {
-        int result = std::pow(args[0]->get<int>(), args[1]->get<int>());
+        int result = static_cast<int>(std::pow(args[0]->get<int>(), args[1]->get<int>()));
         result_ptr = std::make_shared<json>(std::move(result));
         json_tmp_stack.push_back(result_ptr);
       } else {
