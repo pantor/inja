@@ -59,7 +59,7 @@ public:
   size_t pos;
 
   AstNode(size_t pos) : pos(pos) { }
-  virtual ~AstNode() { };
+  virtual ~AstNode() { }
 };
 
 
@@ -326,7 +326,7 @@ public:
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);
-  };
+  }
 };
 
 class SetStatementNode : public StatementNode {
@@ -338,7 +338,7 @@ public:
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);
-  };
+  }
 };
 
 } // namespace inja
