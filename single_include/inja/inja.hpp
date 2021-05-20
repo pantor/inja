@@ -1,4 +1,4 @@
-// Copyright (c) 2020 Pantor. All rights reserved.
+// Copyright (c) 2021 Pantor. All rights reserved.
 
 #ifndef INCLUDE_INJA_INJA_HPP_
 #define INCLUDE_INJA_INJA_HPP_
@@ -16,7 +16,7 @@
 #endif
 
 // #include "environment.hpp"
-// Copyright (c) 2019 Pantor. All rights reserved.
+// Copyright (c) 2021 Pantor. All rights reserved.
 
 #ifndef INCLUDE_INJA_ENVIRONMENT_HPP_
 #define INCLUDE_INJA_ENVIRONMENT_HPP_
@@ -30,7 +30,7 @@
 #include <nlohmann/json.hpp>
 
 // #include "config.hpp"
-// Copyright (c) 2019 Pantor. All rights reserved.
+// Copyright (c) 2021 Pantor. All rights reserved.
 
 #ifndef INCLUDE_INJA_CONFIG_HPP_
 #define INCLUDE_INJA_CONFIG_HPP_
@@ -1685,7 +1685,7 @@ public:
 // #include "config.hpp"
 
 // #include "exceptions.hpp"
-// Copyright (c) 2020 Pantor. All rights reserved.
+// Copyright (c) 2021 Pantor. All rights reserved.
 
 #ifndef INCLUDE_INJA_EXCEPTIONS_HPP_
 #define INCLUDE_INJA_EXCEPTIONS_HPP_
@@ -1750,7 +1750,7 @@ struct JsonError : public InjaError {
 // #include "config.hpp"
 
 // #include "token.hpp"
-// Copyright (c) 2020 Pantor. All rights reserved.
+// Copyright (c) 2021 Pantor. All rights reserved.
 
 #ifndef INCLUDE_INJA_TOKEN_HPP_
 #define INCLUDE_INJA_TOKEN_HPP_
@@ -1829,7 +1829,7 @@ struct Token {
 #endif // INCLUDE_INJA_TOKEN_HPP_
 
 // #include "utils.hpp"
-// Copyright (c) 2020 Pantor. All rights reserved.
+// Copyright (c) 2021 Pantor. All rights reserved.
 
 #ifndef INCLUDE_INJA_UTILS_HPP_
 #define INCLUDE_INJA_UTILS_HPP_
@@ -3965,15 +3965,14 @@ class Renderer : public NodeVisitor  {
 
       const auto current_block_statement = block_statement_stack.back();
       const Template *new_template = template_stack.at(level);
-      
-      auto block_it = new_template->block_storage.find(current_block_statement->name);
+      const Template *old_template = current_template;
+      const auto block_it = new_template->block_storage.find(current_block_statement->name);
       if (block_it != new_template->block_storage.end()) {
-        const Template *old_current_template = current_template;
         current_template = new_template;
         current_level = level;
         block_it->second->block.accept(*this);
         current_level = old_level;
-        current_template = old_current_template;
+        current_template = old_template;
       } else {
         throw_renderer_error("could not find block with name '" + current_block_statement->name + "'", node);
       }
