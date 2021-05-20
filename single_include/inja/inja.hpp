@@ -1525,7 +1525,7 @@ struct RenderConfig {
 #endif // INCLUDE_INJA_CONFIG_HPP_
 
 // #include "function_storage.hpp"
-// Copyright (c) 2020 Pantor. All rights reserved.
+// Copyright (c) 2021 Pantor. All rights reserved.
 
 #ifndef INCLUDE_INJA_FUNCTION_STORAGE_HPP_
 #define INCLUDE_INJA_FUNCTION_STORAGE_HPP_
@@ -1592,6 +1592,7 @@ public:
     Round,
     Sort,
     Upper,
+    Super,
     Callback,
     ParenLeft,
     ParenRight,
@@ -1634,6 +1635,8 @@ private:
     {std::make_pair("round", 2), FunctionData { Operation::Round }},
     {std::make_pair("sort", 1), FunctionData { Operation::Sort }},
     {std::make_pair("upper", 1), FunctionData { Operation::Upper }},
+    {std::make_pair("super", 0), FunctionData { Operation::Super }},
+    {std::make_pair("super", 1), FunctionData { Operation::Super }},
   };
 
 public:
@@ -1667,7 +1670,7 @@ public:
 #endif // INCLUDE_INJA_FUNCTION_STORAGE_HPP_
 
 // #include "parser.hpp"
-// Copyright (c) 2020 Pantor. All rights reserved.
+// Copyright (c) 2021 Pantor. All rights reserved.
 
 #ifndef INCLUDE_INJA_PARSER_HPP_
 #define INCLUDE_INJA_PARSER_HPP_
@@ -2314,7 +2317,7 @@ public:
 #endif // INCLUDE_INJA_LEXER_HPP_
 
 // #include "node.hpp"
-// Copyright (c) 2020 Pantor. All rights reserved.
+// Copyright (c) 2021 Pantor. All rights reserved.
 
 #ifndef INCLUDE_INJA_NODE_HPP_
 #define INCLUDE_INJA_NODE_HPP_
@@ -2346,6 +2349,8 @@ class ForArrayStatementNode;
 class ForObjectStatementNode;
 class IfStatementNode;
 class IncludeStatementNode;
+class ExtendsStatementNode;
+class BlockStatementNode;
 class SetStatementNode;
 
 
@@ -2364,6 +2369,8 @@ public:
   virtual void visit(const ForObjectStatementNode& node) = 0;
   virtual void visit(const IfStatementNode& node) = 0;
   virtual void visit(const IncludeStatementNode& node) = 0;
+  virtual void visit(const ExtendsStatementNode& node) = 0;
+  virtual void visit(const BlockStatementNode& node) = 0;
   virtual void visit(const SetStatementNode& node) = 0;
 };
 
@@ -2647,6 +2654,30 @@ public:
   };
 };
 
+class ExtendsStatementNode : public StatementNode {
+public:
+  const std::string file;
+
+  explicit ExtendsStatementNode(const std::string& file, size_t pos) : StatementNode(pos), file(file) { }
+
+  void accept(NodeVisitor& v) const {
+    v.visit(*this);
+  };
+};
+
+class BlockStatementNode : public StatementNode {
+public:
+  const std::string name;
+  BlockNode block;
+  BlockNode *const parent;
+
+  explicit BlockStatementNode(BlockNode *const parent, const std::string& name, size_t pos) : StatementNode(pos), parent(parent), name(name) { }
+
+  void accept(NodeVisitor& v) const {
+    v.visit(*this);
+  };
+};
+
 class SetStatementNode : public StatementNode {
 public:
   const std::string key;
@@ -2664,7 +2695,7 @@ public:
 #endif // INCLUDE_INJA_NODE_HPP_
 
 // #include "template.hpp"
-// Copyright (c) 2019 Pantor. All rights reserved.
+// Copyright (c) 2021 Pantor. All rights reserved.
 
 #ifndef INCLUDE_INJA_TEMPLATE_HPP_
 #define INCLUDE_INJA_TEMPLATE_HPP_
@@ -2737,6 +2768,12 @@ class StatisticsVisitor : public NodeVisitor {
 
   void visit(const IncludeStatementNode&) { }
 
+  void visit(const ExtendsStatementNode&) { }
+
+  void visit(const BlockStatementNode& node) {
+    node.block.accept(*this);
+  }
+
   void visit(const SetStatementNode&) { }
 
 public:
@@ -2759,6 +2796,7 @@ namespace inja {
 struct Template {
   BlockNode root;
   std::string content;
+  std::map<std::string, std::shared_ptr<BlockStatementNode>> block_storage;
 
   explicit Template() { }
   explicit Template(const std::string& content): content(content) { }
@@ -2813,6 +2851,7 @@ class Parser {
   std::stack<std::shared_ptr<FunctionNode>> operator_stack;
   std::stack<IfStatementNode*> if_statement_stack;
   std::stack<ForStatementNode*> for_statement_stack;
+  std::stack<BlockStatementNode*> block_statement_stack;
 
   inline void throw_parser_error(const std::string &message) {
     INJA_THROW(ParserError(message, lexer.current_position()));
@@ -2848,6 +2887,22 @@ class Parser {
       arguments.pop_back();
     }
     arguments.emplace_back(function);
+  }
+
+  void add_to_template_storage(nonstd::string_view path, std::string& template_name) {
+    if (config.search_included_templates_in_files && template_storage.find(template_name) == template_storage.end()) {
+      // Build the relative path
+      template_name = static_cast<std::string>(path) + template_name;
+      if (template_name.compare(0, 2, "./") == 0) {
+        template_name.erase(0, 2);
+      }
+
+      if (template_storage.find(template_name) == template_storage.end()) {
+        auto include_template = Template(load_file(template_name));
+        template_storage.emplace(template_name, include_template);
+        parse_into_template(template_storage[template_name], template_name);
+      }
+    }
   }
 
   bool parse_expression(Template &tmpl, Token::Kind closing) {
@@ -3150,6 +3205,37 @@ class Parser {
       current_block = if_statement_data->parent;
       if_statement_stack.pop();
 
+    } else if (tok.text == static_cast<decltype(tok.text)>("block")) {
+      get_next_token();
+
+      if (tok.kind != Token::Kind::Id) {
+        throw_parser_error("expected block name, got '" + tok.describe() + "'");
+      }
+
+      const std::string block_name = static_cast<std::string>(tok.text);
+
+      auto block_statement_node = std::make_shared<BlockStatementNode>(current_block, block_name, tok.text.data() - tmpl.content.c_str());
+      current_block->nodes.emplace_back(block_statement_node);
+      block_statement_stack.emplace(block_statement_node.get());
+      current_block = &block_statement_node->block;
+      auto success = tmpl.block_storage.emplace(block_name, block_statement_node);
+      if (!success.second) {
+        throw_parser_error("block with the name '" + block_name + "' does already exist");
+      }
+
+      get_next_token();
+
+    } else if (tok.text == static_cast<decltype(tok.text)>("endblock")) {
+      if (block_statement_stack.empty()) {
+        throw_parser_error("endblock without matching block");
+      }
+
+      auto &block_statement_data = block_statement_stack.top();
+      get_next_token();
+
+      current_block = block_statement_data->parent;
+      block_statement_stack.pop();
+
     } else if (tok.text == static_cast<decltype(tok.text)>("for")) {
       get_next_token();
 
@@ -3213,21 +3299,23 @@ class Parser {
       }
 
       std::string template_name = json::parse(tok.text).get_ref<const std::string &>();
-      if (config.search_included_templates_in_files && template_storage.find(template_name) == template_storage.end()) {
-        // Build the relative path
-        template_name = static_cast<std::string>(path) + template_name;
-        if (template_name.compare(0, 2, "./") == 0) {
-          template_name.erase(0, 2);
-        }
-
-        if (template_storage.find(template_name) == template_storage.end()) {
-          auto include_template = Template(load_file(template_name));
-          template_storage.emplace(template_name, include_template);
-          parse_into_template(template_storage[template_name], template_name);
-        }
-      }
+      add_to_template_storage(path, template_name);
 
       current_block->nodes.emplace_back(std::make_shared<IncludeStatementNode>(template_name, tok.text.data() - tmpl.content.c_str()));
+
+      get_next_token();
+
+    } else if (tok.text == static_cast<decltype(tok.text)>("extends")) {
+      get_next_token();
+
+      if (tok.kind != Token::Kind::String) {
+        throw_parser_error("expected string, got '" + tok.describe() + "'");
+      }
+
+      std::string template_name = json::parse(tok.text).get_ref<const std::string &>();
+      add_to_template_storage(path, template_name);
+
+      current_block->nodes.emplace_back(std::make_shared<ExtendsStatementNode>(template_name, tok.text.data() - tmpl.content.c_str()));
 
       get_next_token();
 
@@ -3361,7 +3449,7 @@ public:
 #endif // INCLUDE_INJA_PARSER_HPP_
 
 // #include "renderer.hpp"
-// Copyright (c) 2020 Pantor. All rights reserved.
+// Copyright (c) 2021 Pantor. All rights reserved.
 
 #ifndef INCLUDE_INJA_RENDERER_HPP_
 #define INCLUDE_INJA_RENDERER_HPP_
@@ -3394,9 +3482,13 @@ class Renderer : public NodeVisitor  {
   using Op = FunctionStorage::Operation;
 
   const RenderConfig config;
-  const Template *current_template;
   const TemplateStorage &template_storage;
   const FunctionStorage &function_storage;
+
+  const Template *current_template;
+  size_t current_level {0};
+  std::vector<const Template*> template_stack;
+  std::vector<const BlockStatementNode*> block_statement_stack;
 
   const json *json_input;
   std::ostream *output_stream;
@@ -3407,6 +3499,8 @@ class Renderer : public NodeVisitor  {
   std::vector<std::shared_ptr<json>> json_tmp_stack;
   std::stack<const json*> json_eval_stack;
   std::stack<const JsonNode*> not_found_stack;
+
+  bool break_rendering {false};
 
   bool truthy(const json* data) const {
     if (data->is_boolean()) {
@@ -3526,6 +3620,10 @@ class Renderer : public NodeVisitor  {
   void visit(const BlockNode& node) {
     for (auto& n : node.nodes) {
       n->accept(*this);
+
+      if (break_rendering) {
+        break;
+      }
     }
   }
 
@@ -3851,6 +3949,40 @@ class Renderer : public NodeVisitor  {
       json_tmp_stack.push_back(result_ptr);
       json_eval_stack.push(result_ptr.get());
     } break;
+    case Op::Super: {
+      auto args = get_argument_vector(node);
+      size_t old_level = current_level;
+      size_t level = current_level + 1;
+      if (args.size() == 1) {
+        level = current_level + args[0]->get<int>();
+      }
+
+      if (block_statement_stack.empty()) {
+        throw_renderer_error("super() call is not within a block", node);
+      }
+
+      if (level < 1 || level > template_stack.size() - 1) {
+        throw_renderer_error("level of super() call does not match parent templates (between 1 and " + std::to_string(template_stack.size() - 1) + ")", node);
+      }
+
+      auto current_block_statement = block_statement_stack.back();
+      const Template *new_template = template_stack.at(level);
+      
+      auto block_it = new_template->block_storage.find(current_block_statement->name);
+      if (block_it != new_template->block_storage.end()) {
+        const Template *old_current_template = current_template;
+        current_template = new_template;
+        current_level = level;
+        block_it->second->block.accept(*this);
+        current_level = old_level;
+        current_template = old_current_template;
+      } else {
+        throw_renderer_error("could not find block with name '" + current_block_statement->name + "'", node);
+      }
+      result_ptr = std::make_shared<json>(nullptr);
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
     case Op::ParenLeft:
     case Op::ParenRight:
     case Op::None:
@@ -3956,12 +4088,36 @@ class Renderer : public NodeVisitor  {
   void visit(const IncludeStatementNode& node) {
     auto sub_renderer = Renderer(config, template_storage, function_storage);
     auto included_template_it = template_storage.find(node.file);
-
     if (included_template_it != template_storage.end()) {
       sub_renderer.render_to(*output_stream, included_template_it->second, *json_input, &json_additional_data);
     } else if (config.throw_at_missing_includes) {
       throw_renderer_error("include '" + node.file + "' not found", node);
     }
+  }
+
+  void visit(const ExtendsStatementNode& node) {
+    auto included_template_it = template_storage.find(node.file);
+    if (included_template_it != template_storage.end()) {
+      const Template *parent_template = &included_template_it->second;
+      render_to(*output_stream, *parent_template, *json_input, &json_additional_data);
+      break_rendering = true;
+    } else if (config.throw_at_missing_includes) {
+      throw_renderer_error("extends '" + node.file + "' not found", node);
+    }
+  }
+
+  void visit(const BlockStatementNode& node) {
+    size_t old_level = current_level;
+    current_level = 0;
+    current_template = template_stack.front();
+    auto block_it = current_template->block_storage.find(node.name);
+    if (block_it != current_template->block_storage.end()) {
+      block_statement_stack.emplace_back(&node);
+      block_it->second->block.accept(*this);
+      block_statement_stack.pop_back(); 
+    }
+    current_level = old_level;
+    current_template = template_stack.back();
   }
 
   void visit(const SetStatementNode& node) {
@@ -3981,6 +4137,9 @@ public:
       current_loop_data = &json_additional_data["loop"];
     }
 
+    // std::cout << "add template" << current_template->content << std::endl;
+
+    template_stack.emplace_back(current_template);
     current_template->root.accept(*this);
 
     json_tmp_stack.clear();

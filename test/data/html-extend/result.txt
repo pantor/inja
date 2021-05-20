@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Default - Inter Pantor: Inja works.</title>
+
+    <style type="text/css">.important { color: #336699; }</style>
+</head>
+<body>
+    <main>Inja is the best and fastest template engine for C++. Period.</main>
+</body>
+</html>

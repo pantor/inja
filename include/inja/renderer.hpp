@@ -1,4 +1,4 @@
-// Copyright (c) 2020 Pantor. All rights reserved.
+// Copyright (c) 2021 Pantor. All rights reserved.
 
 #ifndef INCLUDE_INJA_RENDERER_HPP_
 #define INCLUDE_INJA_RENDERER_HPP_
@@ -26,9 +26,13 @@ class Renderer : public NodeVisitor  {
   using Op = FunctionStorage::Operation;
 
   const RenderConfig config;
-  const Template *current_template;
   const TemplateStorage &template_storage;
   const FunctionStorage &function_storage;
+
+  const Template *current_template;
+  size_t current_level {0};
+  std::vector<const Template*> template_stack;
+  std::vector<const BlockStatementNode*> block_statement_stack;
 
   const json *json_input;
   std::ostream *output_stream;
@@ -39,6 +43,8 @@ class Renderer : public NodeVisitor  {
   std::vector<std::shared_ptr<json>> json_tmp_stack;
   std::stack<const json*> json_eval_stack;
   std::stack<const JsonNode*> not_found_stack;
+
+  bool break_rendering {false};
 
   bool truthy(const json* data) const {
     if (data->is_boolean()) {
@@ -158,6 +164,10 @@ class Renderer : public NodeVisitor  {
   void visit(const BlockNode& node) {
     for (auto& n : node.nodes) {
       n->accept(*this);
+
+      if (break_rendering) {
+        break;
+      }
     }
   }
 
@@ -483,6 +493,40 @@ class Renderer : public NodeVisitor  {
       json_tmp_stack.push_back(result_ptr);
       json_eval_stack.push(result_ptr.get());
     } break;
+    case Op::Super: {
+      auto args = get_argument_vector(node);
+      size_t old_level = current_level;
+      size_t level = current_level + 1;
+      if (args.size() == 1) {
+        level = current_level + args[0]->get<int>();
+      }
+
+      if (block_statement_stack.empty()) {
+        throw_renderer_error("super() call is not within a block", node);
+      }
+
+      if (level < 1 || level > template_stack.size() - 1) {
+        throw_renderer_error("level of super() call does not match parent templates (between 1 and " + std::to_string(template_stack.size() - 1) + ")", node);
+      }
+
+      auto current_block_statement = block_statement_stack.back();
+      const Template *new_template = template_stack.at(level);
+      
+      auto block_it = new_template->block_storage.find(current_block_statement->name);
+      if (block_it != new_template->block_storage.end()) {
+        const Template *old_current_template = current_template;
+        current_template = new_template;
+        current_level = level;
+        block_it->second->block.accept(*this);
+        current_level = old_level;
+        current_template = old_current_template;
+      } else {
+        throw_renderer_error("could not find block with name '" + current_block_statement->name + "'", node);
+      }
+      result_ptr = std::make_shared<json>(nullptr);
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
     case Op::ParenLeft:
     case Op::ParenRight:
     case Op::None:
@@ -588,12 +632,36 @@ class Renderer : public NodeVisitor  {
   void visit(const IncludeStatementNode& node) {
     auto sub_renderer = Renderer(config, template_storage, function_storage);
     auto included_template_it = template_storage.find(node.file);
-
     if (included_template_it != template_storage.end()) {
       sub_renderer.render_to(*output_stream, included_template_it->second, *json_input, &json_additional_data);
     } else if (config.throw_at_missing_includes) {
       throw_renderer_error("include '" + node.file + "' not found", node);
     }
+  }
+
+  void visit(const ExtendsStatementNode& node) {
+    auto included_template_it = template_storage.find(node.file);
+    if (included_template_it != template_storage.end()) {
+      const Template *parent_template = &included_template_it->second;
+      render_to(*output_stream, *parent_template, *json_input, &json_additional_data);
+      break_rendering = true;
+    } else if (config.throw_at_missing_includes) {
+      throw_renderer_error("extends '" + node.file + "' not found", node);
+    }
+  }
+
+  void visit(const BlockStatementNode& node) {
+    size_t old_level = current_level;
+    current_level = 0;
+    current_template = template_stack.front();
+    auto block_it = current_template->block_storage.find(node.name);
+    if (block_it != current_template->block_storage.end()) {
+      block_statement_stack.emplace_back(&node);
+      block_it->second->block.accept(*this);
+      block_statement_stack.pop_back(); 
+    }
+    current_level = old_level;
+    current_template = template_stack.back();
   }
 
   void visit(const SetStatementNode& node) {
@@ -613,6 +681,9 @@ public:
       current_loop_data = &json_additional_data["loop"];
     }
 
+    // std::cout << "add template" << current_template->content << std::endl;
+
+    template_stack.emplace_back(current_template);
     current_template->root.accept(*this);
 
     json_tmp_stack.clear();

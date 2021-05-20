@@ -1,4 +1,4 @@
-// Copyright (c) 2020 Pantor. All rights reserved.
+// Copyright (c) 2021 Pantor. All rights reserved.
 
 #ifndef INCLUDE_INJA_FUNCTION_STORAGE_HPP_
 #define INCLUDE_INJA_FUNCTION_STORAGE_HPP_
@@ -64,6 +64,7 @@ public:
     Round,
     Sort,
     Upper,
+    Super,
     Callback,
     ParenLeft,
     ParenRight,
@@ -106,6 +107,8 @@ private:
     {std::make_pair("round", 2), FunctionData { Operation::Round }},
     {std::make_pair("sort", 1), FunctionData { Operation::Sort }},
     {std::make_pair("upper", 1), FunctionData { Operation::Upper }},
+    {std::make_pair("super", 0), FunctionData { Operation::Super }},
+    {std::make_pair("super", 1), FunctionData { Operation::Super }},
   };
 
 public:

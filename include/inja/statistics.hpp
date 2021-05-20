@@ -57,6 +57,12 @@ class StatisticsVisitor : public NodeVisitor {
 
   void visit(const IncludeStatementNode&) { }
 
+  void visit(const ExtendsStatementNode&) { }
+
+  void visit(const BlockStatementNode& node) {
+    node.block.accept(*this);
+  }
+
   void visit(const SetStatementNode&) { }
 
 public:

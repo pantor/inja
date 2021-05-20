@@ -1,4 +1,4 @@
-// Copyright (c) 2020 Pantor. All rights reserved.
+// Copyright (c) 2021 Pantor. All rights reserved.
 
 #ifndef INCLUDE_INJA_PARSER_HPP_
 #define INCLUDE_INJA_PARSER_HPP_
@@ -50,6 +50,7 @@ class Parser {
   std::stack<std::shared_ptr<FunctionNode>> operator_stack;
   std::stack<IfStatementNode*> if_statement_stack;
   std::stack<ForStatementNode*> for_statement_stack;
+  std::stack<BlockStatementNode*> block_statement_stack;
 
   inline void throw_parser_error(const std::string &message) {
     INJA_THROW(ParserError(message, lexer.current_position()));
@@ -85,6 +86,22 @@ class Parser {
       arguments.pop_back();
     }
     arguments.emplace_back(function);
+  }
+
+  void add_to_template_storage(nonstd::string_view path, std::string& template_name) {
+    if (config.search_included_templates_in_files && template_storage.find(template_name) == template_storage.end()) {
+      // Build the relative path
+      template_name = static_cast<std::string>(path) + template_name;
+      if (template_name.compare(0, 2, "./") == 0) {
+        template_name.erase(0, 2);
+      }
+
+      if (template_storage.find(template_name) == template_storage.end()) {
+        auto include_template = Template(load_file(template_name));
+        template_storage.emplace(template_name, include_template);
+        parse_into_template(template_storage[template_name], template_name);
+      }
+    }
   }
 
   bool parse_expression(Template &tmpl, Token::Kind closing) {
@@ -387,6 +404,37 @@ class Parser {
       current_block = if_statement_data->parent;
       if_statement_stack.pop();
 
+    } else if (tok.text == static_cast<decltype(tok.text)>("block")) {
+      get_next_token();
+
+      if (tok.kind != Token::Kind::Id) {
+        throw_parser_error("expected block name, got '" + tok.describe() + "'");
+      }
+
+      const std::string block_name = static_cast<std::string>(tok.text);
+
+      auto block_statement_node = std::make_shared<BlockStatementNode>(current_block, block_name, tok.text.data() - tmpl.content.c_str());
+      current_block->nodes.emplace_back(block_statement_node);
+      block_statement_stack.emplace(block_statement_node.get());
+      current_block = &block_statement_node->block;
+      auto success = tmpl.block_storage.emplace(block_name, block_statement_node);
+      if (!success.second) {
+        throw_parser_error("block with the name '" + block_name + "' does already exist");
+      }
+
+      get_next_token();
+
+    } else if (tok.text == static_cast<decltype(tok.text)>("endblock")) {
+      if (block_statement_stack.empty()) {
+        throw_parser_error("endblock without matching block");
+      }
+
+      auto &block_statement_data = block_statement_stack.top();
+      get_next_token();
+
+      current_block = block_statement_data->parent;
+      block_statement_stack.pop();
+
     } else if (tok.text == static_cast<decltype(tok.text)>("for")) {
       get_next_token();
 
@@ -450,21 +498,23 @@ class Parser {
       }
 
       std::string template_name = json::parse(tok.text).get_ref<const std::string &>();
-      if (config.search_included_templates_in_files && template_storage.find(template_name) == template_storage.end()) {
-        // Build the relative path
-        template_name = static_cast<std::string>(path) + template_name;
-        if (template_name.compare(0, 2, "./") == 0) {
-          template_name.erase(0, 2);
-        }
-
-        if (template_storage.find(template_name) == template_storage.end()) {
-          auto include_template = Template(load_file(template_name));
-          template_storage.emplace(template_name, include_template);
-          parse_into_template(template_storage[template_name], template_name);
-        }
-      }
+      add_to_template_storage(path, template_name);
 
       current_block->nodes.emplace_back(std::make_shared<IncludeStatementNode>(template_name, tok.text.data() - tmpl.content.c_str()));
+
+      get_next_token();
+
+    } else if (tok.text == static_cast<decltype(tok.text)>("extends")) {
+      get_next_token();
+
+      if (tok.kind != Token::Kind::String) {
+        throw_parser_error("expected string, got '" + tok.describe() + "'");
+      }
+
+      std::string template_name = json::parse(tok.text).get_ref<const std::string &>();
+      add_to_template_storage(path, template_name);
+
+      current_block->nodes.emplace_back(std::make_shared<ExtendsStatementNode>(template_name, tok.text.data() - tmpl.content.c_str()));
 
       get_next_token();
 
