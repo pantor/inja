@@ -300,7 +300,7 @@ env.render("{{ log(neighbour) }}", data); // Prints nothing to result, only to c
 ### Template Inheritance
 
 Template inheritance allows you to build a base *skeleton* template that contains all the common elements and defines blocks that child templates can override. Lets show an example: The base template
-```
+```.html
 <!DOCTYPE html>
 <html>
 <head>
@@ -315,7 +315,7 @@ Template inheritance allows you to build a base *skeleton* template that contain
 </html>
 ```
 contains three `blocks` that child templates can fill in. The child template
-```
+```.html
 {% extends "base.html" %}
 {% block title %}Index{% endblock %}
 {% block head %}
