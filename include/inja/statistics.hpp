@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Pantor. All rights reserved.
+// Copyright (c) 2021 Pantor. All rights reserved.
 
 #ifndef INCLUDE_INJA_STATISTICS_HPP_
 #define INCLUDE_INJA_STATISTICS_HPP_

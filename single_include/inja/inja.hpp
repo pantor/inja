@@ -1948,7 +1948,7 @@ class Lexer {
     if (tok_start >= m_in.size()) {
       return make_token(Token::Kind::Eof);
     }
-    char ch = m_in[tok_start];
+    const char ch = m_in[tok_start];
     if (ch == ' ' || ch == '\t' || ch == '\r') {
       tok_start += 1;
       goto again;
@@ -1958,7 +1958,7 @@ class Lexer {
     if (!close_trim.empty() && inja::string_view::starts_with(m_in.substr(tok_start), close_trim)) {
       state = State::Text;
       pos = tok_start + close_trim.size();
-      Token tok = make_token(closeKind);
+      const Token tok = make_token(closeKind);
       skip_whitespaces_and_newlines();
       return tok;
     }
@@ -1966,7 +1966,7 @@ class Lexer {
     if (inja::string_view::starts_with(m_in.substr(tok_start), close)) {
       state = State::Text;
       pos = tok_start + close.size();
-      Token tok = make_token(closeKind);
+      const Token tok = make_token(closeKind);
       if (trim) {
         skip_whitespaces_and_first_newline();
       }
@@ -1985,7 +1985,7 @@ class Lexer {
       return scan_id();
     }
 
-    MinusState current_minus_state = minus_state;
+    const MinusState current_minus_state = minus_state;
     if (minus_state == MinusState::Operator) {
       minus_state = MinusState::Number;
     }
@@ -2080,7 +2080,7 @@ class Lexer {
       if (pos >= m_in.size()) {
         break;
       }
-      char ch = m_in[pos];
+      const char ch = m_in[pos];
       if (!std::isalnum(ch) && ch != '.' && ch != '/' && ch != '_' && ch != '-') {
         break;
       }
@@ -2094,7 +2094,7 @@ class Lexer {
       if (pos >= m_in.size()) {
         break;
       }
-      char ch = m_in[pos];
+      const char ch = m_in[pos];
       // be very permissive in lexer (we'll catch errors when conversion happens)
       if (!std::isdigit(ch) && ch != '.' && ch != 'e' && ch != 'E' && ch != '+' && ch != '-') {
         break;
@@ -2110,7 +2110,7 @@ class Lexer {
       if (pos >= m_in.size()) {
         break;
       }
-      char ch = m_in[pos++];
+      const char ch = m_in[pos++];
       if (ch == '\\') {
         escape = true;
       } else if (!escape && ch == m_in[tok_start]) {
@@ -2199,7 +2199,7 @@ public:
     default:
     case State::Text: {
       // fast-scan to first open character
-      size_t open_start = m_in.substr(pos).find_first_of(config.open_chars);
+      const size_t open_start = m_in.substr(pos).find_first_of(config.open_chars);
       if (open_start == nonstd::string_view::npos) {
         // didn't find open, return remaining text as text token
         pos = m_in.size();
@@ -2708,7 +2708,7 @@ public:
 // #include "node.hpp"
 
 // #include "statistics.hpp"
-// Copyright (c) 2019 Pantor. All rights reserved.
+// Copyright (c) 2021 Pantor. All rights reserved.
 
 #ifndef INCLUDE_INJA_STATISTICS_HPP_
 #define INCLUDE_INJA_STATISTICS_HPP_
