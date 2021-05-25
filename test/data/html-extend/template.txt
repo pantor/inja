@@ -2,6 +2,6 @@
 {% block head -%}
     {{ super(2) }}
     <style type="text/css">.important { color: #336699; }</style>
-{%- endblock -%}
-{% block title %}{{ super(2) }}{{ super() }}: {{ title }}{% endblock -%}
-{% block body %}<main>{{ content }}</main>{% endblock -%}
+{%- endblock %}
+{% block title %}{{ super(2) }}{{ super() }}: {{ title }}{% endblock %}
+{% block body %}<main>{{ content }}</main>{% endblock %}

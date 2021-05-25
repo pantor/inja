@@ -6,6 +6,6 @@
     {%- endblock -%}
 </head>
 <body>
-    {% block body %}{% endblock %}
+    {% block body %}ignored{% endblock %}
 </body>
 </html>
