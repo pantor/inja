@@ -1,0 +1,12 @@
+{
+    "author": "Pantor",
+    "date": "23/12/2018",
+    "tags": [
+        "test",
+        "templates"
+    ],
+    "views": 123,
+    "title": "Inja works.",
+    "content": "Inja is the best and fastest template engine for C++. Period.",
+    "footer-text": "This is the footer."
+}

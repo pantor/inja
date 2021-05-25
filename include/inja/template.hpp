@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Pantor. All rights reserved.
+// Copyright (c) 2021 Pantor. All rights reserved.
 
 #ifndef INCLUDE_INJA_TEMPLATE_HPP_
 #define INCLUDE_INJA_TEMPLATE_HPP_
@@ -20,6 +20,7 @@ namespace inja {
 struct Template {
   BlockNode root;
   std::string content;
+  std::map<std::string, std::shared_ptr<BlockStatementNode>> block_storage;
 
   explicit Template() { }
   explicit Template(const std::string& content): content(content) { }

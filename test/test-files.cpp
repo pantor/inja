@@ -27,7 +27,7 @@ TEST_CASE("loading") {
 TEST_CASE("complete-files") {
   inja::Environment env {test_file_directory};
 
-  for (std::string test_name : {"simple-file", "nested", "nested-line", "html"}) {
+  for (std::string test_name : {"simple-file", "nested", "nested-line", "html", "html-extend"}) {
     SUBCASE(test_name.c_str()) {
       CHECK(env.render_file_with_json_file(test_name + "/template.txt", test_name + "/data.json") ==
             env.load_file(test_name + "/result.txt"));

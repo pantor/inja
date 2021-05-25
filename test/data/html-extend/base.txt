@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% block head -%}
+    <title>{% block title %}Default - {% endblock %}</title>
+    {%- endblock -%}
+</head>
+<body>
+    {% block body %}ignored{% endblock %}
+</body>
+</html>

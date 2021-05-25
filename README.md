@@ -254,25 +254,6 @@ render("{{ isArray(guests) }}", data); // "true"
 // Implemented type checks: isArray, isBoolean, isFloat, isInteger, isNumber, isObject, isString,
 ```
 
-### Whitespace Control
-
-In the default configuration, no whitespace is removed while rendering the file. To support a more readable template style, you can configure the environment to control whitespaces before and after a statement automatically. While enabling `set_trim_blocks` removes the first newline after a statement, `set_lstrip_blocks` strips tabs and spaces from the beginning of a line to the start of a block.
-
-```.cpp
-Environment env;
-env.set_trim_blocks(true);
-env.set_lstrip_blocks(true);
-```
-
-With both `trim_blocks` and `lstrip_blocks` enabled, you can put statements on their own lines. Furthermore, you can also strip whitespaces for both statements and expressions by hand. If you add a minus sign (`-`) to the start or end, the whitespaces before or after that block will be removed:
-
-```.cpp
-render("Hello       {{- name -}}     !", data); // "Hello Inja!"
-render("{% if neighbour in guests -%}   I was there{% endif -%}   !", data); // Renders without any whitespaces
-```
-
-Stripping behind a statement or expression also removes any newlines.
-
 ### Callbacks
 
 You can create your own and more complex functions with callbacks. These are implemented with `std::function`, so you can for example use C++ lambdas. Inja `Arguments` are a vector of json pointers.
@@ -315,6 +296,61 @@ env.add_void_callback("log", 1, [greet](Arguments args) {
 });
 env.render("{{ log(neighbour) }}", data); // Prints nothing to result, only to cout...
 ```
+
+### Template Inheritance
+
+Template inheritance allows you to build a base *skeleton* template that contains all the common elements and defines blocks that child templates can override. Lets show an example: The base template
+```.html
+<!DOCTYPE html>
+<html>
+<head>
+  {% block head %}
+  <link rel="stylesheet" href="style.css" />
+  <title>{% block title %}{% endblock %} - My Webpage</title>
+  {% endblock %}
+</head>
+<body>
+  <div id="content">{% block content %}{% endblock %}</div>
+</body>
+</html>
+```
+contains three `blocks` that child templates can fill in. The child template
+```.html
+{% extends "base.html" %}
+{% block title %}Index{% endblock %}
+{% block head %}
+  {{ super() }}
+  <style type="text/css">
+    .important { color: #336699; }
+  </style>
+{% endblock %}
+{% block content %}
+  <h1>Index</h1>
+  <p class="important">
+    Welcome to my blog!
+  </p>
+{% endblock %}
+```
+calls a parent template with the `extends` keyword; it should be the first element in the template. It is possible to render the contents of the parent block by calling `super()`. In the case of multiple levels of `{% extends %}`, super references may be called with an argument (e.g. `super(2)`) to skip levels in the inheritance tree.
+
+### Whitespace Control
+
+In the default configuration, no whitespace is removed while rendering the file. To support a more readable template style, you can configure the environment to control whitespaces before and after a statement automatically. While enabling `set_trim_blocks` removes the first newline after a statement, `set_lstrip_blocks` strips tabs and spaces from the beginning of a line to the start of a block.
+
+```.cpp
+Environment env;
+env.set_trim_blocks(true);
+env.set_lstrip_blocks(true);
+```
+
+With both `trim_blocks` and `lstrip_blocks` enabled, you can put statements on their own lines. Furthermore, you can also strip whitespaces for both statements and expressions by hand. If you add a minus sign (`-`) to the start or end, the whitespaces before or after that block will be removed:
+
+```.cpp
+render("Hello       {{- name -}}     !", data); // "Hello Inja!"
+render("{% if neighbour in guests -%}   I was there{% endif -%}   !", data); // Renders without any whitespaces
+```
+
+Stripping behind a statement or expression also removes any newlines.
 
 ### Comments
 
