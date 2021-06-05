@@ -1902,6 +1902,17 @@ inline SourceLocation get_source_location(nonstd::string_view content, size_t po
   return {count_lines + 1, sliced.length() - last_newline};
 }
 
+inline void replace_substring(std::string& s, const std::string& f,
+                              const std::string& t)
+{
+  if (f.empty()) return;
+  for (auto pos = s.find(f);                  // find first occurrence of f
+            pos != std::string::npos;         // make sure f was found
+            s.replace(pos, f.size(), t),      // replace with t, and
+            pos = s.find(f, pos + t.size()))  // find next occurrence of f
+  {}
+}
+
 } // namespace inja
 
 #endif // INCLUDE_INJA_UTILS_HPP_
@@ -3642,10 +3653,10 @@ class Renderer : public NodeVisitor  {
   void visit(const JsonNode& node) {
     if (json_additional_data.contains(node.ptr)) {
       json_eval_stack.push(&(json_additional_data[node.ptr]));
-    
+
     } else if (json_input->contains(node.ptr)) {
       json_eval_stack.push(&(*json_input)[node.ptr]);
-    
+
     } else {
       // Try to evaluate as a no-argument callback
       const auto function_data = function_storage.find_function(node.name, 0);
@@ -4120,7 +4131,10 @@ class Renderer : public NodeVisitor  {
   }
 
   void visit(const SetStatementNode& node) {
-    json_additional_data[node.key] = *eval_expression_list(node.expression);
+    std::string ptr = node.key;
+    replace_substring(ptr, ".", "/");
+    ptr = "/" + ptr;
+    json_additional_data[nlohmann::json::json_pointer(ptr)] = *eval_expression_list(node.expression);
   }
 
 public:
