@@ -214,23 +214,29 @@ TEST_CASE("templates") {
     CHECK(env.render("   {{- name -}}   \n   ", data) == "Peter");
     CHECK(env.render("Test\n   {{- name }}   ", data) == "Test\nPeter   ");
     CHECK(env.render("   {{ name }}\n ", data) == "   Peter\n ");
+    CHECK(env.render("{{ name }}{# name -#}    !", data) == "Peter!");
+    CHECK(env.render("   {#- name -#}    !", data) == "!");
 
     // Nothing will be stripped if there are other characters before the start of the block.
     CHECK(env.render(".  {%- if is_happy %}{{ name }}{% endif -%}\n", data) == ".  Peter");
+    CHECK(env.render(".  {#- comment -#}\n.", data) == ".  .");
 
     env.set_lstrip_blocks(true);
+    CHECK(env.render("Hello {{ name }}!", data) == "Hello Peter!");
     CHECK(env.render("   {% if is_happy %}{{ name }}{% endif %}", data) == "Peter");
     CHECK(env.render("   {% if is_happy %}{{ name }}{% endif %}   ", data) == "Peter   ");
     CHECK(env.render("   {% if is_happy %}{{ name }}{% endif -%}   ", data) == "Peter");
     CHECK(env.render("   {%+ if is_happy %}{{ name }}{% endif %}", data) == "   Peter");
     CHECK(env.render("\n   {%+ if is_happy %}{{ name }}{% endif -%}   ", data) == "\n   Peter");
     CHECK(env.render("{% if is_happy %}{{ name }}{% endif %}\n", data) == "Peter\n");
+    CHECK(env.render("   {# comment #}", data) == "");
 
     env.set_trim_blocks(true);
     CHECK(env.render("{% if is_happy %}{{ name }}{% endif %}", data) == "Peter");
     CHECK(env.render("{% if is_happy %}{{ name }}{% endif %}\n", data) == "Peter");
     CHECK(env.render("{% if is_happy %}{{ name }}{% endif %}   \n.", data) == "Peter.");
     CHECK(env.render("{%- if is_happy %}{{ name }}{% endif -%}   \n.", data) == "Peter.");
+    CHECK(env.render("   {# comment #}   \n.", data) == ".");
   }
 }
 
