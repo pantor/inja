@@ -70,6 +70,8 @@ TEST_CASE("functions") {
   SUBCASE("at") {
     CHECK(env.render("{{ at(names, 0) }}", data) == "Jeff");
     CHECK(env.render("{{ at(names, i) }}", data) == "Seb");
+    CHECK(env.render("{{ at(brother, \"name\") }}", data) == "Chris");
+    CHECK(env.render("{{ at(at(brother, \"daughters\"), 0) }}", data) == "Maria");
     // CHECK(env.render("{{ at(names, 45) }}", data) == "Jeff");
   }
 

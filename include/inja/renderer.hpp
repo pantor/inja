@@ -343,7 +343,11 @@ class Renderer : public NodeVisitor  {
     } break;
     case Op::At: {
       const auto args = get_arguments<2>(node);
-      json_eval_stack.push(&args[0]->at(args[1]->get<int>()));
+      if (args[0]->is_object()) {
+        json_eval_stack.push(&args[0]->at(args[1]->get<std::string>()));
+      } else {
+        json_eval_stack.push(&args[0]->at(args[1]->get<int>()));
+      }
     } break;
     case Op::Default: {
       const auto test_arg = get_arguments<1, 0, false>(node)[0];

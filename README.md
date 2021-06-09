@@ -245,6 +245,9 @@ render("{{ float(\"1.8\") > 2 }}", data); // false
 render("Hello {{ default(neighbour, \"my friend\") }}!", data); // "Hello Peter!"
 render("Hello {{ default(colleague, \"my friend\") }}!", data); // "Hello my friend!"
 
+// Access an objects value dynamically
+render("{{ at(time, \"start\") }} to {{ time.end }}", data); // "16 to 22"
+
 // Check if a key exists in an object
 render("{{ exists(\"guests\") }}", data); // "true"
 render("{{ exists(\"city\") }}", data); // "false"
