@@ -69,6 +69,17 @@ inline SourceLocation get_source_location(nonstd::string_view content, size_t po
   return {count_lines + 1, sliced.length() - last_newline};
 }
 
+inline void replace_substring(std::string& s, const std::string& f,
+                              const std::string& t)
+{
+  if (f.empty()) return;
+  for (auto pos = s.find(f);                  // find first occurrence of f
+            pos != std::string::npos;         // make sure f was found
+            s.replace(pos, f.size(), t),      // replace with t, and
+            pos = s.find(f, pos + t.size()))  // find next occurrence of f
+  {}
+}
+
 } // namespace inja
 
 #endif // INCLUDE_INJA_UTILS_HPP_

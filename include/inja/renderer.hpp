@@ -184,10 +184,10 @@ class Renderer : public NodeVisitor  {
   void visit(const JsonNode& node) {
     if (json_additional_data.contains(node.ptr)) {
       json_eval_stack.push(&(json_additional_data[node.ptr]));
-    
+
     } else if (json_input->contains(node.ptr)) {
       json_eval_stack.push(&(*json_input)[node.ptr]);
-    
+
     } else {
       // Try to evaluate as a no-argument callback
       const auto function_data = function_storage.find_function(node.name, 0);
@@ -662,7 +662,10 @@ class Renderer : public NodeVisitor  {
   }
 
   void visit(const SetStatementNode& node) {
-    json_additional_data[node.key] = *eval_expression_list(node.expression);
+    std::string ptr = node.key;
+    replace_substring(ptr, ".", "/");
+    ptr = "/" + ptr;
+    json_additional_data[nlohmann::json::json_pointer(ptr)] = *eval_expression_list(node.expression);
   }
 
 public:

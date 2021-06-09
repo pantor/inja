@@ -125,8 +125,13 @@ TEST_CASE("types") {
   SUBCASE("set statements") {
     CHECK(env.render("{% set predefined=true %}{% if predefined %}a{% endif %}", data) == "a");
     CHECK(env.render("{% set predefined=false %}{% if predefined %}a{% endif %}", data) == "");
-    CHECK_THROWS_WITH(env.render("{% if predefined %}{% endif %}", data), 
+    CHECK(env.render("{% set age=30 %}{{age}}", data) == "30");
+    CHECK(env.render("{% set predefined.value=1 %}{% if existsIn(predefined, \"value\") %}{{predefined.value}}{% endif %}", data) == "1");
+    CHECK(env.render("{% set brother.name=\"Bob\" %}{{brother.name}}", data) == "Bob");
+    CHECK_THROWS_WITH(env.render("{% if predefined %}{% endif %}", data),
                       "[inja.exception.render_error] (at 1:7) variable 'predefined' not found");
+    CHECK(env.render("{{age}}", data) == "29");
+    CHECK(env.render("{{brother.name}}", data) == "Chris");
   }
 
   SUBCASE("short circuit evaluation") {
@@ -210,7 +215,7 @@ TEST_CASE("templates") {
     CHECK(env.render("Test\n   {%- if is_happy %}{{ name }}{% endif %}   ", data) == "Test\nPeter   ");
     CHECK(env.render("   {%+ if is_happy %}{{ name }}{% endif %}", data) == "   Peter");
     CHECK(env.render("   {%- if is_happy %}{{ name }}{% endif -%}   \n   ", data) == "Peter");
-    
+
     CHECK(env.render("   {{- name -}}   \n   ", data) == "Peter");
     CHECK(env.render("Test\n   {{- name }}   ", data) == "Test\nPeter   ");
     CHECK(env.render("   {{ name }}\n ", data) == "   Peter\n ");

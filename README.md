@@ -198,6 +198,13 @@ Variables can also be defined within the template using the set statment.
 render("{% set new_hour=23 %}{{ new_hour }}pm", data); // "23pm"
 ```
 
+json pointers can be used to set sub-objects:
+```.cpp
+render("{% set time.start=18 %}{{ time.start }}pm", data); // "18pm"
+```
+
+Assignments only set the value within the rendering context; they do not modify the json object passed into the `render` call.
+
 ### Functions
 
 A few functions are implemented within the inja template syntax. They can be called with
