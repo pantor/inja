@@ -528,6 +528,24 @@ class Renderer : public NodeVisitor  {
       json_tmp_stack.push_back(result_ptr);
       json_eval_stack.push(result_ptr.get());
     } break;
+    case Op::Join: {
+      const auto args = get_arguments<2>(node);
+      const auto separator = args[1]->get<std::string>();
+      std::ostringstream os;
+      std::string sep;
+      for (const auto &value : *args[0]) {
+        os << sep;
+        if (value.is_string()) {
+          os << value.get<std::string>(); // otherwise the value is surrounded with ""
+        } else {
+          os << value;
+        }
+        sep = separator;
+      }
+      result_ptr = std::make_shared<json>(os.str());
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
     case Op::ParenLeft:
     case Op::ParenRight:
     case Op::None:
