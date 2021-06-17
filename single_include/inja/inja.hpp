@@ -12,7 +12,7 @@
 #else
   #include <cstdlib>
   #ifndef INJA_THROW
-    #define INJA_THROW(exception) std::abort()
+    #define INJA_THROW(exception) std::abort(); std::ignore = exception
   #endif
   #ifndef INJA_NOEXCEPTION
     #define INJA_NOEXCEPTION

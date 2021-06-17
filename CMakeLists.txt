@@ -80,9 +80,9 @@ if(BUILD_TESTING AND INJA_BUILD_TESTS)
   add_test(inja_test ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/inja_test)
 
   if(MSVC)
-    target_compile_options(inja_test PRIVATE /W4 /WX /permissive-)
+    target_compile_options(inja_test PRIVATE /W4 /permissive-)
   else()
-    target_compile_options(inja_test PRIVATE -Wall -Wextra -pedantic -Werror)
+    target_compile_options(inja_test PRIVATE -Wall -Wextra -pedantic)
   endif()
 
 
@@ -100,6 +100,12 @@ endif()
 if(BUILD_BENCHMARK)
   add_executable(inja_benchmark test/benchmark.cpp)
   target_link_libraries(inja_benchmark PRIVATE inja)
+
+  if(MSVC)
+    target_compile_options(inja_benchmark PRIVATE /W4 /permissive-)
+  else()
+    target_compile_options(inja_benchmark PRIVATE -Wall -Wextra -pedantic)
+  endif()
 endif()
 
 
