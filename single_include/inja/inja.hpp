@@ -2918,7 +2918,7 @@ class Parser {
     auto function = operator_stack.top();
     operator_stack.pop();
 
-    for (size_t i = 0; i < function->number_args; ++i) {
+    for (int i = 0; i < function->number_args; ++i) {
       function->arguments.insert(function->arguments.begin(), arguments.back());
       arguments.pop_back();
     }
