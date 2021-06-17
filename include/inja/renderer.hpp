@@ -533,7 +533,7 @@ class Renderer : public NodeVisitor  {
       const auto separator = args[1]->get<std::string>();
       std::ostringstream os;
       std::string sep;
-      for (const auto &value : *args[0]) {
+      for (const auto& value : *args[0]) {
         os << sep;
         if (value.is_string()) {
           os << value.get<std::string>(); // otherwise the value is surrounded with ""
