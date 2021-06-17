@@ -352,7 +352,7 @@ public:
   BlockNode block;
   BlockNode *const parent;
 
-  explicit BlockStatementNode(BlockNode *const parent, const std::string& name, size_t pos) : StatementNode(pos), parent(parent), name(name) { }
+  explicit BlockStatementNode(BlockNode *const parent, const std::string& name, size_t pos) : StatementNode(pos), name(name), parent(parent) { }
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);

@@ -208,7 +208,7 @@ TEST_CASE("callbacks") {
   });
 
   std::string greet = "Hello";
-  env.add_callback("double-greetings", 0, [greet](inja::Arguments args) { return greet + " " + greet + "!"; });
+  env.add_callback("double-greetings", 0, [greet](inja::Arguments) { return greet + " " + greet + "!"; });
 
   env.add_callback("multiply", 2, [](inja::Arguments args) {
     double number1 = args.at(0)->get<double>();
@@ -228,11 +228,11 @@ TEST_CASE("callbacks") {
     return number1.length();
   });
 
-  env.add_void_callback("log", 1, [](inja::Arguments args) {
-    int a = 2;
+  env.add_void_callback("log", 1, [](inja::Arguments) {
+    
   });
 
-  env.add_callback("multiply", 0, [](inja::Arguments args) { return 1.0; });
+  env.add_callback("multiply", 0, [](inja::Arguments) { return 1.0; });
 
   CHECK(env.render("{{ double(age) }}", data) == "56");
   CHECK(env.render("{{ half(age) }}", data) == "14");

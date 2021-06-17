@@ -12,30 +12,28 @@ option(INJA_BUILD_TESTS "Build unit tests when BUILD_TESTING is enabled." ON)
 option(BUILD_BENCHMARK "Build benchmark" ON)
 option(COVERALLS "Generate coveralls data" OFF)
 
-set(INJA_INSTALL_INCLUDE_DIR "include")
 
+set(INJA_INSTALL_INCLUDE_DIR "include")
+set(INJA_PACKAGE_USE_EMBEDDED_JSON OFF)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
 
-if(CMAKE_COMPILER_IS_GNUCC)
-  add_compile_options(-Wall)
-endif()
 
+# For using the correct __cplusplus macro
 if(MSVC)
-  add_compile_options(/W4 /permissive- /utf-8 /Zc:__cplusplus)
+  add_compile_options(/utf-8 /Zc:__cplusplus)
 endif()
 
 
 add_library(inja INTERFACE)
 add_library(pantor::inja ALIAS inja)
 
+
 target_include_directories(inja INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:${INJA_INSTALL_INCLUDE_DIR}>
 )
-
 target_compile_features(inja INTERFACE cxx_std_11)
 
-set(INJA_PACKAGE_USE_EMBEDDED_JSON OFF)
 
 if(INJA_USE_EMBEDDED_JSON)
   find_package(nlohmann_json QUIET)
@@ -67,10 +65,11 @@ else()
   endif()
 endif()
 
+
 target_link_libraries(inja INTERFACE ${INJA_SELECTED_JSON_LIBRARY})
 
+
 execute_process(COMMAND scripts/update_single_include.sh WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
-# CMake: add_custom_command
 
 
 if(BUILD_TESTING AND INJA_BUILD_TESTS)
@@ -78,8 +77,13 @@ if(BUILD_TESTING AND INJA_BUILD_TESTS)
 
   add_executable(inja_test test/test.cpp)
   target_link_libraries(inja_test PRIVATE inja)
-
   add_test(inja_test ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/inja_test)
+
+  if(MSVC)
+    target_compile_options(inja_test PRIVATE /W4 /WX /permissive-)
+  else()
+    target_compile_options(inja_test PRIVATE -Wall -Wextra -pedantic -Werror)
+  endif()
 
 
   add_library(single_inja INTERFACE)

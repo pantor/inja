@@ -2705,7 +2705,7 @@ public:
   BlockNode block;
   BlockNode *const parent;
 
-  explicit BlockStatementNode(BlockNode *const parent, const std::string& name, size_t pos) : StatementNode(pos), parent(parent), name(name) { }
+  explicit BlockStatementNode(BlockNode *const parent, const std::string& name, size_t pos) : StatementNode(pos), name(name), parent(parent) { }
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);
@@ -2916,7 +2916,7 @@ class Parser {
     auto function = operator_stack.top();
     operator_stack.pop();
 
-    for (size_t i = 0; i < function->number_args; ++i) {
+    for (int i = 0; i < function->number_args; ++i) {
       function->arguments.insert(function->arguments.begin(), arguments.back());
       arguments.pop_back();
     }
