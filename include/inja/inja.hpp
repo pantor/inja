@@ -6,13 +6,17 @@
 #include <nlohmann/json.hpp>
 
 #if (defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND)) && !defined(INJA_NOEXCEPTION)
+  #ifndef INJA_THROW
     #define INJA_THROW(exception) throw exception
+  #endif
 #else
-    #include <cstdlib>
+  #include <cstdlib>
+  #ifndef INJA_THROW
     #define INJA_THROW(exception) std::abort()
-    #ifndef INJA_NOEXCEPTION
-      #define INJA_NOEXCEPTION
-    #endif
+  #endif
+  #ifndef INJA_NOEXCEPTION
+    #define INJA_NOEXCEPTION
+  #endif
 #endif
 
 #include "environment.hpp"
