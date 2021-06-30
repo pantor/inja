@@ -41,4 +41,6 @@ dist
 doc/html
 doc/latex
 
+__pycache__
+
 examples
