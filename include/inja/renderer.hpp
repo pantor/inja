@@ -439,7 +439,11 @@ class Renderer : public NodeVisitor  {
       const auto args = get_arguments<2>(node);
       const int precision = args[1]->get<int>();
       const double result = std::round(args[0]->get<double>() * std::pow(10.0, precision)) / std::pow(10.0, precision);
-      result_ptr = std::make_shared<json>(std::move(result));
+      if(0==precision){
+        result_ptr = std::make_shared<json>(int(result));
+      }else{
+        result_ptr = std::make_shared<json>(std::move(result));
+      }
       json_tmp_stack.push_back(result_ptr);
       json_eval_stack.push(result_ptr.get());
     } break;
