@@ -1602,6 +1602,7 @@ public:
     Sort,
     Upper,
     Super,
+    Join,
     Callback,
     ParenLeft,
     ParenRight,
@@ -1646,6 +1647,7 @@ private:
     {std::make_pair("upper", 1), FunctionData { Operation::Upper }},
     {std::make_pair("super", 0), FunctionData { Operation::Super }},
     {std::make_pair("super", 1), FunctionData { Operation::Super }},
+    {std::make_pair("join", 2), FunctionData { Operation::Join }},
   };
 
 public:
@@ -4019,6 +4021,24 @@ class Renderer : public NodeVisitor  {
         throw_renderer_error("could not find block with name '" + current_block_statement->name + "'", node);
       }
       result_ptr = std::make_shared<json>(nullptr);
+      json_tmp_stack.push_back(result_ptr);
+      json_eval_stack.push(result_ptr.get());
+    } break;
+    case Op::Join: {
+      const auto args = get_arguments<2>(node);
+      const auto separator = args[1]->get<std::string>();
+      std::ostringstream os;
+      std::string sep;
+      for (const auto& value : *args[0]) {
+        os << sep;
+        if (value.is_string()) {
+          os << value.get<std::string>(); // otherwise the value is surrounded with ""
+        } else {
+          os << value;
+        }
+        sep = separator;
+      }
+      result_ptr = std::make_shared<json>(os.str());
       json_tmp_stack.push_back(result_ptr);
       json_eval_stack.push(result_ptr.get());
     } break;

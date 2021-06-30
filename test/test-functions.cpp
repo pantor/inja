@@ -174,6 +174,11 @@ TEST_CASE("functions") {
                       "[inja.exception.render_error] (at 1:22) variable 'sister' not found");
   }
 
+  SUBCASE("join") {
+    CHECK(env.render("{{ join(names, \" | \") }}", data) == "Jeff | Seb | Peter | Tom");
+    CHECK(env.render("{{ join(vars, \", \") }}", data) == "2, 3, 4, 0, -1, -2, -3");
+  }
+
   SUBCASE("isType") {
     CHECK(env.render("{{ isBoolean(is_happy) }}", data) == "true");
     CHECK(env.render("{{ isBoolean(vars) }}", data) == "false");

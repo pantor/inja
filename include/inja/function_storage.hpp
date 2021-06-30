@@ -65,6 +65,7 @@ public:
     Sort,
     Upper,
     Super,
+    Join,
     Callback,
     ParenLeft,
     ParenRight,
@@ -109,6 +110,7 @@ private:
     {std::make_pair("upper", 1), FunctionData { Operation::Upper }},
     {std::make_pair("super", 0), FunctionData { Operation::Super }},
     {std::make_pair("super", 1), FunctionData { Operation::Super }},
+    {std::make_pair("join", 2), FunctionData { Operation::Join }},
   };
 
 public:
