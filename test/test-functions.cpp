@@ -88,7 +88,7 @@ TEST_CASE("functions") {
   }
 
   SUBCASE("round") {
-    CHECK(env.render("{{ round(4, 0) }}", data) == "4.0");
+    CHECK(env.render("{{ round(4, 0) }}", data) == "4");
     CHECK(env.render("{{ round(temperature, 2) }}", data) == "25.68");
     // CHECK_THROWS_WITH( env.render("{{ round(name, 2) }}", data), "[inja.exception.json_error]
     // [json.exception.type_error.302] type must be number, but is string" );
