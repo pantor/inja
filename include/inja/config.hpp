@@ -1,5 +1,3 @@
-// Copyright (c) 2021 Pantor. All rights reserved.
-
 #ifndef INCLUDE_INJA_CONFIG_HPP_
 #define INCLUDE_INJA_CONFIG_HPP_
 

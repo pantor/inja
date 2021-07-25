@@ -1,4 +1,26 @@
-// Copyright (c) 2021 Pantor. All rights reserved.
+/*
+  ___        _          Version 3.2
+ |_ _|_ __  (_) __ _    https://github.com/pantor/inja
+  | || '_ \ | |/ _` |   Licensed under the MIT License <http://opensource.org/licenses/MIT>.
+  | || | | || | (_| |
+ |___|_| |_|/ |\__,_|   Copyright (c) 2018-2021 Lars Berscheid
+          |__/       
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
 
 #ifndef INCLUDE_INJA_INJA_HPP_
 #define INCLUDE_INJA_INJA_HPP_
@@ -20,8 +42,6 @@
 #endif
 
 // #include "environment.hpp"
-// Copyright (c) 2021 Pantor. All rights reserved.
-
 #ifndef INCLUDE_INJA_ENVIRONMENT_HPP_
 #define INCLUDE_INJA_ENVIRONMENT_HPP_
 
@@ -34,8 +54,6 @@
 #include <nlohmann/json.hpp>
 
 // #include "config.hpp"
-// Copyright (c) 2021 Pantor. All rights reserved.
-
 #ifndef INCLUDE_INJA_CONFIG_HPP_
 #define INCLUDE_INJA_CONFIG_HPP_
 
@@ -1534,8 +1552,6 @@ struct RenderConfig {
 #endif // INCLUDE_INJA_CONFIG_HPP_
 
 // #include "function_storage.hpp"
-// Copyright (c) 2021 Pantor. All rights reserved.
-
 #ifndef INCLUDE_INJA_FUNCTION_STORAGE_HPP_
 #define INCLUDE_INJA_FUNCTION_STORAGE_HPP_
 
@@ -1681,8 +1697,6 @@ public:
 #endif // INCLUDE_INJA_FUNCTION_STORAGE_HPP_
 
 // #include "parser.hpp"
-// Copyright (c) 2021 Pantor. All rights reserved.
-
 #ifndef INCLUDE_INJA_PARSER_HPP_
 #define INCLUDE_INJA_PARSER_HPP_
 
@@ -1696,8 +1710,6 @@ public:
 // #include "config.hpp"
 
 // #include "exceptions.hpp"
-// Copyright (c) 2021 Pantor. All rights reserved.
-
 #ifndef INCLUDE_INJA_EXCEPTIONS_HPP_
 #define INCLUDE_INJA_EXCEPTIONS_HPP_
 
@@ -1750,8 +1762,6 @@ struct JsonError : public InjaError {
 // #include "function_storage.hpp"
 
 // #include "lexer.hpp"
-// Copyright (c) 2020 Pantor. All rights reserved.
-
 #ifndef INCLUDE_INJA_LEXER_HPP_
 #define INCLUDE_INJA_LEXER_HPP_
 
@@ -1761,8 +1771,6 @@ struct JsonError : public InjaError {
 // #include "config.hpp"
 
 // #include "token.hpp"
-// Copyright (c) 2021 Pantor. All rights reserved.
-
 #ifndef INCLUDE_INJA_TOKEN_HPP_
 #define INCLUDE_INJA_TOKEN_HPP_
 
@@ -1840,8 +1848,6 @@ struct Token {
 #endif // INCLUDE_INJA_TOKEN_HPP_
 
 // #include "utils.hpp"
-// Copyright (c) 2021 Pantor. All rights reserved.
-
 #ifndef INCLUDE_INJA_UTILS_HPP_
 #define INCLUDE_INJA_UTILS_HPP_
 
@@ -2355,8 +2361,6 @@ public:
 #endif // INCLUDE_INJA_LEXER_HPP_
 
 // #include "node.hpp"
-// Copyright (c) 2021 Pantor. All rights reserved.
-
 #ifndef INCLUDE_INJA_NODE_HPP_
 #define INCLUDE_INJA_NODE_HPP_
 
@@ -2735,8 +2739,6 @@ public:
 #endif // INCLUDE_INJA_NODE_HPP_
 
 // #include "template.hpp"
-// Copyright (c) 2021 Pantor. All rights reserved.
-
 #ifndef INCLUDE_INJA_TEMPLATE_HPP_
 #define INCLUDE_INJA_TEMPLATE_HPP_
 
@@ -2748,8 +2750,6 @@ public:
 // #include "node.hpp"
 
 // #include "statistics.hpp"
-// Copyright (c) 2021 Pantor. All rights reserved.
-
 #ifndef INCLUDE_INJA_STATISTICS_HPP_
 #define INCLUDE_INJA_STATISTICS_HPP_
 
@@ -3489,8 +3489,6 @@ public:
 #endif // INCLUDE_INJA_PARSER_HPP_
 
 // #include "renderer.hpp"
-// Copyright (c) 2021 Pantor. All rights reserved.
-
 #ifndef INCLUDE_INJA_RENDERER_HPP_
 #define INCLUDE_INJA_RENDERER_HPP_
 

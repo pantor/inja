@@ -1,5 +1,3 @@
-// Copyright (c) 2021 Pantor. All rights reserved.
-
 #ifndef INCLUDE_INJA_PARSER_HPP_
 #define INCLUDE_INJA_PARSER_HPP_
 
