@@ -1,5 +1,5 @@
 /*
-  ___        _          Version 3.2
+  ___        _          Version 3.3
  |_ _|_ __  (_) __ _    https://github.com/pantor/inja
   | || '_ \ | |/ _` |   Licensed under the MIT License <http://opensource.org/licenses/MIT>.
   | || | | || | (_| |
