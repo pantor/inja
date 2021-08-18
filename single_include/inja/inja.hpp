@@ -51,7 +51,17 @@ SOFTWARE.
 #include <sstream>
 #include <string>
 
+// #include "types.hpp"
+#ifndef INCLUDE_INJA_TYPES_HPP_
+#define INCLUDE_INJA_TYPES_HPP_
+
 #include <nlohmann/json.hpp>
+
+namespace inja {
+using json = nlohmann::json;
+}
+
+#endif
 
 // #include "config.hpp"
 #ifndef INCLUDE_INJA_CONFIG_HPP_
@@ -1557,12 +1567,12 @@ struct RenderConfig {
 
 #include <vector>
 
+// #include "types.hpp"
+
 // #include "string_view.hpp"
 
 
 namespace inja {
-
-using json = nlohmann::json;
 
 using Arguments = std::vector<const json *>;
 using CallbackFunction = std::function<json(Arguments &args)>;
@@ -2367,7 +2377,7 @@ public:
 #include <string>
 #include <utility>
 
-#include <nlohmann/json.hpp>
+// #include "types.hpp"
 
 // #include "function_storage.hpp"
 
@@ -2465,9 +2475,9 @@ public:
 
 class LiteralNode : public ExpressionNode {
 public:
-  const nlohmann::json value;
+  const json value;
 
-  explicit LiteralNode(const nlohmann::json& value, size_t pos) : ExpressionNode(pos), value(value) { }
+  explicit LiteralNode(const json& value, size_t pos) : ExpressionNode(pos), value(value) { }
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);
@@ -4185,7 +4195,7 @@ class Renderer : public NodeVisitor  {
     std::string ptr = node.key;
     replace_substring(ptr, ".", "/");
     ptr = "/" + ptr;
-    json_additional_data[nlohmann::json::json_pointer(ptr)] = *eval_expression_list(node.expression);
+    json_additional_data[json::json_pointer(ptr)] = *eval_expression_list(node.expression);
   }
 
 public:
@@ -4221,7 +4231,6 @@ public:
 
 namespace inja {
 
-using json = nlohmann::json;
 
 /*!
  * \brief Class for changing the configuration.

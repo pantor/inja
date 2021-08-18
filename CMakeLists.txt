@@ -11,6 +11,7 @@ option(BUILD_TESTING "Build unit tests" ON)
 option(INJA_BUILD_TESTS "Build unit tests when BUILD_TESTING is enabled." ON)
 option(BUILD_BENCHMARK "Build benchmark" ON)
 option(COVERALLS "Generate coveralls data" OFF)
+set(INJA_TYPES_FILE "types.hpp.in" CACHE FILEPATH "Use the types definition")
 
 
 set(INJA_INSTALL_INCLUDE_DIR "include")
@@ -23,13 +24,14 @@ if(MSVC)
   add_compile_options(/utf-8 /Zc:__cplusplus)
 endif()
 
-
+configure_file("${INJA_TYPES_FILE}" "${CMAKE_CURRENT_BINARY_DIR}/types.hpp" COPYONLY)
 add_library(inja INTERFACE)
 add_library(pantor::inja ALIAS inja)
 
 
 target_include_directories(inja INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
   $<INSTALL_INTERFACE:${INJA_INSTALL_INCLUDE_DIR}>
 )
 target_compile_features(inja INTERFACE cxx_std_11)
@@ -170,6 +172,10 @@ if(INJA_INSTALL)
     DIRECTORY include/inja
     DESTINATION ${INJA_INSTALL_INCLUDE_DIR}
     FILES_MATCHING PATTERN "*.hpp"
+  )
+  install(
+    FILES "${CMAKE_CURRENT_BINARY_DIR}/types.hpp" 
+    DESTINATION ${INJA_INSTALL_INCLUDE_DIR}
   )
   if(INJA_USE_EMBEDDED_JSON)
     install(
