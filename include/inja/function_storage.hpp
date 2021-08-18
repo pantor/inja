@@ -3,11 +3,10 @@
 
 #include <vector>
 
+#include "types.hpp"
 #include "string_view.hpp"
 
 namespace inja {
-
-using json = nlohmann::json;
 
 using Arguments = std::vector<const json *>;
 using CallbackFunction = std::function<json(Arguments &args)>;

@@ -1,0 +1,10 @@
+#ifndef INCLUDE_INJA_TYPES_HPP_
+#define INCLUDE_INJA_TYPES_HPP_
+
+#include <nlohmann/json.hpp>
+
+namespace inja {
+using json = nlohmann::json;
+}
+
+#endif
