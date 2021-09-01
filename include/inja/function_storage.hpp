@@ -7,8 +7,6 @@
 
 namespace inja {
 
-using json = nlohmann::json;
-
 using Arguments = std::vector<const json *>;
 using CallbackFunction = std::function<json(Arguments &args)>;
 using VoidCallbackFunction = std::function<void(Arguments &args)>;

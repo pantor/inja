@@ -27,6 +27,10 @@ SOFTWARE.
 
 #include <nlohmann/json.hpp>
 
+namespace inja {
+  using json = nlohmann::json;
+}
+
 #if (defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND)) && !defined(INJA_NOEXCEPTION)
   #ifndef INJA_THROW
     #define INJA_THROW(exception) throw exception

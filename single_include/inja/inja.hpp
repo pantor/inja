@@ -27,6 +27,10 @@ SOFTWARE.
 
 #include <nlohmann/json.hpp>
 
+namespace inja {
+  using json = nlohmann::json;
+}
+
 #if (defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND)) && !defined(INJA_NOEXCEPTION)
   #ifndef INJA_THROW
     #define INJA_THROW(exception) throw exception
@@ -50,8 +54,6 @@ SOFTWARE.
 #include <memory>
 #include <sstream>
 #include <string>
-
-#include <nlohmann/json.hpp>
 
 // #include "config.hpp"
 #ifndef INCLUDE_INJA_CONFIG_HPP_
@@ -1562,8 +1564,6 @@ struct RenderConfig {
 
 namespace inja {
 
-using json = nlohmann::json;
-
 using Arguments = std::vector<const json *>;
 using CallbackFunction = std::function<json(Arguments &args)>;
 using VoidCallbackFunction = std::function<void(Arguments &args)>;
@@ -2367,8 +2367,6 @@ public:
 #include <string>
 #include <utility>
 
-#include <nlohmann/json.hpp>
-
 // #include "function_storage.hpp"
 
 // #include "string_view.hpp"
@@ -2465,9 +2463,9 @@ public:
 
 class LiteralNode : public ExpressionNode {
 public:
-  const nlohmann::json value;
+  const json value;
 
-  explicit LiteralNode(const nlohmann::json& value, size_t pos) : ExpressionNode(pos), value(value) { }
+  explicit LiteralNode(const json& value, size_t pos) : ExpressionNode(pos), value(value) { }
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);
@@ -2860,7 +2858,6 @@ using TemplateStorage = std::map<std::string, Template>;
 // #include "utils.hpp"
 
 
-#include <nlohmann/json.hpp>
 
 namespace inja {
 
@@ -3497,8 +3494,6 @@ public:
 #include <string>
 #include <utility>
 #include <vector>
-
-#include <nlohmann/json.hpp>
 
 // #include "config.hpp"
 
@@ -4185,7 +4180,7 @@ class Renderer : public NodeVisitor  {
     std::string ptr = node.key;
     replace_substring(ptr, ".", "/");
     ptr = "/" + ptr;
-    json_additional_data[nlohmann::json::json_pointer(ptr)] = *eval_expression_list(node.expression);
+    json_additional_data[json::json_pointer(ptr)] = *eval_expression_list(node.expression);
   }
 
 public:
@@ -4220,8 +4215,6 @@ public:
 
 
 namespace inja {
-
-using json = nlohmann::json;
 
 /*!
  * \brief Class for changing the configuration.

@@ -3,14 +3,13 @@
 #include "hayai/hayai.hpp"
 #include <inja/inja.hpp>
 
-using json = nlohmann::json;
 
 inja::Environment env;
 
 const std::string test_file_directory {"../test/data/benchmark/"};
 
-json small_data = env.load_json(test_file_directory + "small_data.json");
-json large_data = env.load_json(test_file_directory + "large_data.json");
+auto small_data = env.load_json(test_file_directory + "small_data.json");
+auto large_data = env.load_json(test_file_directory + "large_data.json");
 std::string medium_template = env.load_file(test_file_directory + "medium_template.txt");
 std::string large_template = env.load_file(test_file_directory + "large_template.txt");
 

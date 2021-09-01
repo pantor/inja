@@ -7,8 +7,6 @@
 #include <utility>
 #include <vector>
 
-#include <nlohmann/json.hpp>
-
 #include "config.hpp"
 #include "exceptions.hpp"
 #include "node.hpp"
@@ -689,7 +687,7 @@ class Renderer : public NodeVisitor  {
     std::string ptr = node.key;
     replace_substring(ptr, ".", "/");
     ptr = "/" + ptr;
-    json_additional_data[nlohmann::json::json_pointer(ptr)] = *eval_expression_list(node.expression);
+    json_additional_data[json::json_pointer(ptr)] = *eval_expression_list(node.expression);
   }
 
 public:

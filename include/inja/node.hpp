@@ -4,8 +4,6 @@
 #include <string>
 #include <utility>
 
-#include <nlohmann/json.hpp>
-
 #include "function_storage.hpp"
 #include "string_view.hpp"
 
@@ -100,9 +98,9 @@ public:
 
 class LiteralNode : public ExpressionNode {
 public:
-  const nlohmann::json value;
+  const json value;
 
-  explicit LiteralNode(const nlohmann::json& value, size_t pos) : ExpressionNode(pos), value(value) { }
+  explicit LiteralNode(const json& value, size_t pos) : ExpressionNode(pos), value(value) { }
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);
