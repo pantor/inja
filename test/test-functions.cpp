@@ -197,6 +197,16 @@ TEST_CASE("functions") {
   }
 }
 
+TEST_CASE("assignments") {
+  inja::Environment env;
+  json data;
+  data["age"] = 28;
+
+  CHECK(env.render("{% set new_hour=23 %}{{ new_hour }}", data) == "23");
+  CHECK(env.render("{% set time.start=18 %}{{ time.start }}pm", data) == "18pm");
+  CHECK(env.render("{% set v1 = \"a\" %}{% set v2 = \"b\" %}{% set var = v1 + v2 %}{{ var }}", data) == "ab");
+}
+
 TEST_CASE("callbacks") {
   inja::Environment env;
   json data;
