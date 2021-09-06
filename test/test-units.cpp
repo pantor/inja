@@ -36,16 +36,16 @@ TEST_CASE("copy environment") {
   env.include_template("tpl", t1);
   std::string test_tpl = "{% include \"tpl\" %}";
 
-  REQUIRE(env.render(test_tpl, json()) == "4");
+  REQUIRE(env.render(test_tpl, inja::json()) == "4");
 
   inja::Environment copy(env);
-  CHECK(copy.render(test_tpl, json()) == "4");
+  CHECK(copy.render(test_tpl, inja::json()) == "4");
 
   // overwrite template in source env
   inja::Template t2 = env.parse("{{ double(4) }}");
   env.include_template("tpl", t2);
-  REQUIRE(env.render(test_tpl, json()) == "8");
+  REQUIRE(env.render(test_tpl, inja::json()) == "8");
 
   // template is unchanged in copy
-  CHECK(copy.render(test_tpl, json()) == "4");
+  CHECK(copy.render(test_tpl, inja::json()) == "4");
 }

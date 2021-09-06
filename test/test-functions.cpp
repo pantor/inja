@@ -3,7 +3,7 @@
 TEST_CASE("functions") {
   inja::Environment env;
 
-  json data;
+  inja::json data;
   data["name"] = "Peter";
   data["city"] = "New York";
   data["names"] = {"Jeff", "Seb", "Peter", "Tom"};
@@ -199,7 +199,7 @@ TEST_CASE("functions") {
 
 TEST_CASE("assignments") {
   inja::Environment env;
-  json data;
+  inja::json data;
   data["age"] = 28;
 
   CHECK(env.render("{% set new_hour=23 %}{{ new_hour }}", data) == "23");
@@ -209,7 +209,7 @@ TEST_CASE("assignments") {
 
 TEST_CASE("callbacks") {
   inja::Environment env;
-  json data;
+  inja::json data;
   data["age"] = 28;
 
   env.add_callback("double", 1, [](inja::Arguments &args) {
@@ -262,7 +262,7 @@ TEST_CASE("callbacks") {
 
   SUBCASE("Variadic") {
     env.add_callback("argmax", [](inja::Arguments& args) {
-      auto result = std::max_element(args.begin(), args.end(), [](const json* a, const json* b) { return *a < *b;});
+      auto result = std::max_element(args.begin(), args.end(), [](const inja::json* a, const inja::json* b) { return *a < *b;});
       return std::distance(args.begin(), result);
     });
 
@@ -273,7 +273,7 @@ TEST_CASE("callbacks") {
 
 TEST_CASE("combinations") {
   inja::Environment env;
-  json data;
+  inja::json data;
   data["name"] = "Peter";
   data["city"] = "Brunswick";
   data["age"] = 29;

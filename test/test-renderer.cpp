@@ -2,7 +2,7 @@
 
 TEST_CASE("types") {
   inja::Environment env;
-  json data;
+  inja::json data;
   data["name"] = "Peter";
   data["city"] = "Brunswick";
   data["age"] = 29;
@@ -74,7 +74,7 @@ TEST_CASE("types") {
   }
 
   SUBCASE("nested loops") {
-    auto ldata = json::parse(R""""(
+    auto ldata = inja::json::parse(R""""(
 { "outer" : [
     { "inner" : [
         { "in2" : [ 1, 2 ] },
@@ -158,7 +158,7 @@ Yeah!
 }
 
 TEST_CASE("templates") {
-  json data;
+  inja::json data;
   data["name"] = "Peter";
   data["city"] = "Brunswick";
   data["is_happy"] = true;
@@ -186,8 +186,8 @@ TEST_CASE("templates") {
   }
 
   SUBCASE("include-in-loop") {
-    json loop_data;
-    loop_data["cities"] = json::array({{{"name", "Munich"}}, {{"name", "New York"}}});
+    inja::json loop_data;
+    loop_data["cities"] = inja::json::array({{{"name", "Munich"}}, {{"name", "New York"}}});
 
     inja::Environment env;
     env.include_template("city.tpl", env.parse("{{ loop.index }}:{{ city.name }};"));
@@ -246,7 +246,7 @@ TEST_CASE("templates") {
 }
 
 TEST_CASE("other syntax") {
-  json data;
+  inja::json data;
   data["name"] = "Peter";
   data["city"] = "Brunswick";
   data["age"] = 29;

@@ -28,7 +28,11 @@ SOFTWARE.
 #include <nlohmann/json.hpp>
 
 namespace inja {
+#ifndef INJA_DATA_TYPE
   using json = nlohmann::json;
+#else
+  using json = INJA_DATA_TYPE;
+#endif
 }
 
 #if (defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND)) && !defined(INJA_NOEXCEPTION)

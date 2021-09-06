@@ -5,8 +5,6 @@
 #include "doctest/doctest.h"
 #include "inja/inja.hpp"
 
-using json = nlohmann::json;
-
 const std::string test_file_directory {"../test/data/"};
 
 #include "test-files.cpp"

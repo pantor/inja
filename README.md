@@ -44,7 +44,6 @@ Inja is a headers only library, which can be downloaded from the [releases](http
 
 // Just for convenience
 using namespace inja;
-using json = nlohmann::json;
 ```
 
 If you are using the [Meson Build System](http://mesonbuild.com), then you can wrap this repository as a subproject.

@@ -2,7 +2,7 @@
 
 TEST_CASE("loading") {
   inja::Environment env;
-  json data;
+  inja::json data;
   data["name"] = "Jeff";
 
   SUBCASE("Files should be loaded") { CHECK(env.load_file(test_file_directory + "simple.txt") == "Hello {{ name }}."); }
@@ -58,7 +58,7 @@ TEST_CASE("complete-files-whitespace-control") {
 TEST_CASE("global-path") {
   inja::Environment env {test_file_directory, "./"};
   inja::Environment env_result {"./"};
-  json data;
+  inja::json data;
   data["name"] = "Jeff";
 
   SUBCASE("Files should be written") {
@@ -79,7 +79,7 @@ TEST_CASE("include-without-local-files") {
 TEST_CASE("include-in-memory-and-file-template") {
   inja::Environment env {test_file_directory};
 
-  json data;
+  inja::json data;
   data["name"] = "Jeff";
 
   CHECK_THROWS_WITH(env.render_file("include-both.txt", data), "[inja.exception.file_error] failed accessing file at '../test/data/body'");
