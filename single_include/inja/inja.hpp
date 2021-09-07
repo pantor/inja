@@ -4430,7 +4430,7 @@ public:
   }
 
   /*!
-  @brief Sets a function that is called when an include statement is not found
+  @brief Sets a function that is called when an included file is not found
   */
   void set_include_callback(const std::function<Template(const std::string&, const std::string&)>& callback) {
     parser_config.include_callback = callback;
