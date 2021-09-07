@@ -1484,78 +1484,21 @@ nssv_RESTORE_WARNINGS()
 #endif // nssv_HAVE_STD_STRING_VIEW
 #endif // NONSTD_SV_LITE_H_INCLUDED
 
+// #include "template.hpp"
+#ifndef INCLUDE_INJA_TEMPLATE_HPP_
+#define INCLUDE_INJA_TEMPLATE_HPP_
 
-namespace inja {
+#include <map>
+#include <memory>
+#include <string>
+#include <vector>
 
-/*!
- * \brief Class for lexer configuration.
- */
-struct LexerConfig {
-  std::string statement_open {"{%"};
-  std::string statement_open_no_lstrip {"{%+"};
-  std::string statement_open_force_lstrip {"{%-"};
-  std::string statement_close {"%}"};
-  std::string statement_close_force_rstrip {"-%}"};
-  std::string line_statement {"##"};
-  std::string expression_open {"{{"};
-  std::string expression_open_force_lstrip {"{{-"};
-  std::string expression_close {"}}"};
-  std::string expression_close_force_rstrip {"-}}"};
-  std::string comment_open {"{#"};
-  std::string comment_open_force_lstrip {"{#-"};
-  std::string comment_close {"#}"};
-  std::string comment_close_force_rstrip {"-#}"};
-  std::string open_chars {"#{"};
+// #include "node.hpp"
+#ifndef INCLUDE_INJA_NODE_HPP_
+#define INCLUDE_INJA_NODE_HPP_
 
-  bool trim_blocks {false};
-  bool lstrip_blocks {false};
-
-  void update_open_chars() {
-    open_chars = "";
-    if (open_chars.find(line_statement[0]) == std::string::npos) {
-      open_chars += line_statement[0];
-    }
-    if (open_chars.find(statement_open[0]) == std::string::npos) {
-      open_chars += statement_open[0];
-    }
-    if (open_chars.find(statement_open_no_lstrip[0]) == std::string::npos) {
-      open_chars += statement_open_no_lstrip[0];
-    }
-    if (open_chars.find(statement_open_force_lstrip[0]) == std::string::npos) {
-      open_chars += statement_open_force_lstrip[0];
-    }
-    if (open_chars.find(expression_open[0]) == std::string::npos) {
-      open_chars += expression_open[0];
-    }
-    if (open_chars.find(expression_open_force_lstrip[0]) == std::string::npos) {
-      open_chars += expression_open_force_lstrip[0];
-    }
-    if (open_chars.find(comment_open[0]) == std::string::npos) {
-      open_chars += comment_open[0];
-    }
-    if (open_chars.find(comment_open_force_lstrip[0]) == std::string::npos) {
-      open_chars += comment_open_force_lstrip[0];
-    }
-  }
-};
-
-/*!
- * \brief Class for parser configuration.
- */
-struct ParserConfig {
-  bool search_included_templates_in_files {true};
-};
-
-/*!
- * \brief Class for render configuration.
- */
-struct RenderConfig {
-  bool throw_at_missing_includes {true};
-};
-
-} // namespace inja
-
-#endif // INCLUDE_INJA_CONFIG_HPP_
+#include <string>
+#include <utility>
 
 // #include "function_storage.hpp"
 #ifndef INCLUDE_INJA_FUNCTION_STORAGE_HPP_
@@ -1700,18 +1643,16 @@ public:
 
 #endif // INCLUDE_INJA_FUNCTION_STORAGE_HPP_
 
-// #include "parser.hpp"
-#ifndef INCLUDE_INJA_PARSER_HPP_
-#define INCLUDE_INJA_PARSER_HPP_
+// #include "string_view.hpp"
 
-#include <limits>
-#include <stack>
+// #include "utils.hpp"
+#ifndef INCLUDE_INJA_UTILS_HPP_
+#define INCLUDE_INJA_UTILS_HPP_
+
+#include <algorithm>
+#include <fstream>
 #include <string>
 #include <utility>
-#include <queue>
-#include <vector>
-
-// #include "config.hpp"
 
 // #include "exceptions.hpp"
 #ifndef INCLUDE_INJA_EXCEPTIONS_HPP_
@@ -1762,6 +1703,632 @@ struct JsonError : public InjaError {
 } // namespace inja
 
 #endif // INCLUDE_INJA_EXCEPTIONS_HPP_
+
+// #include "string_view.hpp"
+
+
+namespace inja {
+
+namespace string_view {
+inline nonstd::string_view slice(nonstd::string_view view, size_t start, size_t end) {
+  start = std::min(start, view.size());
+  end = std::min(std::max(start, end), view.size());
+  return view.substr(start, end - start);
+}
+
+inline std::pair<nonstd::string_view, nonstd::string_view> split(nonstd::string_view view, char Separator) {
+  size_t idx = view.find(Separator);
+  if (idx == nonstd::string_view::npos) {
+    return std::make_pair(view, nonstd::string_view());
+  }
+  return std::make_pair(slice(view, 0, idx), slice(view, idx + 1, nonstd::string_view::npos));
+}
+
+inline bool starts_with(nonstd::string_view view, nonstd::string_view prefix) {
+  return (view.size() >= prefix.size() && view.compare(0, prefix.size(), prefix) == 0);
+}
+} // namespace string_view
+
+inline SourceLocation get_source_location(nonstd::string_view content, size_t pos) {
+  // Get line and offset position (starts at 1:1)
+  auto sliced = string_view::slice(content, 0, pos);
+  std::size_t last_newline = sliced.rfind("\n");
+
+  if (last_newline == nonstd::string_view::npos) {
+    return {1, sliced.length() + 1};
+  }
+
+  // Count newlines
+  size_t count_lines = 0;
+  size_t search_start = 0;
+  while (search_start <= sliced.size()) {
+    search_start = sliced.find("\n", search_start) + 1;
+    if (search_start == 0) {
+      break;
+    }
+    count_lines += 1;
+  }
+
+  return {count_lines + 1, sliced.length() - last_newline};
+}
+
+inline void replace_substring(std::string& s, const std::string& f,
+                              const std::string& t)
+{
+  if (f.empty()) return;
+  for (auto pos = s.find(f);                  // find first occurrence of f
+            pos != std::string::npos;         // make sure f was found
+            s.replace(pos, f.size(), t),      // replace with t, and
+            pos = s.find(f, pos + t.size()))  // find next occurrence of f
+  {}
+}
+
+} // namespace inja
+
+#endif // INCLUDE_INJA_UTILS_HPP_
+
+
+
+namespace inja {
+
+class NodeVisitor;
+class BlockNode;
+class TextNode;
+class ExpressionNode;
+class LiteralNode;
+class JsonNode;
+class FunctionNode;
+class ExpressionListNode;
+class StatementNode;
+class ForStatementNode;
+class ForArrayStatementNode;
+class ForObjectStatementNode;
+class IfStatementNode;
+class IncludeStatementNode;
+class ExtendsStatementNode;
+class BlockStatementNode;
+class SetStatementNode;
+
+
+class NodeVisitor {
+public:
+  virtual ~NodeVisitor() = default;
+
+  virtual void visit(const BlockNode& node) = 0;
+  virtual void visit(const TextNode& node) = 0;
+  virtual void visit(const ExpressionNode& node) = 0;
+  virtual void visit(const LiteralNode& node) = 0;
+  virtual void visit(const JsonNode& node) = 0;
+  virtual void visit(const FunctionNode& node) = 0;
+  virtual void visit(const ExpressionListNode& node) = 0;
+  virtual void visit(const StatementNode& node) = 0;
+  virtual void visit(const ForStatementNode& node) = 0;
+  virtual void visit(const ForArrayStatementNode& node) = 0;
+  virtual void visit(const ForObjectStatementNode& node) = 0;
+  virtual void visit(const IfStatementNode& node) = 0;
+  virtual void visit(const IncludeStatementNode& node) = 0;
+  virtual void visit(const ExtendsStatementNode& node) = 0;
+  virtual void visit(const BlockStatementNode& node) = 0;
+  virtual void visit(const SetStatementNode& node) = 0;
+};
+
+/*!
+ * \brief Base node class for the abstract syntax tree (AST).
+ */
+class AstNode {
+public:
+  virtual void accept(NodeVisitor& v) const = 0;
+
+  size_t pos;
+
+  AstNode(size_t pos) : pos(pos) { }
+  virtual ~AstNode() { }
+};
+
+
+class BlockNode : public AstNode {
+public:
+  std::vector<std::shared_ptr<AstNode>> nodes;
+
+  explicit BlockNode() : AstNode(0) {}
+
+  void accept(NodeVisitor& v) const {
+    v.visit(*this);
+  }
+};
+
+class TextNode : public AstNode {
+public:
+  const size_t length;
+
+  explicit TextNode(size_t pos, size_t length): AstNode(pos), length(length) { }
+
+  void accept(NodeVisitor& v) const {
+    v.visit(*this);
+  }
+};
+
+class ExpressionNode : public AstNode {
+public:
+  explicit ExpressionNode(size_t pos) : AstNode(pos) {}
+
+  void accept(NodeVisitor& v) const {
+    v.visit(*this);
+  }
+};
+
+class LiteralNode : public ExpressionNode {
+public:
+  const json value;
+
+  explicit LiteralNode(const json& value, size_t pos) : ExpressionNode(pos), value(value) { }
+
+  void accept(NodeVisitor& v) const {
+    v.visit(*this);
+  }
+};
+
+class JsonNode : public ExpressionNode {
+public:
+  const std::string name;
+  const json::json_pointer ptr;
+
+  static std::string convert_dot_to_json_ptr(nonstd::string_view ptr_name) {
+    std::string result;
+    do {
+      nonstd::string_view part;
+      std::tie(part, ptr_name) = string_view::split(ptr_name, '.');
+      result.push_back('/');
+      result.append(part.begin(), part.end());
+    } while (!ptr_name.empty());
+    return result;
+  }
+
+  explicit JsonNode(nonstd::string_view ptr_name, size_t pos) : ExpressionNode(pos), name(ptr_name), ptr(json::json_pointer(convert_dot_to_json_ptr(ptr_name))) { }
+
+  void accept(NodeVisitor& v) const {
+    v.visit(*this);
+  }
+};
+
+class FunctionNode : public ExpressionNode {
+  using Op = FunctionStorage::Operation;
+
+public:
+  enum class Associativity {
+    Left,
+    Right,
+  };
+
+  unsigned int precedence;
+  Associativity associativity;
+
+  Op operation;
+
+  std::string name;
+  int number_args; // Should also be negative -> -1 for unknown number
+  std::vector<std::shared_ptr<ExpressionNode>> arguments;
+  CallbackFunction callback;
+
+  explicit FunctionNode(nonstd::string_view name, size_t pos) : ExpressionNode(pos), precedence(8), associativity(Associativity::Left), operation(Op::Callback), name(name), number_args(1) { }
+  explicit FunctionNode(Op operation, size_t pos) : ExpressionNode(pos), operation(operation), number_args(1) {
+    switch (operation) {
+      case Op::Not: {
+        number_args = 1;
+        precedence = 4;
+        associativity = Associativity::Left;
+      } break;
+      case Op::And: {
+        number_args = 2;
+        precedence = 1;
+        associativity = Associativity::Left;
+      } break;
+      case Op::Or: {
+        number_args = 2;
+        precedence = 1;
+        associativity = Associativity::Left;
+      } break;
+      case Op::In: {
+        number_args = 2;
+        precedence = 2;
+        associativity = Associativity::Left;
+      } break;
+      case Op::Equal: {
+        number_args = 2;
+        precedence = 2;
+        associativity = Associativity::Left;
+      } break;
+      case Op::NotEqual: {
+        number_args = 2;
+        precedence = 2;
+        associativity = Associativity::Left;
+      } break;
+      case Op::Greater: {
+        number_args = 2;
+        precedence = 2;
+        associativity = Associativity::Left;
+      } break;
+      case Op::GreaterEqual: {
+        number_args = 2;
+        precedence = 2;
+        associativity = Associativity::Left;
+      } break;
+      case Op::Less: {
+        number_args = 2;
+        precedence = 2;
+        associativity = Associativity::Left;
+      } break;
+      case Op::LessEqual: {
+        number_args = 2;
+        precedence = 2;
+        associativity = Associativity::Left;
+      } break;
+      case Op::Add: {
+        number_args = 2;
+        precedence = 3;
+        associativity = Associativity::Left;
+      } break;
+      case Op::Subtract: {
+        number_args = 2;
+        precedence = 3;
+        associativity = Associativity::Left;
+      } break;
+      case Op::Multiplication: {
+        number_args = 2;
+        precedence = 4;
+        associativity = Associativity::Left;
+      } break;
+      case Op::Division: {
+        number_args = 2;
+        precedence = 4;
+        associativity = Associativity::Left;
+      } break;
+      case Op::Power: {
+        number_args = 2;
+        precedence = 5;
+        associativity = Associativity::Right;
+      } break;
+      case Op::Modulo: {
+        number_args = 2;
+        precedence = 4;
+        associativity = Associativity::Left;
+      } break;
+      case Op::AtId: {
+        number_args = 2;
+        precedence = 8;
+        associativity = Associativity::Left;
+      } break;
+      default: {
+        precedence = 1;
+        associativity = Associativity::Left;
+      }
+    }
+  }
+
+  void accept(NodeVisitor& v) const {
+    v.visit(*this);
+  }
+};
+
+class ExpressionListNode : public AstNode {
+public:
+  std::shared_ptr<ExpressionNode> root;
+
+  explicit ExpressionListNode() : AstNode(0) { }
+  explicit ExpressionListNode(size_t pos) : AstNode(pos) { }
+
+  void accept(NodeVisitor& v) const {
+    v.visit(*this);
+  }
+};
+
+class StatementNode : public AstNode {
+public:
+  StatementNode(size_t pos) : AstNode(pos) { }
+
+  virtual void accept(NodeVisitor& v) const = 0;
+};
+
+class ForStatementNode : public StatementNode {
+public:
+  ExpressionListNode condition;
+  BlockNode body;
+  BlockNode *const parent;
+
+  ForStatementNode(BlockNode *const parent, size_t pos) : StatementNode(pos), parent(parent) { }
+
+  virtual void accept(NodeVisitor& v) const = 0;
+};
+
+class ForArrayStatementNode : public ForStatementNode {
+public:
+  const std::string value;
+
+  explicit ForArrayStatementNode(const std::string& value, BlockNode *const parent, size_t pos) : ForStatementNode(parent, pos), value(value) { }
+
+  void accept(NodeVisitor& v) const {
+    v.visit(*this);
+  }
+};
+
+class ForObjectStatementNode : public ForStatementNode {
+public:
+  const std::string key;
+  const std::string value;
+
+  explicit ForObjectStatementNode(const std::string& key, const std::string& value, BlockNode *const parent, size_t pos) : ForStatementNode(parent, pos), key(key), value(value) { }
+
+  void accept(NodeVisitor& v) const {
+    v.visit(*this);
+  }
+};
+
+class IfStatementNode : public StatementNode {
+public:
+  ExpressionListNode condition;
+  BlockNode true_statement;
+  BlockNode false_statement;
+  BlockNode *const parent;
+
+  const bool is_nested;
+  bool has_false_statement {false};
+
+  explicit IfStatementNode(BlockNode *const parent, size_t pos) : StatementNode(pos), parent(parent), is_nested(false) { }
+  explicit IfStatementNode(bool is_nested, BlockNode *const parent, size_t pos) : StatementNode(pos), parent(parent), is_nested(is_nested) { }
+
+  void accept(NodeVisitor& v) const {
+    v.visit(*this);
+  }
+};
+
+class IncludeStatementNode : public StatementNode {
+public:
+  const std::string file;
+
+  explicit IncludeStatementNode(const std::string& file, size_t pos) : StatementNode(pos), file(file) { }
+
+  void accept(NodeVisitor& v) const {
+    v.visit(*this);
+  }
+};
+
+class ExtendsStatementNode : public StatementNode {
+public:
+  const std::string file;
+
+  explicit ExtendsStatementNode(const std::string& file, size_t pos) : StatementNode(pos), file(file) { }
+
+  void accept(NodeVisitor& v) const {
+    v.visit(*this);
+  };
+};
+
+class BlockStatementNode : public StatementNode {
+public:
+  const std::string name;
+  BlockNode block;
+  BlockNode *const parent;
+
+  explicit BlockStatementNode(BlockNode *const parent, const std::string& name, size_t pos) : StatementNode(pos), name(name), parent(parent) { }
+
+  void accept(NodeVisitor& v) const {
+    v.visit(*this);
+  };
+};
+
+class SetStatementNode : public StatementNode {
+public:
+  const std::string key;
+  ExpressionListNode expression;
+
+  explicit SetStatementNode(const std::string& key, size_t pos) : StatementNode(pos), key(key) { }
+
+  void accept(NodeVisitor& v) const {
+    v.visit(*this);
+  }
+};
+
+} // namespace inja
+
+#endif // INCLUDE_INJA_NODE_HPP_
+
+// #include "statistics.hpp"
+#ifndef INCLUDE_INJA_STATISTICS_HPP_
+#define INCLUDE_INJA_STATISTICS_HPP_
+
+// #include "node.hpp"
+
+
+
+namespace inja {
+
+/*!
+ * \brief A class for counting statistics on a Template.
+ */
+class StatisticsVisitor : public NodeVisitor {
+  void visit(const BlockNode& node) {
+    for (auto& n : node.nodes) {
+      n->accept(*this);
+    }
+  }
+
+  void visit(const TextNode&) { }
+  void visit(const ExpressionNode&) { }
+  void visit(const LiteralNode&) { }
+
+  void visit(const JsonNode&) {
+    variable_counter += 1;
+  }
+
+  void visit(const FunctionNode& node) {
+    for (auto& n : node.arguments) {
+      n->accept(*this);
+    }
+  }
+
+  void visit(const ExpressionListNode& node) {
+    node.root->accept(*this);
+  }
+
+  void visit(const StatementNode&) { }
+  void visit(const ForStatementNode&) { }
+
+  void visit(const ForArrayStatementNode& node) {
+    node.condition.accept(*this);
+    node.body.accept(*this);
+  }
+
+  void visit(const ForObjectStatementNode& node) {
+    node.condition.accept(*this);
+    node.body.accept(*this);
+  }
+
+  void visit(const IfStatementNode& node) {
+    node.condition.accept(*this);
+    node.true_statement.accept(*this);
+    node.false_statement.accept(*this);
+  }
+
+  void visit(const IncludeStatementNode&) { }
+
+  void visit(const ExtendsStatementNode&) { }
+
+  void visit(const BlockStatementNode& node) {
+    node.block.accept(*this);
+  }
+
+  void visit(const SetStatementNode&) { }
+
+public:
+  unsigned int variable_counter;
+
+  explicit StatisticsVisitor() : variable_counter(0) { }
+};
+
+} // namespace inja
+
+#endif // INCLUDE_INJA_STATISTICS_HPP_
+
+
+
+namespace inja {
+
+/*!
+ * \brief The main inja Template.
+ */
+struct Template {
+  BlockNode root;
+  std::string content;
+  std::map<std::string, std::shared_ptr<BlockStatementNode>> block_storage;
+
+  explicit Template() { }
+  explicit Template(const std::string& content): content(content) { }
+
+  /// Return number of variables (total number, not distinct ones) in the template
+  int count_variables() {
+    auto statistic_visitor = StatisticsVisitor();
+    root.accept(statistic_visitor);
+    return statistic_visitor.variable_counter;
+  }
+};
+
+using TemplateStorage = std::map<std::string, Template>;
+
+} // namespace inja
+
+#endif // INCLUDE_INJA_TEMPLATE_HPP_
+
+
+namespace inja {
+
+/*!
+ * \brief Class for lexer configuration.
+ */
+struct LexerConfig {
+  std::string statement_open {"{%"};
+  std::string statement_open_no_lstrip {"{%+"};
+  std::string statement_open_force_lstrip {"{%-"};
+  std::string statement_close {"%}"};
+  std::string statement_close_force_rstrip {"-%}"};
+  std::string line_statement {"##"};
+  std::string expression_open {"{{"};
+  std::string expression_open_force_lstrip {"{{-"};
+  std::string expression_close {"}}"};
+  std::string expression_close_force_rstrip {"-}}"};
+  std::string comment_open {"{#"};
+  std::string comment_open_force_lstrip {"{#-"};
+  std::string comment_close {"#}"};
+  std::string comment_close_force_rstrip {"-#}"};
+  std::string open_chars {"#{"};
+
+  bool trim_blocks {false};
+  bool lstrip_blocks {false};
+
+  void update_open_chars() {
+    open_chars = "";
+    if (open_chars.find(line_statement[0]) == std::string::npos) {
+      open_chars += line_statement[0];
+    }
+    if (open_chars.find(statement_open[0]) == std::string::npos) {
+      open_chars += statement_open[0];
+    }
+    if (open_chars.find(statement_open_no_lstrip[0]) == std::string::npos) {
+      open_chars += statement_open_no_lstrip[0];
+    }
+    if (open_chars.find(statement_open_force_lstrip[0]) == std::string::npos) {
+      open_chars += statement_open_force_lstrip[0];
+    }
+    if (open_chars.find(expression_open[0]) == std::string::npos) {
+      open_chars += expression_open[0];
+    }
+    if (open_chars.find(expression_open_force_lstrip[0]) == std::string::npos) {
+      open_chars += expression_open_force_lstrip[0];
+    }
+    if (open_chars.find(comment_open[0]) == std::string::npos) {
+      open_chars += comment_open[0];
+    }
+    if (open_chars.find(comment_open_force_lstrip[0]) == std::string::npos) {
+      open_chars += comment_open_force_lstrip[0];
+    }
+  }
+};
+
+/*!
+ * \brief Class for parser configuration.
+ */
+struct ParserConfig {
+  bool search_included_templates_in_files {true};
+
+  std::function<Template(const std::string&, const std::string&)> include_callback;
+};
+
+/*!
+ * \brief Class for render configuration.
+ */
+struct RenderConfig {
+  bool throw_at_missing_includes {true};
+};
+
+} // namespace inja
+
+#endif // INCLUDE_INJA_CONFIG_HPP_
+
+// #include "function_storage.hpp"
+
+// #include "parser.hpp"
+#ifndef INCLUDE_INJA_PARSER_HPP_
+#define INCLUDE_INJA_PARSER_HPP_
+
+#include <limits>
+#include <stack>
+#include <string>
+#include <utility>
+#include <queue>
+#include <vector>
+
+// #include "config.hpp"
+
+// #include "exceptions.hpp"
 
 // #include "function_storage.hpp"
 
@@ -1852,91 +2419,6 @@ struct Token {
 #endif // INCLUDE_INJA_TOKEN_HPP_
 
 // #include "utils.hpp"
-#ifndef INCLUDE_INJA_UTILS_HPP_
-#define INCLUDE_INJA_UTILS_HPP_
-
-#include <algorithm>
-#include <fstream>
-#include <string>
-#include <utility>
-
-// #include "exceptions.hpp"
-
-// #include "string_view.hpp"
-
-
-namespace inja {
-
-inline void open_file_or_throw(const std::string &path, std::ifstream &file) {
-  file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
-#ifndef INJA_NOEXCEPTION
-  try {
-    file.open(path);
-  } catch (const std::ios_base::failure & /*e*/) {
-    INJA_THROW(FileError("failed accessing file at '" + path + "'"));
-  }
-#else
-  file.open(path);
-#endif
-}
-
-namespace string_view {
-inline nonstd::string_view slice(nonstd::string_view view, size_t start, size_t end) {
-  start = std::min(start, view.size());
-  end = std::min(std::max(start, end), view.size());
-  return view.substr(start, end - start);
-}
-
-inline std::pair<nonstd::string_view, nonstd::string_view> split(nonstd::string_view view, char Separator) {
-  size_t idx = view.find(Separator);
-  if (idx == nonstd::string_view::npos) {
-    return std::make_pair(view, nonstd::string_view());
-  }
-  return std::make_pair(slice(view, 0, idx), slice(view, idx + 1, nonstd::string_view::npos));
-}
-
-inline bool starts_with(nonstd::string_view view, nonstd::string_view prefix) {
-  return (view.size() >= prefix.size() && view.compare(0, prefix.size(), prefix) == 0);
-}
-} // namespace string_view
-
-inline SourceLocation get_source_location(nonstd::string_view content, size_t pos) {
-  // Get line and offset position (starts at 1:1)
-  auto sliced = string_view::slice(content, 0, pos);
-  std::size_t last_newline = sliced.rfind("\n");
-
-  if (last_newline == nonstd::string_view::npos) {
-    return {1, sliced.length() + 1};
-  }
-
-  // Count newlines
-  size_t count_lines = 0;
-  size_t search_start = 0;
-  while (search_start <= sliced.size()) {
-    search_start = sliced.find("\n", search_start) + 1;
-    if (search_start == 0) {
-      break;
-    }
-    count_lines += 1;
-  }
-
-  return {count_lines + 1, sliced.length() - last_newline};
-}
-
-inline void replace_substring(std::string& s, const std::string& f,
-                              const std::string& t)
-{
-  if (f.empty()) return;
-  for (auto pos = s.find(f);                  // find first occurrence of f
-            pos != std::string::npos;         // make sure f was found
-            s.replace(pos, f.size(), t),      // replace with t, and
-            pos = s.find(f, pos + t.size()))  // find next occurrence of f
-  {}
-}
-
-} // namespace inja
-
-#endif // INCLUDE_INJA_UTILS_HPP_
 
 
 namespace inja {
@@ -2365,497 +2847,8 @@ public:
 #endif // INCLUDE_INJA_LEXER_HPP_
 
 // #include "node.hpp"
-#ifndef INCLUDE_INJA_NODE_HPP_
-#define INCLUDE_INJA_NODE_HPP_
-
-#include <string>
-#include <utility>
-
-// #include "function_storage.hpp"
-
-// #include "string_view.hpp"
-
-
-
-namespace inja {
-
-class NodeVisitor;
-class BlockNode;
-class TextNode;
-class ExpressionNode;
-class LiteralNode;
-class JsonNode;
-class FunctionNode;
-class ExpressionListNode;
-class StatementNode;
-class ForStatementNode;
-class ForArrayStatementNode;
-class ForObjectStatementNode;
-class IfStatementNode;
-class IncludeStatementNode;
-class ExtendsStatementNode;
-class BlockStatementNode;
-class SetStatementNode;
-
-
-class NodeVisitor {
-public:
-  virtual ~NodeVisitor() = default;
-
-  virtual void visit(const BlockNode& node) = 0;
-  virtual void visit(const TextNode& node) = 0;
-  virtual void visit(const ExpressionNode& node) = 0;
-  virtual void visit(const LiteralNode& node) = 0;
-  virtual void visit(const JsonNode& node) = 0;
-  virtual void visit(const FunctionNode& node) = 0;
-  virtual void visit(const ExpressionListNode& node) = 0;
-  virtual void visit(const StatementNode& node) = 0;
-  virtual void visit(const ForStatementNode& node) = 0;
-  virtual void visit(const ForArrayStatementNode& node) = 0;
-  virtual void visit(const ForObjectStatementNode& node) = 0;
-  virtual void visit(const IfStatementNode& node) = 0;
-  virtual void visit(const IncludeStatementNode& node) = 0;
-  virtual void visit(const ExtendsStatementNode& node) = 0;
-  virtual void visit(const BlockStatementNode& node) = 0;
-  virtual void visit(const SetStatementNode& node) = 0;
-};
-
-/*!
- * \brief Base node class for the abstract syntax tree (AST).
- */
-class AstNode {
-public:
-  virtual void accept(NodeVisitor& v) const = 0;
-
-  size_t pos;
-
-  AstNode(size_t pos) : pos(pos) { }
-  virtual ~AstNode() { }
-};
-
-
-class BlockNode : public AstNode {
-public:
-  std::vector<std::shared_ptr<AstNode>> nodes;
-
-  explicit BlockNode() : AstNode(0) {}
-
-  void accept(NodeVisitor& v) const {
-    v.visit(*this);
-  }
-};
-
-class TextNode : public AstNode {
-public:
-  const size_t length;
-
-  explicit TextNode(size_t pos, size_t length): AstNode(pos), length(length) { }
-
-  void accept(NodeVisitor& v) const {
-    v.visit(*this);
-  }
-};
-
-class ExpressionNode : public AstNode {
-public:
-  explicit ExpressionNode(size_t pos) : AstNode(pos) {}
-
-  void accept(NodeVisitor& v) const {
-    v.visit(*this);
-  }
-};
-
-class LiteralNode : public ExpressionNode {
-public:
-  const json value;
-
-  explicit LiteralNode(const json& value, size_t pos) : ExpressionNode(pos), value(value) { }
-
-  void accept(NodeVisitor& v) const {
-    v.visit(*this);
-  }
-};
-
-class JsonNode : public ExpressionNode {
-public:
-  const std::string name;
-  const json::json_pointer ptr;
-
-  static std::string convert_dot_to_json_ptr(nonstd::string_view ptr_name) {
-    std::string result;
-    do {
-      nonstd::string_view part;
-      std::tie(part, ptr_name) = string_view::split(ptr_name, '.');
-      result.push_back('/');
-      result.append(part.begin(), part.end());
-    } while (!ptr_name.empty());
-    return result;
-  }
-
-  explicit JsonNode(nonstd::string_view ptr_name, size_t pos) : ExpressionNode(pos), name(ptr_name), ptr(json::json_pointer(convert_dot_to_json_ptr(ptr_name))) { }
-
-  void accept(NodeVisitor& v) const {
-    v.visit(*this);
-  }
-};
-
-class FunctionNode : public ExpressionNode {
-  using Op = FunctionStorage::Operation;
-
-public:
-  enum class Associativity {
-    Left,
-    Right,
-  };
-
-  unsigned int precedence;
-  Associativity associativity;
-
-  Op operation;
-
-  std::string name;
-  int number_args; // Should also be negative -> -1 for unknown number
-  std::vector<std::shared_ptr<ExpressionNode>> arguments;
-  CallbackFunction callback;
-
-  explicit FunctionNode(nonstd::string_view name, size_t pos) : ExpressionNode(pos), precedence(8), associativity(Associativity::Left), operation(Op::Callback), name(name), number_args(1) { }
-  explicit FunctionNode(Op operation, size_t pos) : ExpressionNode(pos), operation(operation), number_args(1) {
-    switch (operation) {
-      case Op::Not: {
-        number_args = 1;
-        precedence = 4;
-        associativity = Associativity::Left;
-      } break;
-      case Op::And: {
-        number_args = 2;
-        precedence = 1;
-        associativity = Associativity::Left;
-      } break;
-      case Op::Or: {
-        number_args = 2;
-        precedence = 1;
-        associativity = Associativity::Left;
-      } break;
-      case Op::In: {
-        number_args = 2;
-        precedence = 2;
-        associativity = Associativity::Left;
-      } break;
-      case Op::Equal: {
-        number_args = 2;
-        precedence = 2;
-        associativity = Associativity::Left;
-      } break;
-      case Op::NotEqual: {
-        number_args = 2;
-        precedence = 2;
-        associativity = Associativity::Left;
-      } break;
-      case Op::Greater: {
-        number_args = 2;
-        precedence = 2;
-        associativity = Associativity::Left;
-      } break;
-      case Op::GreaterEqual: {
-        number_args = 2;
-        precedence = 2;
-        associativity = Associativity::Left;
-      } break;
-      case Op::Less: {
-        number_args = 2;
-        precedence = 2;
-        associativity = Associativity::Left;
-      } break;
-      case Op::LessEqual: {
-        number_args = 2;
-        precedence = 2;
-        associativity = Associativity::Left;
-      } break;
-      case Op::Add: {
-        number_args = 2;
-        precedence = 3;
-        associativity = Associativity::Left;
-      } break;
-      case Op::Subtract: {
-        number_args = 2;
-        precedence = 3;
-        associativity = Associativity::Left;
-      } break;
-      case Op::Multiplication: {
-        number_args = 2;
-        precedence = 4;
-        associativity = Associativity::Left;
-      } break;
-      case Op::Division: {
-        number_args = 2;
-        precedence = 4;
-        associativity = Associativity::Left;
-      } break;
-      case Op::Power: {
-        number_args = 2;
-        precedence = 5;
-        associativity = Associativity::Right;
-      } break;
-      case Op::Modulo: {
-        number_args = 2;
-        precedence = 4;
-        associativity = Associativity::Left;
-      } break;
-      case Op::AtId: {
-        number_args = 2;
-        precedence = 8;
-        associativity = Associativity::Left;
-      } break;
-      default: {
-        precedence = 1;
-        associativity = Associativity::Left;
-      }
-    }
-  }
-
-  void accept(NodeVisitor& v) const {
-    v.visit(*this);
-  }
-};
-
-class ExpressionListNode : public AstNode {
-public:
-  std::shared_ptr<ExpressionNode> root;
-
-  explicit ExpressionListNode() : AstNode(0) { }
-  explicit ExpressionListNode(size_t pos) : AstNode(pos) { }
-
-  void accept(NodeVisitor& v) const {
-    v.visit(*this);
-  }
-};
-
-class StatementNode : public AstNode {
-public:
-  StatementNode(size_t pos) : AstNode(pos) { }
-
-  virtual void accept(NodeVisitor& v) const = 0;
-};
-
-class ForStatementNode : public StatementNode {
-public:
-  ExpressionListNode condition;
-  BlockNode body;
-  BlockNode *const parent;
-
-  ForStatementNode(BlockNode *const parent, size_t pos) : StatementNode(pos), parent(parent) { }
-
-  virtual void accept(NodeVisitor& v) const = 0;
-};
-
-class ForArrayStatementNode : public ForStatementNode {
-public:
-  const std::string value;
-
-  explicit ForArrayStatementNode(const std::string& value, BlockNode *const parent, size_t pos) : ForStatementNode(parent, pos), value(value) { }
-
-  void accept(NodeVisitor& v) const {
-    v.visit(*this);
-  }
-};
-
-class ForObjectStatementNode : public ForStatementNode {
-public:
-  const std::string key;
-  const std::string value;
-
-  explicit ForObjectStatementNode(const std::string& key, const std::string& value, BlockNode *const parent, size_t pos) : ForStatementNode(parent, pos), key(key), value(value) { }
-
-  void accept(NodeVisitor& v) const {
-    v.visit(*this);
-  }
-};
-
-class IfStatementNode : public StatementNode {
-public:
-  ExpressionListNode condition;
-  BlockNode true_statement;
-  BlockNode false_statement;
-  BlockNode *const parent;
-
-  const bool is_nested;
-  bool has_false_statement {false};
-
-  explicit IfStatementNode(BlockNode *const parent, size_t pos) : StatementNode(pos), parent(parent), is_nested(false) { }
-  explicit IfStatementNode(bool is_nested, BlockNode *const parent, size_t pos) : StatementNode(pos), parent(parent), is_nested(is_nested) { }
-
-  void accept(NodeVisitor& v) const {
-    v.visit(*this);
-  }
-};
-
-class IncludeStatementNode : public StatementNode {
-public:
-  const std::string file;
-
-  explicit IncludeStatementNode(const std::string& file, size_t pos) : StatementNode(pos), file(file) { }
-
-  void accept(NodeVisitor& v) const {
-    v.visit(*this);
-  }
-};
-
-class ExtendsStatementNode : public StatementNode {
-public:
-  const std::string file;
-
-  explicit ExtendsStatementNode(const std::string& file, size_t pos) : StatementNode(pos), file(file) { }
-
-  void accept(NodeVisitor& v) const {
-    v.visit(*this);
-  };
-};
-
-class BlockStatementNode : public StatementNode {
-public:
-  const std::string name;
-  BlockNode block;
-  BlockNode *const parent;
-
-  explicit BlockStatementNode(BlockNode *const parent, const std::string& name, size_t pos) : StatementNode(pos), name(name), parent(parent) { }
-
-  void accept(NodeVisitor& v) const {
-    v.visit(*this);
-  };
-};
-
-class SetStatementNode : public StatementNode {
-public:
-  const std::string key;
-  ExpressionListNode expression;
-
-  explicit SetStatementNode(const std::string& key, size_t pos) : StatementNode(pos), key(key) { }
-
-  void accept(NodeVisitor& v) const {
-    v.visit(*this);
-  }
-};
-
-} // namespace inja
-
-#endif // INCLUDE_INJA_NODE_HPP_
 
 // #include "template.hpp"
-#ifndef INCLUDE_INJA_TEMPLATE_HPP_
-#define INCLUDE_INJA_TEMPLATE_HPP_
-
-#include <map>
-#include <memory>
-#include <string>
-#include <vector>
-
-// #include "node.hpp"
-
-// #include "statistics.hpp"
-#ifndef INCLUDE_INJA_STATISTICS_HPP_
-#define INCLUDE_INJA_STATISTICS_HPP_
-
-// #include "node.hpp"
-
-
-
-namespace inja {
-
-/*!
- * \brief A class for counting statistics on a Template.
- */
-class StatisticsVisitor : public NodeVisitor {
-  void visit(const BlockNode& node) {
-    for (auto& n : node.nodes) {
-      n->accept(*this);
-    }
-  }
-
-  void visit(const TextNode&) { }
-  void visit(const ExpressionNode&) { }
-  void visit(const LiteralNode&) { }
-
-  void visit(const JsonNode&) {
-    variable_counter += 1;
-  }
-
-  void visit(const FunctionNode& node) {
-    for (auto& n : node.arguments) {
-      n->accept(*this);
-    }
-  }
-
-  void visit(const ExpressionListNode& node) {
-    node.root->accept(*this);
-  }
-
-  void visit(const StatementNode&) { }
-  void visit(const ForStatementNode&) { }
-
-  void visit(const ForArrayStatementNode& node) {
-    node.condition.accept(*this);
-    node.body.accept(*this);
-  }
-
-  void visit(const ForObjectStatementNode& node) {
-    node.condition.accept(*this);
-    node.body.accept(*this);
-  }
-
-  void visit(const IfStatementNode& node) {
-    node.condition.accept(*this);
-    node.true_statement.accept(*this);
-    node.false_statement.accept(*this);
-  }
-
-  void visit(const IncludeStatementNode&) { }
-
-  void visit(const ExtendsStatementNode&) { }
-
-  void visit(const BlockStatementNode& node) {
-    node.block.accept(*this);
-  }
-
-  void visit(const SetStatementNode&) { }
-
-public:
-  unsigned int variable_counter;
-
-  explicit StatisticsVisitor() : variable_counter(0) { }
-};
-
-} // namespace inja
-
-#endif // INCLUDE_INJA_STATISTICS_HPP_
-
-
-
-namespace inja {
-
-/*!
- * \brief The main inja Template.
- */
-struct Template {
-  BlockNode root;
-  std::string content;
-  std::map<std::string, std::shared_ptr<BlockStatementNode>> block_storage;
-
-  explicit Template() { }
-  explicit Template(const std::string& content): content(content) { }
-
-  /// Return number of variables (total number, not distinct ones) in the template
-  int count_variables() {
-    auto statistic_visitor = StatisticsVisitor();
-    root.accept(statistic_visitor);
-    return statistic_visitor.variable_counter;
-  }
-};
-
-using TemplateStorage = std::map<std::string, Template>;
-
-} // namespace inja
-
-#endif // INCLUDE_INJA_TEMPLATE_HPP_
 
 // #include "token.hpp"
 
@@ -2931,18 +2924,42 @@ class Parser {
   }
 
   void add_to_template_storage(nonstd::string_view path, std::string& template_name) {
-    if (config.search_included_templates_in_files && template_storage.find(template_name) == template_storage.end()) {
+    if (template_storage.find(template_name) != template_storage.end()) {
+      return;
+    }
+
+    std::string original_path = static_cast<std::string>(path);
+    std::string original_name = template_name;
+
+    if (config.search_included_templates_in_files) {
       // Build the relative path
-      template_name = static_cast<std::string>(path) + template_name;
+      template_name = original_path + original_name;
       if (template_name.compare(0, 2, "./") == 0) {
         template_name.erase(0, 2);
       }
 
       if (template_storage.find(template_name) == template_storage.end()) {
-        auto include_template = Template(load_file(template_name));
-        template_storage.emplace(template_name, include_template);
-        parse_into_template(template_storage[template_name], template_name);
+        // Load file
+        std::ifstream file;
+        file.open(template_name);
+        if (!file.fail()) {
+          std::string text((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+
+          auto include_template = Template(text);
+          template_storage.emplace(template_name, include_template);
+          parse_into_template(template_storage[template_name], template_name);
+          return;
+
+        } else if (!config.include_callback) {
+          INJA_THROW(FileError("failed accessing file at '" + template_name + "'"));
+        }
       }
+    }
+
+    // Try include callback
+    if (config.include_callback) {
+      auto include_template = config.include_callback(original_path, original_name);
+      template_storage.emplace(template_name, include_template);
     }
   }
 
@@ -3477,9 +3494,12 @@ public:
     sub_parser.parse_into(tmpl, path);
   }
 
-  std::string load_file(nonstd::string_view filename) {
+  std::string load_file(const std::string& filename) {
     std::ifstream file;
-    open_file_or_throw(static_cast<std::string>(filename), file);
+    file.open(filename);
+    if (file.fail()) {
+      INJA_THROW(FileError("failed accessing file at '" + filename + "'"));
+    }
     std::string text((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
     return text;
   }
@@ -4364,7 +4384,10 @@ public:
 
   json load_json(const std::string &filename) {
     std::ifstream file;
-    open_file_or_throw(input_path + filename, file);
+    file.open(input_path + filename);
+    if (file.fail()) {
+      INJA_THROW(FileError("failed accessing file at '" + input_path + filename + "'"));
+    }
     json j;
     file >> j;
     return j;
@@ -4404,6 +4427,13 @@ public:
    */
   void include_template(const std::string &name, const Template &tmpl) {
     template_storage[name] = tmpl;
+  }
+
+  /*!
+  @brief Sets a function that is called when an include statement is not found
+  */
+  void set_include_callback(const std::function<Template(const std::string&, const std::string&)>& callback) {
+    parser_config.include_callback = callback;
   }
 };
 

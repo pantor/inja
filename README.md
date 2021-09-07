@@ -183,12 +183,19 @@ env.render("Content: {% include \"content\" %}", data); // "Content: Hello Peter
 
 // Other template files are included relative from the current file location
 render("{% include \"footer.html\" %}", data);
+```
+If a corresponding template could not be found in the file system, the *include callback* is called:
+```
+// The callback takes the current path and the wanted include name and returns a template
+env.set_include_callback([&env](const std::string& path, const std::string& name) {
+  return env.parse("Hello {{ name }} from " + name);
+});
 
 // You can disable to search for templates in the file system via
 env.set_search_included_templates_in_files(false);
 ```
 
-Inja will throw an `inja::RenderError` if an included file is not found. To disable this error, you can call `env.set_throw_at_missing_includes(false)`.
+Inja will throw an `inja::RenderError` if an included file is not found and no callback is specified. To disable this error, you can call `env.set_throw_at_missing_includes(false)`.
 
 #### Assignments
 

@@ -6,6 +6,7 @@
 
 #include "function_storage.hpp"
 #include "string_view.hpp"
+#include "utils.hpp"
 
 
 namespace inja {

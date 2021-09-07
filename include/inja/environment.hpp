@@ -161,7 +161,10 @@ public:
 
   json load_json(const std::string &filename) {
     std::ifstream file;
-    open_file_or_throw(input_path + filename, file);
+    file.open(input_path + filename);
+    if (file.fail()) {
+      INJA_THROW(FileError("failed accessing file at '" + input_path + filename + "'"));
+    }
     json j;
     file >> j;
     return j;
@@ -201,6 +204,13 @@ public:
    */
   void include_template(const std::string &name, const Template &tmpl) {
     template_storage[name] = tmpl;
+  }
+
+  /*!
+  @brief Sets a function that is called when an included file is not found
+  */
+  void set_include_callback(const std::function<Template(const std::string&, const std::string&)>& callback) {
+    parser_config.include_callback = callback;
   }
 };
 

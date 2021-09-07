@@ -86,18 +86,42 @@ class Parser {
   }
 
   void add_to_template_storage(nonstd::string_view path, std::string& template_name) {
-    if (config.search_included_templates_in_files && template_storage.find(template_name) == template_storage.end()) {
+    if (template_storage.find(template_name) != template_storage.end()) {
+      return;
+    }
+
+    std::string original_path = static_cast<std::string>(path);
+    std::string original_name = template_name;
+
+    if (config.search_included_templates_in_files) {
       // Build the relative path
-      template_name = static_cast<std::string>(path) + template_name;
+      template_name = original_path + original_name;
       if (template_name.compare(0, 2, "./") == 0) {
         template_name.erase(0, 2);
       }
 
       if (template_storage.find(template_name) == template_storage.end()) {
-        auto include_template = Template(load_file(template_name));
-        template_storage.emplace(template_name, include_template);
-        parse_into_template(template_storage[template_name], template_name);
+        // Load file
+        std::ifstream file;
+        file.open(template_name);
+        if (!file.fail()) {
+          std::string text((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+
+          auto include_template = Template(text);
+          template_storage.emplace(template_name, include_template);
+          parse_into_template(template_storage[template_name], template_name);
+          return;
+
+        } else if (!config.include_callback) {
+          INJA_THROW(FileError("failed accessing file at '" + template_name + "'"));
+        }
       }
+    }
+
+    // Try include callback
+    if (config.include_callback) {
+      auto include_template = config.include_callback(original_path, original_name);
+      template_storage.emplace(template_name, include_template);
     }
   }
 
@@ -632,9 +656,12 @@ public:
     sub_parser.parse_into(tmpl, path);
   }
 
-  std::string load_file(nonstd::string_view filename) {
+  std::string load_file(const std::string& filename) {
     std::ifstream file;
-    open_file_or_throw(static_cast<std::string>(filename), file);
+    file.open(filename);
+    if (file.fail()) {
+      INJA_THROW(FileError("failed accessing file at '" + filename + "'"));
+    }
     std::string text((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
     return text;
   }

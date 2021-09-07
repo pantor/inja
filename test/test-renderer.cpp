@@ -185,6 +185,29 @@ TEST_CASE("templates") {
                       "[inja.exception.file_error] failed accessing file at 'does-not-exist'");
   }
 
+  SUBCASE("include-callback") {
+    inja::Environment env;
+
+    CHECK_THROWS_WITH(env.parse("{% include \"does-not-exist\" %}!"),
+                      "[inja.exception.file_error] failed accessing file at 'does-not-exist'");
+
+    env.set_search_included_templates_in_files(false);
+    env.set_include_callback([&env](const std::string&, const std::string&) {
+      return env.parse("Hello {{ name }}");
+    });
+
+    inja::Template t1 = env.parse("{% include \"greeting\" %}!");
+    CHECK(env.render(t1, data) == "Hello Peter!");
+
+    env.set_search_included_templates_in_files(true);
+    env.set_include_callback([&env](const std::string&, const std::string& name) {
+      return env.parse("Bye " + name);
+    });
+
+    inja::Template t2 = env.parse("{% include \"Jeff\" %}!");
+    CHECK(env.render(t2, data) == "Bye Jeff!");
+  }
+
   SUBCASE("include-in-loop") {
     inja::json loop_data;
     loop_data["cities"] = inja::json::array({{{"name", "Munich"}}, {{"name", "New York"}}});
