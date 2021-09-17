@@ -1,0 +1,2 @@
+option('build_tests', type: 'boolean', value: true)
+option('build_benchmark', type: 'boolean', value: true)
