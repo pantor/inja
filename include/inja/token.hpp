@@ -2,8 +2,8 @@
 #define INCLUDE_INJA_TOKEN_HPP_
 
 #include <string>
+#include <string_view>
 
-#include "string_view.hpp"
 
 namespace inja {
 
@@ -50,10 +50,10 @@ struct Token {
   };
   
   Kind kind {Kind::Unknown};
-  nonstd::string_view text;
+  std::string_view text;
 
   explicit constexpr Token() = default;
-  explicit constexpr Token(Kind kind, nonstd::string_view text) : kind(kind), text(text) {}
+  explicit constexpr Token(Kind kind, std::string_view text) : kind(kind), text(text) {}
 
   std::string describe() const {
     switch (kind) {

@@ -37,7 +37,7 @@ class Parser {
   size_t current_bracket_level {0};
   size_t current_brace_level {0};
 
-  nonstd::string_view json_literal_start;
+  std::string_view json_literal_start;
 
   BlockNode *current_block {nullptr};
   ExpressionListNode *current_expression_list {nullptr};
@@ -70,7 +70,7 @@ class Parser {
   }
 
   inline void add_json_literal(const char* content_ptr) {
-    nonstd::string_view json_text(json_literal_start.data(), tok.text.data() - json_literal_start.data() + tok.text.size());
+    std::string_view json_text(json_literal_start.data(), tok.text.data() - json_literal_start.data() + tok.text.size());
     arguments.emplace_back(std::make_shared<LiteralNode>(json::parse(json_text), json_text.data() - content_ptr));
   }
 
@@ -85,7 +85,7 @@ class Parser {
     arguments.emplace_back(function);
   }
 
-  void add_to_template_storage(nonstd::string_view path, std::string& template_name) {
+  void add_to_template_storage(std::string_view path, std::string& template_name) {
     if (template_storage.find(template_name) != template_storage.end()) {
       return;
     }
@@ -366,7 +366,7 @@ class Parser {
     return true;
   }
 
-  bool parse_statement(Template &tmpl, Token::Kind closing, nonstd::string_view path) {
+  bool parse_statement(Template &tmpl, Token::Kind closing, std::string_view path) {
     if (tok.kind != Token::Kind::Id) {
       return false;
     }
@@ -568,7 +568,7 @@ class Parser {
     return true;
   }
 
-  void parse_into(Template &tmpl, nonstd::string_view path) {
+  void parse_into(Template &tmpl, std::string_view path) {
     lexer.start(tmpl.content);
     current_block = &tmpl.root;
 
@@ -638,18 +638,18 @@ public:
                   TemplateStorage &template_storage, const FunctionStorage &function_storage)
       : config(parser_config), lexer(lexer_config), template_storage(template_storage), function_storage(function_storage) { }
 
-  Template parse(nonstd::string_view input, nonstd::string_view path) {
+  Template parse(std::string_view input, std::string_view path) {
     auto result = Template(static_cast<std::string>(input));
     parse_into(result, path);
     return result;
   }
 
-  Template parse(nonstd::string_view input) {
+  Template parse(std::string_view input) {
     return parse(input, "./");
   }
 
-  void parse_into_template(Template& tmpl, nonstd::string_view filename) {
-    nonstd::string_view path = filename.substr(0, filename.find_last_of("/\\") + 1);
+  void parse_into_template(Template& tmpl, std::string_view filename) {
+    std::string_view path = filename.substr(0, filename.find_last_of("/\\") + 1);
 
     // StringRef path = sys::path::parent_path(filename);
     auto sub_parser = Parser(config, lexer.get_config(), template_storage, function_storage);

@@ -2,10 +2,10 @@
 #define INCLUDE_INJA_NODE_HPP_
 
 #include <string>
+#include <string_view>
 #include <utility>
 
 #include "function_storage.hpp"
-#include "string_view.hpp"
 #include "utils.hpp"
 
 
@@ -113,10 +113,10 @@ public:
   const std::string name;
   const json::json_pointer ptr;
 
-  static std::string convert_dot_to_json_ptr(nonstd::string_view ptr_name) {
+  static std::string convert_dot_to_json_ptr(std::string_view ptr_name) {
     std::string result;
     do {
-      nonstd::string_view part;
+      std::string_view part;
       std::tie(part, ptr_name) = string_view::split(ptr_name, '.');
       result.push_back('/');
       result.append(part.begin(), part.end());
@@ -124,7 +124,7 @@ public:
     return result;
   }
 
-  explicit JsonNode(nonstd::string_view ptr_name, size_t pos) : ExpressionNode(pos), name(ptr_name), ptr(json::json_pointer(convert_dot_to_json_ptr(ptr_name))) { }
+  explicit JsonNode(std::string_view ptr_name, size_t pos) : ExpressionNode(pos), name(ptr_name), ptr(json::json_pointer(convert_dot_to_json_ptr(ptr_name))) { }
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);
@@ -150,7 +150,7 @@ public:
   std::vector<std::shared_ptr<ExpressionNode>> arguments;
   CallbackFunction callback;
 
-  explicit FunctionNode(nonstd::string_view name, size_t pos) : ExpressionNode(pos), precedence(8), associativity(Associativity::Left), operation(Op::Callback), name(name), number_args(1) { }
+  explicit FunctionNode(std::string_view name, size_t pos) : ExpressionNode(pos), precedence(8), associativity(Associativity::Left), operation(Op::Callback), name(name), number_args(1) { }
   explicit FunctionNode(Op operation, size_t pos) : ExpressionNode(pos), operation(operation), number_args(1) {
     switch (operation) {
       case Op::Not: {

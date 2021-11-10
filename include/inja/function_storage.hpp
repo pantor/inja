@@ -1,9 +1,9 @@
 #ifndef INCLUDE_INJA_FUNCTION_STORAGE_HPP_
 #define INCLUDE_INJA_FUNCTION_STORAGE_HPP_
 
+#include <string_view>
 #include <vector>
 
-#include "string_view.hpp"
 
 namespace inja {
 
@@ -110,15 +110,15 @@ private:
   };
 
 public:
-  void add_builtin(nonstd::string_view name, int num_args, Operation op) {
+  void add_builtin(std::string_view name, int num_args, Operation op) {
     function_storage.emplace(std::make_pair(static_cast<std::string>(name), num_args), FunctionData { op });
   }
 
-  void add_callback(nonstd::string_view name, int num_args, const CallbackFunction &callback) {
+  void add_callback(std::string_view name, int num_args, const CallbackFunction &callback) {
     function_storage.emplace(std::make_pair(static_cast<std::string>(name), num_args), FunctionData { Operation::Callback, callback });
   }
 
-  FunctionData find_function(nonstd::string_view name, int num_args) const {
+  FunctionData find_function(std::string_view name, int num_args) const {
     auto it = function_storage.find(std::make_pair(static_cast<std::string>(name), num_args));
     if (it != function_storage.end()) {
       return it->second;

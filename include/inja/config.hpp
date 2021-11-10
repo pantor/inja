@@ -4,7 +4,6 @@
 #include <functional>
 #include <string>
 
-#include "string_view.hpp"
 #include "template.hpp"
 
 namespace inja {

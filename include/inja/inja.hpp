@@ -53,7 +53,6 @@ namespace inja {
 #include "exceptions.hpp"
 #include "parser.hpp"
 #include "renderer.hpp"
-#include "string_view.hpp"
 #include "template.hpp"
 
 #endif // INCLUDE_INJA_INJA_HPP_

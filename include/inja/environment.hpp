@@ -6,12 +6,12 @@
 #include <memory>
 #include <sstream>
 #include <string>
+#include <string_view>
 
 #include "config.hpp"
 #include "function_storage.hpp"
 #include "parser.hpp"
 #include "renderer.hpp"
-#include "string_view.hpp"
 #include "template.hpp"
 #include "utils.hpp"
 
@@ -93,7 +93,7 @@ public:
     render_config.throw_at_missing_includes = will_throw;
   }
 
-  Template parse(nonstd::string_view input) {
+  Template parse(std::string_view input) {
     Parser parser(parser_config, lexer_config, template_storage, function_storage);
     return parser.parse(input);
   }
@@ -109,7 +109,7 @@ public:
     return parse_template(filename);
   }
 
-  std::string render(nonstd::string_view input, const json &data) { return render(parse(input), data); }
+  std::string render(std::string_view input, const json &data) { return render(parse(input), data); }
 
   std::string render(const Template &tmpl, const json &data) {
     std::stringstream os;
@@ -217,14 +217,14 @@ public:
 /*!
 @brief render with default settings to a string
 */
-inline std::string render(nonstd::string_view input, const json &data) {
+inline std::string render(std::string_view input, const json &data) {
   return Environment().render(input, data);
 }
 
 /*!
 @brief render with default settings to the given output stream
 */
-inline void render_to(std::ostream &os, nonstd::string_view input, const json &data) {
+inline void render_to(std::ostream &os, std::string_view input, const json &data) {
   Environment env;
   env.render_to(os, env.parse(input), data);
 }

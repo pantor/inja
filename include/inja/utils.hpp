@@ -4,39 +4,40 @@
 #include <algorithm>
 #include <fstream>
 #include <string>
+#include <string_view>
 #include <utility>
 
 #include "exceptions.hpp"
-#include "string_view.hpp"
+
 
 namespace inja {
 
 namespace string_view {
-inline nonstd::string_view slice(nonstd::string_view view, size_t start, size_t end) {
+inline std::string_view slice(std::string_view view, size_t start, size_t end) {
   start = std::min(start, view.size());
   end = std::min(std::max(start, end), view.size());
   return view.substr(start, end - start);
 }
 
-inline std::pair<nonstd::string_view, nonstd::string_view> split(nonstd::string_view view, char Separator) {
+inline std::pair<std::string_view, std::string_view> split(std::string_view view, char Separator) {
   size_t idx = view.find(Separator);
-  if (idx == nonstd::string_view::npos) {
-    return std::make_pair(view, nonstd::string_view());
+  if (idx == std::string_view::npos) {
+    return std::make_pair(view, std::string_view());
   }
-  return std::make_pair(slice(view, 0, idx), slice(view, idx + 1, nonstd::string_view::npos));
+  return std::make_pair(slice(view, 0, idx), slice(view, idx + 1, std::string_view::npos));
 }
 
-inline bool starts_with(nonstd::string_view view, nonstd::string_view prefix) {
+inline bool starts_with(std::string_view view, std::string_view prefix) {
   return (view.size() >= prefix.size() && view.compare(0, prefix.size(), prefix) == 0);
 }
 } // namespace string_view
 
-inline SourceLocation get_source_location(nonstd::string_view content, size_t pos) {
+inline SourceLocation get_source_location(std::string_view content, size_t pos) {
   // Get line and offset position (starts at 1:1)
   auto sliced = string_view::slice(content, 0, pos);
   std::size_t last_newline = sliced.rfind("\n");
 
-  if (last_newline == nonstd::string_view::npos) {
+  if (last_newline == std::string_view::npos) {
     return {1, sliced.length() + 1};
   }
 
