@@ -32,7 +32,7 @@ target_include_directories(inja INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:${INJA_INSTALL_INCLUDE_DIR}>
 )
-target_compile_features(inja INTERFACE cxx_std_11)
+target_compile_features(inja INTERFACE cxx_std_17)
 
 
 if(INJA_USE_EMBEDDED_JSON)
@@ -47,7 +47,7 @@ if(INJA_USE_EMBEDDED_JSON)
       $<INSTALL_INTERFACE:${INJA_INSTALL_INCLUDE_DIR}/inja/json/include>
     )
 
-    target_compile_features(nlohmann_json INTERFACE cxx_std_11)
+    target_compile_features(nlohmann_json INTERFACE cxx_std_17)
 
     install(TARGETS nlohmann_json EXPORT injaTargets)
 
@@ -87,7 +87,7 @@ if(BUILD_TESTING AND INJA_BUILD_TESTS)
 
 
   add_library(single_inja INTERFACE)
-  target_compile_features(single_inja INTERFACE cxx_std_11)
+  target_compile_features(single_inja INTERFACE cxx_std_17)
   target_include_directories(single_inja INTERFACE single_include include third_party/include)
 
   add_executable(single_inja_test test/test.cpp)
