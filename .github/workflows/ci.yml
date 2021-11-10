@@ -21,7 +21,6 @@ jobs:
           ubuntu-18.04-gcc-9,
           ubuntu-20.04-gcc-10,
           ubuntu-20.04-gcc-11,
-          ubuntu-18.04-clang-4.0,
           ubuntu-18.04-clang-5.0,
           ubuntu-18.04-clang-6.0,
           ubuntu-18.04-clang-7,
@@ -66,11 +65,6 @@ jobs:
             os: ubuntu-20.04
             compiler: gcc
             version: "11"
-
-          - name: ubuntu-18.04-clang-4.0
-            os: ubuntu-18.04
-            compiler: clang
-            version: "4.0"
 
           - name: ubuntu-18.04-clang-5.0
             os: ubuntu-18.04

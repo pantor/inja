@@ -385,7 +385,7 @@ Inja uses exceptions to handle ill-formed template input. However, exceptions ca
 Inja uses the `string_view` feature of the C++17 STL. Currently, the following compilers are tested:
 
 - GCC 7 - 11 (and possibly later)
-- Clang 4 - 12 (and possibly later)
+- Clang 5 - 12 (and possibly later)
 - Microsoft Visual C++ 2017 15.0 - 2022 (and possibly later)
 
 A list of supported compiler / os versions can be found in the [CI definition](https://github.com/pantor/inja/blob/master/.github/workflows/ci.yml).
