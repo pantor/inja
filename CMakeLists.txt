@@ -76,6 +76,7 @@ if(BUILD_TESTING AND INJA_BUILD_TESTS)
   enable_testing()
 
   add_executable(inja_test test/test.cpp)
+  target_compile_features(inja_test INTERFACE cxx_std_17)
   target_link_libraries(inja_test PRIVATE inja)
   add_test(inja_test ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/inja_test)
 
