@@ -16,14 +16,11 @@ jobs:
       fail-fast: false
       matrix:
         name: [
-          ubuntu-18.04-gcc-5,
-          ubuntu-18.04-gcc-6,
           ubuntu-18.04-gcc-7,
           ubuntu-18.04-gcc-8,
           ubuntu-18.04-gcc-9,
           ubuntu-20.04-gcc-10,
           ubuntu-20.04-gcc-11,
-          ubuntu-18.04-clang-3.8,
           ubuntu-18.04-clang-4.0,
           ubuntu-18.04-clang-5.0,
           ubuntu-18.04-clang-6.0,
@@ -33,10 +30,6 @@ jobs:
           ubuntu-20.04-clang-10,
           ubuntu-20.04-clang-11,
           ubuntu-20.04-clang-11-no-exceptions,
-          windows-2016-cl,
-          windows-2016-clang-cl,
-          windows-2016-clang,
-          windows-2016-gcc,
           windows-2019-cl,
           windows-2019-clang-cl,
           windows-2019-clang,
@@ -49,16 +42,6 @@ jobs:
         ]
 
         include:
-          - name: ubuntu-18.04-gcc-5
-            os: ubuntu-18.04
-            compiler: gcc
-            version: "5"
-
-          - name: ubuntu-18.04-gcc-6
-            os: ubuntu-18.04
-            compiler: gcc
-            version: "6"
-
           - name: ubuntu-18.04-gcc-7
             os: ubuntu-18.04
             compiler: gcc
@@ -83,11 +66,6 @@ jobs:
             os: ubuntu-20.04
             compiler: gcc
             version: "11"
-
-          - name: ubuntu-18.04-clang-3.8
-            os: ubuntu-18.04
-            compiler: clang
-            version: "3.8"
 
           - name: ubuntu-18.04-clang-4.0
             os: ubuntu-18.04
@@ -135,25 +113,9 @@ jobs:
             version: "11"
             cmake_vars: "-DCMAKE_CXX_FLAGS=-fno-exceptions -DBUILD_TESTING=OFF -DBUILD_BENCHMARK=ON"
 
-          - name: windows-2016-cl
-            os: windows-2016
-            compiler: cl
-
-          - name: windows-2016-clang-cl
-            os: windows-2016
-            compiler: clang-cl
-
-          - name: windows-2016-clang
-            os: windows-2016
-            compiler: clang
-
           - name: windows-2019-cl
             os: windows-2019
             compiler: cl
-
-          - name: windows-2016-gcc
-            os: windows-2016
-            compiler: gcc
 
           - name: windows-2019-clang-cl
             os: windows-2019

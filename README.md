@@ -384,8 +384,8 @@ Inja uses exceptions to handle ill-formed template input. However, exceptions ca
 
 Inja uses `string_view` from C++17, but includes the [polyfill](https://github.com/martinmoene/string-view-lite) from martinmoene. This way, the minimum version is C++11. Currently, the following compilers are tested:
 
-- GCC 5 - 11 (and possibly later)
-- Clang 3.8 - 11 (and possibly later)
-- Microsoft Visual C++ 2016 - 2019 (and possibly later)
+- GCC 7 - 11 (and possibly later)
+- Clang 4 - 12 (and possibly later)
+- Microsoft Visual C++ 2017 15.0 - 2022 (and possibly later)
 
-The unit tests fail to compile with GCC 4.8 but should just work fine. A complete list of supported compiler / os versions can be found in the [CI definition](https://github.com/pantor/inja/blob/master/.github/workflows/ci.yml).
+A list of supported compiler / os versions can be found in the [CI definition](https://github.com/pantor/inja/blob/master/.github/workflows/ci.yml).
