@@ -16,7 +16,7 @@ class BlockNode;
 class TextNode;
 class ExpressionNode;
 class LiteralNode;
-class JsonNode;
+class DataNode;
 class FunctionNode;
 class ExpressionListNode;
 class StatementNode;
@@ -38,7 +38,7 @@ public:
   virtual void visit(const TextNode& node) = 0;
   virtual void visit(const ExpressionNode& node) = 0;
   virtual void visit(const LiteralNode& node) = 0;
-  virtual void visit(const JsonNode& node) = 0;
+  virtual void visit(const DataNode& node) = 0;
   virtual void visit(const FunctionNode& node) = 0;
   virtual void visit(const ExpressionListNode& node) = 0;
   virtual void visit(const StatementNode& node) = 0;
@@ -108,12 +108,12 @@ public:
   }
 };
 
-class JsonNode : public ExpressionNode {
+class DataNode : public ExpressionNode {
 public:
   const std::string name;
   const json::json_pointer ptr;
 
-  static std::string convert_dot_to_json_ptr(std::string_view ptr_name) {
+  static std::string convert_dot_to_ptr(std::string_view ptr_name) {
     std::string result;
     do {
       std::string_view part;
@@ -124,7 +124,7 @@ public:
     return result;
   }
 
-  explicit JsonNode(std::string_view ptr_name, size_t pos) : ExpressionNode(pos), name(ptr_name), ptr(json::json_pointer(convert_dot_to_json_ptr(ptr_name))) { }
+  explicit DataNode(std::string_view ptr_name, size_t pos) : ExpressionNode(pos), name(ptr_name), ptr(json::json_pointer(convert_dot_to_ptr(ptr_name))) { }
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);

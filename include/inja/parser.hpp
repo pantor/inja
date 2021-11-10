@@ -37,7 +37,7 @@ class Parser {
   size_t current_bracket_level {0};
   size_t current_brace_level {0};
 
-  std::string_view json_literal_start;
+  std::string_view literal_start;
 
   BlockNode *current_block {nullptr};
   ExpressionListNode *current_expression_list {nullptr};
@@ -69,9 +69,9 @@ class Parser {
     }
   }
 
-  inline void add_json_literal(const char* content_ptr) {
-    std::string_view json_text(json_literal_start.data(), tok.text.data() - json_literal_start.data() + tok.text.size());
-    arguments.emplace_back(std::make_shared<LiteralNode>(json::parse(json_text), json_text.data() - content_ptr));
+  inline void add_literal(const char* content_ptr) {
+    std::string_view data_text(literal_start.data(), tok.text.data() - literal_start.data() + tok.text.size());
+    arguments.emplace_back(std::make_shared<LiteralNode>(json::parse(data_text), data_text.data() - content_ptr));
   }
 
   inline void add_operator() {
@@ -131,28 +131,28 @@ class Parser {
       switch (tok.kind) {
       case Token::Kind::String: {
         if (current_brace_level == 0 && current_bracket_level == 0) {
-          json_literal_start = tok.text;
-          add_json_literal(tmpl.content.c_str());
+          literal_start = tok.text;
+          add_literal(tmpl.content.c_str());
         }
 
       } break;
       case Token::Kind::Number: {
         if (current_brace_level == 0 && current_bracket_level == 0) {
-          json_literal_start = tok.text;
-          add_json_literal(tmpl.content.c_str());
+          literal_start = tok.text;
+          add_literal(tmpl.content.c_str());
         }
 
       } break;
       case Token::Kind::LeftBracket: {
         if (current_brace_level == 0 && current_bracket_level == 0) {
-          json_literal_start = tok.text;
+          literal_start = tok.text;
         }
         current_bracket_level += 1;
 
       } break;
       case Token::Kind::LeftBrace: {
         if (current_brace_level == 0 && current_bracket_level == 0) {
-          json_literal_start = tok.text;
+          literal_start = tok.text;
         }
         current_brace_level += 1;
 
@@ -164,7 +164,7 @@ class Parser {
 
         current_bracket_level -= 1;
         if (current_brace_level == 0 && current_bracket_level == 0) {
-          add_json_literal(tmpl.content.c_str());
+          add_literal(tmpl.content.c_str());
         }
 
       } break;
@@ -175,18 +175,18 @@ class Parser {
 
         current_brace_level -= 1;
         if (current_brace_level == 0 && current_bracket_level == 0) {
-          add_json_literal(tmpl.content.c_str());
+          add_literal(tmpl.content.c_str());
         }
 
       } break;
       case Token::Kind::Id: {
         get_peek_token();
 
-        // Json Literal
+        // Data Literal
         if (tok.text == static_cast<decltype(tok.text)>("true") || tok.text == static_cast<decltype(tok.text)>("false") || tok.text == static_cast<decltype(tok.text)>("null")) {
           if (current_brace_level == 0 && current_bracket_level == 0) {
-            json_literal_start = tok.text;
-            add_json_literal(tmpl.content.c_str());
+            literal_start = tok.text;
+            add_literal(tmpl.content.c_str());
           }
 
 	      // Operator
@@ -200,7 +200,7 @@ class Parser {
 
         // Variables
         } else {
-          arguments.emplace_back(std::make_shared<JsonNode>(static_cast<std::string>(tok.text), tok.text.data() - tmpl.content.c_str()));
+          arguments.emplace_back(std::make_shared<DataNode>(static_cast<std::string>(tok.text), tok.text.data() - tmpl.content.c_str()));
         }
 
       // Operators

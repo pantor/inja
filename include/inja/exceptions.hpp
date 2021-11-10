@@ -39,8 +39,8 @@ struct FileError : public InjaError {
   explicit FileError(const std::string &message, SourceLocation location) : InjaError("file_error", message, location) {}
 };
 
-struct JsonError : public InjaError {
-  explicit JsonError(const std::string &message, SourceLocation location) : InjaError("json_error", message, location) {}
+struct DataError : public InjaError {
+  explicit DataError(const std::string &message, SourceLocation location) : InjaError("data_error", message, location) {}
 };
 
 } // namespace inja

@@ -20,7 +20,7 @@ class StatisticsVisitor : public NodeVisitor {
   void visit(const ExpressionNode&) { }
   void visit(const LiteralNode&) { }
 
-  void visit(const JsonNode&) {
+  void visit(const DataNode&) {
     variable_counter += 1;
   }
 
