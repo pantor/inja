@@ -92,6 +92,7 @@ if(BUILD_TESTING AND INJA_BUILD_TESTS)
   target_include_directories(single_inja INTERFACE single_include include third_party/include)
 
   add_executable(single_inja_test test/test.cpp)
+  target_compile_features(single_inja_test INTERFACE cxx_std_17)
   target_link_libraries(single_inja_test PRIVATE single_inja)
 
   add_test(single_inja_test ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/single_inja_test)
@@ -100,6 +101,7 @@ endif()
 
 if(BUILD_BENCHMARK)
   add_executable(inja_benchmark test/benchmark.cpp)
+  target_compile_features(inja_benchmark INTERFACE cxx_std_17)
   target_link_libraries(inja_benchmark PRIVATE inja)
 
   if(MSVC)
