@@ -904,7 +904,6 @@ struct RenderConfig {
 #include <stack>
 #include <string>
 #include <utility>
-#include <queue>
 #include <vector>
 
 // #include "config.hpp"
@@ -2119,16 +2118,16 @@ class Renderer : public NodeVisitor  {
   using Op = FunctionStorage::Operation;
 
   const RenderConfig config;
-  const TemplateStorage &template_storage;
-  const FunctionStorage &function_storage;
+  const TemplateStorage& template_storage;
+  const FunctionStorage& function_storage;
 
-  const Template *current_template;
+  const Template* current_template;
   size_t current_level {0};
   std::vector<const Template*> template_stack;
   std::vector<const BlockStatementNode*> block_statement_stack;
 
-  const json *data_input;
-  std::ostream *output_stream;
+  const json* data_input;
+  std::ostream* output_stream;
 
   json additional_data;
   json* current_loop_data = &additional_data["loop"];
@@ -2139,7 +2138,7 @@ class Renderer : public NodeVisitor  {
 
   bool break_rendering {false};
 
-  bool truthy(const json* data) const {
+  static bool truthy(const json* data) {
     if (data->is_boolean()) {
       return data->get<bool>();
     } else if (data->is_number()) {
@@ -2190,9 +2189,15 @@ class Renderer : public NodeVisitor  {
     return std::make_shared<json>(*result);
   }
 
-  void throw_renderer_error(const std::string &message, const AstNode& node) {
+  void throw_renderer_error(const std::string& message, const AstNode& node) {
     SourceLocation loc = get_source_location(current_template->content, node.pos);
     INJA_THROW(RenderError(message, loc));
+  }
+
+  void make_result(const json&& result) {
+    auto result_ptr = std::make_shared<json>(result);
+    data_tmp_stack.push_back(result_ptr);
+    data_eval_stack.push(result_ptr.get());
   }
 
   template<size_t N, size_t N_start = 0, bool throw_not_found=true>
@@ -2298,130 +2303,91 @@ class Renderer : public NodeVisitor  {
   }
 
   void visit(const FunctionNode& node) {
-    std::shared_ptr<json> result_ptr;
-
     switch (node.operation) {
     case Op::Not: {
       const auto args = get_arguments<1>(node);
-      result_ptr = std::make_shared<json>(!truthy(args[0]));
-      data_tmp_stack.push_back(result_ptr);
-      data_eval_stack.push(result_ptr.get());
+      make_result(!truthy(args[0]));
     } break;
     case Op::And: {
-      result_ptr = std::make_shared<json>(truthy(get_arguments<1, 0>(node)[0]) && truthy(get_arguments<1, 1>(node)[0]));
-      data_tmp_stack.push_back(result_ptr);
-      data_eval_stack.push(result_ptr.get());
+      make_result(truthy(get_arguments<1, 0>(node)[0]) && truthy(get_arguments<1, 1>(node)[0]));
     } break;
     case Op::Or: {
-      result_ptr = std::make_shared<json>(truthy(get_arguments<1, 0>(node)[0]) || truthy(get_arguments<1, 1>(node)[0]));
-      data_tmp_stack.push_back(result_ptr);
-      data_eval_stack.push(result_ptr.get());
+      make_result(truthy(get_arguments<1, 0>(node)[0]) || truthy(get_arguments<1, 1>(node)[0]));
     } break;
     case Op::In: {
       const auto args = get_arguments<2>(node);
-      result_ptr = std::make_shared<json>(std::find(args[1]->begin(), args[1]->end(), *args[0]) != args[1]->end());
-      data_tmp_stack.push_back(result_ptr);
-      data_eval_stack.push(result_ptr.get());
+      make_result(std::find(args[1]->begin(), args[1]->end(), *args[0]) != args[1]->end());
     } break;
     case Op::Equal: {
       const auto args = get_arguments<2>(node);
-      result_ptr = std::make_shared<json>(*args[0] == *args[1]);
-      data_tmp_stack.push_back(result_ptr);
-      data_eval_stack.push(result_ptr.get());
+      make_result(*args[0] == *args[1]);
     } break;
     case Op::NotEqual: {
       const auto args = get_arguments<2>(node);
-      result_ptr = std::make_shared<json>(*args[0] != *args[1]);
-      data_tmp_stack.push_back(result_ptr);
-      data_eval_stack.push(result_ptr.get());
+      make_result(*args[0] != *args[1]);
     } break;
     case Op::Greater: {
       const auto args = get_arguments<2>(node);
-      result_ptr = std::make_shared<json>(*args[0] > *args[1]);
-      data_tmp_stack.push_back(result_ptr);
-      data_eval_stack.push(result_ptr.get());
+      make_result(*args[0] > *args[1]);
     } break;
     case Op::GreaterEqual: {
       const auto args = get_arguments<2>(node);
-      result_ptr = std::make_shared<json>(*args[0] >= *args[1]);
-      data_tmp_stack.push_back(result_ptr);
-      data_eval_stack.push(result_ptr.get());
+      make_result(*args[0] >= *args[1]);
     } break;
     case Op::Less: {
       const auto args = get_arguments<2>(node);
-      result_ptr = std::make_shared<json>(*args[0] < *args[1]);
-      data_tmp_stack.push_back(result_ptr);
-      data_eval_stack.push(result_ptr.get());
+      make_result(*args[0] < *args[1]);
     } break;
     case Op::LessEqual: {
       const auto args = get_arguments<2>(node);
-      result_ptr = std::make_shared<json>(*args[0] <= *args[1]);
-      data_tmp_stack.push_back(result_ptr);
-      data_eval_stack.push(result_ptr.get());
+      make_result(*args[0] <= *args[1]);
     } break;
     case Op::Add: {
       const auto args = get_arguments<2>(node);
       if (args[0]->is_string() && args[1]->is_string()) {
-        result_ptr = std::make_shared<json>(args[0]->get_ref<const std::string&>() + args[1]->get_ref<const std::string&>());
-        data_tmp_stack.push_back(result_ptr);
+        make_result(args[0]->get_ref<const std::string&>() + args[1]->get_ref<const std::string&>());
       } else if (args[0]->is_number_integer() && args[1]->is_number_integer()) {
-        result_ptr = std::make_shared<json>(args[0]->get<int>() + args[1]->get<int>());
-        data_tmp_stack.push_back(result_ptr);
+        make_result(args[0]->get<int>() + args[1]->get<int>());
       } else {
-        result_ptr = std::make_shared<json>(args[0]->get<double>() + args[1]->get<double>());
-        data_tmp_stack.push_back(result_ptr);
+        make_result(args[0]->get<double>() + args[1]->get<double>());
       }
-      data_eval_stack.push(result_ptr.get());
     } break;
     case Op::Subtract: {
       const auto args = get_arguments<2>(node);
       if (args[0]->is_number_integer() && args[1]->is_number_integer()) {
-        result_ptr = std::make_shared<json>(args[0]->get<int>() - args[1]->get<int>());
-        data_tmp_stack.push_back(result_ptr);
+        make_result(args[0]->get<int>() - args[1]->get<int>());
       } else {
-        result_ptr = std::make_shared<json>(args[0]->get<double>() - args[1]->get<double>());
-        data_tmp_stack.push_back(result_ptr);
+        make_result(args[0]->get<double>() - args[1]->get<double>());
       }
-      data_eval_stack.push(result_ptr.get());
     } break;
     case Op::Multiplication: {
       const auto args = get_arguments<2>(node);
       if (args[0]->is_number_integer() && args[1]->is_number_integer()) {
-        result_ptr = std::make_shared<json>(args[0]->get<int>() * args[1]->get<int>());
-        data_tmp_stack.push_back(result_ptr);
+        make_result(args[0]->get<int>() * args[1]->get<int>());
       } else {
-        result_ptr = std::make_shared<json>(args[0]->get<double>() * args[1]->get<double>());
-        data_tmp_stack.push_back(result_ptr);
+        make_result(args[0]->get<double>() * args[1]->get<double>());
       }
-      data_eval_stack.push(result_ptr.get());
     } break;
     case Op::Division: {
       const auto args = get_arguments<2>(node);
       if (args[1]->get<double>() == 0) {
         throw_renderer_error("division by zero", node);
       }
-      result_ptr = std::make_shared<json>(args[0]->get<double>() / args[1]->get<double>());
-      data_tmp_stack.push_back(result_ptr);
-      data_eval_stack.push(result_ptr.get());
+      make_result(args[0]->get<double>() / args[1]->get<double>());
     } break;
     case Op::Power: {
       const auto args = get_arguments<2>(node);
       if (args[0]->is_number_integer() && args[1]->get<int>() >= 0) {
         int result = static_cast<int>(std::pow(args[0]->get<int>(), args[1]->get<int>()));
-        result_ptr = std::make_shared<json>(std::move(result));
-        data_tmp_stack.push_back(result_ptr);
+        make_result(result);
       } else {
         double result = std::pow(args[0]->get<double>(), args[1]->get<int>());
-        result_ptr = std::make_shared<json>(std::move(result));
-        data_tmp_stack.push_back(result_ptr);
+        make_result(result);
       }
-      data_eval_stack.push(result_ptr.get());
     } break;
     case Op::Modulo: {
       const auto args = get_arguments<2>(node);
-      result_ptr = std::make_shared<json>(args[0]->get<int>() % args[1]->get<int>());
-      data_tmp_stack.push_back(result_ptr);
-      data_eval_stack.push(result_ptr.get());
+      make_result(args[0]->get<int>() % args[1]->get<int>());
     } break;
     case Op::AtId: {
       const auto container = get_arguments<1, 0, false>(node)[0];
@@ -2449,41 +2415,29 @@ class Renderer : public NodeVisitor  {
     case Op::DivisibleBy: {
       const auto args = get_arguments<2>(node);
       const int divisor = args[1]->get<int>();
-      result_ptr = std::make_shared<json>((divisor != 0) && (args[0]->get<int>() % divisor == 0));
-      data_tmp_stack.push_back(result_ptr);
-      data_eval_stack.push(result_ptr.get());
+      make_result((divisor != 0) && (args[0]->get<int>() % divisor == 0));
     } break;
     case Op::Even: {
-      result_ptr = std::make_shared<json>(get_arguments<1>(node)[0]->get<int>() % 2 == 0);
-      data_tmp_stack.push_back(result_ptr);
-      data_eval_stack.push(result_ptr.get());
+      make_result(get_arguments<1>(node)[0]->get<int>() % 2 == 0);
     } break;
     case Op::Exists: {
       auto &&name = get_arguments<1>(node)[0]->get_ref<const std::string &>();
-      result_ptr = std::make_shared<json>(data_input->contains(json::json_pointer(DataNode::convert_dot_to_ptr(name))));
-      data_tmp_stack.push_back(result_ptr);
-      data_eval_stack.push(result_ptr.get());
+      make_result(data_input->contains(json::json_pointer(DataNode::convert_dot_to_ptr(name))));
     } break;
     case Op::ExistsInObject: {
       const auto args = get_arguments<2>(node);
       auto &&name = args[1]->get_ref<const std::string &>();
-      result_ptr = std::make_shared<json>(args[0]->find(name) != args[0]->end());
-      data_tmp_stack.push_back(result_ptr);
-      data_eval_stack.push(result_ptr.get());
+      make_result(args[0]->find(name) != args[0]->end());
     } break;
     case Op::First: {
       const auto result = &get_arguments<1>(node)[0]->front();
       data_eval_stack.push(result);
     } break;
     case Op::Float: {
-      result_ptr = std::make_shared<json>(std::stod(get_arguments<1>(node)[0]->get_ref<const std::string &>()));
-      data_tmp_stack.push_back(result_ptr);
-      data_eval_stack.push(result_ptr.get());
+      make_result(std::stod(get_arguments<1>(node)[0]->get_ref<const std::string &>()));
     } break;
     case Op::Int: {
-      result_ptr = std::make_shared<json>(std::stoi(get_arguments<1>(node)[0]->get_ref<const std::string &>()));
-      data_tmp_stack.push_back(result_ptr);
-      data_eval_stack.push(result_ptr.get());
+      make_result(std::stoi(get_arguments<1>(node)[0]->get_ref<const std::string &>()));
     } break;
     case Op::Last: {
       const auto result = &get_arguments<1>(node)[0]->back();
@@ -2492,19 +2446,15 @@ class Renderer : public NodeVisitor  {
     case Op::Length: {
       const auto val = get_arguments<1>(node)[0];
       if (val->is_string()) {
-        result_ptr = std::make_shared<json>(val->get_ref<const std::string &>().length());
+        make_result(val->get_ref<const std::string &>().length());
       } else {
-        result_ptr = std::make_shared<json>(val->size());
+        make_result(val->size());
       }
-      data_tmp_stack.push_back(result_ptr);
-      data_eval_stack.push(result_ptr.get());
     } break;
     case Op::Lower: {
       std::string result = get_arguments<1>(node)[0]->get<std::string>();
       std::transform(result.begin(), result.end(), result.begin(), ::tolower);
-      result_ptr = std::make_shared<json>(std::move(result));
-      data_tmp_stack.push_back(result_ptr);
-      data_eval_stack.push(result_ptr.get());
+      make_result(std::move(result));
     } break;
     case Op::Max: {
       const auto args = get_arguments<1>(node);
@@ -2517,31 +2467,25 @@ class Renderer : public NodeVisitor  {
       data_eval_stack.push(&(*result));
     } break;
     case Op::Odd: {
-      result_ptr = std::make_shared<json>(get_arguments<1>(node)[0]->get<int>() % 2 != 0);
-      data_tmp_stack.push_back(result_ptr);
-      data_eval_stack.push(result_ptr.get());
+      make_result(get_arguments<1>(node)[0]->get<int>() % 2 != 0);
     } break;
     case Op::Range: {
       std::vector<int> result(get_arguments<1>(node)[0]->get<int>());
       std::iota(result.begin(), result.end(), 0);
-      result_ptr = std::make_shared<json>(std::move(result));
-      data_tmp_stack.push_back(result_ptr);
-      data_eval_stack.push(result_ptr.get());
+      make_result(std::move(result));
     } break;
     case Op::Round: {
       const auto args = get_arguments<2>(node);
       const int precision = args[1]->get<int>();
       const double result = std::round(args[0]->get<double>() * std::pow(10.0, precision)) / std::pow(10.0, precision);
-      if(0==precision){
-        result_ptr = std::make_shared<json>(int(result));
-      }else{
-        result_ptr = std::make_shared<json>(std::move(result));
+      if (precision == 0) {
+        make_result(int(result));
+      } else {
+        make_result(result);
       }
-      data_tmp_stack.push_back(result_ptr);
-      data_eval_stack.push(result_ptr.get());
     } break;
     case Op::Sort: {
-      result_ptr = std::make_shared<json>(get_arguments<1>(node)[0]->get<std::vector<json>>());
+      auto result_ptr = std::make_shared<json>(get_arguments<1>(node)[0]->get<std::vector<json>>());
       std::sort(result_ptr->begin(), result_ptr->end());
       data_tmp_stack.push_back(result_ptr);
       data_eval_stack.push(result_ptr.get());
@@ -2549,50 +2493,32 @@ class Renderer : public NodeVisitor  {
     case Op::Upper: {
       std::string result = get_arguments<1>(node)[0]->get<std::string>();
       std::transform(result.begin(), result.end(), result.begin(), ::toupper);
-      result_ptr = std::make_shared<json>(std::move(result));
-      data_tmp_stack.push_back(result_ptr);
-      data_eval_stack.push(result_ptr.get());
+      make_result(std::move(result));
     } break;
     case Op::IsBoolean: {
-      result_ptr = std::make_shared<json>(get_arguments<1>(node)[0]->is_boolean());
-      data_tmp_stack.push_back(result_ptr);
-      data_eval_stack.push(result_ptr.get());
+      make_result(get_arguments<1>(node)[0]->is_boolean());
     } break;
     case Op::IsNumber: {
-      result_ptr = std::make_shared<json>(get_arguments<1>(node)[0]->is_number());
-      data_tmp_stack.push_back(result_ptr);
-      data_eval_stack.push(result_ptr.get());
+      make_result(get_arguments<1>(node)[0]->is_number());
     } break;
     case Op::IsInteger: {
-      result_ptr = std::make_shared<json>(get_arguments<1>(node)[0]->is_number_integer());
-      data_tmp_stack.push_back(result_ptr);
-      data_eval_stack.push(result_ptr.get());
+      make_result(get_arguments<1>(node)[0]->is_number_integer());
     } break;
     case Op::IsFloat: {
-      result_ptr = std::make_shared<json>(get_arguments<1>(node)[0]->is_number_float());
-      data_tmp_stack.push_back(result_ptr);
-      data_eval_stack.push(result_ptr.get());
+      make_result(get_arguments<1>(node)[0]->is_number_float());
     } break;
     case Op::IsObject: {
-      result_ptr = std::make_shared<json>(get_arguments<1>(node)[0]->is_object());
-      data_tmp_stack.push_back(result_ptr);
-      data_eval_stack.push(result_ptr.get());
+      make_result(get_arguments<1>(node)[0]->is_object());
     } break;
     case Op::IsArray: {
-      result_ptr = std::make_shared<json>(get_arguments<1>(node)[0]->is_array());
-      data_tmp_stack.push_back(result_ptr);
-      data_eval_stack.push(result_ptr.get());
+      make_result(get_arguments<1>(node)[0]->is_array());
     } break;
     case Op::IsString: {
-      result_ptr = std::make_shared<json>(get_arguments<1>(node)[0]->is_string());
-      data_tmp_stack.push_back(result_ptr);
-      data_eval_stack.push(result_ptr.get());
+      make_result(get_arguments<1>(node)[0]->is_string());
     } break;
     case Op::Callback: {
       auto args = get_argument_vector(node);
-      result_ptr = std::make_shared<json>(node.callback(args));
-      data_tmp_stack.push_back(result_ptr);
-      data_eval_stack.push(result_ptr.get());
+      make_result(node.callback(args));
     } break;
     case Op::Super: {
       const auto args = get_argument_vector(node);
@@ -2609,8 +2535,8 @@ class Renderer : public NodeVisitor  {
       }
 
       const auto current_block_statement = block_statement_stack.back();
-      const Template *new_template = template_stack.at(level);
-      const Template *old_template = current_template;
+      const Template* new_template = template_stack.at(level);
+      const Template* old_template = current_template;
       const auto block_it = new_template->block_storage.find(current_block_statement->name);
       if (block_it != new_template->block_storage.end()) {
         current_template = new_template;
@@ -2621,9 +2547,7 @@ class Renderer : public NodeVisitor  {
       } else {
         throw_renderer_error("could not find block with name '" + current_block_statement->name + "'", node);
       }
-      result_ptr = std::make_shared<json>(nullptr);
-      data_tmp_stack.push_back(result_ptr);
-      data_eval_stack.push(result_ptr.get());
+      make_result(nullptr);
     } break;
     case Op::Join: {
       const auto args = get_arguments<2>(node);
@@ -2639,9 +2563,7 @@ class Renderer : public NodeVisitor  {
         }
         sep = separator;
       }
-      result_ptr = std::make_shared<json>(os.str());
-      data_tmp_stack.push_back(result_ptr);
-      data_eval_stack.push(result_ptr.get());
+      make_result(os.str());
     } break;
     case Op::ParenLeft:
     case Op::ParenRight:
@@ -2788,10 +2710,10 @@ class Renderer : public NodeVisitor  {
   }
 
 public:
-  Renderer(const RenderConfig& config, const TemplateStorage &template_storage, const FunctionStorage &function_storage)
+  Renderer(const RenderConfig& config, const TemplateStorage& template_storage, const FunctionStorage& function_storage)
       : config(config), template_storage(template_storage), function_storage(function_storage) { }
 
-  void render_to(std::ostream &os, const Template &tmpl, const json &data, json *loop_data = nullptr) {
+  void render_to(std::ostream& os, const Template& tmpl, const json& data, json* loop_data = nullptr) {
     output_stream = &os;
     current_template = &tmpl;
     data_input = &data;
