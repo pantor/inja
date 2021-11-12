@@ -325,12 +325,12 @@ class Renderer : public NodeVisitor  {
       make_result(get_arguments<1>(node)[0]->get<int>() % 2 == 0);
     } break;
     case Op::Exists: {
-      auto &&name = get_arguments<1>(node)[0]->get_ref<const std::string &>();
+      auto &&name = get_arguments<1>(node)[0]->get_ref<const std::string&>();
       make_result(data_input->contains(json::json_pointer(DataNode::convert_dot_to_ptr(name))));
     } break;
     case Op::ExistsInObject: {
       const auto args = get_arguments<2>(node);
-      auto &&name = args[1]->get_ref<const std::string &>();
+      auto &&name = args[1]->get_ref<const std::string&>();
       make_result(args[0]->find(name) != args[0]->end());
     } break;
     case Op::First: {
@@ -338,10 +338,10 @@ class Renderer : public NodeVisitor  {
       data_eval_stack.push(result);
     } break;
     case Op::Float: {
-      make_result(std::stod(get_arguments<1>(node)[0]->get_ref<const std::string &>()));
+      make_result(std::stod(get_arguments<1>(node)[0]->get_ref<const std::string&>()));
     } break;
     case Op::Int: {
-      make_result(std::stoi(get_arguments<1>(node)[0]->get_ref<const std::string &>()));
+      make_result(std::stoi(get_arguments<1>(node)[0]->get_ref<const std::string&>()));
     } break;
     case Op::Last: {
       const auto result = &get_arguments<1>(node)[0]->back();
@@ -350,7 +350,7 @@ class Renderer : public NodeVisitor  {
     case Op::Length: {
       const auto val = get_arguments<1>(node)[0];
       if (val->is_string()) {
-        make_result(val->get_ref<const std::string &>().length());
+        make_result(val->get_ref<const std::string&>().length());
       } else {
         make_result(val->size());
       }

@@ -35,7 +35,7 @@ class Lexer {
     Number,
   };
 
-  const LexerConfig &config;
+  const LexerConfig& config;
 
   State state;
   MinusState minus_state;
@@ -270,7 +270,7 @@ class Lexer {
   }
 
 public:
-  explicit Lexer(const LexerConfig &config) : config(config), state(State::Text), minus_state(MinusState::Number) {}
+  explicit Lexer(const LexerConfig& config) : config(config), state(State::Text), minus_state(MinusState::Number) {}
 
   SourceLocation current_position() const {
     return get_source_location(m_in, tok_start);
@@ -424,7 +424,7 @@ public:
     }
   }
 
-  const LexerConfig &get_config() const {
+  const LexerConfig& get_config() const {
     return config;
   }
 };

@@ -101,7 +101,7 @@ class LiteralNode : public ExpressionNode {
 public:
   const json value;
 
-  explicit LiteralNode(const json& value, size_t pos) : ExpressionNode(pos), value(value) { }
+  explicit LiteralNode(std::string_view data_text, size_t pos) : ExpressionNode(pos), value(json::parse(data_text)) { }
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);

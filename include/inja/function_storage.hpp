@@ -7,9 +7,9 @@
 
 namespace inja {
 
-using Arguments = std::vector<const json *>;
-using CallbackFunction = std::function<json(Arguments &args)>;
-using VoidCallbackFunction = std::function<void(Arguments &args)>;
+using Arguments = std::vector<const json*>;
+using CallbackFunction = std::function<json(Arguments& args)>;
+using VoidCallbackFunction = std::function<void(Arguments& args)>;
 
 /*!
  * \brief Class for builtin functions and user-defined callbacks.
@@ -69,7 +69,7 @@ public:
   };
 
   struct FunctionData {
-    explicit FunctionData(const Operation &op, const CallbackFunction &cb = CallbackFunction{}) : operation(op), callback(cb) {}
+    explicit FunctionData(const Operation& op, const CallbackFunction& cb = CallbackFunction{}) : operation(op), callback(cb) {}
     const Operation operation;
     const CallbackFunction callback;
   };
@@ -114,7 +114,7 @@ public:
     function_storage.emplace(std::make_pair(static_cast<std::string>(name), num_args), FunctionData { op });
   }
 
-  void add_callback(std::string_view name, int num_args, const CallbackFunction &callback) {
+  void add_callback(std::string_view name, int num_args, const CallbackFunction& callback) {
     function_storage.emplace(std::make_pair(static_cast<std::string>(name), num_args), FunctionData { Operation::Callback, callback });
   }
 

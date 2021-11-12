@@ -23,11 +23,11 @@ namespace inja {
  * \brief Class for parsing an inja Template.
  */
 class Parser {
-  const ParserConfig &config;
+  const ParserConfig& config;
 
   Lexer lexer;
-  TemplateStorage &template_storage;
-  const FunctionStorage &function_storage;
+  TemplateStorage& template_storage;
+  const FunctionStorage& function_storage;
 
   Token tok, peek_tok;
   bool have_peek_tok {false};
@@ -48,7 +48,7 @@ class Parser {
   std::stack<ForStatementNode*> for_statement_stack;
   std::stack<BlockStatementNode*> block_statement_stack;
 
-  inline void throw_parser_error(const std::string &message) const {
+  inline void throw_parser_error(const std::string& message) const {
     INJA_THROW(ParserError(message, lexer.current_position()));
   }
 
@@ -70,7 +70,7 @@ class Parser {
 
   inline void add_literal(const char* content_ptr) {
     std::string_view data_text(literal_start.data(), tok.text.data() - literal_start.data() + tok.text.size());
-    arguments.emplace_back(std::make_shared<LiteralNode>(json::parse(data_text), data_text.data() - content_ptr));
+    arguments.emplace_back(std::make_shared<LiteralNode>(data_text, data_text.data() - content_ptr));
   }
 
   inline void add_operator() {
@@ -638,8 +638,8 @@ class Parser {
 
 
 public:
-  explicit Parser(const ParserConfig &parser_config, const LexerConfig &lexer_config,
-                  TemplateStorage &template_storage, const FunctionStorage &function_storage)
+  explicit Parser(const ParserConfig& parser_config, const LexerConfig& lexer_config,
+                  TemplateStorage& template_storage, const FunctionStorage& function_storage)
       : config(parser_config), lexer(lexer_config), template_storage(template_storage), function_storage(function_storage) { }
 
   Template parse(std::string_view input, std::string_view path) {

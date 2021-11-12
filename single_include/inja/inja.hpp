@@ -94,9 +94,9 @@ namespace inja {
 
 namespace inja {
 
-using Arguments = std::vector<const json *>;
-using CallbackFunction = std::function<json(Arguments &args)>;
-using VoidCallbackFunction = std::function<void(Arguments &args)>;
+using Arguments = std::vector<const json*>;
+using CallbackFunction = std::function<json(Arguments& args)>;
+using VoidCallbackFunction = std::function<void(Arguments& args)>;
 
 /*!
  * \brief Class for builtin functions and user-defined callbacks.
@@ -156,7 +156,7 @@ public:
   };
 
   struct FunctionData {
-    explicit FunctionData(const Operation &op, const CallbackFunction &cb = CallbackFunction{}) : operation(op), callback(cb) {}
+    explicit FunctionData(const Operation& op, const CallbackFunction& cb = CallbackFunction{}) : operation(op), callback(cb) {}
     const Operation operation;
     const CallbackFunction callback;
   };
@@ -201,7 +201,7 @@ public:
     function_storage.emplace(std::make_pair(static_cast<std::string>(name), num_args), FunctionData { op });
   }
 
-  void add_callback(std::string_view name, int num_args, const CallbackFunction &callback) {
+  void add_callback(std::string_view name, int num_args, const CallbackFunction& callback) {
     function_storage.emplace(std::make_pair(static_cast<std::string>(name), num_args), FunctionData { Operation::Callback, callback });
   }
 
@@ -442,7 +442,7 @@ class LiteralNode : public ExpressionNode {
 public:
   const json value;
 
-  explicit LiteralNode(const json& value, size_t pos) : ExpressionNode(pos), value(value) { }
+  explicit LiteralNode(std::string_view data_text, size_t pos) : ExpressionNode(pos), value(json::parse(data_text)) { }
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);
@@ -1027,7 +1027,7 @@ class Lexer {
     Number,
   };
 
-  const LexerConfig &config;
+  const LexerConfig& config;
 
   State state;
   MinusState minus_state;
@@ -1262,7 +1262,7 @@ class Lexer {
   }
 
 public:
-  explicit Lexer(const LexerConfig &config) : config(config), state(State::Text), minus_state(MinusState::Number) {}
+  explicit Lexer(const LexerConfig& config) : config(config), state(State::Text), minus_state(MinusState::Number) {}
 
   SourceLocation current_position() const {
     return get_source_location(m_in, tok_start);
@@ -1416,7 +1416,7 @@ public:
     }
   }
 
-  const LexerConfig &get_config() const {
+  const LexerConfig& get_config() const {
     return config;
   }
 };
@@ -1441,11 +1441,11 @@ namespace inja {
  * \brief Class for parsing an inja Template.
  */
 class Parser {
-  const ParserConfig &config;
+  const ParserConfig& config;
 
   Lexer lexer;
-  TemplateStorage &template_storage;
-  const FunctionStorage &function_storage;
+  TemplateStorage& template_storage;
+  const FunctionStorage& function_storage;
 
   Token tok, peek_tok;
   bool have_peek_tok {false};
@@ -1466,7 +1466,7 @@ class Parser {
   std::stack<ForStatementNode*> for_statement_stack;
   std::stack<BlockStatementNode*> block_statement_stack;
 
-  inline void throw_parser_error(const std::string &message) const {
+  inline void throw_parser_error(const std::string& message) const {
     INJA_THROW(ParserError(message, lexer.current_position()));
   }
 
@@ -1488,7 +1488,7 @@ class Parser {
 
   inline void add_literal(const char* content_ptr) {
     std::string_view data_text(literal_start.data(), tok.text.data() - literal_start.data() + tok.text.size());
-    arguments.emplace_back(std::make_shared<LiteralNode>(json::parse(data_text), data_text.data() - content_ptr));
+    arguments.emplace_back(std::make_shared<LiteralNode>(data_text, data_text.data() - content_ptr));
   }
 
   inline void add_operator() {
@@ -2056,8 +2056,8 @@ class Parser {
 
 
 public:
-  explicit Parser(const ParserConfig &parser_config, const LexerConfig &lexer_config,
-                  TemplateStorage &template_storage, const FunctionStorage &function_storage)
+  explicit Parser(const ParserConfig& parser_config, const LexerConfig& lexer_config,
+                  TemplateStorage& template_storage, const FunctionStorage& function_storage)
       : config(parser_config), lexer(lexer_config), template_storage(template_storage), function_storage(function_storage) { }
 
   Template parse(std::string_view input, std::string_view path) {
@@ -2426,12 +2426,12 @@ class Renderer : public NodeVisitor  {
       make_result(get_arguments<1>(node)[0]->get<int>() % 2 == 0);
     } break;
     case Op::Exists: {
-      auto &&name = get_arguments<1>(node)[0]->get_ref<const std::string &>();
+      auto &&name = get_arguments<1>(node)[0]->get_ref<const std::string&>();
       make_result(data_input->contains(json::json_pointer(DataNode::convert_dot_to_ptr(name))));
     } break;
     case Op::ExistsInObject: {
       const auto args = get_arguments<2>(node);
-      auto &&name = args[1]->get_ref<const std::string &>();
+      auto &&name = args[1]->get_ref<const std::string&>();
       make_result(args[0]->find(name) != args[0]->end());
     } break;
     case Op::First: {
@@ -2439,10 +2439,10 @@ class Renderer : public NodeVisitor  {
       data_eval_stack.push(result);
     } break;
     case Op::Float: {
-      make_result(std::stod(get_arguments<1>(node)[0]->get_ref<const std::string &>()));
+      make_result(std::stod(get_arguments<1>(node)[0]->get_ref<const std::string&>()));
     } break;
     case Op::Int: {
-      make_result(std::stoi(get_arguments<1>(node)[0]->get_ref<const std::string &>()));
+      make_result(std::stoi(get_arguments<1>(node)[0]->get_ref<const std::string&>()));
     } break;
     case Op::Last: {
       const auto result = &get_arguments<1>(node)[0]->back();
@@ -2451,7 +2451,7 @@ class Renderer : public NodeVisitor  {
     case Op::Length: {
       const auto val = get_arguments<1>(node)[0];
       if (val->is_string()) {
-        make_result(val->get_ref<const std::string &>().length());
+        make_result(val->get_ref<const std::string&>().length());
       } else {
         make_result(val->size());
       }
@@ -2762,13 +2762,13 @@ class Environment {
 public:
   Environment() : Environment("") {}
 
-  explicit Environment(const std::string &global_path) : input_path(global_path), output_path(global_path) {}
+  explicit Environment(const std::string& global_path) : input_path(global_path), output_path(global_path) {}
 
-  Environment(const std::string &input_path, const std::string &output_path)
+  Environment(const std::string& input_path, const std::string& output_path)
       : input_path(input_path), output_path(output_path) {}
 
   /// Sets the opener and closer for template statements
-  void set_statement(const std::string &open, const std::string &close) {
+  void set_statement(const std::string& open, const std::string& close) {
     lexer_config.statement_open = open;
     lexer_config.statement_open_no_lstrip = open + "+";
     lexer_config.statement_open_force_lstrip = open + "-";
@@ -2778,13 +2778,13 @@ public:
   }
 
   /// Sets the opener for template line statements
-  void set_line_statement(const std::string &open) {
+  void set_line_statement(const std::string& open) {
     lexer_config.line_statement = open;
     lexer_config.update_open_chars();
   }
 
   /// Sets the opener and closer for template expressions
-  void set_expression(const std::string &open, const std::string &close) {
+  void set_expression(const std::string& open, const std::string& close) {
     lexer_config.expression_open = open;
     lexer_config.expression_open_force_lstrip = open + "-";
     lexer_config.expression_close = close;
@@ -2793,7 +2793,7 @@ public:
   }
 
   /// Sets the opener and closer for template comments
-  void set_comment(const std::string &open, const std::string &close) {
+  void set_comment(const std::string& open, const std::string& close) {
     lexer_config.comment_open = open;
     lexer_config.comment_open_force_lstrip = open + "-";
     lexer_config.comment_close = close;
@@ -2826,68 +2826,68 @@ public:
     return parser.parse(input);
   }
 
-  Template parse_template(const std::string &filename) {
+  Template parse_template(const std::string& filename) {
     Parser parser(parser_config, lexer_config, template_storage, function_storage);
     auto result = Template(parser.load_file(input_path + static_cast<std::string>(filename)));
     parser.parse_into_template(result, input_path + static_cast<std::string>(filename));
     return result;
   }
 
-  Template parse_file(const std::string &filename) {
+  Template parse_file(const std::string& filename) {
     return parse_template(filename);
   }
 
-  std::string render(std::string_view input, const json &data) { return render(parse(input), data); }
+  std::string render(std::string_view input, const json& data) { return render(parse(input), data); }
 
-  std::string render(const Template &tmpl, const json &data) {
+  std::string render(const Template& tmpl, const json& data) {
     std::stringstream os;
     render_to(os, tmpl, data);
     return os.str();
   }
 
-  std::string render_file(const std::string &filename, const json &data) {
+  std::string render_file(const std::string& filename, const json& data) {
     return render(parse_template(filename), data);
   }
 
-  std::string render_file_with_json_file(const std::string &filename, const std::string &filename_data) {
+  std::string render_file_with_json_file(const std::string& filename, const std::string& filename_data) {
     const json data = load_json(filename_data);
     return render_file(filename, data);
   }
 
-  void write(const std::string &filename, const json &data, const std::string &filename_out) {
+  void write(const std::string& filename, const json& data, const std::string& filename_out) {
     std::ofstream file(output_path + filename_out);
     file << render_file(filename, data);
     file.close();
   }
 
-  void write(const Template &temp, const json &data, const std::string &filename_out) {
+  void write(const Template& temp, const json& data, const std::string& filename_out) {
     std::ofstream file(output_path + filename_out);
     file << render(temp, data);
     file.close();
   }
 
-  void write_with_json_file(const std::string &filename, const std::string &filename_data,
-                            const std::string &filename_out) {
+  void write_with_json_file(const std::string& filename, const std::string& filename_data,
+                            const std::string& filename_out) {
     const json data = load_json(filename_data);
     write(filename, data, filename_out);
   }
 
-  void write_with_json_file(const Template &temp, const std::string &filename_data, const std::string &filename_out) {
+  void write_with_json_file(const Template& temp, const std::string& filename_data, const std::string& filename_out) {
     const json data = load_json(filename_data);
     write(temp, data, filename_out);
   }
 
-  std::ostream &render_to(std::ostream &os, const Template &tmpl, const json &data) {
+  std::ostream& render_to(std::ostream& os, const Template& tmpl, const json& data) {
     Renderer(render_config, template_storage, function_storage).render_to(os, tmpl, data);
     return os;
   }
 
-  std::string load_file(const std::string &filename) {
+  std::string load_file(const std::string& filename) {
     Parser parser(parser_config, lexer_config, template_storage, function_storage);
     return parser.load_file(input_path + filename);
   }
 
-  json load_json(const std::string &filename) {
+  json load_json(const std::string& filename) {
     std::ifstream file;
     file.open(input_path + filename);
     if (file.fail()) {
@@ -2901,28 +2901,28 @@ public:
   /*!
   @brief Adds a variadic callback
   */
-  void add_callback(const std::string &name, const CallbackFunction &callback) {
+  void add_callback(const std::string& name, const CallbackFunction& callback) {
     add_callback(name, -1, callback);
   }
 
   /*!
   @brief Adds a variadic void callback
   */
-  void add_void_callback(const std::string &name, const VoidCallbackFunction &callback) {
+  void add_void_callback(const std::string& name, const VoidCallbackFunction& callback) {
     add_void_callback(name, -1, callback);
   }
 
   /*!
   @brief Adds a callback with given number or arguments
   */
-  void add_callback(const std::string &name, int num_args, const CallbackFunction &callback) {
+  void add_callback(const std::string& name, int num_args, const CallbackFunction& callback) {
     function_storage.add_callback(name, num_args, callback);
   }
 
   /*!
   @brief Adds a void callback with given number or arguments
   */
-  void add_void_callback(const std::string &name, int num_args, const VoidCallbackFunction &callback) {
+  void add_void_callback(const std::string& name, int num_args, const VoidCallbackFunction& callback) {
     function_storage.add_callback(name, num_args, [callback](Arguments& args) { callback(args); return json(); });
   }
 
@@ -2930,7 +2930,7 @@ public:
    * Then, a template can be rendered in another template using the
    * include "<name>" syntax.
    */
-  void include_template(const std::string &name, const Template &tmpl) {
+  void include_template(const std::string& name, const Template& tmpl) {
     template_storage[name] = tmpl;
   }
 
@@ -2945,14 +2945,14 @@ public:
 /*!
 @brief render with default settings to a string
 */
-inline std::string render(std::string_view input, const json &data) {
+inline std::string render(std::string_view input, const json& data) {
   return Environment().render(input, data);
 }
 
 /*!
 @brief render with default settings to the given output stream
 */
-inline void render_to(std::ostream &os, std::string_view input, const json &data) {
+inline void render_to(std::ostream& os, std::string_view input, const json& data) {
   Environment env;
   env.render_to(os, env.parse(input), data);
 }
