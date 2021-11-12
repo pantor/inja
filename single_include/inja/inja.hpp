@@ -1466,7 +1466,7 @@ class Parser {
   std::stack<ForStatementNode*> for_statement_stack;
   std::stack<BlockStatementNode*> block_statement_stack;
 
-  inline void throw_parser_error(const std::string &message) {
+  inline void throw_parser_error(const std::string &message) const {
     INJA_THROW(ParserError(message, lexer.current_position()));
   }
 
@@ -1540,6 +1540,19 @@ class Parser {
       auto include_template = config.include_callback(original_path, original_name);
       template_storage.emplace(template_name, include_template);
     }
+  }
+
+  std::string parse_filename(const Token& tok) const {
+    if (tok.kind != Token::Kind::String) {
+      throw_parser_error("expected string, got '" + tok.describe() + "'");
+    }
+
+    if (tok.text.length() < 2) {
+      throw_parser_error("expected filename, got '" + static_cast<std::string>(tok.text) + "'");
+    }
+
+    // Remove first and last character ""
+    return std::string {tok.text.substr(1, tok.text.length() - 2)};
   }
 
   bool parse_expression(Template &tmpl, Token::Kind closing) {
@@ -1931,11 +1944,7 @@ class Parser {
     } else if (tok.text == static_cast<decltype(tok.text)>("include")) {
       get_next_token();
 
-      if (tok.kind != Token::Kind::String) {
-        throw_parser_error("expected string, got '" + tok.describe() + "'");
-      }
-
-      std::string template_name = json::parse(tok.text).get_ref<const std::string &>();
+      std::string template_name = parse_filename(tok);
       add_to_template_storage(path, template_name);
 
       current_block->nodes.emplace_back(std::make_shared<IncludeStatementNode>(template_name, tok.text.data() - tmpl.content.c_str()));
@@ -1945,11 +1954,7 @@ class Parser {
     } else if (tok.text == static_cast<decltype(tok.text)>("extends")) {
       get_next_token();
 
-      if (tok.kind != Token::Kind::String) {
-        throw_parser_error("expected string, got '" + tok.describe() + "'");
-      }
-
-      std::string template_name = json::parse(tok.text).get_ref<const std::string &>();
+      std::string template_name = parse_filename(tok);
       add_to_template_storage(path, template_name);
 
       current_block->nodes.emplace_back(std::make_shared<ExtendsStatementNode>(template_name, tok.text.data() - tmpl.content.c_str()));

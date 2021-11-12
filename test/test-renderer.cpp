@@ -183,6 +183,9 @@ TEST_CASE("templates") {
     CHECK(env.render(t2, data) == "Hello Peter!");
     CHECK_THROWS_WITH(env.parse("{% include \"does-not-exist\" %}!"),
                       "[inja.exception.file_error] failed accessing file at 'does-not-exist'");
+
+    CHECK_THROWS_WITH(env.parse("{% include does-not-exist %}!"),
+                      "[inja.exception.parser_error] (at 1:12) expected string, got 'does-not-exist'");
   }
 
   SUBCASE("include-callback") {
