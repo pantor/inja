@@ -32,12 +32,11 @@ class Environment {
   TemplateStorage template_storage;
 
 public:
-  Environment() : Environment("") {}
+  Environment(): Environment("") {}
 
-  explicit Environment(const std::string& global_path) : input_path(global_path), output_path(global_path) {}
+  explicit Environment(const std::string& global_path): input_path(global_path), output_path(global_path) {}
 
-  Environment(const std::string& input_path, const std::string& output_path)
-      : input_path(input_path), output_path(output_path) {}
+  Environment(const std::string& input_path, const std::string& output_path): input_path(input_path), output_path(output_path) {}
 
   /// Sets the opener and closer for template statements
   void set_statement(const std::string& open, const std::string& close) {
@@ -109,7 +108,9 @@ public:
     return parse_template(filename);
   }
 
-  std::string render(std::string_view input, const json& data) { return render(parse(input), data); }
+  std::string render(std::string_view input, const json& data) {
+    return render(parse(input), data);
+  }
 
   std::string render(const Template& tmpl, const json& data) {
     std::stringstream os;
@@ -138,8 +139,7 @@ public:
     file.close();
   }
 
-  void write_with_json_file(const std::string& filename, const std::string& filename_data,
-                            const std::string& filename_out) {
+  void write_with_json_file(const std::string& filename, const std::string& filename_data, const std::string& filename_out) {
     const json data = load_json(filename_data);
     write(filename, data, filename_out);
   }
@@ -195,7 +195,10 @@ public:
   @brief Adds a void callback with given number or arguments
   */
   void add_void_callback(const std::string& name, int num_args, const VoidCallbackFunction& callback) {
-    function_storage.add_callback(name, num_args, [callback](Arguments& args) { callback(args); return json(); });
+    function_storage.add_callback(name, num_args, [callback](Arguments& args) {
+      callback(args);
+      return json();
+    });
   }
 
   /** Includes a template with a given name into the environment.

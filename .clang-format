@@ -1,7 +1,14 @@
 ---
+BasedOnStyle: LLVM
+IndentWidth: 2
+ColumnLimit: 160
+
+---
 Language: Cpp
 
-BasedOnStyle: LLVM
-ColumnLimit: 120
 SpaceBeforeCpp11BracedList: true
+PointerAlignment: Left
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortBlocksOnASingleLine: Empty
+SpaceBeforeCtorInitializerColon: false
 ...

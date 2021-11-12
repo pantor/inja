@@ -18,7 +18,7 @@ namespace inja {
 /*!
  * \brief Class for rendering a Template with data.
  */
-class Renderer : public NodeVisitor  {
+class Renderer : public NodeVisitor {
   using Op = FunctionStorage::Operation;
 
   const RenderConfig config;
@@ -104,8 +104,7 @@ class Renderer : public NodeVisitor  {
     data_eval_stack.push(result_ptr.get());
   }
 
-  template<size_t N, size_t N_start = 0, bool throw_not_found=true>
-  std::array<const json*, N> get_arguments(const FunctionNode& node) {
+  template <size_t N, size_t N_start = 0, bool throw_not_found = true> std::array<const json*, N> get_arguments(const FunctionNode& node) {
     if (node.arguments.size() < N_start + N) {
       throw_renderer_error("function needs " + std::to_string(N_start + N) + " variables, but has only found " + std::to_string(node.arguments.size()), node);
     }
@@ -135,10 +134,9 @@ class Renderer : public NodeVisitor  {
     return result;
   }
 
-  template<bool throw_not_found=true>
-  Arguments get_argument_vector(const FunctionNode& node) {
+  template <bool throw_not_found = true> Arguments get_argument_vector(const FunctionNode& node) {
     const size_t N = node.arguments.size();
-    for (auto a: node.arguments) {
+    for (auto a : node.arguments) {
       a->accept(*this);
     }
 
@@ -177,7 +175,7 @@ class Renderer : public NodeVisitor  {
     output_stream->write(current_template->content.c_str() + node.pos, node.length);
   }
 
-  void visit(const ExpressionNode&) { }
+  void visit(const ExpressionNode&) {}
 
   void visit(const LiteralNode& node) {
     data_eval_stack.push(&node.value);
@@ -186,10 +184,8 @@ class Renderer : public NodeVisitor  {
   void visit(const DataNode& node) {
     if (additional_data.contains(node.ptr)) {
       data_eval_stack.push(&(additional_data[node.ptr]));
-
     } else if (data_input->contains(node.ptr)) {
       data_eval_stack.push(&(*data_input)[node.ptr]);
-
     } else {
       // Try to evaluate as a no-argument callback
       const auto function_data = function_storage.find_function(node.name, 0);
@@ -198,7 +194,6 @@ class Renderer : public NodeVisitor  {
         const auto value = std::make_shared<json>(function_data.callback(empty_args));
         data_tmp_stack.push_back(value);
         data_eval_stack.push(value.get());
-
       } else {
         data_eval_stack.push(nullptr);
         not_found_stack.emplace(&node);
@@ -325,12 +320,12 @@ class Renderer : public NodeVisitor  {
       make_result(get_arguments<1>(node)[0]->get<int>() % 2 == 0);
     } break;
     case Op::Exists: {
-      auto &&name = get_arguments<1>(node)[0]->get_ref<const std::string&>();
+      auto&& name = get_arguments<1>(node)[0]->get_ref<const std::string&>();
       make_result(data_input->contains(json::json_pointer(DataNode::convert_dot_to_ptr(name))));
     } break;
     case Op::ExistsInObject: {
       const auto args = get_arguments<2>(node);
-      auto &&name = args[1]->get_ref<const std::string&>();
+      auto&& name = args[1]->get_ref<const std::string&>();
       make_result(args[0]->find(name) != args[0]->end());
     } break;
     case Op::First: {
@@ -480,9 +475,9 @@ class Renderer : public NodeVisitor  {
     print_data(eval_expression_list(node));
   }
 
-  void visit(const StatementNode&) { }
+  void visit(const StatementNode&) {}
 
-  void visit(const ForStatementNode&) { }
+  void visit(const ForStatementNode&) {}
 
   void visit(const ForArrayStatementNode& node) {
     const auto result = eval_expression_list(node.condition);
@@ -584,7 +579,7 @@ class Renderer : public NodeVisitor  {
   void visit(const ExtendsStatementNode& node) {
     const auto included_template_it = template_storage.find(node.file);
     if (included_template_it != template_storage.end()) {
-      const Template *parent_template = &included_template_it->second;
+      const Template* parent_template = &included_template_it->second;
       render_to(*output_stream, *parent_template, *data_input, &additional_data);
       break_rendering = true;
     } else if (config.throw_at_missing_includes) {
@@ -600,7 +595,7 @@ class Renderer : public NodeVisitor  {
     if (block_it != current_template->block_storage.end()) {
       block_statement_stack.emplace_back(&node);
       block_it->second->block.accept(*this);
-      block_statement_stack.pop_back(); 
+      block_statement_stack.pop_back();
     }
     current_level = old_level;
     current_template = template_stack.back();
@@ -615,7 +610,7 @@ class Renderer : public NodeVisitor  {
 
 public:
   Renderer(const RenderConfig& config, const TemplateStorage& template_storage, const FunctionStorage& function_storage)
-      : config(config), template_storage(template_storage), function_storage(function_storage) { }
+      : config(config), template_storage(template_storage), function_storage(function_storage) {}
 
   void render_to(std::ostream& os, const Template& tmpl, const json& data, json* loop_data = nullptr) {
     output_stream = &os;

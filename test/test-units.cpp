@@ -27,7 +27,7 @@ Try this
 
 TEST_CASE("copy environment") {
   inja::Environment env;
-  env.add_callback("double", 1, [](inja::Arguments &args) {
+  env.add_callback("double", 1, [](inja::Arguments& args) {
     int number = args.at(0)->get<int>();
     return 2 * number;
   });

@@ -43,7 +43,6 @@ class Lexer {
   size_t tok_start;
   size_t pos;
 
-
   Token scan_body(std::string_view close, Token::Kind closeKind, std::string_view close_trim = std::string_view(), bool trim = false) {
   again:
     // skip whitespace (except for \n as it might be a close)
@@ -224,7 +223,9 @@ class Lexer {
     return make_token(Token::Kind::String);
   }
 
-  Token make_token(Token::Kind kind) const { return Token(kind, string_view::slice(m_in, tok_start, pos)); }
+  Token make_token(Token::Kind kind) const {
+    return Token(kind, string_view::slice(m_in, tok_start, pos));
+  }
 
   void skip_whitespaces_and_newlines() {
     if (pos < m_in.size()) {
@@ -270,7 +271,7 @@ class Lexer {
   }
 
 public:
-  explicit Lexer(const LexerConfig& config) : config(config), state(State::Text), minus_state(MinusState::Number) {}
+  explicit Lexer(const LexerConfig& config): config(config), state(State::Text), minus_state(MinusState::Number) {}
 
   SourceLocation current_position() const {
     return get_source_location(m_in, tok_start);
@@ -322,7 +323,7 @@ public:
       } else if (inja::string_view::starts_with(open_str, config.statement_open)) {
         if (inja::string_view::starts_with(open_str, config.statement_open_no_lstrip)) {
           state = State::StatementStartNoLstrip;
-        } else if (inja::string_view::starts_with(open_str, config.statement_open_force_lstrip )) {
+        } else if (inja::string_view::starts_with(open_str, config.statement_open_force_lstrip)) {
           state = State::StatementStartForceLstrip;
           must_lstrip = true;
         } else {

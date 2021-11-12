@@ -56,8 +56,8 @@ TEST_CASE("functions") {
   SUBCASE("length") {
     CHECK(env.render("{{ length(names) }}", data) == "4"); // Length of array
     CHECK(env.render("{{ length(name) }}", data) == "5");  // Length of string
-    // CHECK_THROWS_WITH( env.render("{{ length(5) }}", data), "[inja.exception.json_error]
-    // [json.exception.type_error.302] type must be array, but is number" );
+                                                           // CHECK_THROWS_WITH( env.render("{{ length(5) }}", data), "[inja.exception.json_error]
+                                                           // [json.exception.type_error.302] type must be array, but is number" );
   }
 
   SUBCASE("sort") {
@@ -150,8 +150,7 @@ TEST_CASE("functions") {
     CHECK(env.render("{{ default(name, \"nobody\") }}", data) == "Peter");
     CHECK(env.render("{{ default(surname, \"nobody\") }}", data) == "nobody");
     CHECK(env.render("{{ default(surname, \"{{ surname }}\") }}", data) == "{{ surname }}");
-    CHECK_THROWS_WITH(env.render("{{ default(surname, lastname) }}", data),
-                      "[inja.exception.render_error] (at 1:21) variable 'lastname' not found");
+    CHECK_THROWS_WITH(env.render("{{ default(surname, lastname) }}", data), "[inja.exception.render_error] (at 1:21) variable 'lastname' not found");
   }
 
   SUBCASE("exists") {
@@ -159,7 +158,7 @@ TEST_CASE("functions") {
     CHECK(env.render("{{ exists(\"zipcode\") }}", data) == "false");
     CHECK(env.render("{{ exists(name) }}", data) == "false");
     CHECK(env.render("{{ exists(property) }}", data) == "true");
-    
+
     // CHECK(env.render("{{ exists(\"keywords\") and length(keywords) > 0 }}", data) == "false");
   }
 
@@ -168,10 +167,8 @@ TEST_CASE("functions") {
     CHECK(env.render("{{ existsIn(brother, \"parents\") }}", data) == "false");
     CHECK(env.render("{{ existsIn(brother, property) }}", data) == "true");
     CHECK(env.render("{{ existsIn(brother, name) }}", data) == "false");
-    CHECK_THROWS_WITH(env.render("{{ existsIn(sister, \"lastname\") }}", data),
-                      "[inja.exception.render_error] (at 1:13) variable 'sister' not found");
-    CHECK_THROWS_WITH(env.render("{{ existsIn(brother, sister) }}", data),
-                      "[inja.exception.render_error] (at 1:22) variable 'sister' not found");
+    CHECK_THROWS_WITH(env.render("{{ existsIn(sister, \"lastname\") }}", data), "[inja.exception.render_error] (at 1:13) variable 'sister' not found");
+    CHECK_THROWS_WITH(env.render("{{ existsIn(brother, sister) }}", data), "[inja.exception.render_error] (at 1:22) variable 'sister' not found");
   }
 
   SUBCASE("join") {
@@ -212,7 +209,7 @@ TEST_CASE("callbacks") {
   inja::json data;
   data["age"] = 28;
 
-  env.add_callback("double", 1, [](inja::Arguments &args) {
+  env.add_callback("double", 1, [](inja::Arguments& args) {
     int number = args.at(0)->get<int>();
     return 2 * number;
   });
@@ -244,7 +241,7 @@ TEST_CASE("callbacks") {
   });
 
   env.add_void_callback("log", 1, [](inja::Arguments) {
-    
+
   });
 
   env.add_callback("multiply", 0, [](inja::Arguments) { return 1.0; });
@@ -262,7 +259,7 @@ TEST_CASE("callbacks") {
 
   SUBCASE("Variadic") {
     env.add_callback("argmax", [](inja::Arguments& args) {
-      auto result = std::max_element(args.begin(), args.end(), [](const inja::json* a, const inja::json* b) { return *a < *b;});
+      auto result = std::max_element(args.begin(), args.end(), [](const inja::json* a, const inja::json* b) { return *a < *b; });
       return std::distance(args.begin(), result);
     });
 

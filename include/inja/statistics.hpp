@@ -3,7 +3,6 @@
 
 #include "node.hpp"
 
-
 namespace inja {
 
 /*!
@@ -16,9 +15,9 @@ class StatisticsVisitor : public NodeVisitor {
     }
   }
 
-  void visit(const TextNode&) { }
-  void visit(const ExpressionNode&) { }
-  void visit(const LiteralNode&) { }
+  void visit(const TextNode&) {}
+  void visit(const ExpressionNode&) {}
+  void visit(const LiteralNode&) {}
 
   void visit(const DataNode&) {
     variable_counter += 1;
@@ -34,8 +33,8 @@ class StatisticsVisitor : public NodeVisitor {
     node.root->accept(*this);
   }
 
-  void visit(const StatementNode&) { }
-  void visit(const ForStatementNode&) { }
+  void visit(const StatementNode&) {}
+  void visit(const ForStatementNode&) {}
 
   void visit(const ForArrayStatementNode& node) {
     node.condition.accept(*this);
@@ -53,20 +52,20 @@ class StatisticsVisitor : public NodeVisitor {
     node.false_statement.accept(*this);
   }
 
-  void visit(const IncludeStatementNode&) { }
+  void visit(const IncludeStatementNode&) {}
 
-  void visit(const ExtendsStatementNode&) { }
+  void visit(const ExtendsStatementNode&) {}
 
   void visit(const BlockStatementNode& node) {
     node.block.accept(*this);
   }
 
-  void visit(const SetStatementNode&) { }
+  void visit(const SetStatementNode&) {}
 
 public:
   unsigned int variable_counter;
 
-  explicit StatisticsVisitor() : variable_counter(0) { }
+  explicit StatisticsVisitor(): variable_counter(0) {}
 };
 
 } // namespace inja

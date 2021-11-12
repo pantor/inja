@@ -4,7 +4,6 @@
 #include <string>
 #include <string_view>
 
-
 namespace inja {
 
 /*!
@@ -48,12 +47,12 @@ struct Token {
     Unknown,
     Eof,
   };
-  
+
   Kind kind {Kind::Unknown};
   std::string_view text;
 
   explicit constexpr Token() = default;
-  explicit constexpr Token(Kind kind, std::string_view text) : kind(kind), text(text) {}
+  explicit constexpr Token(Kind kind, std::string_view text): kind(kind), text(text) {}
 
   std::string describe() const {
     switch (kind) {

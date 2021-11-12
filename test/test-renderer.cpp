@@ -50,25 +50,20 @@ TEST_CASE("types") {
   SUBCASE("loops") {
     CHECK(env.render("{% for name in names %}a{% endfor %}", data) == "aa");
     CHECK(env.render("Hello {% for name in names %}{{ name }} {% endfor %}!", data) == "Hello Jeff Seb !");
-    CHECK(env.render("Hello {% for name in names %}{{ loop.index }}: {{ name }}, {% endfor %}!", data) ==
-          "Hello 0: Jeff, 1: Seb, !");
+    CHECK(env.render("Hello {% for name in names %}{{ loop.index }}: {{ name }}, {% endfor %}!", data) == "Hello 0: Jeff, 1: Seb, !");
     CHECK(env.render("{% for type, name in relatives %}{{ loop.index1 }}: {{ type }}: {{ name }}{% if loop.is_last == "
                      "false %}, {% endif %}{% endfor %}",
                      data) == "1: brother: Chris, 2: mother: Maria, 3: sister: Jenny");
     CHECK(env.render("{% for v in vars %}{% if v > 0 %}+{% endif %}{% endfor %}", data) == "+++");
-    CHECK(env.render(
-              "{% for name in names %}{{ loop.index }}: {{ name }}{% if not loop.is_last %}, {% endif %}{% endfor %}!",
-              data) == "0: Jeff, 1: Seb!");
+    CHECK(env.render("{% for name in names %}{{ loop.index }}: {{ name }}{% if not loop.is_last %}, {% endif %}{% endfor %}!", data) == "0: Jeff, 1: Seb!");
     CHECK(env.render("{% for name in names %}{{ loop.index }}: {{ name }}{% if loop.is_last == false %}, {% endif %}{% "
                      "endfor %}!",
                      data) == "0: Jeff, 1: Seb!");
 
     CHECK(env.render("{% for name in [] %}a{% endfor %}", data) == "");
 
-    CHECK_THROWS_WITH(env.render("{% for name ins names %}a{% endfor %}", data),
-                      "[inja.exception.parser_error] (at 1:13) expected 'in', got 'ins'");
-    CHECK_THROWS_WITH(env.render("{% for name in empty_loop %}a{% endfor %}", data),
-                      "[inja.exception.render_error] (at 1:16) variable 'empty_loop' not found");
+    CHECK_THROWS_WITH(env.render("{% for name ins names %}a{% endfor %}", data), "[inja.exception.parser_error] (at 1:13) expected 'in', got 'ins'");
+    CHECK_THROWS_WITH(env.render("{% for name in empty_loop %}a{% endfor %}", data), "[inja.exception.render_error] (at 1:16) variable 'empty_loop' not found");
     // CHECK_THROWS_WITH( env.render("{% for name in relatives %}{{ name }}{% endfor %}", data),
     // "[inja.exception.json_error] [json.exception.type_error.302] type must be array, but is object" );
   }
@@ -112,12 +107,10 @@ TEST_CASE("types") {
     CHECK(env.render("{% if age >= 30 %}Right{% else %}Wrong{% endif %}", data) == "Wrong");
     CHECK(env.render("{% if age in [28, 29, 30] %}True{% endif %}", data) == "True");
     CHECK(env.render("{% if age == 28 %}28{% else if age == 29 %}29{% endif %}", data) == "29");
-    CHECK(env.render("{% if age == 26 %}26{% else if age == 27 %}27{% else if age == 28 %}28{% else %}29{% endif %}",
-                     data) == "29");
+    CHECK(env.render("{% if age == 26 %}26{% else if age == 27 %}27{% else if age == 28 %}28{% else %}29{% endif %}", data) == "29");
     CHECK(env.render("{% if age == 25 %}+{% endif %}{% if age == 29 %}+{% else %}-{% endif %}", data) == "+");
 
-    CHECK_THROWS_WITH(env.render("{% if is_happy %}{% if is_happy %}{% endif %}", data),
-                      "[inja.exception.parser_error] (at 1:46) unmatched if");
+    CHECK_THROWS_WITH(env.render("{% if is_happy %}{% if is_happy %}{% endif %}", data), "[inja.exception.parser_error] (at 1:46) unmatched if");
     CHECK_THROWS_WITH(env.render("{% if is_happy %}{% else if is_happy %}{% end if %}", data),
                       "[inja.exception.parser_error] (at 1:43) expected statement, got 'end'");
   }
@@ -128,8 +121,7 @@ TEST_CASE("types") {
     CHECK(env.render("{% set age=30 %}{{age}}", data) == "30");
     CHECK(env.render("{% set predefined.value=1 %}{% if existsIn(predefined, \"value\") %}{{predefined.value}}{% endif %}", data) == "1");
     CHECK(env.render("{% set brother.name=\"Bob\" %}{{brother.name}}", data) == "Bob");
-    CHECK_THROWS_WITH(env.render("{% if predefined %}{% endif %}", data),
-                      "[inja.exception.render_error] (at 1:7) variable 'predefined' not found");
+    CHECK_THROWS_WITH(env.render("{% if predefined %}{% endif %}", data), "[inja.exception.render_error] (at 1:7) variable 'predefined' not found");
     CHECK(env.render("{{age}}", data) == "29");
     CHECK(env.render("{{brother.name}}", data) == "Chris");
   }
@@ -181,31 +173,24 @@ TEST_CASE("templates") {
 
     inja::Template t2 = env.parse("{% include \"greeting\" %}!");
     CHECK(env.render(t2, data) == "Hello Peter!");
-    CHECK_THROWS_WITH(env.parse("{% include \"does-not-exist\" %}!"),
-                      "[inja.exception.file_error] failed accessing file at 'does-not-exist'");
+    CHECK_THROWS_WITH(env.parse("{% include \"does-not-exist\" %}!"), "[inja.exception.file_error] failed accessing file at 'does-not-exist'");
 
-    CHECK_THROWS_WITH(env.parse("{% include does-not-exist %}!"),
-                      "[inja.exception.parser_error] (at 1:12) expected string, got 'does-not-exist'");
+    CHECK_THROWS_WITH(env.parse("{% include does-not-exist %}!"), "[inja.exception.parser_error] (at 1:12) expected string, got 'does-not-exist'");
   }
 
   SUBCASE("include-callback") {
     inja::Environment env;
 
-    CHECK_THROWS_WITH(env.parse("{% include \"does-not-exist\" %}!"),
-                      "[inja.exception.file_error] failed accessing file at 'does-not-exist'");
+    CHECK_THROWS_WITH(env.parse("{% include \"does-not-exist\" %}!"), "[inja.exception.file_error] failed accessing file at 'does-not-exist'");
 
     env.set_search_included_templates_in_files(false);
-    env.set_include_callback([&env](const std::string&, const std::string&) {
-      return env.parse("Hello {{ name }}");
-    });
+    env.set_include_callback([&env](const std::string&, const std::string&) { return env.parse("Hello {{ name }}"); });
 
     inja::Template t1 = env.parse("{% include \"greeting\" %}!");
     CHECK(env.render(t1, data) == "Hello Peter!");
 
     env.set_search_included_templates_in_files(true);
-    env.set_include_callback([&env](const std::string&, const std::string& name) {
-      return env.parse("Bye " + name);
-    });
+    env.set_include_callback([&env](const std::string&, const std::string& name) { return env.parse("Bye " + name); });
 
     inja::Template t2 = env.parse("{% include \"Jeff\" %}!");
     CHECK(env.render(t2, data) == "Bye Jeff!");
@@ -218,8 +203,7 @@ TEST_CASE("templates") {
     inja::Environment env;
     env.include_template("city.tpl", env.parse("{{ loop.index }}:{{ city.name }};"));
 
-    CHECK(env.render("{% for city in cities %}{% include \"city.tpl\" %}{% endfor %}", loop_data) ==
-          "0:Munich;1:New York;");
+    CHECK(env.render("{% for city in cities %}{% include \"city.tpl\" %}{% endfor %}", loop_data) == "0:Munich;1:New York;");
   }
 
   SUBCASE("count variables") {
