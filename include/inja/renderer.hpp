@@ -458,7 +458,11 @@ class Renderer : public NodeVisitor {
         if (value.is_string()) {
           os << value.get<std::string>(); // otherwise the value is surrounded with ""
         } else {
+#ifdef JSON_NO_IO
+          os << value.dump();
+#else
           os << value;
+#endif
         }
         sep = separator;
       }

@@ -227,10 +227,24 @@ jobs:
           cmake -B build -S . -DCMAKE_BUILD_TYPE=Debug
           cmake --build build -j2
           cd build && ctest -j2 --output-on-failure
-        
+
+      - name: Build & Test Debug with JSON_NO_IO
+        run: |
+          cmake -E remove_directory build
+          cmake -B build -S . -DCMAKE_BUILD_TYPE=Debug -DINJA_TEST_JSON_NO_IO=ON
+          cmake --build build -j2
+          cd build && ctest -j2 --output-on-failure
+
       - name: Build & Test Release
         run: |
           cmake -E remove_directory build
           cmake -B build -S . -DCMAKE_BUILD_TYPE=Release ${{ matrix.cmake_vars }}
+          cmake --build build -j2
+          cd build && ctest -j2 --output-on-failure
+
+      - name: Build & Test Release with JSON_NO_IO
+        run: |
+          cmake -E remove_directory build
+          cmake -B build -S . -DCMAKE_BUILD_TYPE=Release -DINJA_TEST_JSON_NO_IO=ON ${{ matrix.cmake_vars }}
           cmake --build build -j2
           cd build && ctest -j2 --output-on-failure

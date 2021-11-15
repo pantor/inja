@@ -166,7 +166,12 @@ public:
       INJA_THROW(FileError("failed accessing file at '" + input_path + filename + "'"));
     }
     json j;
+
+#ifdef JSON_NO_IO
+    j = json::parse(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
+#else
     file >> j;
+#endif
     return j;
   }
 

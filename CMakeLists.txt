@@ -11,6 +11,7 @@ option(BUILD_TESTING "Build unit tests" ON)
 option(INJA_BUILD_TESTS "Build unit tests when BUILD_TESTING is enabled." ON)
 option(BUILD_BENCHMARK "Build benchmark" ON)
 option(COVERALLS "Generate coveralls data" OFF)
+option(INJA_TEST_JSON_NO_IO "Build unit tests with definition JSON_NO_IO=1." OFF)
 
 
 set(INJA_INSTALL_INCLUDE_DIR "include")
@@ -94,6 +95,11 @@ if(BUILD_TESTING AND INJA_BUILD_TESTS)
   target_link_libraries(single_inja_test PRIVATE single_inja)
 
   add_test(single_inja_test ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/single_inja_test)
+
+  if(INJA_TEST_JSON_NO_IO)
+    target_compile_definitions(inja_test PRIVATE JSON_NO_IO)
+    target_compile_definitions(single_inja_test PRIVATE JSON_NO_IO)
+  endif()
 endif()
 
 
