@@ -1184,7 +1184,7 @@ class Lexer {
       }
       const char ch = m_in[pos];
       // be very permissive in lexer (we'll catch errors when conversion happens)
-      if (!std::isdigit(ch) && ch != '.' && ch != 'e' && ch != 'E' && ch != '+' && ch != '-') {
+      if (!(std::isdigit(ch) || ch == '.' || ch == 'e' || ch == 'E' || (ch == '+' && (pos == 0 || m_in[pos-1] == 'e' || m_in[pos-1] == 'E')) || (ch == '-' && (pos == 0 || m_in[pos-1] == 'e' || m_in[pos-1] == 'E')))) {
         break;
       }
       pos += 1;

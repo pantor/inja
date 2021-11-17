@@ -18,13 +18,24 @@ TEST_CASE("functions") {
   data["vars"] = {2, 3, 4, 0, -1, -2, -3};
 
   SUBCASE("math") {
+    CHECK(env.render("{{ 1e3 }}", data) == "1000.0");
+    CHECK(env.render("{{ 1e+3 }}", data) == "1000.0");
+    CHECK(env.render("{{ 1e-3 }}", data) == "0.001");
+    CHECK(env.render("{{1.0}}", data) == "1.0");
+    CHECK(env.render("{{ -1 }}", data) == "-1");
+    CHECK(env.render("{{1e0}}", data) == "1.0");
+
     CHECK(env.render("{{ 1 + 1 }}", data) == "2");
+    CHECK(env.render("{{ 1+3 }}", data) == "4");
+    CHECK(env.render("{{ 1-3 }}", data) == "-2");
     CHECK(env.render("{{ 3 - 21 }}", data) == "-18");
     CHECK(env.render("{{ 1 + 1 * 3 }}", data) == "4");
     CHECK(env.render("{{ (1 + 1) * 3 }}", data) == "6");
     CHECK(env.render("{{ 5 / 2 }}", data) == "2.5");
     CHECK(env.render("{{ 5^3 }}", data) == "125");
     CHECK(env.render("{{ 5 + 12 + 4 * (4 - (1 + 1))^2 - 75 * 1 }}", data) == "-42");
+
+    CHECK_THROWS_WITH(env.render("{{ +1 }}", data), "[inja.exception.render_error] (at 1:4) empty expression");
   }
 
   SUBCASE("upper") {
