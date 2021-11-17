@@ -153,7 +153,7 @@ render(R"(Guest List:
 	2: Tom
 	3: Patrick */
 ```
-In a loop, the special variables `loop/index (number)`, `loop/index1 (number)`, `loop/is_first (boolean)` and `loop/is_last (boolean)` are defined. In nested loops, the parent loop variables are available e.g. via `loop/parent/index`. You can also iterate over objects like `{% for key, value in time %}`.
+In a loop, the special variables `loop.index (number)`, `loop.index1 (number)`, `loop.is_first (boolean)` and `loop.is_last (boolean)` are defined. In nested loops, the parent loop variables are available e.g. via `loop.parent.index`. You can also iterate over objects like `{% for key, value in time %}`.
 
 #### Conditions
 
