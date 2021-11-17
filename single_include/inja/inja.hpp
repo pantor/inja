@@ -2538,7 +2538,7 @@ class Renderer : public NodeVisitor {
         if (value.is_string()) {
           os << value.get<std::string>(); // otherwise the value is surrounded with ""
         } else {
-          os << value;
+          os << value.dump();
         }
         sep = separator;
       }
@@ -2867,9 +2867,8 @@ public:
     if (file.fail()) {
       INJA_THROW(FileError("failed accessing file at '" + input_path + filename + "'"));
     }
-    json j;
-    file >> j;
-    return j;
+
+    return json::parse(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
   }
 
   /*!

@@ -165,9 +165,8 @@ public:
     if (file.fail()) {
       INJA_THROW(FileError("failed accessing file at '" + input_path + filename + "'"));
     }
-    json j;
-    file >> j;
-    return j;
+
+    return json::parse(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
   }
 
   /*!
