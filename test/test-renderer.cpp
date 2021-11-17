@@ -119,6 +119,7 @@ TEST_CASE("types") {
     CHECK(env.render("{% set predefined=true %}{% if predefined %}a{% endif %}", data) == "a");
     CHECK(env.render("{% set predefined=false %}{% if predefined %}a{% endif %}", data) == "");
     CHECK(env.render("{% set age=30 %}{{age}}", data) == "30");
+    CHECK(env.render("{% set age=2+3 %}{{age}}", data) == "5");
     CHECK(env.render("{% set predefined.value=1 %}{% if existsIn(predefined, \"value\") %}{{predefined.value}}{% endif %}", data) == "1");
     CHECK(env.render("{% set brother.name=\"Bob\" %}{{brother.name}}", data) == "Bob");
     CHECK_THROWS_WITH(env.render("{% if predefined %}{% endif %}", data), "[inja.exception.render_error] (at 1:7) variable 'predefined' not found");

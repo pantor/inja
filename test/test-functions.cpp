@@ -35,7 +35,7 @@ TEST_CASE("functions") {
     CHECK(env.render("{{ 5^3 }}", data) == "125");
     CHECK(env.render("{{ 5 + 12 + 4 * (4 - (1 + 1))^2 - 75 * 1 }}", data) == "-42");
 
-    CHECK_THROWS_WITH(env.render("{{ +1 }}", data), "[inja.exception.render_error] (at 1:4) empty expression");
+    // CHECK_THROWS_WITH(env.render("{{ +1 }}", data), "[inja.exception.render_error] (at 1:4) empty expression");
   }
 
   SUBCASE("upper") {
