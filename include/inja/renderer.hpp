@@ -352,7 +352,7 @@ class Renderer : public NodeVisitor {
     } break;
     case Op::Lower: {
       std::string result = get_arguments<1>(node)[0]->get<std::string>();
-      std::transform(result.begin(), result.end(), result.begin(), ::tolower);
+      std::transform(result.begin(), result.end(), result.begin(), [](char c) { return static_cast<char>(::tolower(c)); });
       make_result(std::move(result));
     } break;
     case Op::Max: {
@@ -391,7 +391,7 @@ class Renderer : public NodeVisitor {
     } break;
     case Op::Upper: {
       std::string result = get_arguments<1>(node)[0]->get<std::string>();
-      std::transform(result.begin(), result.end(), result.begin(), ::toupper);
+      std::transform(result.begin(), result.end(), result.begin(), [](char c) { return static_cast<char>(::toupper(c)); });
       make_result(std::move(result));
     } break;
     case Op::IsBoolean: {
