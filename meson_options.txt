@@ -1,0 +1,4 @@
+option('single-header', type: 'boolean', value: false,
+    description: 'Use single header include directory')
+option('tests', type: 'boolean', value: true,
+    description: 'Build tests')
