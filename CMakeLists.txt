@@ -59,6 +59,8 @@ else()
   # If target already exists, e.g. by git submodules
   if(TARGET nlohmann_json)
     set(INJA_SELECTED_JSON_LIBRARY "nlohmann_json::nlohmann_json")
+
+    install(TARGETS nlohmann_json EXPORT injaTargets)
   else()
     find_package(nlohmann_json REQUIRED)
     set(INJA_SELECTED_JSON_LIBRARY "nlohmann_json::nlohmann_json")
