@@ -2723,15 +2723,16 @@ namespace inja {
  * \brief Class for changing the configuration.
  */
 class Environment {
-  std::string input_path;
-  std::string output_path;
-
   LexerConfig lexer_config;
   ParserConfig parser_config;
   RenderConfig render_config;
 
   FunctionStorage function_storage;
   TemplateStorage template_storage;
+
+protected:
+  std::string input_path;
+  std::string output_path;
 
 public:
   Environment(): Environment("") {}
