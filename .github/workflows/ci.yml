@@ -33,11 +33,10 @@ jobs:
           windows-2019-clang-cl,
           windows-2019-clang,
           windows-2019-gcc,
-          macOS-10.15-gcc-7,
-          macOS-10.15-gcc-8,
-          macOS-10.15-gcc-9,
-          macOS-latest-xcode-11.3,
-          macOS-latest-xcode-12.2,
+          macOS-latest-gcc-7,
+          macOS-latest-gcc-8,
+          macOS-latest-gcc-9,
+          macOS-latest-xcode-12.5,
         ]
 
         include:
@@ -123,30 +122,25 @@ jobs:
             os: windows-2019
             compiler: gcc
 
-          - name: macOS-10.15-gcc-7
-            os: macOS-10.15
+          - name: macOS-latest-gcc-7
+            os: macOS-latest
             compiler: gcc
             version: "7"
 
-          - name: macOS-10.15-gcc-8
-            os: macOS-10.15
+          - name: macOS-latest-gcc-8
+            os: macOS-latest
             compiler: gcc
             version: "8"
 
-          - name: macOS-10.15-gcc-9
-            os: macOS-10.15
+          - name: macOS-latest-gcc-9
+            os: macOS-latest
             compiler: gcc
             version: "9"
 
-          - name: macOS-latest-xcode-11.3
+          - name: macOS-latest-xcode-12.5
             os: macOS-latest
             compiler: xcode
-            version: "11.3"
-
-          - name: macOS-latest-xcode-12.2
-            os: macOS-latest
-            compiler: xcode
-            version: "12.2"
+            version: "12.5"
 
     steps:
       - uses: actions/checkout@v2
@@ -194,7 +188,8 @@ jobs:
         if: runner.os == 'Windows'
         shell: powershell
         run: |
-          Invoke-Expression (New-Object System.Net.WebClient).DownloadString('https://get.scoop.sh')
+          # Invoke-Expression (New-Object System.Net.WebClient).DownloadString('https://get.scoop.sh')
+          iwr -useb get.scoop.sh | iex
           scoop install ninja --global
           if ("${{ matrix.compiler }}".StartsWith("clang")) {
             scoop install llvm --global
