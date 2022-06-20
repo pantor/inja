@@ -17,10 +17,6 @@ jobs:
             os: ubuntu-18.04
             compiler: gcc-7
 
-          - name: ubuntu-18.04-gcc-8
-            os: ubuntu-18.04
-            compiler: gcc-8
-
           - name: ubuntu-18.04-gcc-9
             os: ubuntu-18.04
             compiler: gcc-9
@@ -37,17 +33,9 @@ jobs:
             os: ubuntu-18.04
             compiler: clang-5.0
 
-          - name: ubuntu-18.04-clang-6
-            os: ubuntu-18.04
-            compiler: clang-6.0
-
           - name: ubuntu-18.04-clang-7
             os: ubuntu-18.04
             compiler: clang-7
-
-          - name: ubuntu-18.04-clang-8
-            os: ubuntu-18.04
-            compiler: clang-8
 
           - name: ubuntu-20.04-clang-9
             os: ubuntu-20.04
@@ -61,10 +49,18 @@ jobs:
             os: ubuntu-20.04
             compiler: clang-11
 
+          - name: ubuntu-20.04-clang-12
+            os: ubuntu-20.04
+            compiler: clang-12
+
           - name: ubuntu-20.04-clang-11-no-exceptions
             os: ubuntu-20.04
             compiler: clang-11
             cmake_vars: "-DCMAKE_CXX_FLAGS=-fno-exceptions -DBUILD_TESTING=OFF -DBUILD_BENCHMARK=ON"
+
+           - name: ubuntu-22.04
+            os: ubuntu-22.04
+            compiler: gcc
 
           - name: windows-2019
             os: windows-2019
@@ -94,9 +90,9 @@ jobs:
             os: macOS-11
             compiler: gcc-9
 
-          - name: macOS-11-clang-11
-            os: macOS-11
-            compiler: clang-11
+          # - name: macOS-11-clang-11
+          #   os: macOS-11
+          #   compiler: clang-11
 
           - name: macOS-11-clang-12
             os: macOS-11
@@ -106,9 +102,9 @@ jobs:
             os: macOS-11
             compiler: clang-13
 
-          - name: macOS-12-gcc-11
+          - name: macOS-12
             os: macOS-12
-            compiler: gcc-11
+            compiler: clang
 
     steps:
       - uses: actions/checkout@v2
