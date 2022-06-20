@@ -58,7 +58,7 @@ jobs:
             compiler: clang-11
             cmake_vars: "-DCMAKE_CXX_FLAGS=-fno-exceptions -DBUILD_TESTING=OFF -DBUILD_BENCHMARK=ON"
 
-           - name: ubuntu-22.04
+          - name: ubuntu-22.04
             os: ubuntu-22.04
             compiler: gcc
 
