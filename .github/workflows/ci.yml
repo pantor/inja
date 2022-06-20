@@ -9,102 +9,61 @@ jobs:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
 
-    # env:
-    #   CMAKE_GENERATOR: Ninja
-
     strategy:
       fail-fast: false
       matrix:
-        name: [
-          ubuntu-18.04-gcc-7,
-          ubuntu-18.04-gcc-8,
-          ubuntu-18.04-gcc-9,
-          ubuntu-20.04-gcc-10,
-          ubuntu-20.04-gcc-11,
-          ubuntu-18.04-clang-5,
-          ubuntu-18.04-clang-6,
-          ubuntu-18.04-clang-7,
-          ubuntu-18.04-clang-8,
-          ubuntu-20.04-clang-9,
-          ubuntu-20.04-clang-10,
-          ubuntu-20.04-clang-11,
-          ubuntu-20.04-clang-11-no-exceptions,
-          windows-2019,
-          windows-2019-clang,
-          windows-2019-gcc,
-          windows-2022,
-          macOS-11-gcc-7,
-          macOS-11-gcc-8,
-          macOS-11-gcc-9,
-          macOS-11-xcode-12.5,
-          macOS-12-gcc-11,
-        ]
-
         include:
           - name: ubuntu-18.04-gcc-7
             os: ubuntu-18.04
             compiler: gcc-7
-            # version: "7"
 
           - name: ubuntu-18.04-gcc-8
             os: ubuntu-18.04
             compiler: gcc-8
-            # version: "8"
 
           - name: ubuntu-18.04-gcc-9
             os: ubuntu-18.04
             compiler: gcc-9
-            # version: "9"
 
           - name: ubuntu-20.04-gcc-10
             os: ubuntu-20.04
             compiler: gcc-10
-            # version: "10"
 
           - name: ubuntu-20.04-gcc-11
             os: ubuntu-20.04
             compiler: gcc-11
-            # version: "11"
 
           - name: ubuntu-18.04-clang-5
             os: ubuntu-18.04
             compiler: clang-5.0
-            # version: "5"
 
           - name: ubuntu-18.04-clang-6
             os: ubuntu-18.04
             compiler: clang-6.0
-            # version: "6"
 
           - name: ubuntu-18.04-clang-7
             os: ubuntu-18.04
             compiler: clang-7
-            # version: "7"
 
           - name: ubuntu-18.04-clang-8
             os: ubuntu-18.04
             compiler: clang-8
-            # version: "8"
 
           - name: ubuntu-20.04-clang-9
             os: ubuntu-20.04
             compiler: clang-9
-            # version: "9"
 
           - name: ubuntu-20.04-clang-10
             os: ubuntu-20.04
             compiler: clang-10
-            # version: "10"
 
           - name: ubuntu-20.04-clang-11
             os: ubuntu-20.04
             compiler: clang-11
-            # version: "11"
 
           - name: ubuntu-20.04-clang-11-no-exceptions
             os: ubuntu-20.04
             compiler: clang-11
-            # version: "11"
             cmake_vars: "-DCMAKE_CXX_FLAGS=-fno-exceptions -DBUILD_TESTING=OFF -DBUILD_BENCHMARK=ON"
 
           - name: windows-2019
@@ -123,30 +82,33 @@ jobs:
             os: windows-2022
             compiler: msvc
 
-          - name: macOS-11-gcc-7
-            os: macOS-11
-            compiler: gcc-7
-            # version: "7"
+          # - name: macOS-11-gcc-7
+          #   os: macOS-11
+          #   compiler: gcc-7
 
-          - name: macOS-11-gcc-8
-            os: macOS-11
-            compiler: gcc-8
-            # version: "8"
+          # - name: macOS-11-gcc-8
+          #   os: macOS-11
+          #   compiler: gcc-8
 
           - name: macOS-11-gcc-9
             os: macOS-11
             compiler: gcc-9
-            # version: "9"
 
-          - name: macOS-11-xcode-12.5
+          - name: macOS-11-clang-11
             os: macOS-11
-            compiler: xcode-12.5
-            # version: "12.5"
+            compiler: clang-11
+
+          - name: macOS-11-clang-12
+            os: macOS-11
+            compiler: clang-12
+
+          - name: macOS-11-clang-13
+            os: macOS-11
+            compiler: clang-13
 
           - name: macOS-12-gcc-11
             os: macOS-12
             compiler: gcc-11
-            # version: "11"
 
     steps:
       - uses: actions/checkout@v2
@@ -155,67 +117,6 @@ jobs:
         uses: aminya/setup-cpp@v1
         with:
           compiler: ${{ matrix.compiler }}
-
-      # - name: Install (Linux)
-      #   if: runner.os == 'Linux'
-      #   run: |
-      #     sudo apt-get update
-      #     if [ "${{ matrix.compiler }}" = "gcc" ]; then
-      #       sudo apt-get install -y g++-${{ matrix.version }} g++-${{ matrix.version }}-multilib
-      #       echo "CC=gcc-${{ matrix.version }}" >> $GITHUB_ENV
-      #       echo "CXX=g++-${{ matrix.version }}" >> $GITHUB_ENV
-      #     else
-      #       sudo apt-get install -y clang-${{ matrix.version }} g++-multilib
-      #       echo "CC=clang-${{ matrix.version }}" >> $GITHUB_ENV
-      #       echo "CXX=clang++-${{ matrix.version }}" >> $GITHUB_ENV
-      #     fi
-      
-      # - name: Install (macOS)
-      #   if: runner.os == 'macOS'
-      #   run: |
-      #     brew install ninja
-      #     if [ "${{ matrix.compiler }}" = "gcc" ]; then
-      #       brew install gcc@${{ matrix.version }}
-      #       brew link gcc@${{ matrix.version }}
-      #       echo "CC=gcc-${{ matrix.version }}" >> $GITHUB_ENV
-      #       echo "CXX=g++-${{ matrix.version }}" >> $GITHUB_ENV
-      #     else
-      #       sudo xcode-select -switch /Applications/Xcode_${{ matrix.version }}.app
-      #       echo "CC=clang" >> $GITHUB_ENV
-      #       echo "CXX=clang++" >> $GITHUB_ENV
-      #     fi
-      
-      # - name: Install (Windows)
-      #   if: runner.os == 'Windows'
-      #   shell: powershell
-      #   run: |
-      #     # Invoke-Expression (New-Object System.Net.WebClient).DownloadString('https://get.scoop.sh')
-      #     iwr -useb get.scoop.sh | iex
-      #     scoop install ninja --global
-      #     if ("${{ matrix.compiler }}".StartsWith("clang")) {
-      #       scoop install llvm --global
-      #     }
-      #     if ("${{ matrix.compiler }}" -eq "gcc") {
-      #       # Chocolatey GCC is broken on the windows-2019 image.
-      #       # See: https://github.com/DaanDeMeyer/doctest/runs/231595515
-      #       # See: https://github.community/t5/GitHub-Actions/Something-is-wrong-with-the-chocolatey-installed-version-of-gcc/td-p/32413
-      #       # scoop install gcc --global
-      #       choco install mingw
-      #       echo "CC=gcc" >> $GITHUB_ENV
-      #       echo "CXX=g++" >> $GITHUB_ENV
-      #     } elseif ("${{ matrix.compiler }}" -eq "clang") {
-      #       echo "CC=clang" >> $GITHUB_ENV
-      #       echo "CXX=clang++" >> $GITHUB_ENV
-      #     } else {
-      #       echo "CC=${{ matrix.compiler }}" >> $GITHUB_ENV
-      #       echo "CXX=${{ matrix.compiler }}" >> $GITHUB_ENV
-      #     }
-      #     # Scoop modifies the PATH so we make the modified PATH global.
-      #     echo "PATH=$env:PATH" >> $GITHUB_ENV
-      
-      # - name: Configure
-      #   if: runner.os == 'Windows'
-      #   run: .github\workflows\vsenv.bat -arch=x64 -host_arch=x64
 
       - name: Build & Test Debug
         run: |
