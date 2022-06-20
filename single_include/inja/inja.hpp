@@ -1536,7 +1536,7 @@ class Parser {
     }
   }
 
-  std::string parse_filename(const Token& tok) const {
+  std::string parse_filename() const {
     if (tok.kind != Token::Kind::String) {
       throw_parser_error("expected string, got '" + tok.describe() + "'");
     }
@@ -1926,7 +1926,7 @@ class Parser {
     } else if (tok.text == static_cast<decltype(tok.text)>("include")) {
       get_next_token();
 
-      std::string template_name = parse_filename(tok);
+      std::string template_name = parse_filename();
       add_to_template_storage(path, template_name);
 
       current_block->nodes.emplace_back(std::make_shared<IncludeStatementNode>(template_name, tok.text.data() - tmpl.content.c_str()));
@@ -1935,7 +1935,7 @@ class Parser {
     } else if (tok.text == static_cast<decltype(tok.text)>("extends")) {
       get_next_token();
 
-      std::string template_name = parse_filename(tok);
+      std::string template_name = parse_filename();
       add_to_template_storage(path, template_name);
 
       current_block->nodes.emplace_back(std::make_shared<ExtendsStatementNode>(template_name, tok.text.data() - tmpl.content.c_str()));
@@ -2428,7 +2428,7 @@ class Renderer : public NodeVisitor {
     } break;
     case Op::Lower: {
       auto result = get_arguments<1>(node)[0]->get<json::string_t>();
-      std::transform(result.begin(), result.end(), result.begin(), ::tolower);
+      std::transform(result.begin(), result.end(), result.begin(), [](char c) { return static_cast<char>(::tolower(c)); });
       make_result(std::move(result));
     } break;
     case Op::Max: {
@@ -2467,7 +2467,7 @@ class Renderer : public NodeVisitor {
     } break;
     case Op::Upper: {
       auto result = get_arguments<1>(node)[0]->get<json::string_t>();
-      std::transform(result.begin(), result.end(), result.begin(), ::toupper);
+      std::transform(result.begin(), result.end(), result.begin(), [](char c) { return static_cast<char>(::toupper(c)); });
       make_result(std::move(result));
     } break;
     case Op::IsBoolean: {
