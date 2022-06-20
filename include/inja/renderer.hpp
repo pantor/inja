@@ -277,7 +277,7 @@ class Renderer : public NodeVisitor {
     case Op::Power: {
       const auto args = get_arguments<2>(node);
       if (args[0]->is_number_integer() && args[1]->get<const json::number_integer_t>() >= 0) {
-        const auto result = static_cast<const json::number_integer_t>(std::pow(args[0]->get<const json::number_integer_t>(), args[1]->get<const json::number_integer_t>()));
+        const auto result = static_cast<json::number_integer_t>(std::pow(args[0]->get<const json::number_integer_t>(), args[1]->get<const json::number_integer_t>()));
         make_result(result);
       } else {
         const auto result = std::pow(args[0]->get<const json::number_float_t>(), args[1]->get<const json::number_integer_t>());
