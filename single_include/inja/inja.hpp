@@ -2324,49 +2324,49 @@ class Renderer : public NodeVisitor {
     case Op::Add: {
       const auto args = get_arguments<2>(node);
       if (args[0]->is_string() && args[1]->is_string()) {
-        make_result(args[0]->get_ref<const std::string&>() + args[1]->get_ref<const std::string&>());
+        make_result(args[0]->get_ref<const json::string_t&>() + args[1]->get_ref<const json::string_t&>());
       } else if (args[0]->is_number_integer() && args[1]->is_number_integer()) {
-        make_result(args[0]->get<int>() + args[1]->get<int>());
+        make_result(args[0]->get<const json::number_integer_t>() + args[1]->get<const json::number_integer_t>());
       } else {
-        make_result(args[0]->get<double>() + args[1]->get<double>());
+        make_result(args[0]->get<const json::number_float_t>() + args[1]->get<const json::number_float_t>());
       }
     } break;
     case Op::Subtract: {
       const auto args = get_arguments<2>(node);
       if (args[0]->is_number_integer() && args[1]->is_number_integer()) {
-        make_result(args[0]->get<int>() - args[1]->get<int>());
+        make_result(args[0]->get<const json::number_integer_t>() - args[1]->get<const json::number_integer_t>());
       } else {
-        make_result(args[0]->get<double>() - args[1]->get<double>());
+        make_result(args[0]->get<const json::number_float_t>() - args[1]->get<const json::number_float_t>());
       }
     } break;
     case Op::Multiplication: {
       const auto args = get_arguments<2>(node);
       if (args[0]->is_number_integer() && args[1]->is_number_integer()) {
-        make_result(args[0]->get<int>() * args[1]->get<int>());
+        make_result(args[0]->get<const json::number_integer_t>() * args[1]->get<const json::number_integer_t>());
       } else {
-        make_result(args[0]->get<double>() * args[1]->get<double>());
+        make_result(args[0]->get<const json::number_float_t>() * args[1]->get<const json::number_float_t>());
       }
     } break;
     case Op::Division: {
       const auto args = get_arguments<2>(node);
-      if (args[1]->get<double>() == 0) {
+      if (args[1]->get<const json::number_float_t>() == 0) {
         throw_renderer_error("division by zero", node);
       }
-      make_result(args[0]->get<double>() / args[1]->get<double>());
+      make_result(args[0]->get<const json::number_float_t>() / args[1]->get<const json::number_float_t>());
     } break;
     case Op::Power: {
       const auto args = get_arguments<2>(node);
-      if (args[0]->is_number_integer() && args[1]->get<int>() >= 0) {
-        int result = static_cast<int>(std::pow(args[0]->get<int>(), args[1]->get<int>()));
+      if (args[0]->is_number_integer() && args[1]->get<const json::number_integer_t>() >= 0) {
+        const auto result = static_cast<const json::number_integer_t>(std::pow(args[0]->get<const json::number_integer_t>(), args[1]->get<const json::number_integer_t>()));
         make_result(result);
       } else {
-        double result = std::pow(args[0]->get<double>(), args[1]->get<int>());
+        const auto result = std::pow(args[0]->get<const json::number_float_t>(), args[1]->get<const json::number_integer_t>());
         make_result(result);
       }
     } break;
     case Op::Modulo: {
       const auto args = get_arguments<2>(node);
-      make_result(args[0]->get<int>() % args[1]->get<int>());
+      make_result(args[0]->get<const json::number_integer_t>() % args[1]->get<const json::number_integer_t>());
     } break;
     case Op::AtId: {
       const auto container = get_arguments<1, 0, false>(node)[0];
@@ -2393,19 +2393,19 @@ class Renderer : public NodeVisitor {
     } break;
     case Op::DivisibleBy: {
       const auto args = get_arguments<2>(node);
-      const int divisor = args[1]->get<int>();
-      make_result((divisor != 0) && (args[0]->get<int>() % divisor == 0));
+      const auto divisor = args[1]->get<const json::number_integer_t>();
+      make_result((divisor != 0) && (args[0]->get<const json::number_integer_t>() % divisor == 0));
     } break;
     case Op::Even: {
-      make_result(get_arguments<1>(node)[0]->get<int>() % 2 == 0);
+      make_result(get_arguments<1>(node)[0]->get<const json::number_integer_t>() % 2 == 0);
     } break;
     case Op::Exists: {
-      auto&& name = get_arguments<1>(node)[0]->get_ref<const std::string&>();
+      auto&& name = get_arguments<1>(node)[0]->get_ref<const json::string_t&>();
       make_result(data_input->contains(json::json_pointer(DataNode::convert_dot_to_ptr(name))));
     } break;
     case Op::ExistsInObject: {
       const auto args = get_arguments<2>(node);
-      auto&& name = args[1]->get_ref<const std::string&>();
+      auto&& name = args[1]->get_ref<const json::string_t&>();
       make_result(args[0]->find(name) != args[0]->end());
     } break;
     case Op::First: {
@@ -2413,10 +2413,10 @@ class Renderer : public NodeVisitor {
       data_eval_stack.push(result);
     } break;
     case Op::Float: {
-      make_result(std::stod(get_arguments<1>(node)[0]->get_ref<const std::string&>()));
+      make_result(std::stod(get_arguments<1>(node)[0]->get_ref<const json::string_t&>()));
     } break;
     case Op::Int: {
-      make_result(std::stoi(get_arguments<1>(node)[0]->get_ref<const std::string&>()));
+      make_result(std::stoi(get_arguments<1>(node)[0]->get_ref<const json::string_t&>()));
     } break;
     case Op::Last: {
       const auto result = &get_arguments<1>(node)[0]->back();
@@ -2425,13 +2425,13 @@ class Renderer : public NodeVisitor {
     case Op::Length: {
       const auto val = get_arguments<1>(node)[0];
       if (val->is_string()) {
-        make_result(val->get_ref<const std::string&>().length());
+        make_result(val->get_ref<const json::string_t&>().length());
       } else {
         make_result(val->size());
       }
     } break;
     case Op::Lower: {
-      std::string result = get_arguments<1>(node)[0]->get<std::string>();
+      auto result = get_arguments<1>(node)[0]->get<json::string_t>();
       std::transform(result.begin(), result.end(), result.begin(), ::tolower);
       make_result(std::move(result));
     } break;
@@ -2446,17 +2446,17 @@ class Renderer : public NodeVisitor {
       data_eval_stack.push(&(*result));
     } break;
     case Op::Odd: {
-      make_result(get_arguments<1>(node)[0]->get<int>() % 2 != 0);
+      make_result(get_arguments<1>(node)[0]->get<const json::number_integer_t>() % 2 != 0);
     } break;
     case Op::Range: {
-      std::vector<int> result(get_arguments<1>(node)[0]->get<int>());
+      std::vector<int> result(get_arguments<1>(node)[0]->get<const json::number_integer_t>());
       std::iota(result.begin(), result.end(), 0);
       make_result(std::move(result));
     } break;
     case Op::Round: {
       const auto args = get_arguments<2>(node);
-      const int precision = args[1]->get<int>();
-      const double result = std::round(args[0]->get<double>() * std::pow(10.0, precision)) / std::pow(10.0, precision);
+      const int precision = args[1]->get<const json::number_integer_t>();
+      const double result = std::round(args[0]->get<const json::number_float_t>() * std::pow(10.0, precision)) / std::pow(10.0, precision);
       if (precision == 0) {
         make_result(int(result));
       } else {
@@ -2470,7 +2470,7 @@ class Renderer : public NodeVisitor {
       data_eval_stack.push(result_ptr.get());
     } break;
     case Op::Upper: {
-      std::string result = get_arguments<1>(node)[0]->get<std::string>();
+      auto result = get_arguments<1>(node)[0]->get<json::string_t>();
       std::transform(result.begin(), result.end(), result.begin(), ::toupper);
       make_result(std::move(result));
     } break;
@@ -2530,7 +2530,7 @@ class Renderer : public NodeVisitor {
     } break;
     case Op::Join: {
       const auto args = get_arguments<2>(node);
-      const auto separator = args[1]->get<std::string>();
+      const auto separator = args[1]->get<json::string_t>();
       std::ostringstream os;
       std::string sep;
       for (const auto& value : *args[0]) {
