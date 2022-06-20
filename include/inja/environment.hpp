@@ -21,15 +21,16 @@ namespace inja {
  * \brief Class for changing the configuration.
  */
 class Environment {
-  std::string input_path;
-  std::string output_path;
-
   LexerConfig lexer_config;
   ParserConfig parser_config;
   RenderConfig render_config;
 
   FunctionStorage function_storage;
   TemplateStorage template_storage;
+
+protected:
+  std::string input_path;
+  std::string output_path;
 
 public:
   Environment(): Environment("") {}
@@ -94,7 +95,7 @@ public:
 
   Template parse(std::string_view input) {
     Parser parser(parser_config, lexer_config, template_storage, function_storage);
-    return parser.parse(input);
+    return parser.parse(input, input_path);
   }
 
   Template parse_template(const std::string& filename) {
