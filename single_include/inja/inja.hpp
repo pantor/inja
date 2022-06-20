@@ -2045,10 +2045,6 @@ public:
     return result;
   }
 
-  Template parse(std::string_view input) {
-    return parse(input, "./");
-  }
-
   void parse_into_template(Template& tmpl, std::string_view filename) {
     std::string_view path = filename.substr(0, filename.find_last_of("/\\") + 1);
 
@@ -2735,7 +2731,7 @@ protected:
   std::string output_path;
 
 public:
-  Environment(): Environment("") {}
+  Environment(): Environment("./") {}
 
   explicit Environment(const std::string& global_path): input_path(global_path), output_path(global_path) {}
 
@@ -2797,7 +2793,7 @@ public:
 
   Template parse(std::string_view input) {
     Parser parser(parser_config, lexer_config, template_storage, function_storage);
-    return parser.parse(input);
+    return parser.parse(input, input_path);
   }
 
   Template parse_template(const std::string& filename) {

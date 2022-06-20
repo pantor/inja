@@ -631,10 +631,6 @@ public:
     return result;
   }
 
-  Template parse(std::string_view input) {
-    return parse(input, "./");
-  }
-
   void parse_into_template(Template& tmpl, std::string_view filename) {
     std::string_view path = filename.substr(0, filename.find_last_of("/\\") + 1);
 

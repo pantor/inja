@@ -69,12 +69,23 @@ TEST_CASE("global-path") {
   }
 }
 
-TEST_CASE("include-without-local-files") {
+TEST_CASE("include-files") {
   inja::Environment env {test_file_directory};
-  env.set_search_included_templates_in_files(false);
+  inja::json data;
+  data["name"] = "Jeff";
 
-  CHECK_THROWS_WITH(env.render_file_with_json_file("html/template.txt", "html/data.json"),
+  SUBCASE("from text") {
+    CHECK(env.render_file("include.txt", data) == "Answer: Hello Jeff.");
+    CHECK(env.render("Answer: {% include \"simple.txt\" %}", data) == "Answer: Hello Jeff.");
+
+    CHECK_NOTHROW(env.render_file_with_json_file("html/template.txt", "html/data.json"));
+  }
+
+  SUBCASE("without local files") {
+    env.set_search_included_templates_in_files(false);
+    CHECK_THROWS_WITH(env.render_file_with_json_file("html/template.txt", "html/data.json"),
                     "[inja.exception.render_error] (at 3:14) include 'header.txt' not found");
+  }
 }
 
 TEST_CASE("include-in-memory-and-file-template") {
