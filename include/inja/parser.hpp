@@ -22,6 +22,9 @@ namespace inja {
  * \brief Class for parsing an inja Template.
  */
 class Parser {
+  using Arguments = std::vector<std::shared_ptr<ExpressionNode>>;
+  using OperatorStack = std::stack<std::shared_ptr<FunctionNode>>;
+
   const ParserConfig& config;
 
   Lexer lexer;
@@ -31,18 +34,12 @@ class Parser {
   Token tok, peek_tok;
   bool have_peek_tok {false};
 
-  size_t current_paren_level {0};
-  size_t current_bracket_level {0};
-  size_t current_brace_level {0};
-
   std::string_view literal_start;
 
   BlockNode* current_block {nullptr};
   ExpressionListNode* current_expression_list {nullptr};
   std::stack<std::pair<FunctionNode*, size_t>> function_stack;
-  std::vector<std::shared_ptr<ExpressionNode>> arguments;
 
-  std::stack<std::shared_ptr<FunctionNode>> operator_stack;
   std::stack<IfStatementNode*> if_statement_stack;
   std::stack<ForStatementNode*> for_statement_stack;
   std::stack<BlockStatementNode*> block_statement_stack;
@@ -67,12 +64,12 @@ class Parser {
     }
   }
 
-  inline void add_literal(const char* content_ptr) {
+  inline void add_literal(Arguments &arguments, const char* content_ptr) {
     std::string_view data_text(literal_start.data(), tok.text.data() - literal_start.data() + tok.text.size());
     arguments.emplace_back(std::make_shared<LiteralNode>(data_text, data_text.data() - content_ptr));
   }
 
-  inline void add_operator() {
+  inline void add_operator(Arguments &arguments, OperatorStack &operator_stack) {
     auto function = operator_stack.top();
     operator_stack.pop();
 
@@ -136,19 +133,30 @@ class Parser {
   }
 
   bool parse_expression(Template& tmpl, Token::Kind closing) {
-    while (tok.kind != closing && tok.kind != Token::Kind::Eof) {
+    current_expression_list->root = parse_expression(tmpl);
+    return tok.kind == closing;
+  }
+
+  std::shared_ptr<ExpressionNode> parse_expression(Template& tmpl) {
+    size_t current_paren_level {0};
+    size_t current_bracket_level {0};
+    size_t current_brace_level {0};
+    Arguments arguments;
+    OperatorStack operator_stack;
+
+    while (tok.kind != Token::Kind::Eof) {
       // Literals
       switch (tok.kind) {
       case Token::Kind::String: {
         if (current_brace_level == 0 && current_bracket_level == 0) {
           literal_start = tok.text;
-          add_literal(tmpl.content.c_str());
+          add_literal(arguments, tmpl.content.c_str());
         }
       } break;
       case Token::Kind::Number: {
         if (current_brace_level == 0 && current_bracket_level == 0) {
           literal_start = tok.text;
-          add_literal(tmpl.content.c_str());
+          add_literal(arguments, tmpl.content.c_str());
         }
       } break;
       case Token::Kind::LeftBracket: {
@@ -170,7 +178,7 @@ class Parser {
 
         current_bracket_level -= 1;
         if (current_brace_level == 0 && current_bracket_level == 0) {
-          add_literal(tmpl.content.c_str());
+          add_literal(arguments, tmpl.content.c_str());
         }
       } break;
       case Token::Kind::RightBrace: {
@@ -180,7 +188,7 @@ class Parser {
 
         current_brace_level -= 1;
         if (current_brace_level == 0 && current_bracket_level == 0) {
-          add_literal(tmpl.content.c_str());
+          add_literal(arguments, tmpl.content.c_str());
         }
       } break;
       case Token::Kind::Id: {
@@ -191,7 +199,7 @@ class Parser {
             tok.text == static_cast<decltype(tok.text)>("null")) {
           if (current_brace_level == 0 && current_bracket_level == 0) {
             literal_start = tok.text;
-            add_literal(tmpl.content.c_str());
+            add_literal(arguments, tmpl.content.c_str());
           }
 
           // Operator
@@ -289,7 +297,7 @@ class Parser {
                ((operator_stack.top()->precedence > function_node->precedence) ||
                 (operator_stack.top()->precedence == function_node->precedence && function_node->associativity == FunctionNode::Associativity::Left)) &&
                (operator_stack.top()->operation != FunctionStorage::Operation::ParenLeft)) {
-          add_operator();
+          add_operator(arguments, operator_stack);
         }
 
         operator_stack.emplace(function_node);
@@ -322,7 +330,7 @@ class Parser {
       case Token::Kind::RightParen: {
         current_paren_level -= 1;
         while (!operator_stack.empty() && operator_stack.top()->operation != FunctionStorage::Operation::ParenLeft) {
-          add_operator();
+          add_operator(arguments, operator_stack);
         }
 
         if (!operator_stack.empty() && operator_stack.top()->operation == FunctionStorage::Operation::ParenLeft) {
@@ -344,29 +352,30 @@ class Parser {
             throw_parser_error("internal error at function " + func->name);
           }
 
-          add_operator();
+          add_operator(arguments, operator_stack);
           function_stack.pop();
         }
-      }
+      } break;
       default:
-        break;
+        goto break_loop;
       }
 
       get_next_token();
     }
 
+  break_loop:
     while (!operator_stack.empty()) {
-      add_operator();
+      add_operator(arguments, operator_stack);
     }
 
+    std::shared_ptr<ExpressionNode> expr;
     if (arguments.size() == 1) {
-      current_expression_list->root = arguments[0];
+      expr = arguments[0];
       arguments = {};
     } else if (arguments.size() > 1) {
       throw_parser_error("malformed expression");
     }
-
-    return true;
+    return expr;
   }
 
   bool parse_statement(Template& tmpl, Token::Kind closing, std::string_view path) {
@@ -600,10 +609,6 @@ class Parser {
         current_expression_list = expression_list_node.get();
 
         if (!parse_expression(tmpl, Token::Kind::ExpressionClose)) {
-          throw_parser_error("expected expression, got '" + tok.describe() + "'");
-        }
-
-        if (tok.kind != Token::Kind::ExpressionClose) {
           throw_parser_error("expected expression close, got '" + tok.describe() + "'");
         }
       } break;
