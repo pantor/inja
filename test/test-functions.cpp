@@ -263,6 +263,8 @@ TEST_CASE("callbacks") {
   CHECK(env.render("{{ double-greetings }}", data) == "Hello Hello!");
   CHECK(env.render("{{ double-greetings() }}", data) == "Hello Hello!");
   CHECK(env.render("{{ multiply(4, 5) }}", data) == "20.0");
+  CHECK(env.render("{{ multiply(4, 2 + 3) }}", data) == "20.0");
+  CHECK(env.render("{{ multiply(2 + 2, 5) }}", data) == "20.0");
   CHECK(env.render("{{ multiply(length(\"tester\"), 5) }}", data) == "30.0");
   CHECK(env.render("{{ multiply(5, length(\"t\")) }}", data) == "5.0");
   CHECK(env.render("{{ multiply(3, 4, 5) }}", data) == "60.0");

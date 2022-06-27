@@ -488,7 +488,7 @@ public:
   CallbackFunction callback;
 
   explicit FunctionNode(std::string_view name, size_t pos)
-      : ExpressionNode(pos), precedence(8), associativity(Associativity::Left), operation(Op::Callback), name(name), number_args(1) {}
+      : ExpressionNode(pos), precedence(8), associativity(Associativity::Left), operation(Op::Callback), name(name), number_args(0) {}
   explicit FunctionNode(Op operation, size_t pos): ExpressionNode(pos), operation(operation), number_args(1) {
     switch (operation) {
     case Op::Not: {
@@ -1452,7 +1452,6 @@ class Parser {
 
   BlockNode* current_block {nullptr};
   ExpressionListNode* current_expression_list {nullptr};
-  std::stack<std::pair<FunctionNode*, size_t>> function_stack;
 
   std::stack<IfStatementNode*> if_statement_stack;
   std::stack<ForStatementNode*> for_statement_stack;
@@ -1622,8 +1621,30 @@ class Parser {
 
           // Functions
         } else if (peek_tok.kind == Token::Kind::LeftParen) {
-          operator_stack.emplace(std::make_shared<FunctionNode>(static_cast<std::string>(tok.text), tok.text.data() - tmpl.content.c_str()));
-          function_stack.emplace(operator_stack.top().get(), current_paren_level);
+          auto func = std::make_shared<FunctionNode>(tok.text, tok.text.data() - tmpl.content.c_str());
+          get_next_token();
+          do {
+            get_next_token();
+            auto expr = parse_expression(tmpl);
+            if (!expr) {
+              break;
+            }
+            func->number_args += 1;
+            func->arguments.emplace_back(expr);
+          } while (tok.kind == Token::Kind::Comma);
+          if (tok.kind != Token::Kind::RightParen) {
+            throw_parser_error("expected right parenthesis, got '" + tok.describe() + "'");
+          }
+
+          auto function_data = function_storage.find_function(func->name, func->number_args);
+          if (function_data.operation == FunctionStorage::Operation::None) {
+            throw_parser_error("unknown function " + func->name);
+          }
+          func->operation = function_data.operation;
+          if (function_data.operation == FunctionStorage::Operation::Callback) {
+            func->callback = function_data.callback;
+          }
+          arguments.emplace_back(func);
 
           // Variables
         } else {
@@ -1718,11 +1739,7 @@ class Parser {
       } break;
       case Token::Kind::Comma: {
         if (current_brace_level == 0 && current_bracket_level == 0) {
-          if (function_stack.empty()) {
-            throw_parser_error("unexpected ','");
-          }
-
-          function_stack.top().first->number_args += 1;
+          goto break_loop;
         }
       } break;
       case Token::Kind::Colon: {
@@ -1733,15 +1750,11 @@ class Parser {
       case Token::Kind::LeftParen: {
         current_paren_level += 1;
         operator_stack.emplace(std::make_shared<FunctionNode>(FunctionStorage::Operation::ParenLeft, tok.text.data() - tmpl.content.c_str()));
-
-        get_peek_token();
-        if (peek_tok.kind == Token::Kind::RightParen) {
-          if (!function_stack.empty() && function_stack.top().second == current_paren_level - 1) {
-            function_stack.top().first->number_args = 0;
-          }
-        }
       } break;
       case Token::Kind::RightParen: {
+        if (current_paren_level == 0) {
+          goto break_loop;
+        }
         current_paren_level -= 1;
         while (!operator_stack.empty() && operator_stack.top()->operation != FunctionStorage::Operation::ParenLeft) {
           add_operator(arguments, operator_stack);
@@ -1749,25 +1762,6 @@ class Parser {
 
         if (!operator_stack.empty() && operator_stack.top()->operation == FunctionStorage::Operation::ParenLeft) {
           operator_stack.pop();
-        }
-
-        if (!function_stack.empty() && function_stack.top().second == current_paren_level) {
-          auto func = function_stack.top().first;
-          auto function_data = function_storage.find_function(func->name, func->number_args);
-          if (function_data.operation == FunctionStorage::Operation::None) {
-            throw_parser_error("unknown function " + func->name);
-          }
-          func->operation = function_data.operation;
-          if (function_data.operation == FunctionStorage::Operation::Callback) {
-            func->callback = function_data.callback;
-          }
-
-          if (operator_stack.empty()) {
-            throw_parser_error("internal error at function " + func->name);
-          }
-
-          add_operator(arguments, operator_stack);
-          function_stack.pop();
         }
       } break;
       default:
