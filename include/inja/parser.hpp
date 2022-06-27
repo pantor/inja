@@ -137,7 +137,6 @@ class Parser {
   }
 
   std::shared_ptr<ExpressionNode> parse_expression(Template& tmpl) {
-    size_t current_paren_level {0};
     size_t current_bracket_level {0};
     size_t current_brace_level {0};
     Arguments arguments;
@@ -316,8 +315,7 @@ class Parser {
 
         while (!operator_stack.empty() &&
                ((operator_stack.top()->precedence > function_node->precedence) ||
-                (operator_stack.top()->precedence == function_node->precedence && function_node->associativity == FunctionNode::Associativity::Left)) &&
-               (operator_stack.top()->operation != FunctionStorage::Operation::ParenLeft)) {
+                (operator_stack.top()->precedence == function_node->precedence && function_node->associativity == FunctionNode::Associativity::Left))) {
           add_operator(arguments, operator_stack);
         }
 
@@ -334,21 +332,15 @@ class Parser {
         }
       } break;
       case Token::Kind::LeftParen: {
-        current_paren_level += 1;
-        operator_stack.emplace(std::make_shared<FunctionNode>(FunctionStorage::Operation::ParenLeft, tok.text.data() - tmpl.content.c_str()));
-      } break;
-      case Token::Kind::RightParen: {
-        if (current_paren_level == 0) {
-          goto break_loop;
+        get_next_token();
+        auto expr = parse_expression(tmpl);
+        if (tok.kind != Token::Kind::RightParen) {
+            throw_parser_error("expected right parenthesis, got '" + tok.describe() + "'");
         }
-        current_paren_level -= 1;
-        while (!operator_stack.empty() && operator_stack.top()->operation != FunctionStorage::Operation::ParenLeft) {
-          add_operator(arguments, operator_stack);
+        if (!expr) {
+          throw_parser_error("empty expression in parentheses");
         }
-
-        if (!operator_stack.empty() && operator_stack.top()->operation == FunctionStorage::Operation::ParenLeft) {
-          operator_stack.pop();
-        }
+        arguments.emplace_back(expr);
       } break;
       default:
         goto break_loop;
