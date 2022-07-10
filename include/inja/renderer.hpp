@@ -352,7 +352,7 @@ class Renderer : public NodeVisitor {
     } break;
     case Op::Lower: {
       auto result = get_arguments<1>(node)[0]->get<json::string_t>();
-      std::transform(result.begin(), result.end(), result.begin(), ::tolower);
+      std::transform(result.begin(), result.end(), result.begin(), [](char c) { return static_cast<char>(::tolower(c)); });
       make_result(std::move(result));
     } break;
     case Op::Max: {
@@ -391,7 +391,7 @@ class Renderer : public NodeVisitor {
     } break;
     case Op::Upper: {
       auto result = get_arguments<1>(node)[0]->get<json::string_t>();
-      std::transform(result.begin(), result.end(), result.begin(), ::toupper);
+      std::transform(result.begin(), result.end(), result.begin(), [](char c) { return static_cast<char>(::toupper(c)); });
       make_result(std::move(result));
     } break;
     case Op::IsBoolean: {
