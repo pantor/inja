@@ -143,7 +143,7 @@ public:
   Op operation;
 
   std::string name;
-  int number_args; // Should also be negative -> -1 for unknown number
+  int number_args; // Can also be negative -> -1 for unknown number
   std::vector<std::shared_ptr<ExpressionNode>> arguments;
   CallbackFunction callback;
 

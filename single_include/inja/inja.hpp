@@ -483,7 +483,7 @@ public:
   Op operation;
 
   std::string name;
-  int number_args; // Should also be negative -> -1 for unknown number
+  int number_args; // Can also be negative -> -1 for unknown number
   std::vector<std::shared_ptr<ExpressionNode>> arguments;
   CallbackFunction callback;
 
@@ -1489,6 +1489,10 @@ class Parser {
   inline void add_operator() {
     auto function = operator_stack.top();
     operator_stack.pop();
+
+    if (static_cast<int>(arguments.size()) < function->number_args) {
+      throw_parser_error("too few arguments");
+    }
 
     for (int i = 0; i < function->number_args; ++i) {
       function->arguments.insert(function->arguments.begin(), arguments.back());

@@ -76,6 +76,10 @@ class Parser {
     auto function = operator_stack.top();
     operator_stack.pop();
 
+    if (static_cast<int>(arguments.size()) < function->number_args) {
+      throw_parser_error("too few arguments");
+    }
+
     for (int i = 0; i < function->number_args; ++i) {
       function->arguments.insert(function->arguments.begin(), arguments.back());
       arguments.pop_back();
