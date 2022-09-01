@@ -112,12 +112,12 @@ public:
 
   static std::string convert_dot_to_ptr(std::string_view ptr_name) {
     std::string result;
-    do {
+    while (!ptr_name.empty()) {
       std::string_view part;
       std::tie(part, ptr_name) = string_view::split(ptr_name, '.');
       result.push_back('/');
       result.append(part.begin(), part.end());
-    } while (!ptr_name.empty());
+    }
     return result;
   }
 

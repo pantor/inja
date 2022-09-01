@@ -299,4 +299,20 @@ $$ endif
 
     CHECK(env.render(string_template, data) == "Hello Peter\n    You really are Peter\n");
   }
+
+  SUBCASE("root document") {
+    inja::Environment env;
+    inja::json array {"item1", "item2", "item3"};
+
+    CHECK(env.render("{{.}}", array) == "[\"item1\",\"item2\",\"item3\"]");
+    CHECK(env.render("{% for item in . %}{{item}},{% endfor %}", array) == "item1,item2,item3,");
+
+    inja::json object {
+      {"name", "Peter"},
+      {"city", "Brunswick"}
+    };
+    CHECK(env.render("{{.}}", object) == "{\"city\":\"Brunswick\",\"name\":\"Peter\"}");
+    CHECK(env.render("{% for key, value in . %}{{key}} => {{value}}, {% endfor %}", object) == "city => Brunswick, name => Peter, ");
+  }
+
 }

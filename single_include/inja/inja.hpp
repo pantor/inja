@@ -452,12 +452,12 @@ public:
 
   static std::string convert_dot_to_ptr(std::string_view ptr_name) {
     std::string result;
-    do {
+    while (!ptr_name.empty()) {
       std::string_view part;
       std::tie(part, ptr_name) = string_view::split(ptr_name, '.');
       result.push_back('/');
       result.append(part.begin(), part.end());
-    } while (!ptr_name.empty());
+    }
     return result;
   }
 
@@ -1628,6 +1628,12 @@ class Parser {
 
         // Operators
       } break;
+      case Token::Kind::Dot:
+        if (arguments.empty()) {
+          arguments.emplace_back(std::make_shared<DataNode>("", tok.text.data() - tmpl.content.c_str()));
+          break;
+        }
+        [[fallthrough]];
       case Token::Kind::Equal:
       case Token::Kind::NotEqual:
       case Token::Kind::GreaterThan:
@@ -1639,8 +1645,7 @@ class Parser {
       case Token::Kind::Times:
       case Token::Kind::Slash:
       case Token::Kind::Power:
-      case Token::Kind::Percent:
-      case Token::Kind::Dot: {
+      case Token::Kind::Percent: {
 
       parse_operator:
         FunctionStorage::Operation operation;
@@ -2262,7 +2267,10 @@ class Renderer : public NodeVisitor {
   }
 
   void visit(const DataNode& node) {
-    if (additional_data.contains(node.ptr)) {
+    if (node.ptr.empty()) {
+      // root document
+      data_eval_stack.push(data_input);
+    } else if (additional_data.contains(node.ptr)) {
       data_eval_stack.push(&(additional_data[node.ptr]));
     } else if (data_input->contains(node.ptr)) {
       data_eval_stack.push(&(*data_input)[node.ptr]);

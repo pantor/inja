@@ -182,7 +182,10 @@ class Renderer : public NodeVisitor {
   }
 
   void visit(const DataNode& node) {
-    if (additional_data.contains(node.ptr)) {
+    if (node.ptr.empty()) {
+      // root document
+      data_eval_stack.push(data_input);
+    } else if (additional_data.contains(node.ptr)) {
       data_eval_stack.push(&(additional_data[node.ptr]));
     } else if (data_input->contains(node.ptr)) {
       data_eval_stack.push(&(*data_input)[node.ptr]);
