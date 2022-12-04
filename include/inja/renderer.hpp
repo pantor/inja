@@ -464,8 +464,6 @@ class Renderer : public NodeVisitor {
       }
       make_result(os.str());
     } break;
-    case Op::ParenLeft:
-    case Op::ParenRight:
     case Op::None:
       break;
     }

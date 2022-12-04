@@ -62,8 +62,6 @@ public:
     Super,
     Join,
     Callback,
-    ParenLeft,
-    ParenRight,
     None,
   };
 

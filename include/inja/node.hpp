@@ -148,7 +148,7 @@ public:
   CallbackFunction callback;
 
   explicit FunctionNode(std::string_view name, size_t pos)
-      : ExpressionNode(pos), precedence(8), associativity(Associativity::Left), operation(Op::Callback), name(name), number_args(1) {}
+      : ExpressionNode(pos), precedence(8), associativity(Associativity::Left), operation(Op::Callback), name(name), number_args(0) {}
   explicit FunctionNode(Op operation, size_t pos): ExpressionNode(pos), operation(operation), number_args(1) {
     switch (operation) {
     case Op::Not: {

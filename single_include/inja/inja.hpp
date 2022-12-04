@@ -151,8 +151,6 @@ public:
     Super,
     Join,
     Callback,
-    ParenLeft,
-    ParenRight,
     None,
   };
 
@@ -488,7 +486,7 @@ public:
   CallbackFunction callback;
 
   explicit FunctionNode(std::string_view name, size_t pos)
-      : ExpressionNode(pos), precedence(8), associativity(Associativity::Left), operation(Op::Callback), name(name), number_args(1) {}
+      : ExpressionNode(pos), precedence(8), associativity(Associativity::Left), operation(Op::Callback), name(name), number_args(0) {}
   explicit FunctionNode(Op operation, size_t pos): ExpressionNode(pos), operation(operation), number_args(1) {
     switch (operation) {
     case Op::Not: {
@@ -1436,6 +1434,9 @@ namespace inja {
  * \brief Class for parsing an inja Template.
  */
 class Parser {
+  using Arguments = std::vector<std::shared_ptr<ExpressionNode>>;
+  using OperatorStack = std::stack<std::shared_ptr<FunctionNode>>;
+
   const ParserConfig& config;
 
   Lexer lexer;
@@ -1445,18 +1446,11 @@ class Parser {
   Token tok, peek_tok;
   bool have_peek_tok {false};
 
-  size_t current_paren_level {0};
-  size_t current_bracket_level {0};
-  size_t current_brace_level {0};
-
   std::string_view literal_start;
 
   BlockNode* current_block {nullptr};
   ExpressionListNode* current_expression_list {nullptr};
-  std::stack<std::pair<FunctionNode*, size_t>> function_stack;
-  std::vector<std::shared_ptr<ExpressionNode>> arguments;
 
-  std::stack<std::shared_ptr<FunctionNode>> operator_stack;
   std::stack<IfStatementNode*> if_statement_stack;
   std::stack<ForStatementNode*> for_statement_stack;
   std::stack<BlockStatementNode*> block_statement_stack;
@@ -1481,12 +1475,12 @@ class Parser {
     }
   }
 
-  inline void add_literal(const char* content_ptr) {
+  inline void add_literal(Arguments &arguments, const char* content_ptr) {
     std::string_view data_text(literal_start.data(), tok.text.data() - literal_start.data() + tok.text.size());
     arguments.emplace_back(std::make_shared<LiteralNode>(data_text, data_text.data() - content_ptr));
   }
 
-  inline void add_operator() {
+  inline void add_operator(Arguments &arguments, OperatorStack &operator_stack) {
     auto function = operator_stack.top();
     operator_stack.pop();
 
@@ -1554,19 +1548,29 @@ class Parser {
   }
 
   bool parse_expression(Template& tmpl, Token::Kind closing) {
-    while (tok.kind != closing && tok.kind != Token::Kind::Eof) {
+    current_expression_list->root = parse_expression(tmpl);
+    return tok.kind == closing;
+  }
+
+  std::shared_ptr<ExpressionNode> parse_expression(Template& tmpl) {
+    size_t current_bracket_level {0};
+    size_t current_brace_level {0};
+    Arguments arguments;
+    OperatorStack operator_stack;
+
+    while (tok.kind != Token::Kind::Eof) {
       // Literals
       switch (tok.kind) {
       case Token::Kind::String: {
         if (current_brace_level == 0 && current_bracket_level == 0) {
           literal_start = tok.text;
-          add_literal(tmpl.content.c_str());
+          add_literal(arguments, tmpl.content.c_str());
         }
       } break;
       case Token::Kind::Number: {
         if (current_brace_level == 0 && current_bracket_level == 0) {
           literal_start = tok.text;
-          add_literal(tmpl.content.c_str());
+          add_literal(arguments, tmpl.content.c_str());
         }
       } break;
       case Token::Kind::LeftBracket: {
@@ -1588,7 +1592,7 @@ class Parser {
 
         current_bracket_level -= 1;
         if (current_brace_level == 0 && current_bracket_level == 0) {
-          add_literal(tmpl.content.c_str());
+          add_literal(arguments, tmpl.content.c_str());
         }
       } break;
       case Token::Kind::RightBrace: {
@@ -1598,7 +1602,7 @@ class Parser {
 
         current_brace_level -= 1;
         if (current_brace_level == 0 && current_bracket_level == 0) {
-          add_literal(tmpl.content.c_str());
+          add_literal(arguments, tmpl.content.c_str());
         }
       } break;
       case Token::Kind::Id: {
@@ -1609,7 +1613,7 @@ class Parser {
             tok.text == static_cast<decltype(tok.text)>("null")) {
           if (current_brace_level == 0 && current_bracket_level == 0) {
             literal_start = tok.text;
-            add_literal(tmpl.content.c_str());
+            add_literal(arguments, tmpl.content.c_str());
           }
 
           // Operator
@@ -1618,8 +1622,30 @@ class Parser {
 
           // Functions
         } else if (peek_tok.kind == Token::Kind::LeftParen) {
-          operator_stack.emplace(std::make_shared<FunctionNode>(static_cast<std::string>(tok.text), tok.text.data() - tmpl.content.c_str()));
-          function_stack.emplace(operator_stack.top().get(), current_paren_level);
+          auto func = std::make_shared<FunctionNode>(tok.text, tok.text.data() - tmpl.content.c_str());
+          get_next_token();
+          do {
+            get_next_token();
+            auto expr = parse_expression(tmpl);
+            if (!expr) {
+              break;
+            }
+            func->number_args += 1;
+            func->arguments.emplace_back(expr);
+          } while (tok.kind == Token::Kind::Comma);
+          if (tok.kind != Token::Kind::RightParen) {
+            throw_parser_error("expected right parenthesis, got '" + tok.describe() + "'");
+          }
+
+          auto function_data = function_storage.find_function(func->name, func->number_args);
+          if (function_data.operation == FunctionStorage::Operation::None) {
+            throw_parser_error("unknown function " + func->name);
+          }
+          func->operation = function_data.operation;
+          if (function_data.operation == FunctionStorage::Operation::Callback) {
+            func->callback = function_data.callback;
+          }
+          arguments.emplace_back(func);
 
           // Variables
         } else {
@@ -1705,20 +1731,15 @@ class Parser {
 
         while (!operator_stack.empty() &&
                ((operator_stack.top()->precedence > function_node->precedence) ||
-                (operator_stack.top()->precedence == function_node->precedence && function_node->associativity == FunctionNode::Associativity::Left)) &&
-               (operator_stack.top()->operation != FunctionStorage::Operation::ParenLeft)) {
-          add_operator();
+                (operator_stack.top()->precedence == function_node->precedence && function_node->associativity == FunctionNode::Associativity::Left))) {
+          add_operator(arguments, operator_stack);
         }
 
         operator_stack.emplace(function_node);
       } break;
       case Token::Kind::Comma: {
         if (current_brace_level == 0 && current_bracket_level == 0) {
-          if (function_stack.empty()) {
-            throw_parser_error("unexpected ','");
-          }
-
-          function_stack.top().first->number_args += 1;
+          goto break_loop;
         }
       } break;
       case Token::Kind::Colon: {
@@ -1727,64 +1748,36 @@ class Parser {
         }
       } break;
       case Token::Kind::LeftParen: {
-        current_paren_level += 1;
-        operator_stack.emplace(std::make_shared<FunctionNode>(FunctionStorage::Operation::ParenLeft, tok.text.data() - tmpl.content.c_str()));
-
-        get_peek_token();
-        if (peek_tok.kind == Token::Kind::RightParen) {
-          if (!function_stack.empty() && function_stack.top().second == current_paren_level - 1) {
-            function_stack.top().first->number_args = 0;
-          }
+        get_next_token();
+        auto expr = parse_expression(tmpl);
+        if (tok.kind != Token::Kind::RightParen) {
+            throw_parser_error("expected right parenthesis, got '" + tok.describe() + "'");
         }
+        if (!expr) {
+          throw_parser_error("empty expression in parentheses");
+        }
+        arguments.emplace_back(expr);
       } break;
-      case Token::Kind::RightParen: {
-        current_paren_level -= 1;
-        while (!operator_stack.empty() && operator_stack.top()->operation != FunctionStorage::Operation::ParenLeft) {
-          add_operator();
-        }
-
-        if (!operator_stack.empty() && operator_stack.top()->operation == FunctionStorage::Operation::ParenLeft) {
-          operator_stack.pop();
-        }
-
-        if (!function_stack.empty() && function_stack.top().second == current_paren_level) {
-          auto func = function_stack.top().first;
-          auto function_data = function_storage.find_function(func->name, func->number_args);
-          if (function_data.operation == FunctionStorage::Operation::None) {
-            throw_parser_error("unknown function " + func->name);
-          }
-          func->operation = function_data.operation;
-          if (function_data.operation == FunctionStorage::Operation::Callback) {
-            func->callback = function_data.callback;
-          }
-
-          if (operator_stack.empty()) {
-            throw_parser_error("internal error at function " + func->name);
-          }
-
-          add_operator();
-          function_stack.pop();
-        }
-      }
       default:
-        break;
+        goto break_loop;
       }
 
       get_next_token();
     }
 
+  break_loop:
     while (!operator_stack.empty()) {
-      add_operator();
+      add_operator(arguments, operator_stack);
     }
 
+    std::shared_ptr<ExpressionNode> expr;
     if (arguments.size() == 1) {
-      current_expression_list->root = arguments[0];
+      expr = arguments[0];
       arguments = {};
     } else if (arguments.size() > 1) {
       throw_parser_error("malformed expression");
     }
-
-    return true;
+    return expr;
   }
 
   bool parse_statement(Template& tmpl, Token::Kind closing, std::string_view path) {
@@ -2018,10 +2011,6 @@ class Parser {
         current_expression_list = expression_list_node.get();
 
         if (!parse_expression(tmpl, Token::Kind::ExpressionClose)) {
-          throw_parser_error("expected expression, got '" + tok.describe() + "'");
-        }
-
-        if (tok.kind != Token::Kind::ExpressionClose) {
           throw_parser_error("expected expression close, got '" + tok.describe() + "'");
         }
       } break;
@@ -2544,8 +2533,6 @@ class Renderer : public NodeVisitor {
       }
       make_result(os.str());
     } break;
-    case Op::ParenLeft:
-    case Op::ParenRight:
     case Op::None:
       break;
     }
