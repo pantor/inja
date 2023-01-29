@@ -1,7 +1,7 @@
 project(
   'inja',
   'cpp',
-  version: '3.3.0',
+  version: '3.4.0',
   default_options: ['cpp_std=c++17', 'warning_level=3'],
   meson_version: '>=0.56'
 )
