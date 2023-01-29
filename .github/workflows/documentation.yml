@@ -6,21 +6,20 @@ on:
     - master
 
 jobs:
-  build-deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     
-    - name: dependencies
-      env:
-        dependency_packages: doxygen
-      run: sudo apt-get update && sudo apt-get -y install ${dependency_packages}
+    - name: Install doxygen
+      run: sudo apt-get -y install doxygen
 
-    - name: build
-      run: cd doc && doxygen ./Doxyfile
+    - name: Build documentation
+      working-directory: doc
+      run: doxygen
 
-    - name: deploy
-      uses: peaceiris/actions-gh-pages@v2.2.0
+    - name: Deploy documentation
+      uses: peaceiris/actions-gh-pages@v3
       env:
         ACTIONS_DEPLOY_KEY: ${{ secrets.ACTIONS_DEPLOY_KEY }}
         PUBLISH_BRANCH: gh-pages

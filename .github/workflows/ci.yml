@@ -3,8 +3,8 @@ name: CI
 on: [push, pull_request]
 
 jobs:
-  ci:
-    name: ${{ matrix.name }}
+  build-and-test:
+    name: test-${{ matrix.name }}
     runs-on: ${{ matrix.os }}
 
     strategy:
@@ -105,7 +105,7 @@ jobs:
             compiler: clang
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Setup Cpp
         uses: aminya/setup-cpp@v1
@@ -125,3 +125,24 @@ jobs:
           cmake -B build -S . -DCMAKE_BUILD_TYPE=Release ${{ matrix.cmake_vars }}
           cmake --build build -j2
           cd build && ctest -j2 --output-on-failure
+
+
+  check-single-include:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Update single include
+      run: |
+        mv single_include/inja/inja.hpp single_include/inja/inja_old.hpp
+        bash scripts/update_single_include.sh
+
+    - name: Check if equal
+      working-directory: single_include
+      run: |
+        diff inja/inja.hpp inja/inja_old.hpp >/dev/null
+
+    - uses: actions/upload-artifact@v3
+      with:
+        name: single_include_inja
+        path: single_include/inja/inja.hpp

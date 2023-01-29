@@ -4,23 +4,18 @@
   <a href="https://github.com/pantor/inja/actions">
     <img src="https://github.com/pantor/inja/workflows/CI/badge.svg" alt="CI Status">
   </a>
-
   <a href="https://github.com/pantor/inja/actions">
     <img src="https://github.com/pantor/inja/workflows/Documentation/badge.svg" alt="Documentation Status">
   </a>
-
   <a href="https://www.codacy.com/manual/pantor/inja?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=pantor/inja&amp;utm_campaign=Badge_Grade">
     <img src="https://app.codacy.com/project/badge/Grade/211718f7a36541819d1244c0e2ee6f08"/>
   </a>
-
   <a href="https://github.com/pantor/inja/releases">
     <img src="https://img.shields.io/github/release/pantor/inja.svg" alt="Github Releases">
   </a>
-
   <a href="http://github.com/pantor/inja/issues">
     <img src="https://img.shields.io/github/issues/pantor/inja.svg" alt="Github Issues">
   </a>
-
   <a href="https://raw.githubusercontent.com/pantor/inja/master/LICENSE">
     <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="GitHub License">
   </a>
