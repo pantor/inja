@@ -2,25 +2,38 @@ name: Documentation
 
 on:
   push:
-    branches:
-    - master
+    branches: ["master"]
+  workflow_dispatch:
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
     
-    - name: Install doxygen
-      run: sudo apt-get -y install doxygen
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
 
-    - name: Build documentation
-      working-directory: doc
-      run: doxygen
+    permissions:
+      pages: write
+      id-token: write
+    
+    steps:
+      - uses: actions/checkout@v3
 
-    - name: Deploy documentation
-      uses: peaceiris/actions-gh-pages@v3
-      with:
-        deploy_key: ${{ secrets.ACTIONS_DEPLOY_KEY }}
-        publish_branch: gh-pages
-        publish_dir: ./doc/html
+      - uses: actions/configure-pages@v3
+
+      - name: Install doxygen
+        run: sudo apt-get -y install doxygen
+
+      - name: Build documentation
+        working-directory: doc
+        run: doxygen
+      
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v1
+        with:
+          path: 'doc/html'
+      
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v1
