@@ -171,19 +171,30 @@ class Lexer {
     case '$':
       minus_state = MinusState::Operator;
       return scan_id();
+    case '`':
+      minus_state = MinusState::Operator;
+      return scan_id(true);
     default:
       return make_token(Token::Kind::Unknown);
     }
   }
 
-  Token scan_id() {
+  Token scan_id(bool force = false) {
     for (;;) {
       if (pos >= m_in.size()) {
         break;
       }
       const char ch = m_in[pos];
-      if (!std::isalnum(ch) && ch != '.' && ch != '/' && ch != '_' && ch != '-') {
-        break;
+      if(!force) {
+        if(!std::isalnum(ch) && ch != '.' && ch != '/' && ch != '_' && ch != '-') {
+          break;
+        }
+      }
+      else {
+        if(ch == '`') {
+          pos += 1;
+          return Token(Token::Kind::Id, string_view::slice(m_in, tok_start + 1, pos - 1));
+        }
       }
       pos += 1;
     }
