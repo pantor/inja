@@ -44,7 +44,7 @@ if(INJA_USE_EMBEDDED_JSON)
 
     target_include_directories(nlohmann_json INTERFACE
       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/third_party/include>
-      $<INSTALL_INTERFACE:${INJA_INSTALL_INCLUDE_DIR}/inja/json/include>
+      $<INSTALL_INTERFACE:${INJA_INSTALL_INCLUDE_DIR}/nlohmann>
     )
 
     target_compile_features(nlohmann_json INTERFACE cxx_std_17)
