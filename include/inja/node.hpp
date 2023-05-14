@@ -339,7 +339,7 @@ public:
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);
-  };
+  }
 };
 
 class BlockStatementNode : public StatementNode {
@@ -352,7 +352,7 @@ public:
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);
-  };
+  }
 };
 
 class SetStatementNode : public StatementNode {
