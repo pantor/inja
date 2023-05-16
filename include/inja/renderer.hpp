@@ -375,7 +375,7 @@ class Renderer : public NodeVisitor {
     } break;
     case Op::Round: {
       const auto args = get_arguments<2>(node);
-      const int precision = args[1]->get<const json::number_integer_t>();
+      const auto precision = args[1]->get<const json::number_integer_t>();
       const double result = std::round(args[0]->get<const json::number_float_t>() * std::pow(10.0, precision)) / std::pow(10.0, precision);
       if (precision == 0) {
         make_result(int(result));
