@@ -11,37 +11,17 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: ubuntu-18.04-gcc-7
-            os: ubuntu-18.04
-            compiler: gcc-7
-
-          - name: ubuntu-18.04-gcc-9
-            os: ubuntu-18.04
-            compiler: gcc-9
-
-          - name: ubuntu-20.04-gcc-10
+          - name: ubuntu-20.04-gcc-9
             os: ubuntu-20.04
-            compiler: gcc-10
+            compiler: gcc-9
 
           - name: ubuntu-20.04-gcc-11
             os: ubuntu-20.04
             compiler: gcc-11
 
-          - name: ubuntu-18.04-clang-5
-            os: ubuntu-18.04
-            compiler: clang-5.0
-
-          - name: ubuntu-18.04-clang-7
-            os: ubuntu-18.04
-            compiler: clang-7
-
           - name: ubuntu-20.04-clang-9
             os: ubuntu-20.04
             compiler: clang-9
-
-          - name: ubuntu-20.04-clang-10
-            os: ubuntu-20.04
-            compiler: clang-10
 
           - name: ubuntu-20.04-clang-11
             os: ubuntu-20.04
@@ -56,11 +36,11 @@ jobs:
             compiler: clang-11
             cmake_vars: "-DCMAKE_CXX_FLAGS=-fno-exceptions -DBUILD_TESTING=OFF -DBUILD_BENCHMARK=ON"
 
-          - name: ubuntu-22.04
+          - name: ubuntu-22.04-gcc
             os: ubuntu-22.04
             compiler: gcc
 
-          - name: windows-2019
+          - name: windows-2019-msvc
             os: windows-2019
             compiler: msvc
 
@@ -72,35 +52,19 @@ jobs:
             os: windows-2019
             compiler: gcc
 
-          - name: windows-2022
+          - name: windows-2022-msvc
             os: windows-2022
             compiler: msvc
 
-          # - name: macOS-11-gcc-7
-          #   os: macOS-11
-          #   compiler: gcc-7
-
-          # - name: macOS-11-gcc-8
-          #   os: macOS-11
-          #   compiler: gcc-8
-
-          - name: macOS-11-gcc-9
+          - name: macOS-11-gcc
             os: macOS-11
-            compiler: gcc-9
+            compiler: gcc
 
-          # - name: macOS-11-clang-11
-          #   os: macOS-11
-          #   compiler: clang-11
-
-          - name: macOS-11-clang-12
+          - name: macOS-11-clang
             os: macOS-11
-            compiler: clang-12
+            compiler: clang
 
-          - name: macOS-11-clang-13
-            os: macOS-11
-            compiler: clang-13
-
-          - name: macOS-12
+          - name: macOS-12-clang
             os: macOS-12
             compiler: clang
 
@@ -108,7 +72,7 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Setup Cpp
-        uses: aminya/setup-cpp@v1
+        uses: aminya/setup-cpp@v0.26.2
         with:
           compiler: ${{ matrix.compiler }}
 
@@ -118,7 +82,7 @@ jobs:
           cmake -B build -S . -DCMAKE_BUILD_TYPE=Debug
           cmake --build build -j2
           cd build && ctest -j2 --output-on-failure
-        
+
       - name: Build & Test Release
         run: |
           cmake -E remove_directory build
@@ -131,7 +95,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    
+
     - name: Update single include
       run: |
         mv single_include/inja/inja.hpp single_include/inja/inja_old.hpp
