@@ -398,7 +398,7 @@ public:
  */
 class AstNode {
 public:
-  virtual void accept(NodeVisitor &v) const = 0;
+  virtual void accept(NodeVisitor& v) const = 0;
 
   size_t pos;
 
@@ -649,7 +649,6 @@ class ForObjectStatementNode : public ForStatementNode {
 public:
   const std::string key;
   const std::string value;
-
 
   explicit ForObjectStatementNode(const std::string& key, const std::string& value, BlockNode* const parent, size_t pos)
       : ForStatementNode(parent, pos), key(key), value(value) {}
