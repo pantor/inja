@@ -375,22 +375,22 @@ class NodeVisitor {
 public:
   virtual ~NodeVisitor() = default;
 
-  virtual void visit(const BlockNode &node) = 0;
-  virtual void visit(const TextNode &node) = 0;
-  virtual void visit(const ExpressionNode &node) = 0;
-  virtual void visit(const LiteralNode &node) = 0;
-  virtual void visit(const DataNode &node) = 0;
-  virtual void visit(const FunctionNode &node) = 0;
-  virtual void visit(const ExpressionListNode &node) = 0;
-  virtual void visit(const StatementNode &node) = 0;
-  virtual void visit(const ForStatementNode &node) = 0;
-  virtual void visit(const ForArrayStatementNode &node) = 0;
-  virtual void visit(const ForObjectStatementNode &node) = 0;
-  virtual void visit(const IfStatementNode &node) = 0;
-  virtual void visit(const IncludeStatementNode &node) = 0;
-  virtual void visit(const ExtendsStatementNode &node) = 0;
-  virtual void visit(const BlockStatementNode &node) = 0;
-  virtual void visit(const SetStatementNode &node) = 0;
+  virtual void visit(const BlockNode& node) = 0;
+  virtual void visit(const TextNode& node) = 0;
+  virtual void visit(const ExpressionNode& node) = 0;
+  virtual void visit(const LiteralNode& node) = 0;
+  virtual void visit(const DataNode& node) = 0;
+  virtual void visit(const FunctionNode& node) = 0;
+  virtual void visit(const ExpressionListNode& node) = 0;
+  virtual void visit(const StatementNode& node) = 0;
+  virtual void visit(const ForStatementNode& node) = 0;
+  virtual void visit(const ForArrayStatementNode& node) = 0;
+  virtual void visit(const ForObjectStatementNode& node) = 0;
+  virtual void visit(const IfStatementNode& node) = 0;
+  virtual void visit(const IncludeStatementNode& node) = 0;
+  virtual void visit(const ExtendsStatementNode& node) = 0;
+  virtual void visit(const BlockStatementNode& node) = 0;
+  virtual void visit(const SetStatementNode& node) = 0;
 };
 
 /*!
@@ -402,7 +402,7 @@ public:
 
   size_t pos;
 
-  AstNode(size_t pos) : pos(pos) {}
+  AstNode(size_t pos): pos(pos) {}
   virtual ~AstNode() {}
 };
 
@@ -410,35 +410,42 @@ class BlockNode : public AstNode {
 public:
   std::vector<std::shared_ptr<AstNode>> nodes;
 
-  explicit BlockNode() : AstNode(0) {}
+  explicit BlockNode(): AstNode(0) {}
 
-  void accept(NodeVisitor &v) const { v.visit(*this); }
+  void accept(NodeVisitor& v) const {
+    v.visit(*this);
+  }
 };
 
 class TextNode : public AstNode {
 public:
   const size_t length;
 
-  explicit TextNode(size_t pos, size_t length) : AstNode(pos), length(length) {}
+  explicit TextNode(size_t pos, size_t length): AstNode(pos), length(length) {}
 
-  void accept(NodeVisitor &v) const { v.visit(*this); }
+  void accept(NodeVisitor& v) const {
+    v.visit(*this);
+  }
 };
 
 class ExpressionNode : public AstNode {
 public:
-  explicit ExpressionNode(size_t pos) : AstNode(pos) {}
+  explicit ExpressionNode(size_t pos): AstNode(pos) {}
 
-  void accept(NodeVisitor &v) const { v.visit(*this); }
+  void accept(NodeVisitor& v) const {
+    v.visit(*this);
+  }
 };
 
 class LiteralNode : public ExpressionNode {
 public:
   const json value;
 
-  explicit LiteralNode(std::string_view data_text, size_t pos)
-      : ExpressionNode(pos), value(json::parse(data_text)) {}
+  explicit LiteralNode(std::string_view data_text, size_t pos): ExpressionNode(pos), value(json::parse(data_text)) {}
 
-  void accept(NodeVisitor &v) const { v.visit(*this); }
+  void accept(NodeVisitor& v) const {
+    v.visit(*this);
+  }
 };
 
 class DataNode : public ExpressionNode {
@@ -466,15 +473,15 @@ public:
     return result;
   }
 
-  explicit DataNode(std::string_view ptr_name, size_t pos)
-      : ExpressionNode(pos), name(ptr_name),
-        ptr(json::json_pointer(convert_dot_to_ptr(ptr_name))) {}
+  explicit DataNode(std::string_view ptr_name, size_t pos): ExpressionNode(pos), name(ptr_name), ptr(json::json_pointer(convert_dot_to_ptr(ptr_name))) {}
 
   explicit DataNode(std::string_view ptr_name, size_t pos, NotationFlag notation)
       : ExpressionNode(pos), name(ptr_name),
         ptr(json::json_pointer(get_ptr(ptr_name, notation))) {}
 
-  void accept(NodeVisitor &v) const { v.visit(*this); }
+  void accept(NodeVisitor& v) const {
+    v.visit(*this);
+  }
 };
 
 class FunctionNode : public ExpressionNode {
@@ -497,10 +504,8 @@ public:
   CallbackFunction callback;
 
   explicit FunctionNode(std::string_view name, size_t pos)
-      : ExpressionNode(pos), precedence(8), associativity(Associativity::Left),
-        operation(Op::Callback), name(name), number_args(0) {}
-  explicit FunctionNode(Op operation, size_t pos)
-      : ExpressionNode(pos), operation(operation), number_args(1) {
+      : ExpressionNode(pos), precedence(8), associativity(Associativity::Left), operation(Op::Callback), name(name), number_args(0) {}
+  explicit FunctionNode(Op operation, size_t pos): ExpressionNode(pos), operation(operation), number_args(1) {
     switch (operation) {
     case Op::Not: {
       number_args = 1;
@@ -594,47 +599,50 @@ public:
     }
   }
 
-  void accept(NodeVisitor &v) const { v.visit(*this); }
+  void accept(NodeVisitor& v) const {
+    v.visit(*this);
+  }
 };
 
 class ExpressionListNode : public AstNode {
 public:
   std::shared_ptr<ExpressionNode> root;
 
-  explicit ExpressionListNode() : AstNode(0) {}
-  explicit ExpressionListNode(size_t pos) : AstNode(pos) {}
+  explicit ExpressionListNode(): AstNode(0) {}
+  explicit ExpressionListNode(size_t pos): AstNode(pos) {}
 
-  void accept(NodeVisitor &v) const { v.visit(*this); }
+  void accept(NodeVisitor& v) const {
+    v.visit(*this);
+  }
 };
 
 class StatementNode : public AstNode {
 public:
-  StatementNode(size_t pos) : AstNode(pos) {}
+  StatementNode(size_t pos): AstNode(pos) {}
 
-  virtual void accept(NodeVisitor &v) const = 0;
+  virtual void accept(NodeVisitor& v) const = 0;
 };
 
 class ForStatementNode : public StatementNode {
 public:
   ExpressionListNode condition;
   BlockNode body;
-  BlockNode *const parent;
+  BlockNode* const parent;
 
-  ForStatementNode(BlockNode *const parent, size_t pos)
-      : StatementNode(pos), parent(parent) {}
+  ForStatementNode(BlockNode* const parent, size_t pos): StatementNode(pos), parent(parent) {}
 
-  virtual void accept(NodeVisitor &v) const = 0;
+  virtual void accept(NodeVisitor& v) const = 0;
 };
 
 class ForArrayStatementNode : public ForStatementNode {
 public:
   const std::string value;
 
-  explicit ForArrayStatementNode(const std::string &value,
-                                 BlockNode *const parent, size_t pos)
-      : ForStatementNode(parent, pos), value(value) {}
+  explicit ForArrayStatementNode(const std::string& value, BlockNode* const parent, size_t pos): ForStatementNode(parent, pos), value(value) {}
 
-  void accept(NodeVisitor &v) const { v.visit(*this); }
+  void accept(NodeVisitor& v) const {
+    v.visit(*this);
+  }
 };
 
 class ForObjectStatementNode : public ForStatementNode {
@@ -642,12 +650,13 @@ public:
   const std::string key;
   const std::string value;
 
-  explicit ForObjectStatementNode(const std::string &key,
-                                  const std::string &value,
-                                  BlockNode *const parent, size_t pos)
+
+  explicit ForObjectStatementNode(const std::string& key, const std::string& value, BlockNode* const parent, size_t pos)
       : ForStatementNode(parent, pos), key(key), value(value) {}
 
-  void accept(NodeVisitor &v) const { v.visit(*this); }
+  void accept(NodeVisitor& v) const {
+    v.visit(*this);
+  }
 };
 
 class IfStatementNode : public StatementNode {
@@ -655,50 +664,52 @@ public:
   ExpressionListNode condition;
   BlockNode true_statement;
   BlockNode false_statement;
-  BlockNode *const parent;
+  BlockNode* const parent;
 
   const bool is_nested;
-  bool has_false_statement{false};
+  bool has_false_statement {false};
 
-  explicit IfStatementNode(BlockNode *const parent, size_t pos)
-      : StatementNode(pos), parent(parent), is_nested(false) {}
-  explicit IfStatementNode(bool is_nested, BlockNode *const parent, size_t pos)
-      : StatementNode(pos), parent(parent), is_nested(is_nested) {}
+  explicit IfStatementNode(BlockNode* const parent, size_t pos): StatementNode(pos), parent(parent), is_nested(false) {}
+  explicit IfStatementNode(bool is_nested, BlockNode* const parent, size_t pos): StatementNode(pos), parent(parent), is_nested(is_nested) {}
 
-  void accept(NodeVisitor &v) const { v.visit(*this); }
+  void accept(NodeVisitor& v) const {
+    v.visit(*this);
+  }
 };
 
 class IncludeStatementNode : public StatementNode {
 public:
   const std::string file;
 
-  explicit IncludeStatementNode(const std::string &file, size_t pos)
-      : StatementNode(pos), file(file) {}
+  explicit IncludeStatementNode(const std::string& file, size_t pos): StatementNode(pos), file(file) {}
 
-  void accept(NodeVisitor &v) const { v.visit(*this); }
+  void accept(NodeVisitor& v) const {
+    v.visit(*this);
+  }
 };
 
 class ExtendsStatementNode : public StatementNode {
 public:
   const std::string file;
 
-  explicit ExtendsStatementNode(const std::string &file, size_t pos)
-      : StatementNode(pos), file(file) {}
+  explicit ExtendsStatementNode(const std::string& file, size_t pos): StatementNode(pos), file(file) {}
 
-  void accept(NodeVisitor &v) const { v.visit(*this); }
+  void accept(NodeVisitor& v) const {
+    v.visit(*this);
+  }
 };
 
 class BlockStatementNode : public StatementNode {
 public:
   const std::string name;
   BlockNode block;
-  BlockNode *const parent;
+  BlockNode* const parent;
 
-  explicit BlockStatementNode(BlockNode *const parent, const std::string &name,
-                              size_t pos)
-      : StatementNode(pos), name(name), parent(parent) {}
+  explicit BlockStatementNode(BlockNode* const parent, const std::string& name, size_t pos): StatementNode(pos), name(name), parent(parent) {}
 
-  void accept(NodeVisitor &v) const { v.visit(*this); }
+  void accept(NodeVisitor& v) const {
+    v.visit(*this);
+  }
 };
 
 class SetStatementNode : public StatementNode {
@@ -706,10 +717,11 @@ public:
   const std::string key;
   ExpressionListNode expression;
 
-  explicit SetStatementNode(const std::string &key, size_t pos)
-      : StatementNode(pos), key(key) {}
+  explicit SetStatementNode(const std::string& key, size_t pos): StatementNode(pos), key(key) {}
 
-  void accept(NodeVisitor &v) const { v.visit(*this); }
+  void accept(NodeVisitor& v) const {
+    v.visit(*this);
+  }
 };
 
 } // namespace inja
