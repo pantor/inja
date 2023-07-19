@@ -83,6 +83,11 @@ public:
     lexer_config.lstrip_blocks = lstrip_blocks;
   }
 
+  /// Sets the config for rendering strings raw or escaped
+  void set_escape_strings(bool escape_strings) {
+      render_config.escape_strings = escape_strings;
+  }
+
   /// Sets the element notation syntax
   void set_search_included_templates_in_files(bool search_in_files) {
     parser_config.search_included_templates_in_files = search_in_files;

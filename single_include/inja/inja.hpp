@@ -882,6 +882,7 @@ struct ParserConfig {
  */
 struct RenderConfig {
   bool throw_at_missing_includes {true};
+  bool escape_strings {};
 };
 
 } // namespace inja
@@ -2123,7 +2124,7 @@ class Renderer : public NodeVisitor {
   }
 
   void print_data(const std::shared_ptr<json> value) {
-    if (value->is_string()) {
+    if (value->is_string() && !config.escape_strings) {
       *output_stream << value->get_ref<const json::string_t&>();
     } else if (value->is_number_integer()) {
       *output_stream << value->get<const json::number_integer_t>();
@@ -2770,6 +2771,11 @@ public:
   /// Sets whether to strip the spaces and tabs from the start of a line to a block
   void set_lstrip_blocks(bool lstrip_blocks) {
     lexer_config.lstrip_blocks = lstrip_blocks;
+  }
+
+  /// Sets the config for rendering strings raw or escaped
+  void set_escape_strings(bool escape_strings) {
+      render_config.escape_strings = escape_strings;
   }
 
   /// Sets the element notation syntax

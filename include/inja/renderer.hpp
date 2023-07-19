@@ -54,7 +54,7 @@ class Renderer : public NodeVisitor {
   }
 
   void print_data(const std::shared_ptr<json> value) {
-    if (value->is_string()) {
+    if (value->is_string() && !config.escape_strings) {
       *output_stream << value->get_ref<const json::string_t&>();
     } else if (value->is_number_integer()) {
       *output_stream << value->get<const json::number_integer_t>();
