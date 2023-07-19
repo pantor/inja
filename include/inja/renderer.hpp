@@ -54,8 +54,17 @@ class Renderer : public NodeVisitor {
   }
 
   void print_data(const std::shared_ptr<json> value) {
-    if (value->is_string() && !config.escape_strings) {
-      *output_stream << value->get_ref<const json::string_t&>();
+    if (value->is_string()) {
+      std::string val;
+      if (config.escape_strings) {
+        val = value->dump();
+        val = val.substr(0,1) == "\"" && val.substr(val.length()-1,1) == "\""
+            ? val.substr(1, val.length()-2)
+            : val;
+      } else {
+        val = value->get_ref<const json::string_t&>();
+      }
+      *output_stream << val;
     } else if (value->is_number_integer()) {
       *output_stream << value->get<const json::number_integer_t>();
     } else if (value->is_null()) {
