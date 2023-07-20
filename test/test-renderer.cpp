@@ -40,9 +40,9 @@ TEST_CASE("types") {
     CHECK(env.render("{{ @name }}", data) == "@name");
     CHECK(env.render("{{ $name }}", data) == "$name");
 
-    CHECK(env.render(R"EOF({"Value":"{{ quoted }}"})EOF", data) == R"EOF({"Value":""quoted value""})EOF");
+    CHECK(env.render("{\"Value\":\"{{ quoted }}\"}", data) == "{\"Value\":\"\"quoted value\"\"}");
     env.set_escape_strings(true);
-    CHECK(env.render(R"EOF({"Value":"{{ quoted }}"})EOF", data) == R"EOF({"Value":"\"quoted value\""})EOF");
+    CHECK(env.render("{\"Value\":\"{{ quoted }}\"}", data) == "{\"Value\":\"\\\"quoted value\\\"\"}");
     env.set_escape_strings(false);
 
     CHECK_THROWS_WITH(env.render("{{unknown}}", data), "[inja.exception.render_error] (at 1:3) variable 'unknown' not found");
