@@ -634,7 +634,7 @@ public:
     sub_parser.parse_into(tmpl, path);
   }
 
-  std::string load_file(const std::string& filename) {
+  static std::string load_file(const std::string& filename) {
     std::ifstream file;
     file.open(filename);
     if (file.fail()) {

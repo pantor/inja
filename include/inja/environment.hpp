@@ -100,7 +100,7 @@ public:
 
   Template parse_template(const std::string& filename) {
     Parser parser(parser_config, lexer_config, template_storage, function_storage);
-    auto result = Template(parser.load_file(input_path + static_cast<std::string>(filename)));
+    auto result = Template(Parser::load_file(input_path + static_cast<std::string>(filename)));
     parser.parse_into_template(result, input_path + static_cast<std::string>(filename));
     return result;
   }
@@ -157,7 +157,7 @@ public:
 
   std::string load_file(const std::string& filename) {
     Parser parser(parser_config, lexer_config, template_storage, function_storage);
-    return parser.load_file(input_path + filename);
+    return Parser::load_file(input_path + filename);
   }
 
   json load_json(const std::string& filename) {
