@@ -18,6 +18,7 @@ TEST_CASE("types") {
   data["relatives"]["brother"] = "Chris";
   data["relatives"]["sister"] = "Jenny";
   data["vars"] = {2, 3, 4, 0, -1, -2, -3};
+  data["quoted"] = "\"quoted value\"";
 
   SUBCASE("basic") {
     CHECK(env.render("", data) == "");
@@ -38,6 +39,11 @@ TEST_CASE("types") {
     CHECK(env.render("{{ \"{{ no_value }}\" }}", data) == "{{ no_value }}");
     CHECK(env.render("{{ @name }}", data) == "@name");
     CHECK(env.render("{{ $name }}", data) == "$name");
+
+    CHECK(env.render("{\"Value\":\"{{ quoted }}\"}", data) == "{\"Value\":\"\"quoted value\"\"}");
+    env.set_escape_strings(true);
+    CHECK(env.render("{\"Value\":\"{{ quoted }}\"}", data) == "{\"Value\":\"\\\"quoted value\\\"\"}");
+    env.set_escape_strings(false);
 
     CHECK_THROWS_WITH(env.render("{{unknown}}", data), "[inja.exception.render_error] (at 1:3) variable 'unknown' not found");
   }
