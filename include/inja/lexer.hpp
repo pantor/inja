@@ -81,7 +81,7 @@ class Lexer {
     }
 
     pos = tok_start + 1;
-    if (std::isalpha(ch)) {
+    if (std::isalpha(ch) || ch == '~') {
       minus_state = MinusState::Operator;
       return scan_id();
     }
@@ -177,12 +177,13 @@ class Lexer {
   }
 
   Token scan_id() {
+    bool isDotNotation = config.notation == ElementNotation::Dot;
     for (;;) {
       if (pos >= m_in.size()) {
         break;
       }
       const char ch = m_in[pos];
-      if (!std::isalnum(ch) && ch != '.' && ch != '/' && ch != '_' && ch != '-') {
+      if (!std::isalnum(ch) && ch != '.' && ch != '/' && ch != '_' && ch != '-' && (isDotNotation || ch != '~')) {
         break;
       }
       pos += 1;

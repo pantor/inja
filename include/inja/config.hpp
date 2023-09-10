@@ -8,6 +8,8 @@
 
 namespace inja {
 
+enum class ElementNotation { Dot, Pointer };
+
 /*!
  * \brief Class for lexer configuration.
  */
@@ -27,6 +29,8 @@ struct LexerConfig {
   std::string comment_close {"#}"};
   std::string comment_close_force_rstrip {"-#}"};
   std::string open_chars {"#{"};
+
+  ElementNotation notation {ElementNotation::Dot};
 
   bool trim_blocks {false};
   bool lstrip_blocks {false};
@@ -64,6 +68,8 @@ struct LexerConfig {
  * \brief Class for parser configuration.
  */
 struct ParserConfig {
+  ElementNotation notation {ElementNotation::Dot};
+
   bool search_included_templates_in_files {true};
 
   std::function<Template(const std::string&, const std::string&)> include_callback;

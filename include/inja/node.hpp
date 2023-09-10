@@ -10,6 +10,11 @@
 
 namespace inja {
 
+enum NotationFlag {
+  Dot = 0x00,
+  Pointer = 0x01,
+};
+
 class NodeVisitor;
 class BlockNode;
 class TextNode;
@@ -110,6 +115,15 @@ public:
   const std::string name;
   const json::json_pointer ptr;
 
+  static std::string get_ptr(std::string_view ptr_name, NotationFlag notation) {
+    auto ptr = notation == NotationFlag::Dot ? convert_dot_to_ptr(ptr_name) : ptr_name.data();
+    if(ptr.substr(0,1) != "/") {
+      ptr = "/" + ptr;
+    }
+
+    return ptr;
+  }
+
   static std::string convert_dot_to_ptr(std::string_view ptr_name) {
     std::string result;
     do {
@@ -122,6 +136,10 @@ public:
   }
 
   explicit DataNode(std::string_view ptr_name, size_t pos): ExpressionNode(pos), name(ptr_name), ptr(json::json_pointer(convert_dot_to_ptr(ptr_name))) {}
+
+  explicit DataNode(std::string_view ptr_name, size_t pos, NotationFlag notation)
+      : ExpressionNode(pos), name(ptr_name),
+        ptr(json::json_pointer(get_ptr(ptr_name, notation))) {}
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);

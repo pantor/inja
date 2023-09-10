@@ -348,6 +348,11 @@ inline void replace_substring(std::string& s, const std::string& f, const std::s
 
 namespace inja {
 
+enum NotationFlag {
+  Dot = 0x00,
+  Pointer = 0x01,
+};
+
 class NodeVisitor;
 class BlockNode;
 class TextNode;
@@ -448,6 +453,15 @@ public:
   const std::string name;
   const json::json_pointer ptr;
 
+  static std::string get_ptr(std::string_view ptr_name, NotationFlag notation) {
+    auto ptr = notation == NotationFlag::Dot ? convert_dot_to_ptr(ptr_name) : ptr_name.data();
+    if(ptr.substr(0,1) != "/") {
+      ptr = "/" + ptr;
+    }
+
+    return ptr;
+  }
+
   static std::string convert_dot_to_ptr(std::string_view ptr_name) {
     std::string result;
     do {
@@ -460,6 +474,10 @@ public:
   }
 
   explicit DataNode(std::string_view ptr_name, size_t pos): ExpressionNode(pos), name(ptr_name), ptr(json::json_pointer(convert_dot_to_ptr(ptr_name))) {}
+
+  explicit DataNode(std::string_view ptr_name, size_t pos, NotationFlag notation)
+      : ExpressionNode(pos), name(ptr_name),
+        ptr(json::json_pointer(get_ptr(ptr_name, notation))) {}
 
   void accept(NodeVisitor& v) const {
     v.visit(*this);
@@ -816,6 +834,8 @@ using TemplateStorage = std::map<std::string, Template>;
 
 namespace inja {
 
+enum class ElementNotation { Dot, Pointer };
+
 /*!
  * \brief Class for lexer configuration.
  */
@@ -835,6 +855,8 @@ struct LexerConfig {
   std::string comment_close {"#}"};
   std::string comment_close_force_rstrip {"-#}"};
   std::string open_chars {"#{"};
+
+  ElementNotation notation {ElementNotation::Dot};
 
   bool trim_blocks {false};
   bool lstrip_blocks {false};
@@ -872,6 +894,8 @@ struct LexerConfig {
  * \brief Class for parser configuration.
  */
 struct ParserConfig {
+  ElementNotation notation {ElementNotation::Dot};
+
   bool search_included_templates_in_files {true};
 
   std::function<Template(const std::string&, const std::string&)> include_callback;
@@ -1066,7 +1090,7 @@ class Lexer {
     }
 
     pos = tok_start + 1;
-    if (std::isalpha(ch)) {
+    if (std::isalpha(ch) || ch == '~') {
       minus_state = MinusState::Operator;
       return scan_id();
     }
@@ -1162,12 +1186,13 @@ class Lexer {
   }
 
   Token scan_id() {
+    bool isDotNotation = config.notation == ElementNotation::Dot;
     for (;;) {
       if (pos >= m_in.size()) {
         break;
       }
       const char ch = m_in[pos];
-      if (!std::isalnum(ch) && ch != '.' && ch != '/' && ch != '_' && ch != '-') {
+      if (!std::isalnum(ch) && ch != '.' && ch != '/' && ch != '_' && ch != '-' && (isDotNotation || ch != '~')) {
         break;
       }
       pos += 1;
@@ -1649,7 +1674,8 @@ class Parser {
 
           // Variables
         } else {
-          arguments.emplace_back(std::make_shared<DataNode>(static_cast<std::string>(tok.text), tok.text.data() - tmpl.content.c_str()));
+          auto notation = this->config.notation == ElementNotation::Dot ? NotationFlag::Dot : NotationFlag::Pointer;
+          arguments.emplace_back(std::make_shared<DataNode>(static_cast<std::string>(tok.text), tok.text.data() - tmpl.content.c_str(), notation));
         }
 
         // Operators
@@ -2770,6 +2796,11 @@ public:
   /// Sets whether to strip the spaces and tabs from the start of a line to a block
   void set_lstrip_blocks(bool lstrip_blocks) {
     lexer_config.lstrip_blocks = lstrip_blocks;
+  }
+  /// Sets the element notation syntax
+  void set_element_notation(ElementNotation notation) {
+    parser_config.notation = notation;
+    lexer_config.notation = notation;
   }
 
   /// Sets the element notation syntax

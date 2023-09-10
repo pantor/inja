@@ -237,7 +237,8 @@ class Parser {
 
           // Variables
         } else {
-          arguments.emplace_back(std::make_shared<DataNode>(static_cast<std::string>(tok.text), tok.text.data() - tmpl.content.c_str()));
+          auto notation = this->config.notation == ElementNotation::Dot ? NotationFlag::Dot : NotationFlag::Pointer;
+          arguments.emplace_back(std::make_shared<DataNode>(static_cast<std::string>(tok.text), tok.text.data() - tmpl.content.c_str(), notation));
         }
 
         // Operators
