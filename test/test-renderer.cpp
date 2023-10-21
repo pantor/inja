@@ -39,6 +39,7 @@ TEST_CASE("types") {
     CHECK(env.render("{{ \"{{ no_value }}\" }}", data) == "{{ no_value }}");
     CHECK(env.render("{{ @name }}", data) == "@name");
     CHECK(env.render("{{ $name }}", data) == "$name");
+    CHECK(env.render("{{max_value}}", data) == "18446744073709551615");
 
     CHECK_THROWS_WITH(env.render("{{unknown}}", data), "[inja.exception.render_error] (at 1:3) variable 'unknown' not found");
   }
@@ -56,7 +57,6 @@ TEST_CASE("types") {
                      "false %}, {% endif %}{% endfor %}",
                      data) == "1: brother: Chris, 2: mother: Maria, 3: sister: Jenny");
     CHECK(env.render("{% for v in vars %}{% if v > 0 %}+{% endif %}{% endfor %}", data) == "+++");
-    CHECK(env.render("{{max_value}}", data) == "18446744073709551615");
     CHECK(env.render("{% for name in names %}{{ loop.index }}: {{ name }}{% if not loop.is_last %}, {% endif %}{% endfor %}!", data) == "0: Jeff, 1: Seb!");
     CHECK(env.render("{% for name in names %}{{ loop.index }}: {{ name }}{% if loop.is_last == false %}, {% endif %}{% "
                      "endfor %}!",
