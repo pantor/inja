@@ -18,6 +18,7 @@ TEST_CASE("types") {
   data["relatives"]["brother"] = "Chris";
   data["relatives"]["sister"] = "Jenny";
   data["vars"] = {2, 3, 4, 0, -1, -2, -3};
+  data["max_value"] = 18446744073709551615ull;
 
   SUBCASE("basic") {
     CHECK(env.render("", data) == "");
@@ -55,6 +56,7 @@ TEST_CASE("types") {
                      "false %}, {% endif %}{% endfor %}",
                      data) == "1: brother: Chris, 2: mother: Maria, 3: sister: Jenny");
     CHECK(env.render("{% for v in vars %}{% if v > 0 %}+{% endif %}{% endfor %}", data) == "+++");
+    CHECK(env.render("{{max_value}}", data) == "18446744073709551615");
     CHECK(env.render("{% for name in names %}{{ loop.index }}: {{ name }}{% if not loop.is_last %}, {% endif %}{% endfor %}!", data) == "0: Jeff, 1: Seb!");
     CHECK(env.render("{% for name in names %}{{ loop.index }}: {{ name }}{% if loop.is_last == false %}, {% endif %}{% "
                      "endfor %}!",
