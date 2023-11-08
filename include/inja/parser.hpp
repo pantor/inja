@@ -242,6 +242,12 @@ class Parser {
 
         // Operators
       } break;
+      case Token::Kind::Dot:
+        if (arguments.empty()) {
+          arguments.emplace_back(std::make_shared<DataNode>("", tok.text.data() - tmpl.content.c_str()));
+          break;
+        }
+        [[fallthrough]];
       case Token::Kind::Equal:
       case Token::Kind::NotEqual:
       case Token::Kind::GreaterThan:
@@ -253,8 +259,7 @@ class Parser {
       case Token::Kind::Times:
       case Token::Kind::Slash:
       case Token::Kind::Power:
-      case Token::Kind::Percent:
-      case Token::Kind::Dot: {
+      case Token::Kind::Percent: {
 
       parse_operator:
         FunctionStorage::Operation operation;
