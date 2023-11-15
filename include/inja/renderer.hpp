@@ -309,6 +309,12 @@ class Renderer : public NodeVisitor {
         data_eval_stack.push(&args[0]->at(args[1]->get<int>()));
       }
     } break;
+    case Op::Capitalize: {
+      auto result = get_arguments<1>(node)[0]->get<json::string_t>();
+      result[0] = std::toupper(result[0]);
+      std::transform(result.begin() + 1, result.end(), result.begin() + 1, [](char c) { return static_cast<char>(::tolower(c)); });
+      make_result(std::move(result));
+    } break;
     case Op::Default: {
       const auto test_arg = get_arguments<1, 0, false>(node)[0];
       data_eval_stack.push(test_arg ? test_arg : get_arguments<1, 1>(node)[0]);
