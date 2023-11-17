@@ -206,9 +206,10 @@ Assignments only set the value within the rendering context; they do not modify 
 
 A few functions are implemented within the inja template syntax. They can be called with
 ```.cpp
-// Upper and lower function, for string cases
+// Upper, lower and capitalize function, for string cases
 render("Hello {{ upper(neighbour) }}!", data); // "Hello PETER!"
 render("Hello {{ lower(neighbour) }}!", data); // "Hello peter!"
+render("Hello {{ capitalize(neighbour) }}!", data); // "Hello Peter!"
 
 // Range function, useful for loops
 render("{% for i in range(4) %}{{ loop.index1 }}{% endfor %}", data); // "1234"
