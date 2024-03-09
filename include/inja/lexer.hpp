@@ -2,9 +2,12 @@
 #define INCLUDE_INJA_LEXER_HPP_
 
 #include <cctype>
-#include <locale>
+#include <cstddef>
+#include <string>
+#include <string_view>
 
 #include "config.hpp"
+#include "exceptions.hpp"
 #include "token.hpp"
 #include "utils.hpp"
 
@@ -311,7 +314,7 @@ public:
       pos += open_start;
 
       // try to match one of the opening sequences, and get the close
-      std::string_view open_str = m_in.substr(pos);
+      const std::string_view open_str = m_in.substr(pos);
       bool must_lstrip = false;
       if (inja::string_view::starts_with(open_str, config.expression_open)) {
         if (inja::string_view::starts_with(open_str, config.expression_open_force_lstrip)) {

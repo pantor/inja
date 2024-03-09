@@ -2,7 +2,7 @@
 #define INCLUDE_INJA_UTILS_HPP_
 
 #include <algorithm>
-#include <fstream>
+#include <cstddef>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -19,7 +19,7 @@ inline std::string_view slice(std::string_view view, size_t start, size_t end) {
 }
 
 inline std::pair<std::string_view, std::string_view> split(std::string_view view, char Separator) {
-  size_t idx = view.find(Separator);
+  const size_t idx = view.find(Separator);
   if (idx == std::string_view::npos) {
     return std::make_pair(view, std::string_view());
   }
@@ -34,7 +34,7 @@ inline bool starts_with(std::string_view view, std::string_view prefix) {
 inline SourceLocation get_source_location(std::string_view content, size_t pos) {
   // Get line and offset position (starts at 1:1)
   auto sliced = string_view::slice(content, 0, pos);
-  std::size_t last_newline = sliced.rfind("\n");
+  const std::size_t last_newline = sliced.rfind('\n');
 
   if (last_newline == std::string_view::npos) {
     return {1, sliced.length() + 1};
@@ -44,7 +44,7 @@ inline SourceLocation get_source_location(std::string_view content, size_t pos) 
   size_t count_lines = 0;
   size_t search_start = 0;
   while (search_start <= sliced.size()) {
-    search_start = sliced.find("\n", search_start) + 1;
+    search_start = sliced.find('\n', search_start) + 1;
     if (search_start == 0) {
       break;
     }
