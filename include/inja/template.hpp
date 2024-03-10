@@ -4,7 +4,6 @@
 #include <map>
 #include <memory>
 #include <string>
-#include <vector>
 
 #include "node.hpp"
 #include "statistics.hpp"
@@ -23,7 +22,7 @@ struct Template {
   explicit Template(const std::string& content): content(content) {}
 
   /// Return number of variables (total number, not distinct ones) in the template
-  int count_variables() {
+  int count_variables() const {
     auto statistic_visitor = StatisticsVisitor();
     root.accept(statistic_visitor);
     return statistic_visitor.variable_counter;

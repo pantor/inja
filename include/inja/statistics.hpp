@@ -10,7 +10,7 @@ namespace inja {
  */
 class StatisticsVisitor : public NodeVisitor {
   void visit(const BlockNode& node) {
-    for (auto& n : node.nodes) {
+    for (const auto& n : node.nodes) {
       n->accept(*this);
     }
   }
@@ -24,7 +24,7 @@ class StatisticsVisitor : public NodeVisitor {
   }
 
   void visit(const FunctionNode& node) {
-    for (auto& n : node.arguments) {
+    for (const auto& n : node.arguments) {
       n->accept(*this);
     }
   }

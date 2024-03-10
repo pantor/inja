@@ -2,13 +2,23 @@
 #define INCLUDE_INJA_RENDERER_HPP_
 
 #include <algorithm>
+#include <array>
+#include <cctype>
+#include <cmath>
+#include <cstddef>
+#include <memory>
 #include <numeric>
+#include <ostream>
+#include <sstream>
+#include <stack>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "config.hpp"
 #include "exceptions.hpp"
+#include "function_storage.hpp"
+#include "inja.hpp"
 #include "node.hpp"
 #include "template.hpp"
 #include "utils.hpp"
@@ -53,7 +63,7 @@ class Renderer : public NodeVisitor {
     return !data->empty();
   }
 
-  void print_data(const std::shared_ptr<json> value) {
+  void print_data(const std::shared_ptr<json>& value) {
     if (value->is_string()) {
       *output_stream << value->get_ref<const json::string_t&>();
     } else if (value->is_number_unsigned()) {
@@ -87,7 +97,7 @@ class Renderer : public NodeVisitor {
         throw_renderer_error("expression could not be evaluated", expression_list);
       }
 
-      auto node = not_found_stack.top();
+      const auto node = not_found_stack.top();
       not_found_stack.pop();
 
       throw_renderer_error("variable '" + static_cast<std::string>(node->name) + "' not found", *node);
@@ -96,7 +106,7 @@ class Renderer : public NodeVisitor {
   }
 
   void throw_renderer_error(const std::string& message, const AstNode& node) {
-    SourceLocation loc = get_source_location(current_template->content, node.pos);
+    const SourceLocation loc = get_source_location(current_template->content, node.pos);
     INJA_THROW(RenderError(message, loc));
   }
 
@@ -138,7 +148,7 @@ class Renderer : public NodeVisitor {
 
   template <bool throw_not_found = true> Arguments get_argument_vector(const FunctionNode& node) {
     const size_t N = node.arguments.size();
-    for (auto a : node.arguments) {
+    for (const auto& a : node.arguments) {
       a->accept(*this);
     }
 
@@ -164,7 +174,7 @@ class Renderer : public NodeVisitor {
   }
 
   void visit(const BlockNode& node) {
-    for (auto& n : node.nodes) {
+    for (const auto& n : node.nodes) {
       n->accept(*this);
 
       if (break_rendering) {

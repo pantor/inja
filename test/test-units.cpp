@@ -1,5 +1,13 @@
 // Copyright (c) 2020 Pantor. All rights reserved.
 
+#include <doctest/doctest.h>
+#include <string>
+
+#include "inja/environment.hpp"
+#include "inja/function_storage.hpp"
+#include "inja/inja.hpp"
+#include "inja/utils.hpp"
+
 TEST_CASE("source location") {
   std::string content = R""""(Lorem Ipsum
   Dolor
@@ -42,7 +50,7 @@ TEST_CASE("copy environment") {
   CHECK(copy.render(test_tpl, inja::json()) == "4");
 
   // overwrite template in source env
-  inja::Template t2 = env.parse("{{ double(4) }}");
+  const inja::Template t2 = env.parse("{{ double(4) }}");
   env.include_template("tpl", t2);
   REQUIRE(env.render(test_tpl, inja::json()) == "8");
 

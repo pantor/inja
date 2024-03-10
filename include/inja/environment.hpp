@@ -3,17 +3,16 @@
 
 #include <fstream>
 #include <iostream>
-#include <memory>
 #include <sstream>
 #include <string>
 #include <string_view>
 
 #include "config.hpp"
 #include "function_storage.hpp"
+#include "inja.hpp"
 #include "parser.hpp"
 #include "renderer.hpp"
 #include "template.hpp"
-#include "utils.hpp"
 
 namespace inja {
 

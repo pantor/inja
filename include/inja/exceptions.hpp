@@ -1,6 +1,7 @@
 #ifndef INCLUDE_INJA_EXCEPTIONS_HPP_
 #define INCLUDE_INJA_EXCEPTIONS_HPP_
 
+#include <cstddef>
 #include <stdexcept>
 #include <string>
 

@@ -1,20 +1,24 @@
 #ifndef INCLUDE_INJA_PARSER_HPP_
 #define INCLUDE_INJA_PARSER_HPP_
 
-#include <limits>
+#include <cstddef>
+#include <fstream>
+#include <iterator>
+#include <memory>
 #include <stack>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
 #include "config.hpp"
 #include "exceptions.hpp"
 #include "function_storage.hpp"
+#include "inja.hpp"
 #include "lexer.hpp"
 #include "node.hpp"
 #include "template.hpp"
 #include "token.hpp"
-#include "utils.hpp"
 
 namespace inja {
 
@@ -64,7 +68,7 @@ class Parser {
   }
 
   inline void add_literal(Arguments &arguments, const char* content_ptr) {
-    std::string_view data_text(literal_start.data(), tok.text.data() - literal_start.data() + tok.text.size());
+    const std::string_view data_text(literal_start.data(), tok.text.data() - literal_start.data() + tok.text.size());
     arguments.emplace_back(std::make_shared<LiteralNode>(data_text, data_text.data() - content_ptr));
   }
 
@@ -88,8 +92,8 @@ class Parser {
       return;
     }
 
-    std::string original_path = static_cast<std::string>(path);
-    std::string original_name = template_name;
+    const std::string original_path = static_cast<std::string>(path);
+    const std::string original_name = template_name;
 
     if (config.search_included_templates_in_files) {
       // Build the relative path
@@ -103,7 +107,7 @@ class Parser {
         std::ifstream file;
         file.open(template_name);
         if (!file.fail()) {
-          std::string text((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+          const std::string text((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 
           auto include_template = Template(text);
           template_storage.emplace(template_name, include_template);
@@ -472,7 +476,7 @@ class Parser {
           throw_parser_error("expected id, got '" + tok.describe() + "'");
         }
 
-        Token key_token = std::move(value_token);
+        const Token key_token = std::move(value_token);
         value_token = tok;
         get_next_token();
 
@@ -533,7 +537,7 @@ class Parser {
         throw_parser_error("expected variable name, got '" + tok.describe() + "'");
       }
 
-      std::string key = static_cast<std::string>(tok.text);
+      const std::string key = static_cast<std::string>(tok.text);
       get_next_token();
 
       auto set_statement_node = std::make_shared<SetStatementNode>(key, tok.text.data() - tmpl.content.c_str());
@@ -627,7 +631,7 @@ public:
   }
 
   void parse_into_template(Template& tmpl, std::string_view filename) {
-    std::string_view path = filename.substr(0, filename.find_last_of("/\\") + 1);
+    const std::string_view path = filename.substr(0, filename.find_last_of("/\\") + 1);
 
     // StringRef path = sys::path::parent_path(filename);
     auto sub_parser = Parser(config, lexer.get_config(), template_storage, function_storage);

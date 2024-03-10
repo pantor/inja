@@ -10,6 +10,7 @@ project(inja LANGUAGES CXX VERSION 3.4.0)
 
 option(INJA_USE_EMBEDDED_JSON "Use the shipped json header if not available on the system" ON)
 option(INJA_INSTALL "Generate install targets for inja" ON)
+option(INJA_INSTALL_SINGLE_HEADER "Install the single header instead" OFF)
 option(INJA_EXPORT "Export the current build tree to the package registry" ON)
 option(BUILD_TESTING "Build unit tests" ON)
 option(INJA_BUILD_TESTS "Build unit tests when BUILD_TESTING is enabled." ON)
@@ -166,11 +167,20 @@ if(INJA_INSTALL)
     NO_CHECK_REQUIRED_COMPONENTS_MACRO
   )
 
-  install(
-    DIRECTORY include/inja
-    DESTINATION ${INJA_INSTALL_INCLUDE_DIR}
-    FILES_MATCHING PATTERN "*.hpp"
-  )
+  if(INJA_INSTALL_SINGLE_HEADER)
+    install(
+      DIRECTORY single_include/inja
+      DESTINATION ${INJA_INSTALL_INCLUDE_DIR}
+      FILES_MATCHING PATTERN "*.hpp"
+    )
+  else()
+    install(
+      DIRECTORY include/inja
+      DESTINATION ${INJA_INSTALL_INCLUDE_DIR}
+      FILES_MATCHING PATTERN "*.hpp"
+    )
+  endif()
+
   if(INJA_USE_EMBEDDED_JSON)
     install(
       DIRECTORY third_party/include/nlohmann
@@ -178,6 +188,7 @@ if(INJA_INSTALL)
       FILES_MATCHING PATTERN "*.hpp"
     )
   endif()
+
   install(
     FILES
       "${CMAKE_CURRENT_BINARY_DIR}/${INJA_CONFIG_PATH}/injaConfig.cmake"

@@ -1,8 +1,14 @@
 #ifndef INCLUDE_INJA_FUNCTION_STORAGE_HPP_
 #define INCLUDE_INJA_FUNCTION_STORAGE_HPP_
 
+#include <functional>
+#include <map>
+#include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
+
+#include "inja.hpp"
 
 namespace inja {
 
