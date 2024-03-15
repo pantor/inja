@@ -29,6 +29,7 @@ class Parser {
 
   Lexer lexer;
   TemplateStorage& template_storage;
+  std::vector<Template> template_stash;
   const FunctionStorage& function_storage;
 
   Token tok, peek_tok;
@@ -621,7 +622,7 @@ public:
       : config(parser_config), lexer(lexer_config), template_storage(template_storage), function_storage(function_storage) {}
 
   Template parse(std::string_view input, std::string_view path) {
-    auto result = Template(static_cast<std::string>(input));
+    auto& result = template_stash.emplace_back(Template(static_cast<std::string>(input)));
     parse_into(result, path);
     return result;
   }
