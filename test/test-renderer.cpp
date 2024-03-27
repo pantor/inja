@@ -14,8 +14,8 @@ TEST_CASE("types") {
   data["is_sad"] = false;
   data["@name"] = "@name";
   data["$name"] = "$name";
-  data["relatives"]["mother"] = "Maria";
   data["relatives"]["brother"] = "Chris";
+  data["relatives"]["mother"] = "Maria";
   data["relatives"]["sister"] = "Jenny";
   data["vars"] = {2, 3, 4, 0, -1, -2, -3};
   data["max_value"] = 18446744073709551615ull;
