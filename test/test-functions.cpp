@@ -58,6 +58,11 @@ TEST_CASE("functions") {
     // [json.exception.type_error.302] type must be string, but is number" );
   }
 
+  SUBCASE("capitalize") {
+    CHECK(env.render("{{ capitalize(name) }}", data) == "Peter");
+    CHECK(env.render("{{ capitalize(city) }}", data) == "New york");
+  }
+
   SUBCASE("range") {
     CHECK(env.render("{{ range(2) }}", data) == "[0,1]");
     CHECK(env.render("{{ range(4) }}", data) == "[0,1,2,3]");

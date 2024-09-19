@@ -123,6 +123,7 @@ public:
     Modulo,
     AtId,
     At,
+    Capitalize,
     Default,
     DivisibleBy,
     Even,
@@ -165,6 +166,7 @@ private:
 
   std::map<std::pair<std::string, int>, FunctionData> function_storage = {
       {std::make_pair("at", 2), FunctionData {Operation::At}},
+      {std::make_pair("capitalize", 1), FunctionData {Operation::Capitalize}},
       {std::make_pair("default", 2), FunctionData {Operation::Default}},
       {std::make_pair("divisibleBy", 2), FunctionData {Operation::DivisibleBy}},
       {std::make_pair("even", 1), FunctionData {Operation::Even}},
@@ -2377,6 +2379,12 @@ class Renderer : public NodeVisitor {
       } else {
         data_eval_stack.push(&args[0]->at(args[1]->get<int>()));
       }
+    } break;
+    case Op::Capitalize: {
+      auto result = get_arguments<1>(node)[0]->get<json::string_t>();
+      result[0] = std::toupper(result[0]);
+      std::transform(result.begin() + 1, result.end(), result.begin() + 1, [](char c) { return static_cast<char>(::tolower(c)); });
+      make_result(std::move(result));
     } break;
     case Op::Default: {
       const auto test_arg = get_arguments<1, 0, false>(node)[0];
