@@ -110,7 +110,16 @@ env.set_expression("{{", "}}"); // Expressions
 env.set_comment("{#", "#}"); // Comments
 env.set_statement("{%", "%}"); // Statements {% %} for many things, see below
 env.set_line_statement("##"); // Line statements ## (just an opener)
+env.set_html_autoescape(true); // Perform HTML escaping on all strings
 ```
+
+### HTML escaping
+Templates are frequently used to creat HTML pages. Source data that contains
+characters that have meaning within HTML (like <. >, &) needs to be escaped.
+It is often inconvenient to perform such escaping within the JSON data.
+
+With Environment::set_html_autoescape(true), Inja can be configured to
+HTML escape each and every string created.
 
 ### Variables
 

@@ -93,6 +93,11 @@ public:
     render_config.throw_at_missing_includes = will_throw;
   }
 
+  /// Sets whether we'll automatically perform HTML escape
+  void set_html_autoescape(bool will_escape) {
+    render_config.html_autoescape = will_escape;
+  }
+
   Template parse(std::string_view input) {
     Parser parser(parser_config, lexer_config, template_storage, function_storage);
     return parser.parse(input, input_path);
