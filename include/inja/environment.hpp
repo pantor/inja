@@ -160,6 +160,10 @@ public:
     return os;
   }
 
+  std::ostream& render_to(std::ostream& os, const std::string_view input, const json& data) {
+    return render_to(os, parse(input), data);
+  }
+
   std::string load_file(const std::string& filename) {
     Parser parser(parser_config, lexer_config, template_storage, function_storage);
     return Parser::load_file(input_path + filename);
