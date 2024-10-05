@@ -8,7 +8,7 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    
+
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -16,11 +16,11 @@ jobs:
     permissions:
       pages: write
       id-token: write
-    
-    steps:
-      - uses: actions/checkout@v3
 
-      - uses: actions/configure-pages@v3
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/configure-pages@v5
 
       - name: Install doxygen
         run: sudo apt-get -y install doxygen
@@ -28,12 +28,12 @@ jobs:
       - name: Build documentation
         working-directory: doc
         run: doxygen
-      
+
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v1
+        uses: actions/upload-pages-artifact@v3
         with:
           path: 'doc/html'
-      
+
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v1
+        uses: actions/deploy-pages@v4

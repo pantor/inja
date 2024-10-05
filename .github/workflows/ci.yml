@@ -23,21 +23,21 @@ jobs:
             os: ubuntu-20.04
             compiler: clang-9
 
-          - name: ubuntu-20.04-clang-11
-            os: ubuntu-20.04
-            compiler: clang-11
-
           - name: ubuntu-20.04-clang-12
             os: ubuntu-20.04
             compiler: clang-12
 
-          - name: ubuntu-20.04-clang-11-no-exceptions
-            os: ubuntu-20.04
-            compiler: clang-11
+          - name: ubuntu-22.04-clang-15-no-exceptions
+            os: ubuntu-22.04
+            compiler: clang-15
             cmake_vars: "-DCMAKE_CXX_FLAGS=-fno-exceptions -DBUILD_TESTING=OFF -DBUILD_BENCHMARK=ON"
 
           - name: ubuntu-22.04-gcc
             os: ubuntu-22.04
+            compiler: gcc
+
+          - name: ubuntu-24.04-gcc
+            os: ubuntu-24.04
             compiler: gcc
 
           - name: windows-2019-msvc
@@ -60,8 +60,8 @@ jobs:
             os: macOS-12
             compiler: gcc
 
-          - name: macOS-12-clang
-            os: macOS-12
+          - name: macOS-13-clang
+            os: macOS-13
             compiler: clang
 
           # - name: macOS-14-clang
@@ -69,10 +69,10 @@ jobs:
           #   compiler: clang
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Setup Cpp
-        uses: aminya/setup-cpp@v0.26.2
+        uses: aminya/setup-cpp@v0.44.0
         with:
           compiler: ${{ matrix.compiler }}
 
@@ -94,7 +94,7 @@ jobs:
   check-single-include:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Update single include
       run: |
@@ -103,10 +103,9 @@ jobs:
 
     - name: Check if equal
       working-directory: single_include
-      run: |
-        diff inja/inja.hpp inja/inja_old.hpp >/dev/null
+      run: diff inja/inja.hpp inja/inja_old.hpp >/dev/null
 
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       with:
         name: single_include_inja
         path: single_include/inja/inja.hpp
