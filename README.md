@@ -110,6 +110,7 @@ env.set_expression("{{", "}}"); // Expressions
 env.set_comment("{#", "#}"); // Comments
 env.set_statement("{%", "%}"); // Statements {% %} for many things, see below
 env.set_line_statement("##"); // Line statements ## (just an opener)
+env.set_html_autoescape(true); // Perform HTML escaping on all strings
 ```
 
 ### Variables
@@ -206,9 +207,10 @@ Assignments only set the value within the rendering context; they do not modify 
 
 A few functions are implemented within the inja template syntax. They can be called with
 ```.cpp
-// Upper and lower function, for string cases
+// Upper, lower and capitalize function, for string cases
 render("Hello {{ upper(neighbour) }}!", data); // "Hello PETER!"
 render("Hello {{ lower(neighbour) }}!", data); // "Hello peter!"
+render("Hello {{ capitalize(neighbour) }}!", data); // "Hello Peter!"
 
 // Range function, useful for loops
 render("{% for i in range(4) %}{{ loop.index1 }}{% endfor %}", data); // "1234"
@@ -362,6 +364,13 @@ render("{% if neighbour in guests -%}   I was there{% endif -%}   !", data); // 
 ```
 
 Stripping behind a statement or expression also removes any newlines.
+
+### HTML escaping
+
+Templates are frequently used to creat HTML pages. Source data that contains
+characters that have meaning within HTML (like <. >, &) needs to be escaped.
+It is often inconvenient to perform such escaping within the JSON data. With `Environment::set_html_autoescape(true)`, Inja can be configured to
+HTML escape each and every string created.
 
 ### Comments
 

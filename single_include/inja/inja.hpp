@@ -131,6 +131,7 @@ public:
     Modulo,
     AtId,
     At,
+    Capitalize,
     Default,
     DivisibleBy,
     Even,
@@ -173,6 +174,7 @@ private:
 
   std::map<std::pair<std::string, int>, FunctionData> function_storage = {
       {std::make_pair("at", 2), FunctionData {Operation::At}},
+      {std::make_pair("capitalize", 1), FunctionData {Operation::Capitalize}},
       {std::make_pair("default", 2), FunctionData {Operation::Default}},
       {std::make_pair("divisibleBy", 2), FunctionData {Operation::DivisibleBy}},
       {std::make_pair("even", 1), FunctionData {Operation::Even}},
@@ -893,6 +895,7 @@ struct ParserConfig {
  */
 struct RenderConfig {
   bool throw_at_missing_includes {true};
+  bool html_autoescape {false};
 };
 
 } // namespace inja
@@ -2154,9 +2157,29 @@ class Renderer : public NodeVisitor {
     return !data->empty();
   }
 
+  static std::string htmlescape(const std::string& data) {
+    std::string buffer;
+    buffer.reserve(1.1 * data.size());
+    for (size_t pos = 0; pos != data.size(); ++pos) {
+      switch (data[pos]) {
+        case '&':  buffer.append("&amp;");       break;
+        case '\"': buffer.append("&quot;");      break;
+        case '\'': buffer.append("&apos;");      break;
+        case '<':  buffer.append("&lt;");        break;
+        case '>':  buffer.append("&gt;");        break;
+        default:   buffer.append(&data[pos], 1); break;
+      }
+    }
+    return buffer;
+  }
+
   void print_data(const std::shared_ptr<json>& value) {
     if (value->is_string()) {
-      *output_stream << value->get_ref<const json::string_t&>();
+      if (config.html_autoescape) {
+        *output_stream << htmlescape(value->get_ref<const json::string_t&>());
+      } else {
+        *output_stream << value->get_ref<const json::string_t&>();
+      }
     } else if (value->is_number_unsigned()) {
       *output_stream << value->get<const json::number_unsigned_t>();
     } else if (value->is_number_integer()) {
@@ -2409,6 +2432,12 @@ class Renderer : public NodeVisitor {
       } else {
         data_eval_stack.push(&args[0]->at(args[1]->get<int>()));
       }
+    } break;
+    case Op::Capitalize: {
+      auto result = get_arguments<1>(node)[0]->get<json::string_t>();
+      result[0] = static_cast<char>(::toupper(result[0]));
+      std::transform(result.begin() + 1, result.end(), result.begin() + 1, [](char c) { return static_cast<char>(::tolower(c)); });
+      make_result(std::move(result));
     } break;
     case Op::Default: {
       const auto test_arg = get_arguments<1, 0, false>(node)[0];
@@ -2814,6 +2843,11 @@ public:
     render_config.throw_at_missing_includes = will_throw;
   }
 
+  /// Sets whether we'll automatically perform HTML escape
+  void set_html_autoescape(bool will_escape) {
+    render_config.html_autoescape = will_escape;
+  }
+
   Template parse(std::string_view input) {
     Parser parser(parser_config, lexer_config, template_storage, function_storage);
     return parser.parse(input, input_path);
@@ -2874,6 +2908,10 @@ public:
   std::ostream& render_to(std::ostream& os, const Template& tmpl, const json& data) {
     Renderer(render_config, template_storage, function_storage).render_to(os, tmpl, data);
     return os;
+  }
+
+  std::ostream& render_to(std::ostream& os, const std::string_view input, const json& data) {
+    return render_to(os, parse(input), data);
   }
 
   std::string load_file(const std::string& filename) {

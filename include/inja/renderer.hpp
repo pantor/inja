@@ -63,9 +63,29 @@ class Renderer : public NodeVisitor {
     return !data->empty();
   }
 
+  static std::string htmlescape(const std::string& data) {
+    std::string buffer;
+    buffer.reserve(1.1 * data.size());
+    for (size_t pos = 0; pos != data.size(); ++pos) {
+      switch (data[pos]) {
+        case '&':  buffer.append("&amp;");       break;
+        case '\"': buffer.append("&quot;");      break;
+        case '\'': buffer.append("&apos;");      break;
+        case '<':  buffer.append("&lt;");        break;
+        case '>':  buffer.append("&gt;");        break;
+        default:   buffer.append(&data[pos], 1); break;
+      }
+    }
+    return buffer;
+  }
+
   void print_data(const std::shared_ptr<json>& value) {
     if (value->is_string()) {
-      *output_stream << value->get_ref<const json::string_t&>();
+      if (config.html_autoescape) {
+        *output_stream << htmlescape(value->get_ref<const json::string_t&>());
+      } else {
+        *output_stream << value->get_ref<const json::string_t&>();
+      }
     } else if (value->is_number_unsigned()) {
       *output_stream << value->get<const json::number_unsigned_t>();
     } else if (value->is_number_integer()) {
@@ -318,6 +338,12 @@ class Renderer : public NodeVisitor {
       } else {
         data_eval_stack.push(&args[0]->at(args[1]->get<int>()));
       }
+    } break;
+    case Op::Capitalize: {
+      auto result = get_arguments<1>(node)[0]->get<json::string_t>();
+      result[0] = static_cast<char>(::toupper(result[0]));
+      std::transform(result.begin() + 1, result.end(), result.begin() + 1, [](char c) { return static_cast<char>(::tolower(c)); });
+      make_result(std::move(result));
     } break;
     case Op::Default: {
       const auto test_arg = get_arguments<1, 0, false>(node)[0];
