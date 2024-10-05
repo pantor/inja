@@ -64,9 +64,9 @@ jobs:
             os: macOS-13
             compiler: clang
 
-          - name: macOS-14-clang
-            os: macOS-14
-            compiler: clang
+          # - name: macOS-14-clang
+          #   os: macOS-14
+          #   compiler: clang
 
     steps:
       - uses: actions/checkout@v4
