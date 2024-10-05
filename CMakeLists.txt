@@ -101,6 +101,12 @@ if(BUILD_TESTING AND INJA_BUILD_TESTS)
   target_link_libraries(single_inja_test PRIVATE single_inja)
 
   add_test(single_inja_test ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/single_inja_test)
+
+  add_executable(single_inja_ordered_test test/test.cpp)
+  target_link_libraries(single_inja_ordered_test PRIVATE single_inja)
+  target_compile_definitions(single_inja_ordered_test PUBLIC INJA_DATA_TYPE=nlohmann::ordered_json)
+
+  add_test(single_inja_ordered_test ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/single_inja_ordered_test)
 endif()
 
 

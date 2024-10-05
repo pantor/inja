@@ -2138,7 +2138,10 @@ class Renderer : public NodeVisitor {
   std::ostream* output_stream;
 
   json additional_data;
-  json* current_loop_data = &additional_data["loop"];
+
+  json* get_current_loop_data() {
+    return &additional_data["loop"];
+  }
 
   std::vector<std::shared_ptr<json>> data_tmp_stack;
   std::stack<const json*> data_eval_stack;
@@ -2615,16 +2618,23 @@ class Renderer : public NodeVisitor {
       throw_renderer_error("object must be an array", node);
     }
 
-    if (!current_loop_data->empty()) {
-      auto tmp = *current_loop_data; // Because of clang-3
-      (*current_loop_data)["parent"] = std::move(tmp);
+    {
+      json* const current_loop_data = get_current_loop_data();
+      if (!current_loop_data->empty()) {
+        auto tmp = *current_loop_data; // Because of clang-3
+        (*current_loop_data)["parent"] = std::move(tmp);
+      }
+
+      (*current_loop_data)["is_first"] = true;
+      (*current_loop_data)["is_last"] = (result->size() <= 1);
     }
 
     size_t index = 0;
-    (*current_loop_data)["is_first"] = true;
-    (*current_loop_data)["is_last"] = (result->size() <= 1);
+
     for (auto it = result->begin(); it != result->end(); ++it) {
       additional_data[static_cast<std::string>(node.value)] = *it;
+
+      json* const current_loop_data = get_current_loop_data();
 
       (*current_loop_data)["index"] = index;
       (*current_loop_data)["index1"] = index + 1;
@@ -2640,11 +2650,11 @@ class Renderer : public NodeVisitor {
     }
 
     additional_data[static_cast<std::string>(node.value)].clear();
+
+    json* const current_loop_data = get_current_loop_data();
     if (!(*current_loop_data)["parent"].empty()) {
       const auto tmp = (*current_loop_data)["parent"];
       *current_loop_data = std::move(tmp);
-    } else {
-      current_loop_data = &additional_data["loop"];
     }
   }
 
@@ -2654,17 +2664,23 @@ class Renderer : public NodeVisitor {
       throw_renderer_error("object must be an object", node);
     }
 
-    if (!current_loop_data->empty()) {
-      (*current_loop_data)["parent"] = std::move(*current_loop_data);
+    {
+      json* const current_loop_data = get_current_loop_data();
+      if (!current_loop_data->empty()) {
+        (*current_loop_data)["parent"] = std::move(*current_loop_data);
+      }
+
+      (*current_loop_data)["is_first"] = true;
+      (*current_loop_data)["is_last"] = (result->size() <= 1);
     }
 
     size_t index = 0;
-    (*current_loop_data)["is_first"] = true;
-    (*current_loop_data)["is_last"] = (result->size() <= 1);
+
     for (auto it = result->begin(); it != result->end(); ++it) {
       additional_data[static_cast<std::string>(node.key)] = it.key();
       additional_data[static_cast<std::string>(node.value)] = it.value();
 
+      json* const current_loop_data = get_current_loop_data();
       (*current_loop_data)["index"] = index;
       (*current_loop_data)["index1"] = index + 1;
       if (index == 1) {
@@ -2680,10 +2696,10 @@ class Renderer : public NodeVisitor {
 
     additional_data[static_cast<std::string>(node.key)].clear();
     additional_data[static_cast<std::string>(node.value)].clear();
+
+    json* const current_loop_data = get_current_loop_data();
     if (!(*current_loop_data)["parent"].empty()) {
       *current_loop_data = std::move((*current_loop_data)["parent"]);
-    } else {
-      current_loop_data = &additional_data["loop"];
     }
   }
 
@@ -2748,7 +2764,6 @@ public:
     data_input = &data;
     if (loop_data) {
       additional_data = *loop_data;
-      current_loop_data = &additional_data["loop"];
     }
 
     template_stack.emplace_back(current_template);
