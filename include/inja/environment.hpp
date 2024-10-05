@@ -93,6 +93,11 @@ public:
     render_config.throw_at_missing_includes = will_throw;
   }
 
+  /// Sets whether we'll automatically perform HTML escape
+  void set_html_autoescape(bool will_escape) {
+    render_config.html_autoescape = will_escape;
+  }
+
   Template parse(std::string_view input) {
     Parser parser(parser_config, lexer_config, template_storage, function_storage);
     return parser.parse(input, input_path);
@@ -153,6 +158,10 @@ public:
   std::ostream& render_to(std::ostream& os, const Template& tmpl, const json& data) {
     Renderer(render_config, template_storage, function_storage).render_to(os, tmpl, data);
     return os;
+  }
+
+  std::ostream& render_to(std::ostream& os, const std::string_view input, const json& data) {
+    return render_to(os, parse(input), data);
   }
 
   std::string load_file(const std::string& filename) {
