@@ -57,7 +57,6 @@ using json = INJA_DATA_TYPE;
 
 #include <fstream>
 #include <iostream>
-#include <memory>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -76,22 +75,31 @@ using json = INJA_DATA_TYPE;
 #include <map>
 #include <memory>
 #include <string>
-#include <vector>
 
 // #include "node.hpp"
 #ifndef INCLUDE_INJA_NODE_HPP_
 #define INCLUDE_INJA_NODE_HPP_
 
+#include <cstddef>
+#include <memory>
 #include <string>
 #include <string_view>
-#include <utility>
+#include <tuple>
+#include <vector>
 
 // #include "function_storage.hpp"
 #ifndef INCLUDE_INJA_FUNCTION_STORAGE_HPP_
 #define INCLUDE_INJA_FUNCTION_STORAGE_HPP_
 
+#include <functional>
+#include <map>
+#include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
+
+// #include "inja.hpp"
+
 
 namespace inja {
 
@@ -227,12 +235,14 @@ public:
 
 #endif // INCLUDE_INJA_FUNCTION_STORAGE_HPP_
 
+// #include "inja.hpp"
+
 // #include "utils.hpp"
 #ifndef INCLUDE_INJA_UTILS_HPP_
 #define INCLUDE_INJA_UTILS_HPP_
 
 #include <algorithm>
-#include <fstream>
+#include <cstddef>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -241,6 +251,7 @@ public:
 #ifndef INCLUDE_INJA_EXCEPTIONS_HPP_
 #define INCLUDE_INJA_EXCEPTIONS_HPP_
 
+#include <cstddef>
 #include <stdexcept>
 #include <string>
 
@@ -297,7 +308,7 @@ inline std::string_view slice(std::string_view view, size_t start, size_t end) {
 }
 
 inline std::pair<std::string_view, std::string_view> split(std::string_view view, char Separator) {
-  size_t idx = view.find(Separator);
+  const size_t idx = view.find(Separator);
   if (idx == std::string_view::npos) {
     return std::make_pair(view, std::string_view());
   }
@@ -312,7 +323,7 @@ inline bool starts_with(std::string_view view, std::string_view prefix) {
 inline SourceLocation get_source_location(std::string_view content, size_t pos) {
   // Get line and offset position (starts at 1:1)
   auto sliced = string_view::slice(content, 0, pos);
-  std::size_t last_newline = sliced.rfind("\n");
+  const std::size_t last_newline = sliced.rfind('\n');
 
   if (last_newline == std::string_view::npos) {
     return {1, sliced.length() + 1};
@@ -322,7 +333,7 @@ inline SourceLocation get_source_location(std::string_view content, size_t pos) 
   size_t count_lines = 0;
   size_t search_start = 0;
   while (search_start <= sliced.size()) {
-    search_start = sliced.find("\n", search_start) + 1;
+    search_start = sliced.find('\n', search_start) + 1;
     if (search_start == 0) {
       break;
     }
@@ -725,7 +736,7 @@ namespace inja {
  */
 class StatisticsVisitor : public NodeVisitor {
   void visit(const BlockNode& node) {
-    for (auto& n : node.nodes) {
+    for (const auto& n : node.nodes) {
       n->accept(*this);
     }
   }
@@ -739,7 +750,7 @@ class StatisticsVisitor : public NodeVisitor {
   }
 
   void visit(const FunctionNode& node) {
-    for (auto& n : node.arguments) {
+    for (const auto& n : node.arguments) {
       n->accept(*this);
     }
   }
@@ -802,7 +813,7 @@ struct Template {
   explicit Template(const std::string& content): content(content) {}
 
   /// Return number of variables (total number, not distinct ones) in the template
-  int count_variables() {
+  int count_variables() const {
     auto statistic_visitor = StatisticsVisitor();
     root.accept(statistic_visitor);
     return statistic_visitor.variable_counter;
@@ -893,13 +904,19 @@ struct RenderConfig {
 
 // #include "function_storage.hpp"
 
+// #include "inja.hpp"
+
 // #include "parser.hpp"
 #ifndef INCLUDE_INJA_PARSER_HPP_
 #define INCLUDE_INJA_PARSER_HPP_
 
-#include <limits>
+#include <cstddef>
+#include <fstream>
+#include <iterator>
+#include <memory>
 #include <stack>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -909,14 +926,19 @@ struct RenderConfig {
 
 // #include "function_storage.hpp"
 
+// #include "inja.hpp"
+
 // #include "lexer.hpp"
 #ifndef INCLUDE_INJA_LEXER_HPP_
 #define INCLUDE_INJA_LEXER_HPP_
 
 #include <cctype>
-#include <locale>
+#include <cstddef>
+#include <string_view>
 
 // #include "config.hpp"
+
+// #include "exceptions.hpp"
 
 // #include "token.hpp"
 #ifndef INCLUDE_INJA_TOKEN_HPP_
@@ -1299,7 +1321,7 @@ public:
       pos += open_start;
 
       // try to match one of the opening sequences, and get the close
-      std::string_view open_str = m_in.substr(pos);
+      const std::string_view open_str = m_in.substr(pos);
       bool must_lstrip = false;
       if (inja::string_view::starts_with(open_str, config.expression_open)) {
         if (inja::string_view::starts_with(open_str, config.expression_open_force_lstrip)) {
@@ -1428,8 +1450,6 @@ public:
 
 // #include "token.hpp"
 
-// #include "utils.hpp"
-
 
 namespace inja {
 
@@ -1479,7 +1499,7 @@ class Parser {
   }
 
   inline void add_literal(Arguments &arguments, const char* content_ptr) {
-    std::string_view data_text(literal_start.data(), tok.text.data() - literal_start.data() + tok.text.size());
+    const std::string_view data_text(literal_start.data(), tok.text.data() - literal_start.data() + tok.text.size());
     arguments.emplace_back(std::make_shared<LiteralNode>(data_text, data_text.data() - content_ptr));
   }
 
@@ -1503,8 +1523,8 @@ class Parser {
       return;
     }
 
-    std::string original_path = static_cast<std::string>(path);
-    std::string original_name = template_name;
+    const std::string original_path = static_cast<std::string>(path);
+    const std::string original_name = template_name;
 
     if (config.search_included_templates_in_files) {
       // Build the relative path
@@ -1518,7 +1538,7 @@ class Parser {
         std::ifstream file;
         file.open(template_name);
         if (!file.fail()) {
-          std::string text((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+          const std::string text((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 
           auto include_template = Template(text);
           template_storage.emplace(template_name, include_template);
@@ -1887,7 +1907,7 @@ class Parser {
           throw_parser_error("expected id, got '" + tok.describe() + "'");
         }
 
-        Token key_token = std::move(value_token);
+        const Token key_token = std::move(value_token);
         value_token = tok;
         get_next_token();
 
@@ -1948,7 +1968,7 @@ class Parser {
         throw_parser_error("expected variable name, got '" + tok.describe() + "'");
       }
 
-      std::string key = static_cast<std::string>(tok.text);
+      const std::string key = static_cast<std::string>(tok.text);
       get_next_token();
 
       auto set_statement_node = std::make_shared<SetStatementNode>(key, tok.text.data() - tmpl.content.c_str());
@@ -2042,7 +2062,7 @@ public:
   }
 
   void parse_into_template(Template& tmpl, std::string_view filename) {
-    std::string_view path = filename.substr(0, filename.find_last_of("/\\") + 1);
+    const std::string_view path = filename.substr(0, filename.find_last_of("/\\") + 1);
 
     // StringRef path = sys::path::parent_path(filename);
     auto sub_parser = Parser(config, lexer.get_config(), template_storage, function_storage);
@@ -2069,7 +2089,15 @@ public:
 #define INCLUDE_INJA_RENDERER_HPP_
 
 #include <algorithm>
+#include <array>
+#include <cctype>
+#include <cmath>
+#include <cstddef>
+#include <memory>
 #include <numeric>
+#include <ostream>
+#include <sstream>
+#include <stack>
 #include <string>
 #include <utility>
 #include <vector>
@@ -2077,6 +2105,10 @@ public:
 // #include "config.hpp"
 
 // #include "exceptions.hpp"
+
+// #include "function_storage.hpp"
+
+// #include "inja.hpp"
 
 // #include "node.hpp"
 
@@ -2141,7 +2173,7 @@ class Renderer : public NodeVisitor {
     return buffer;
   }
 
-  void print_data(const std::shared_ptr<json> value) {
+  void print_data(const std::shared_ptr<json>& value) {
     if (value->is_string()) {
       if (config.html_autoescape) {
         *output_stream << htmlescape(value->get_ref<const json::string_t&>());
@@ -2179,7 +2211,7 @@ class Renderer : public NodeVisitor {
         throw_renderer_error("expression could not be evaluated", expression_list);
       }
 
-      auto node = not_found_stack.top();
+      const auto node = not_found_stack.top();
       not_found_stack.pop();
 
       throw_renderer_error("variable '" + static_cast<std::string>(node->name) + "' not found", *node);
@@ -2188,7 +2220,7 @@ class Renderer : public NodeVisitor {
   }
 
   void throw_renderer_error(const std::string& message, const AstNode& node) {
-    SourceLocation loc = get_source_location(current_template->content, node.pos);
+    const SourceLocation loc = get_source_location(current_template->content, node.pos);
     INJA_THROW(RenderError(message, loc));
   }
 
@@ -2230,7 +2262,7 @@ class Renderer : public NodeVisitor {
 
   template <bool throw_not_found = true> Arguments get_argument_vector(const FunctionNode& node) {
     const size_t N = node.arguments.size();
-    for (auto a : node.arguments) {
+    for (const auto& a : node.arguments) {
       a->accept(*this);
     }
 
@@ -2256,7 +2288,7 @@ class Renderer : public NodeVisitor {
   }
 
   void visit(const BlockNode& node) {
-    for (auto& n : node.nodes) {
+    for (const auto& n : node.nodes) {
       n->accept(*this);
 
       if (break_rendering) {
@@ -2731,8 +2763,6 @@ public:
 #endif // INCLUDE_INJA_RENDERER_HPP_
 
 // #include "template.hpp"
-
-// #include "utils.hpp"
 
 
 namespace inja {

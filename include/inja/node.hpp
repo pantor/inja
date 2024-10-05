@@ -1,11 +1,15 @@
 #ifndef INCLUDE_INJA_NODE_HPP_
 #define INCLUDE_INJA_NODE_HPP_
 
+#include <cstddef>
+#include <memory>
 #include <string>
 #include <string_view>
-#include <utility>
+#include <tuple>
+#include <vector>
 
 #include "function_storage.hpp"
+#include "inja.hpp"
 #include "utils.hpp"
 
 namespace inja {
