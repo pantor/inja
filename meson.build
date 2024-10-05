@@ -52,10 +52,8 @@ if get_option('build_tests')
 
   test('Inja unit test', inja_test)
   test('Inja single include test', inja_single_test)
-endif
 
 
-if get_option('build_benchmark')
   inja_benchmark = executable(
     'inja_benchmark',
     'test/benchmark.cpp',

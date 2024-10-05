@@ -30,7 +30,7 @@ jobs:
           - name: ubuntu-22.04-clang-15-no-exceptions
             os: ubuntu-22.04
             compiler: clang-15
-            cmake_vars: "-DCMAKE_CXX_FLAGS=-fno-exceptions -DBUILD_TESTING=OFF -DBUILD_BENCHMARK=ON"
+            cmake_vars: "-DCMAKE_CXX_FLAGS=-fno-exceptions -DBUILD_TESTING=OFF"
 
           - name: ubuntu-22.04-gcc
             os: ubuntu-22.04

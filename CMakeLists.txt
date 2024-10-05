@@ -14,7 +14,6 @@ option(INJA_INSTALL_SINGLE_HEADER "Install the single header instead" OFF)
 option(INJA_EXPORT "Export the current build tree to the package registry" ON)
 option(BUILD_TESTING "Build unit tests" ON)
 option(INJA_BUILD_TESTS "Build unit tests when BUILD_TESTING is enabled." ON)
-option(BUILD_BENCHMARK "Build benchmark" ON)
 option(COVERALLS "Generate coveralls data" OFF)
 
 
@@ -103,10 +102,8 @@ if(BUILD_TESTING AND INJA_BUILD_TESTS)
   target_include_directories(single_inja_test PRIVATE include third_party/include)
 
   add_test(single_inja_test ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/single_inja_test)
-endif()
 
 
-if(BUILD_BENCHMARK)
   add_executable(inja_benchmark test/benchmark.cpp)
   target_link_libraries(inja_benchmark PRIVATE inja)
 endif()
