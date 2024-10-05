@@ -56,16 +56,16 @@ jobs:
             os: windows-2022
             compiler: msvc
 
-          - name: macOS-11-gcc
-            os: macOS-11
+          - name: macOS-12-gcc
+            os: macOS-12
             compiler: gcc
-
-          - name: macOS-11-clang
-            os: macOS-11
-            compiler: clang
 
           - name: macOS-12-clang
             os: macOS-12
+            compiler: clang
+
+          - name: macOS-14-clang
+            os: macOS-14
             compiler: clang
 
     steps:
