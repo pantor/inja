@@ -106,6 +106,7 @@ if(BUILD_TESTING AND INJA_BUILD_TESTS)
 
   add_executable(inja_benchmark test/benchmark.cpp)
   target_link_libraries(inja_benchmark PRIVATE inja)
+  target_include_directories(inja_benchmark PRIVATE third_party/include)
 endif()
 
 

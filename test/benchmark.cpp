@@ -1,16 +1,16 @@
 // Copyright (c) 2020 Pantor. All rights reserved.
 
-#include "hayai/hayai.hpp"
+#include <hayai/hayai.hpp>
 #include <inja/inja.hpp>
 
 inja::Environment env;
 
 const std::string test_file_directory {"../test/data/benchmark/"};
 
-auto small_data = env.load_json(test_file_directory + "small_data.json");
-auto large_data = env.load_json(test_file_directory + "large_data.json");
-std::string medium_template = env.load_file(test_file_directory + "medium_template.txt");
-std::string large_template = env.load_file(test_file_directory + "large_template.txt");
+const auto small_data = env.load_json(test_file_directory + "small_data.json");
+const auto large_data = env.load_json(test_file_directory + "large_data.json");
+const std::string medium_template = env.load_file(test_file_directory + "medium_template.txt");
+const std::string large_template = env.load_file(test_file_directory + "large_template.txt");
 
 BENCHMARK(SmallDataMediumTemplate, render, 5, 30) {
   env.render(medium_template, small_data);
