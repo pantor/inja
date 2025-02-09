@@ -154,6 +154,12 @@ Yeah!
                      data) == R""""(Yeah!
 )"""");
   }
+
+  SUBCASE("pipe syntax") {
+    CHECK(env.render("{{ brother.name | upper }}", data) == "CHRIS");
+    CHECK(env.render("{{ brother.name | upper | lower }}", data) == "chris");
+    CHECK(env.render("{{ [\"C\", \"A\", \"B\"] | sort | join(\",\") }}", data) == "A,B,C");
+  }
 }
 
 TEST_CASE("templates") {

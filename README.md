@@ -267,6 +267,16 @@ render("{{ isArray(guests) }}", data); // "true"
 // Implemented type checks: isArray, isBoolean, isFloat, isInteger, isNumber, isObject, isString,
 ```
 
+The Jinja2 pipe call syntax of functions is also supported:
+
+```.cpp
+// Upper neighbour value
+render("Hello {{ neighbour | upper }}!", data); // "Hello PETER!"
+
+// Sort array and join with comma
+render("{{ [\"B\", \"A\", \"C\"] | sort | join(\",\") }}", data); // "A,B,C"
+```
+
 ### Callbacks
 
 You can create your own and more complex functions with callbacks. These are implemented with `std::function`, so you can for example use C++ lambdas. Inja `Arguments` are a vector of json pointers.
