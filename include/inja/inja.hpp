@@ -25,32 +25,8 @@ SOFTWARE.
 #ifndef INCLUDE_INJA_INJA_HPP_
 #define INCLUDE_INJA_INJA_HPP_
 
-#include <nlohmann/json.hpp>
-
-namespace inja {
-#ifndef INJA_DATA_TYPE
-using json = nlohmann::json;
-#else
-using json = INJA_DATA_TYPE;
-#endif
-} // namespace inja
-
-#if (defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND)) && !defined(INJA_NOEXCEPTION)
-#ifndef INJA_THROW
-#define INJA_THROW(exception) throw exception
-#endif
-#else
-#include <cstdlib>
-#ifndef INJA_THROW
-#define INJA_THROW(exception)                                                                                                                                  \
-  std::abort();                                                                                                                                                \
-  std::ignore = exception
-#endif
-#ifndef INJA_NOEXCEPTION
-#define INJA_NOEXCEPTION
-#endif
-#endif
-
+#include "json.hpp"
+#include "throw.hpp"
 #include "environment.hpp"
 #include "exceptions.hpp"
 #include "parser.hpp"

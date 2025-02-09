@@ -10,3 +10,4 @@ doc/latex
 examples
 
 __pycache__
+/CMakeLists.txt.user

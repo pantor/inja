@@ -8,7 +8,7 @@
 #include <utility>
 #include <vector>
 
-#include "inja.hpp"
+#include "json.hpp"
 
 namespace inja {
 
