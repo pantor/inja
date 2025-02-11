@@ -7,12 +7,13 @@
 #include <string>
 #include <string_view>
 
+#include "json.hpp"
 #include "config.hpp"
 #include "function_storage.hpp"
-#include "inja.hpp"
 #include "parser.hpp"
 #include "renderer.hpp"
 #include "template.hpp"
+#include "throw.hpp"
 
 namespace inja {
 

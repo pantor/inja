@@ -25,6 +25,10 @@ SOFTWARE.
 #ifndef INCLUDE_INJA_INJA_HPP_
 #define INCLUDE_INJA_INJA_HPP_
 
+// #include "json.hpp"
+#ifndef INCLUDE_INJA_JSON_HPP_
+#define INCLUDE_INJA_JSON_HPP_
+
 #include <nlohmann/json.hpp>
 
 namespace inja {
@@ -35,6 +39,12 @@ using json = INJA_DATA_TYPE;
 #endif
 } // namespace inja
 
+#endif // INCLUDE_INJA_JSON_HPP_
+
+// #include "throw.hpp"
+#ifndef INCLUDE_INJA_THROW_HPP_
+#define INCLUDE_INJA_THROW_HPP_
+
 #if (defined(__cpp_exceptions) || defined(__EXCEPTIONS) || defined(_CPPUNWIND)) && !defined(INJA_NOEXCEPTION)
 #ifndef INJA_THROW
 #define INJA_THROW(exception) throw exception
@@ -42,14 +52,16 @@ using json = INJA_DATA_TYPE;
 #else
 #include <cstdlib>
 #ifndef INJA_THROW
-#define INJA_THROW(exception)                                                                                                                                  \
-  std::abort();                                                                                                                                                \
-  std::ignore = exception
+#define INJA_THROW(exception) \
+std::abort();                 \
+    std::ignore = exception
 #endif
 #ifndef INJA_NOEXCEPTION
 #define INJA_NOEXCEPTION
 #endif
 #endif
+
+#endif // INCLUDE_INJA_THROW_HPP_
 
 // #include "environment.hpp"
 #ifndef INCLUDE_INJA_ENVIRONMENT_HPP_
@@ -60,6 +72,8 @@ using json = INJA_DATA_TYPE;
 #include <sstream>
 #include <string>
 #include <string_view>
+
+// #include "json.hpp"
 
 // #include "config.hpp"
 #ifndef INCLUDE_INJA_CONFIG_HPP_
@@ -98,7 +112,7 @@ using json = INJA_DATA_TYPE;
 #include <utility>
 #include <vector>
 
-// #include "inja.hpp"
+// #include "json.hpp"
 
 
 namespace inja {
@@ -235,8 +249,6 @@ public:
 
 #endif // INCLUDE_INJA_FUNCTION_STORAGE_HPP_
 
-// #include "inja.hpp"
-
 // #include "utils.hpp"
 #ifndef INCLUDE_INJA_UTILS_HPP_
 #define INCLUDE_INJA_UTILS_HPP_
@@ -357,6 +369,8 @@ inline void replace_substring(std::string& s, const std::string& f, const std::s
 } // namespace inja
 
 #endif // INCLUDE_INJA_UTILS_HPP_
+
+// #include "json.hpp"
 
 
 namespace inja {
@@ -904,8 +918,6 @@ struct RenderConfig {
 
 // #include "function_storage.hpp"
 
-// #include "inja.hpp"
-
 // #include "parser.hpp"
 #ifndef INCLUDE_INJA_PARSER_HPP_
 #define INCLUDE_INJA_PARSER_HPP_
@@ -925,8 +937,6 @@ struct RenderConfig {
 // #include "exceptions.hpp"
 
 // #include "function_storage.hpp"
-
-// #include "inja.hpp"
 
 // #include "lexer.hpp"
 #ifndef INCLUDE_INJA_LEXER_HPP_
@@ -1447,6 +1457,8 @@ public:
 // #include "node.hpp"
 
 // #include "template.hpp"
+
+// #include "throw.hpp"
 
 // #include "token.hpp"
 
@@ -2108,11 +2120,11 @@ public:
 
 // #include "function_storage.hpp"
 
-// #include "inja.hpp"
-
 // #include "node.hpp"
 
 // #include "template.hpp"
+
+// #include "throw.hpp"
 
 // #include "utils.hpp"
 
@@ -2763,6 +2775,8 @@ public:
 #endif // INCLUDE_INJA_RENDERER_HPP_
 
 // #include "template.hpp"
+
+// #include "throw.hpp"
 
 
 namespace inja {

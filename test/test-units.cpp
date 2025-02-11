@@ -1,12 +1,8 @@
 // Copyright (c) 2020 Pantor. All rights reserved.
 
-#include <doctest/doctest.h>
-#include <string>
-
 #include "inja/environment.hpp"
-#include "inja/function_storage.hpp"
-#include "inja/inja.hpp"
-#include "inja/utils.hpp"
+
+#include "test-common.hpp"
 
 TEST_CASE("source location") {
   std::string content = R""""(Lorem Ipsum
