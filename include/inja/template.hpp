@@ -19,7 +19,7 @@ struct Template {
   std::map<std::string, std::shared_ptr<BlockStatementNode>> block_storage;
 
   explicit Template() {}
-  explicit Template(const std::string& content): content(content) {}
+  explicit Template(std::string content): content(std::move(content)) {}
 
   /// Return number of variables (total number, not distinct ones) in the template
   int count_variables() const {
