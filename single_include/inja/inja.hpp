@@ -824,7 +824,7 @@ struct Template {
   std::map<std::string, std::shared_ptr<BlockStatementNode>> block_storage;
 
   explicit Template() {}
-  explicit Template(const std::string& content): content(content) {}
+  explicit Template(std::string content): content(std::move(content)) {}
 
   /// Return number of variables (total number, not distinct ones) in the template
   int count_variables() const {
@@ -2068,7 +2068,7 @@ public:
       : config(parser_config), lexer(lexer_config), template_storage(template_storage), function_storage(function_storage) {}
 
   Template parse(std::string_view input, std::string_view path) {
-    auto result = Template(static_cast<std::string>(input));
+    auto result = Template(std::string(input));
     parse_into(result, path);
     return result;
   }
