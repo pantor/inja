@@ -2016,6 +2016,7 @@ class Parser {
           throw_parser_error("unmatched for");
         }
       }
+        current_block = nullptr;
         return;
       case Token::Kind::Text: {
         current_block->nodes.emplace_back(std::make_shared<TextNode>(tok.text.data() - tmpl.content.c_str(), tok.text.size()));
@@ -2060,6 +2061,7 @@ class Parser {
       } break;
       }
     }
+    current_block = nullptr;
   }
 
 public:
