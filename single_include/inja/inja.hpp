@@ -803,7 +803,7 @@ class StatisticsVisitor : public NodeVisitor {
   void visit(const SetStatementNode&) {}
 
 public:
-  unsigned int variable_counter;
+  size_t variable_counter;
 
   explicit StatisticsVisitor(): variable_counter(0) {}
 };
@@ -827,7 +827,7 @@ struct Template {
   explicit Template(std::string content): content(std::move(content)) {}
 
   /// Return number of variables (total number, not distinct ones) in the template
-  int count_variables() const {
+  size_t count_variables() const {
     auto statistic_visitor = StatisticsVisitor();
     root.accept(statistic_visitor);
     return statistic_visitor.variable_counter;
