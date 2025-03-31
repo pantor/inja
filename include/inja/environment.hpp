@@ -1,6 +1,7 @@
 #ifndef INCLUDE_INJA_ENVIRONMENT_HPP_
 #define INCLUDE_INJA_ENVIRONMENT_HPP_
 
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -29,15 +30,13 @@ protected:
   ParserConfig parser_config;
   RenderConfig render_config;
 
-  std::string input_path;
-  std::string output_path;
+  std::filesystem::path input_path;
+  std::filesystem::path output_path;
 
 public:
   Environment(): Environment("") {}
-
-  explicit Environment(const std::string& global_path): input_path(global_path), output_path(global_path) {}
-
-  Environment(const std::string& input_path, const std::string& output_path): input_path(input_path), output_path(output_path) {}
+  explicit Environment(const std::filesystem::path& global_path): input_path(global_path), output_path(global_path) {}
+  Environment(const std::filesystem::path& input_path, const std::filesystem::path& output_path): input_path(input_path), output_path(output_path) {}
 
   /// Sets the opener and closer for template statements
   void set_statement(const std::string& open, const std::string& close) {
@@ -103,14 +102,14 @@ public:
     return parser.parse(input, input_path);
   }
 
-  Template parse_template(const std::string& filename) {
+  Template parse_template(const std::filesystem::path& filename) {
     Parser parser(parser_config, lexer_config, template_storage, function_storage);
-    auto result = Template(Parser::load_file(input_path + static_cast<std::string>(filename)));
-    parser.parse_into_template(result, input_path + static_cast<std::string>(filename));
+    auto result = Template(Parser::load_file(input_path / filename));
+    parser.parse_into_template(result, (input_path / filename).string());
     return result;
   }
 
-  Template parse_file(const std::string& filename) {
+  Template parse_file(const std::filesystem::path& filename) {
     return parse_template(filename);
   }
 
@@ -124,28 +123,28 @@ public:
     return os.str();
   }
 
-  std::string render_file(const std::string& filename, const json& data) {
+  std::string render_file(const std::filesystem::path& filename, const json& data) {
     return render(parse_template(filename), data);
   }
 
-  std::string render_file_with_json_file(const std::string& filename, const std::string& filename_data) {
+  std::string render_file_with_json_file(const std::filesystem::path& filename, const std::string& filename_data) {
     const json data = load_json(filename_data);
     return render_file(filename, data);
   }
 
-  void write(const std::string& filename, const json& data, const std::string& filename_out) {
-    std::ofstream file(output_path + filename_out);
+  void write(const std::filesystem::path& filename, const json& data, const std::string& filename_out) {
+    std::ofstream file(output_path / filename_out);
     file << render_file(filename, data);
     file.close();
   }
 
   void write(const Template& temp, const json& data, const std::string& filename_out) {
-    std::ofstream file(output_path + filename_out);
+    std::ofstream file(output_path / filename_out);
     file << render(temp, data);
     file.close();
   }
 
-  void write_with_json_file(const std::string& filename, const std::string& filename_data, const std::string& filename_out) {
+  void write_with_json_file(const std::filesystem::path& filename, const std::string& filename_data, const std::string& filename_out) {
     const json data = load_json(filename_data);
     write(filename, data, filename_out);
   }
@@ -166,14 +165,14 @@ public:
 
   std::string load_file(const std::string& filename) {
     Parser parser(parser_config, lexer_config, template_storage, function_storage);
-    return Parser::load_file(input_path + filename);
+    return Parser::load_file(input_path / filename);
   }
 
   json load_json(const std::string& filename) {
     std::ifstream file;
-    file.open(input_path + filename);
+    file.open(input_path / filename);
     if (file.fail()) {
-      INJA_THROW(FileError("failed accessing file at '" + input_path + filename + "'"));
+      INJA_THROW(FileError("failed accessing file at '" + (input_path / filename).string() + "'"));
     }
 
     return json::parse(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
@@ -221,7 +220,7 @@ public:
   /*!
   @brief Sets a function that is called when an included file is not found
   */
-  void set_include_callback(const std::function<Template(const std::string&, const std::string&)>& callback) {
+  void set_include_callback(const std::function<Template(const std::filesystem::path&, const std::string&)>& callback) {
     parser_config.include_callback = callback;
   }
 };

@@ -67,6 +67,7 @@ std::abort();                 \
 #ifndef INCLUDE_INJA_ENVIRONMENT_HPP_
 #define INCLUDE_INJA_ENVIRONMENT_HPP_
 
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -79,6 +80,7 @@ std::abort();                 \
 #ifndef INCLUDE_INJA_CONFIG_HPP_
 #define INCLUDE_INJA_CONFIG_HPP_
 
+#include <filesystem>
 #include <functional>
 #include <string>
 
@@ -901,7 +903,7 @@ struct LexerConfig {
 struct ParserConfig {
   bool search_included_templates_in_files {true};
 
-  std::function<Template(const std::string&, const std::string&)> include_callback;
+  std::function<Template(const std::filesystem::path&, const std::string&)> include_callback;
 };
 
 /*!
@@ -923,6 +925,7 @@ struct RenderConfig {
 #define INCLUDE_INJA_PARSER_HPP_
 
 #include <cstddef>
+#include <filesystem>
 #include <fstream>
 #include <iterator>
 #include <memory>
@@ -1530,17 +1533,16 @@ class Parser {
     arguments.emplace_back(function);
   }
 
-  void add_to_template_storage(std::string_view path, std::string& template_name) {
+  void add_to_template_storage(const std::filesystem::path& path, std::string& template_name) {
     if (template_storage.find(template_name) != template_storage.end()) {
       return;
     }
 
-    const std::string original_path = static_cast<std::string>(path);
     const std::string original_name = template_name;
 
     if (config.search_included_templates_in_files) {
       // Build the relative path
-      template_name = original_path + original_name;
+      template_name = path / original_name;
       if (template_name.compare(0, 2, "./") == 0) {
         template_name.erase(0, 2);
       }
@@ -1564,7 +1566,7 @@ class Parser {
 
     // Try include callback
     if (config.include_callback) {
-      auto include_template = config.include_callback(original_path, original_name);
+      auto include_template = config.include_callback(path, original_name);
       template_storage.emplace(template_name, include_template);
     }
   }
@@ -1815,7 +1817,7 @@ class Parser {
     return expr;
   }
 
-  bool parse_statement(Template& tmpl, Token::Kind closing, std::string_view path) {
+  bool parse_statement(Template& tmpl, Token::Kind closing, const std::filesystem::path& path) {
     if (tok.kind != Token::Kind::Id) {
       return false;
     }
@@ -2001,7 +2003,7 @@ class Parser {
     return true;
   }
 
-  void parse_into(Template& tmpl, std::string_view path) {
+  void parse_into(Template& tmpl, const std::filesystem::path& path) {
     lexer.start(tmpl.content);
     current_block = &tmpl.root;
 
@@ -2069,25 +2071,22 @@ public:
                   const FunctionStorage& function_storage)
       : config(parser_config), lexer(lexer_config), template_storage(template_storage), function_storage(function_storage) {}
 
-  Template parse(std::string_view input, std::string_view path) {
+  Template parse(std::string_view input, std::filesystem::path path) {
     auto result = Template(std::string(input));
     parse_into(result, path);
     return result;
   }
 
-  void parse_into_template(Template& tmpl, std::string_view filename) {
-    const std::string_view path = filename.substr(0, filename.find_last_of("/\\") + 1);
-
-    // StringRef path = sys::path::parent_path(filename);
+  void parse_into_template(Template& tmpl, std::filesystem::path filename) {
     auto sub_parser = Parser(config, lexer.get_config(), template_storage, function_storage);
-    sub_parser.parse_into(tmpl, path);
+    sub_parser.parse_into(tmpl, filename.parent_path());
   }
 
-  static std::string load_file(const std::string& filename) {
+  static std::string load_file(const std::filesystem::path& filename) {
     std::ifstream file;
     file.open(filename);
     if (file.fail()) {
-      INJA_THROW(FileError("failed accessing file at '" + filename + "'"));
+      INJA_THROW(FileError("failed accessing file at '" + filename.string() + "'"));
     }
     std::string text((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
     return text;
@@ -2795,15 +2794,13 @@ protected:
   ParserConfig parser_config;
   RenderConfig render_config;
 
-  std::string input_path;
-  std::string output_path;
+  std::filesystem::path input_path;
+  std::filesystem::path output_path;
 
 public:
   Environment(): Environment("") {}
-
-  explicit Environment(const std::string& global_path): input_path(global_path), output_path(global_path) {}
-
-  Environment(const std::string& input_path, const std::string& output_path): input_path(input_path), output_path(output_path) {}
+  explicit Environment(const std::filesystem::path& global_path): input_path(global_path), output_path(global_path) {}
+  Environment(const std::filesystem::path& input_path, const std::filesystem::path& output_path): input_path(input_path), output_path(output_path) {}
 
   /// Sets the opener and closer for template statements
   void set_statement(const std::string& open, const std::string& close) {
@@ -2869,14 +2866,14 @@ public:
     return parser.parse(input, input_path);
   }
 
-  Template parse_template(const std::string& filename) {
+  Template parse_template(const std::filesystem::path& filename) {
     Parser parser(parser_config, lexer_config, template_storage, function_storage);
-    auto result = Template(Parser::load_file(input_path + static_cast<std::string>(filename)));
-    parser.parse_into_template(result, input_path + static_cast<std::string>(filename));
+    auto result = Template(Parser::load_file(input_path / filename));
+    parser.parse_into_template(result, (input_path / filename).string());
     return result;
   }
 
-  Template parse_file(const std::string& filename) {
+  Template parse_file(const std::filesystem::path& filename) {
     return parse_template(filename);
   }
 
@@ -2890,28 +2887,28 @@ public:
     return os.str();
   }
 
-  std::string render_file(const std::string& filename, const json& data) {
+  std::string render_file(const std::filesystem::path& filename, const json& data) {
     return render(parse_template(filename), data);
   }
 
-  std::string render_file_with_json_file(const std::string& filename, const std::string& filename_data) {
+  std::string render_file_with_json_file(const std::filesystem::path& filename, const std::string& filename_data) {
     const json data = load_json(filename_data);
     return render_file(filename, data);
   }
 
-  void write(const std::string& filename, const json& data, const std::string& filename_out) {
-    std::ofstream file(output_path + filename_out);
+  void write(const std::filesystem::path& filename, const json& data, const std::string& filename_out) {
+    std::ofstream file(output_path / filename_out);
     file << render_file(filename, data);
     file.close();
   }
 
   void write(const Template& temp, const json& data, const std::string& filename_out) {
-    std::ofstream file(output_path + filename_out);
+    std::ofstream file(output_path / filename_out);
     file << render(temp, data);
     file.close();
   }
 
-  void write_with_json_file(const std::string& filename, const std::string& filename_data, const std::string& filename_out) {
+  void write_with_json_file(const std::filesystem::path& filename, const std::string& filename_data, const std::string& filename_out) {
     const json data = load_json(filename_data);
     write(filename, data, filename_out);
   }
@@ -2932,14 +2929,14 @@ public:
 
   std::string load_file(const std::string& filename) {
     Parser parser(parser_config, lexer_config, template_storage, function_storage);
-    return Parser::load_file(input_path + filename);
+    return Parser::load_file(input_path / filename);
   }
 
   json load_json(const std::string& filename) {
     std::ifstream file;
-    file.open(input_path + filename);
+    file.open(input_path / filename);
     if (file.fail()) {
-      INJA_THROW(FileError("failed accessing file at '" + input_path + filename + "'"));
+      INJA_THROW(FileError("failed accessing file at '" + (input_path / filename).string() + "'"));
     }
 
     return json::parse(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
@@ -2987,7 +2984,7 @@ public:
   /*!
   @brief Sets a function that is called when an included file is not found
   */
-  void set_include_callback(const std::function<Template(const std::string&, const std::string&)>& callback) {
+  void set_include_callback(const std::function<Template(const std::filesystem::path&, const std::string&)>& callback) {
     parser_config.include_callback = callback;
   }
 };
