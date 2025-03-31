@@ -10,19 +10,19 @@ TEST_CASE("loading") {
   data["name"] = "Jeff";
 
   SUBCASE("Files should be loaded") {
-    CHECK(env.load_file(test_file_directory + "simple.txt") == "Hello {{ name }}.");
+    CHECK(env.load_file(test_file_directory / "simple.txt") == "Hello {{ name }}.");
   }
 
   SUBCASE("Files should be rendered") {
-    CHECK(env.render_file(test_file_directory + "simple.txt", data) == "Hello Jeff.");
+    CHECK(env.render_file(test_file_directory / "simple.txt", data) == "Hello Jeff.");
   }
 
   SUBCASE("File includes should be rendered") {
-    CHECK(env.render_file(test_file_directory + "include.txt", data) == "Answer: Hello Jeff.");
+    CHECK(env.render_file(test_file_directory / "include.txt", data) == "Answer: Hello Jeff.");
   }
 
   SUBCASE("File error should throw") {
-    std::string path(test_file_directory + "does-not-exist");
+    std::string path(test_file_directory / "does-not-exist");
 
     std::string file_error_message = "[inja.exception.file_error] failed accessing file at '" + path + "'";
     CHECK_THROWS_WITH(env.load_file(path), file_error_message.c_str());
@@ -98,7 +98,7 @@ TEST_CASE("include-in-memory-and-file-template") {
   inja::json data;
   data["name"] = "Jeff";
 
-  std::string error_message = "[inja.exception.file_error] failed accessing file at '" + test_file_directory + "body'";
+  std::string error_message = "[inja.exception.file_error] failed accessing file at '" + test_file_directory.string() + "/body'";
   CHECK_THROWS_WITH(env.render_file("include-both.txt", data), error_message.c_str());
 
   const auto parsed_body_template = env.parse("Bye {{ name }}.");

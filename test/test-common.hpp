@@ -4,6 +4,6 @@
 #include <string>
 #include <doctest/doctest.h>
 
-extern const std::string test_file_directory;
+extern const std::filesystem::path test_file_directory;
 
 #endif // INCLUDE_TEST_COMMON_HPP_
