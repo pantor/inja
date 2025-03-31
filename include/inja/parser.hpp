@@ -97,7 +97,7 @@ class Parser {
 
     if (config.search_included_templates_in_files) {
       // Build the relative path
-      template_name = path / original_name;
+      template_name = (path / original_name).string();
       if (template_name.compare(0, 2, "./") == 0) {
         template_name.erase(0, 2);
       }
