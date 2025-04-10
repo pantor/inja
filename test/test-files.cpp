@@ -98,7 +98,7 @@ TEST_CASE("include-in-memory-and-file-template") {
   inja::json data;
   data["name"] = "Jeff";
 
-  std::string error_message = "[inja.exception.file_error] failed accessing file at '" + test_file_directory.string() + "/body'";
+  std::string error_message = "[inja.exception.file_error] failed accessing file at '" + (test_file_directory / "body").string() + "'";
   CHECK_THROWS_WITH(env.render_file("include-both.txt", data), error_message.c_str());
 
   const auto parsed_body_template = env.parse("Bye {{ name }}.");
