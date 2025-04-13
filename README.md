@@ -183,7 +183,7 @@ render("{% include \"footer.html\" %}", data);
 If a corresponding template could not be found in the file system, the *include callback* is called:
 ```.cpp
 // The callback takes the current path and the wanted include name and returns a template
-env.set_include_callback([&env](const std::string& path, const std::string& template_name) {
+env.set_include_callback([&env](const std::filesystem::path& path, const std::string& template_name) {
   return env.parse("Hello {{ neighbour }} from " + template_name);
 });
 

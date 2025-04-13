@@ -11,30 +11,18 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: ubuntu-20.04-gcc-9
-            os: ubuntu-20.04
-            compiler: gcc-9
+          - name: ubuntu-22.04-gcc
+            os: ubuntu-22.04
+            compiler: gcc
 
-          - name: ubuntu-20.04-gcc-11
-            os: ubuntu-20.04
-            compiler: gcc-11
-
-          - name: ubuntu-20.04-clang-9
-            os: ubuntu-20.04
-            compiler: clang-9
-
-          - name: ubuntu-20.04-clang-12
-            os: ubuntu-20.04
-            compiler: clang-12
+          - name: ubuntu-22.04-clang
+            os: ubuntu-22.04
+            compiler: clang
 
           - name: ubuntu-22.04-clang-15-no-exceptions
             os: ubuntu-22.04
             compiler: clang-15
             cmake_vars: "-DCMAKE_CXX_FLAGS=-fno-exceptions -DBUILD_TESTING=OFF"
-
-          - name: ubuntu-22.04-gcc
-            os: ubuntu-22.04
-            compiler: gcc
 
           - name: ubuntu-24.04-gcc
             os: ubuntu-24.04
@@ -56,17 +44,13 @@ jobs:
             os: windows-2022
             compiler: msvc
 
-          - name: macOS-12-gcc
-            os: macOS-12
+          - name: macOS-13-gcc
+            os: macOS-13
             compiler: gcc
 
           - name: macOS-13-clang
             os: macOS-13
             compiler: clang
-
-          # - name: macOS-14-clang
-          #   os: macOS-14
-          #   compiler: clang
 
     steps:
       - uses: actions/checkout@v4

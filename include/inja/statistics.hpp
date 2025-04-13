@@ -63,7 +63,7 @@ class StatisticsVisitor : public NodeVisitor {
   void visit(const SetStatementNode&) {}
 
 public:
-  unsigned int variable_counter;
+  size_t variable_counter;
 
   explicit StatisticsVisitor(): variable_counter(0) {}
 };

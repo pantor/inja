@@ -1,6 +1,7 @@
 #ifndef INCLUDE_INJA_CONFIG_HPP_
 #define INCLUDE_INJA_CONFIG_HPP_
 
+#include <filesystem>
 #include <functional>
 #include <string>
 
@@ -66,7 +67,7 @@ struct LexerConfig {
 struct ParserConfig {
   bool search_included_templates_in_files {true};
 
-  std::function<Template(const std::string&, const std::string&)> include_callback;
+  std::function<Template(const std::filesystem::path&, const std::string&)> include_callback;
 };
 
 /*!

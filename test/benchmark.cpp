@@ -5,12 +5,12 @@
 
 inja::Environment env;
 
-const std::string test_file_directory {"../test/data/benchmark/"};
+const std::filesystem::path test_file_directory {"../test/data/benchmark/"};
 
-const auto small_data = env.load_json(test_file_directory + "small_data.json");
-const auto large_data = env.load_json(test_file_directory + "large_data.json");
-const std::string medium_template = env.load_file(test_file_directory + "medium_template.txt");
-const std::string large_template = env.load_file(test_file_directory + "large_template.txt");
+const auto small_data = env.load_json((test_file_directory / "small_data.json").string());
+const auto large_data = env.load_json((test_file_directory / "large_data.json").string());
+const std::string medium_template = env.load_file((test_file_directory / "medium_template.txt").string());
+const std::string large_template = env.load_file((test_file_directory / "large_template.txt").string());
 
 BENCHMARK(SmallDataMediumTemplate, render, 5, 30) {
   env.render(medium_template, small_data);

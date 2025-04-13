@@ -81,6 +81,8 @@ execute_process(COMMAND scripts/update_single_include.sh WORKING_DIRECTORY ${PRO
 if(BUILD_TESTING AND INJA_BUILD_TESTS)
   enable_testing()
 
+  add_definitions(-D__TEST_DIR__=${CMAKE_CURRENT_SOURCE_DIR}/test)
+
   add_executable(inja_test test/test.cpp)
   target_link_libraries(inja_test PRIVATE inja)
   target_include_directories(inja_test PRIVATE include third_party/include)
@@ -104,7 +106,8 @@ if(BUILD_TESTING AND INJA_BUILD_TESTS)
   add_test(single_inja_test ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/single_inja_test)
 
 
-  add_executable(inja_benchmark test/benchmark.cpp)
+  add_executable(inja_benchmark test/benchmark.cpp
+    test/test-common.hpp)
   target_link_libraries(inja_benchmark PRIVATE inja)
   target_include_directories(inja_benchmark PRIVATE third_party/include)
 endif()

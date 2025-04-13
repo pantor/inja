@@ -18,9 +18,9 @@
 #include "config.hpp"
 #include "exceptions.hpp"
 #include "function_storage.hpp"
-#include "inja.hpp"
 #include "node.hpp"
 #include "template.hpp"
+#include "throw.hpp"
 #include "utils.hpp"
 
 namespace inja {
@@ -30,7 +30,7 @@ namespace inja {
 */
 inline std::string htmlescape(const std::string& data) {
   std::string buffer;
-  buffer.reserve(1.1 * data.size());
+  buffer.reserve((unsigned int)(1.1 * data.size()));
   for (size_t pos = 0; pos != data.size(); ++pos) {
     switch (data[pos]) {
       case '&':  buffer.append("&amp;");       break;

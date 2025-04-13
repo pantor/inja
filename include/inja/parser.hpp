@@ -2,6 +2,7 @@
 #define INCLUDE_INJA_PARSER_HPP_
 
 #include <cstddef>
+#include <filesystem>
 #include <fstream>
 #include <iterator>
 #include <memory>
@@ -14,10 +15,10 @@
 #include "config.hpp"
 #include "exceptions.hpp"
 #include "function_storage.hpp"
-#include "inja.hpp"
 #include "lexer.hpp"
 #include "node.hpp"
 #include "template.hpp"
+#include "throw.hpp"
 #include "token.hpp"
 
 namespace inja {
@@ -87,17 +88,16 @@ class Parser {
     arguments.emplace_back(function);
   }
 
-  void add_to_template_storage(std::string_view path, std::string& template_name) {
+  void add_to_template_storage(const std::filesystem::path& path, std::string& template_name) {
     if (template_storage.find(template_name) != template_storage.end()) {
       return;
     }
 
-    const std::string original_path = static_cast<std::string>(path);
     const std::string original_name = template_name;
 
     if (config.search_included_templates_in_files) {
       // Build the relative path
-      template_name = original_path + original_name;
+      template_name = (path / original_name).string();
       if (template_name.compare(0, 2, "./") == 0) {
         template_name.erase(0, 2);
       }
@@ -121,7 +121,7 @@ class Parser {
 
     // Try include callback
     if (config.include_callback) {
-      auto include_template = config.include_callback(original_path, original_name);
+      auto include_template = config.include_callback(path, original_name);
       template_storage.emplace(template_name, include_template);
     }
   }
@@ -372,7 +372,7 @@ class Parser {
     return expr;
   }
 
-  bool parse_statement(Template& tmpl, Token::Kind closing, std::string_view path) {
+  bool parse_statement(Template& tmpl, Token::Kind closing, const std::filesystem::path& path) {
     if (tok.kind != Token::Kind::Id) {
       return false;
     }
@@ -558,7 +558,7 @@ class Parser {
     return true;
   }
 
-  void parse_into(Template& tmpl, std::string_view path) {
+  void parse_into(Template& tmpl, const std::filesystem::path& path) {
     lexer.start(tmpl.content);
     current_block = &tmpl.root;
 
@@ -573,6 +573,7 @@ class Parser {
           throw_parser_error("unmatched for");
         }
       }
+        current_block = nullptr;
         return;
       case Token::Kind::Text: {
         current_block->nodes.emplace_back(std::make_shared<TextNode>(tok.text.data() - tmpl.content.c_str(), tok.text.size()));
@@ -617,6 +618,7 @@ class Parser {
       } break;
       }
     }
+    current_block = nullptr;
   }
 
 public:
@@ -624,25 +626,22 @@ public:
                   const FunctionStorage& function_storage)
       : config(parser_config), lexer(lexer_config), template_storage(template_storage), function_storage(function_storage) {}
 
-  Template parse(std::string_view input, std::string_view path) {
-    auto result = Template(static_cast<std::string>(input));
+  Template parse(std::string_view input, std::filesystem::path path) {
+    auto result = Template(std::string(input));
     parse_into(result, path);
     return result;
   }
 
-  void parse_into_template(Template& tmpl, std::string_view filename) {
-    const std::string_view path = filename.substr(0, filename.find_last_of("/\\") + 1);
-
-    // StringRef path = sys::path::parent_path(filename);
+  void parse_into_template(Template& tmpl, std::filesystem::path filename) {
     auto sub_parser = Parser(config, lexer.get_config(), template_storage, function_storage);
-    sub_parser.parse_into(tmpl, path);
+    sub_parser.parse_into(tmpl, filename.parent_path());
   }
 
-  static std::string load_file(const std::string& filename) {
+  static std::string load_file(const std::filesystem::path& filename) {
     std::ifstream file;
     file.open(filename);
     if (file.fail()) {
-      INJA_THROW(FileError("failed accessing file at '" + filename + "'"));
+      INJA_THROW(FileError("failed accessing file at '" + filename.string() + "'"));
     }
     std::string text((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
     return text;
