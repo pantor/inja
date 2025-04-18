@@ -170,6 +170,7 @@ public:
     Min,
     Odd,
     Range,
+    Replace,
     Round,
     Sort,
     Upper,
@@ -213,6 +214,7 @@ private:
       {std::make_pair("min", 1), FunctionData {Operation::Min}},
       {std::make_pair("odd", 1), FunctionData {Operation::Odd}},
       {std::make_pair("range", 1), FunctionData {Operation::Range}},
+      {std::make_pair("replace", 3), FunctionData {Operation::Replace}},
       {std::make_pair("round", 2), FunctionData {Operation::Round}},
       {std::make_pair("sort", 1), FunctionData {Operation::Sort}},
       {std::make_pair("upper", 1), FunctionData {Operation::Upper}},
@@ -2519,6 +2521,12 @@ class Renderer : public NodeVisitor {
     case Op::Range: {
       std::vector<int> result(get_arguments<1>(node)[0]->get<const json::number_integer_t>());
       std::iota(result.begin(), result.end(), 0);
+      make_result(std::move(result));
+    } break;
+    case Op::Replace: {
+      const auto args = get_arguments<3>(node);
+      auto result = args[0]->get<std::string>();
+      replace_substring(result, args[1]->get<std::string>(), args[2]->get<std::string>());
       make_result(std::move(result));
     } break;
     case Op::Round: {
