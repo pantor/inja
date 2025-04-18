@@ -108,6 +108,11 @@ TEST_CASE("functions") {
     // [json.exception.type_error.302] type must be array, but is number" );
   }
 
+  SUBCASE("replace") {
+    CHECK(env.render("{{ replace(name, \"e\", \"3\") }}", data) == "P3t3r");
+    CHECK(env.render("{{ replace(city, \" \", \"_\") }}", data) == "New_York");
+  }
+
   SUBCASE("round") {
     CHECK(env.render("{{ round(4, 0) }}", data) == "4");
     CHECK(env.render("{{ round(temperature, 2) }}", data) == "25.68");

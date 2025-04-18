@@ -414,6 +414,12 @@ class Renderer : public NodeVisitor {
       std::iota(result.begin(), result.end(), 0);
       make_result(std::move(result));
     } break;
+    case Op::Replace: {
+      const auto args = get_arguments<3>(node);
+      auto result = args[0]->get<std::string>();
+      replace_substring(result, args[1]->get<std::string>(), args[2]->get<std::string>());
+      make_result(std::move(result));
+    } break;
     case Op::Round: {
       const auto args = get_arguments<2>(node);
       const auto precision = args[1]->get<const json::number_integer_t>();
