@@ -28,20 +28,20 @@ jobs:
             os: ubuntu-24.04
             compiler: gcc
 
-          - name: windows-2019-msvc
-            os: windows-2019
-            compiler: msvc
-
-          - name: windows-2019-clang
-            os: windows-2019
-            compiler: clang
-
-          - name: windows-2019-gcc
-            os: windows-2019
-            compiler: gcc
-
           - name: windows-2022-msvc
             os: windows-2022
+            compiler: msvc
+
+          - name: windows-2022-clang
+            os: windows-2022
+            compiler: clang
+
+          - name: windows-2022-gcc
+            os: windows-2022
+            compiler: gcc
+
+          - name: windows-2025-msvc
+            os: windows-2025
             compiler: msvc
 
           - name: macOS-13-gcc
