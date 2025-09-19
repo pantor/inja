@@ -6,6 +6,7 @@ project(
   meson_version: '>=0.56'
 )
 
+pkgc = import('pkgconfig')
 
 inja_dep = declare_dependency(
   include_directories: include_directories('include', 'third_party/include')
@@ -27,6 +28,15 @@ install_headers(
   'include/inja/token.hpp',
   'include/inja/utils.hpp',
   subdir: 'inja'
+)
+
+pkgc.generate(
+    version: meson.project_version(),
+    name: 'inja',
+    description: 'Template engine for modern C++',
+    url: 'https://github.com/pantor/inja',
+    requires: ['nlohmann_json'],
+    dataonly: true,
 )
 
 
