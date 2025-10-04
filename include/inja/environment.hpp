@@ -28,8 +28,18 @@ class Environment {
 
   template <class Arg>
   static Arg get_callback_argument(const Arguments &args, size_t index) {
-    if constexpr (std::is_lvalue_reference_v<Arg>) {
-      return args[index]->get_ref<const std::remove_reference_t<Arg> &>();
+    using BasicArg = std::remove_const_t<
+        std::remove_pointer_t<std::remove_reference_t<std::decay_t<Arg>>>>;
+
+    constexpr bool is_valid_arg =
+        std::is_const_v<std::remove_reference_t<Arg>> ||
+        std::is_same_v<BasicArg, Arg>;
+    static_assert(is_valid_arg, "Arguments should be either const& or a value type");
+
+    if constexpr (std::is_same_v<BasicArg, json>) {
+      return *args[index];
+    } else if constexpr (std::is_lvalue_reference_v<Arg>) {
+      return args[index]->get_ref<Arg>();
     } else {
       return args[index]->get<Arg>();
     }

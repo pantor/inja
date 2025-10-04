@@ -271,7 +271,12 @@ TEST_CASE("callbacks") {
 
   });
 
+  env.add_callback("get_arg_type",
+                   [](const inja::json &input) { return input.type_name(); });
+
   env.add_callback("multiply", 0, [](inja::Arguments) { return 1.0; });
+
+  env.add_callback("any_2_types", [](const inja::json &, inja::json) {});
 
   CHECK(env.render("{{ double(age) }}", data) == "56");
   CHECK(env.render("{{ half(age) }}", data) == "14");
@@ -286,6 +291,8 @@ TEST_CASE("callbacks") {
   CHECK(env.render("{{ multiply(5, length(\"t\")) }}", data) == "5.0");
   CHECK(env.render("{{ multiply(3, 4, 5) }}", data) == "60.0");
   CHECK(env.render("{{ multiply }}", data) == "1.0");
+  CHECK(env.render("{{ get_arg_type(4) }}", data) == "number");
+  CHECK(env.render("{{ get_arg_type(false) }}", data) == "boolean");
 
   SUBCASE("Variadic") {
     env.add_callback("argmax", [](inja::Arguments& args) {
