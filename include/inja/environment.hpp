@@ -31,10 +31,10 @@ class Environment {
     using BasicArg = std::remove_const_t<
         std::remove_pointer_t<std::remove_reference_t<std::decay_t<Arg>>>>;
 
-    constexpr bool is_valid_arg =
+    static constexpr bool check =
         std::is_const_v<std::remove_reference_t<Arg>> ||
         std::is_same_v<BasicArg, Arg>;
-    static_assert(is_valid_arg, "Arguments should be either const& or a value type");
+    static_assert(check, "Arguments should be either const& or a value type");
 
     if constexpr (std::is_same_v<BasicArg, json>) {
       return *args[index];
@@ -50,7 +50,8 @@ class Environment {
                             function_signature::ArgsList<Args...> /*args*/,
                             std::index_sequence<Is...> /*seq*/) {
     add_callback(name, sizeof...(Args),
-                 [func = std::move(func)](const Arguments &args) -> json {
+                 [func = std::move(func)] //
+                 ([[maybe_unused]] const Arguments &args) -> json {
                    if constexpr (std::is_same_v<Ret, void>) {
                      func(get_callback_argument<Args>(args, Is)...);
                      return {};
@@ -218,7 +219,7 @@ public:
   */
   template <class Callback>
   void add_callback(const std::string &name, Callback callback) {
-    constexpr auto get_sig = [] {
+    static constexpr auto get_sig = [] {
       if constexpr (std::is_class_v<Callback>) {
         return function_signature::Get<decltype(&Callback::operator())> {};
       } else {
@@ -226,9 +227,10 @@ public:
       }
     };
     using Sig = decltype(get_sig());
-    constexpr size_t num_args = std::tuple_size_v<typename Sig::ArgsTuple>;
+    static constexpr size_t num_args =
+        std::tuple_size_v<typename Sig::ArgsTuple>;
 
-    constexpr auto is_arguments_vector = [] {
+    static constexpr auto is_arguments_vector = [] {
       if constexpr (num_args == 1) {
         return std::is_same_v<
             std::remove_cv_t<std::remove_reference_t<
