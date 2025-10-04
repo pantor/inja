@@ -29,7 +29,7 @@ class Environment {
   template <class Arg>
   static Arg get_callback_argument(const Arguments &args, size_t index) {
     if constexpr (std::is_lvalue_reference_v<Arg>) {
-      return args[index]->get_ref<const Arg &>();
+      return args[index]->get_ref<const std::remove_reference_t<Arg> &>();
     } else {
       return args[index]->get<Arg>();
     }
