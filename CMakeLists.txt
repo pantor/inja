@@ -127,7 +127,7 @@ endif()
 
 
 if(INJA_ENABLE_CLANG_TIDY)
-  find_program(CLANG_TIDY_EXE NAMES "clang-tidy" REQUIRED)
+  find_program(CLANG_TIDY_EXE NAMES "clang-tidsy" REQUIRED)
   set(CLANG_TIDY_COMMAND "${CLANG_TIDY_EXE}" "-config-file=${CMAKE_CURRENT_SOURCE_DIR}/.clang-tidy")
   set_target_properties(inja PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY_COMMAND}")
 endif()
