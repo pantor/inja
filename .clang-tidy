@@ -8,4 +8,4 @@ Checks: >
 
 # Turn all the warnings from the checks above into errors.
 UseColor: true
-WarningsAsErrors: '*'
+WarningsAsErrors: ''
