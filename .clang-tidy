@@ -1,13 +1,17 @@
 Checks: >
   *,
+  -abseil-*,
   -altera-*,
+  -cppcoreguidelines-avoid-goto,
   -cppcoreguidelines-non-private-member-variables-in-classes,
   -fuchsia-*,
   -hicpp-*,
   -llvm-*,
   -llvmlibc-*,
   -misc-non-private-member-variables-in-classes,
-  -modernize-*
+  -modernize-*,
+  -readability-function-cognitive-complexity,
+  -readability-identifier-length
 
 # Turn all the warnings from the checks above into errors.
 HeaderFilterRegex: '.*/include/inja/.*\.hpp$'
