@@ -517,7 +517,7 @@ class Parser {
           throw_parser_error("expected id, got '" + tok.describe() + "'");
         }
 
-        const Token key_token = std::move(value_token);
+        const Token key_token = value_token;
         value_token = tok;
         get_next_token();
 
@@ -667,13 +667,13 @@ public:
                   const FunctionStorage& function_storage)
       : config(parser_config), lexer(lexer_config), template_storage(template_storage), function_storage(function_storage) {}
 
-  Template parse(std::string_view input, std::filesystem::path path) {
+  Template parse(std::string_view input, const std::filesystem::path& path) {
     auto result = Template(std::string(input));
     parse_into(result, path);
     return result;
   }
 
-  void parse_into_template(Template& tmpl, std::filesystem::path filename) {
+  void parse_into_template(Template& tmpl, const std::filesystem::path& filename) {
     auto sub_parser = Parser(config, lexer.get_config(), template_storage, function_storage);
     sub_parser.parse_into(tmpl, filename.parent_path());
   }

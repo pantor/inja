@@ -115,7 +115,7 @@ class Renderer : public NodeVisitor {
     const auto result = data_eval_stack.top();
     data_eval_stack.pop();
 
-    if (!result) {
+    if (result == nullptr) {
       if (not_found_stack.empty()) {
         throw_renderer_error("expression could not be evaluated", expression_list);
       }
@@ -661,7 +661,7 @@ public:
     output_stream = &os;
     current_template = &tmpl;
     data_input = &data;
-    if (loop_data) {
+    if (loop_data != nullptr) {
       additional_data = *loop_data;
       current_loop_data = &additional_data["loop"];
     }

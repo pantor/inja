@@ -2117,13 +2117,13 @@ public:
                   const FunctionStorage& function_storage)
       : config(parser_config), lexer(lexer_config), template_storage(template_storage), function_storage(function_storage) {}
 
-  Template parse(std::string_view input, std::filesystem::path path) {
+  Template parse(std::string_view input, const std::filesystem::path& path) {
     auto result = Template(std::string(input));
     parse_into(result, path);
     return result;
   }
 
-  void parse_into_template(Template& tmpl, std::filesystem::path filename) {
+  void parse_into_template(Template& tmpl, const std::filesystem::path& filename) {
     auto sub_parser = Parser(config, lexer.get_config(), template_storage, function_storage);
     sub_parser.parse_into(tmpl, filename.parent_path());
   }
@@ -2268,7 +2268,7 @@ class Renderer : public NodeVisitor {
     const auto result = data_eval_stack.top();
     data_eval_stack.pop();
 
-    if (!result) {
+    if (result == nullptr) {
       if (not_found_stack.empty()) {
         throw_renderer_error("expression could not be evaluated", expression_list);
       }
@@ -2814,7 +2814,7 @@ public:
     output_stream = &os;
     current_template = &tmpl;
     data_input = &data;
-    if (loop_data) {
+    if (loop_data != nullptr) {
       additional_data = *loop_data;
       current_loop_data = &additional_data["loop"];
     }
