@@ -9,6 +9,6 @@ Checks: >
   readability-*
 
 # Turn all the warnings from the checks above into errors.
-HeaderFilterRegex: ''
+HeaderFilter: 'include/inja/*.hpp'
 UseColor: true
 WarningsAsErrors: ''
