@@ -1,11 +1,14 @@
 Checks: >
   *,
   bugprone-*,
+  cppcoreguidelines-*
   misc-*,
+  modernize-*,
   performance-*,
   portability-*,
   readability-*
 
 # Turn all the warnings from the checks above into errors.
+HeaderFilterRegex: ''
 UseColor: true
 WarningsAsErrors: ''
