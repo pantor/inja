@@ -8,13 +8,14 @@ cmake_policy(SET CMP0077 NEW)
 project(inja LANGUAGES CXX VERSION 3.4.0)
 
 
-option(INJA_USE_EMBEDDED_JSON "Use the shipped json header if not available on the system" ON)
+option(BUILD_TESTING "Build unit tests" ON)
+option(COVERALLS "Generate coveralls data" OFF)
+option(INJA_BUILD_TESTS "Build unit tests when BUILD_TESTING is enabled." ON)
+option(INJA_ENABLE_CLANG_TIDY "Enable clang-tidy" OFF)
+option(INJA_EXPORT "Export the current build tree to the package registry" ON)
 option(INJA_INSTALL "Generate install targets for inja" ON)
 option(INJA_INSTALL_SINGLE_HEADER "Install the single header instead" OFF)
-option(INJA_EXPORT "Export the current build tree to the package registry" ON)
-option(BUILD_TESTING "Build unit tests" ON)
-option(INJA_BUILD_TESTS "Build unit tests when BUILD_TESTING is enabled." ON)
-option(COVERALLS "Generate coveralls data" OFF)
+option(INJA_USE_EMBEDDED_JSON "Use the shipped json header if not available on the system" ON)
 
 
 set(INJA_INSTALL_INCLUDE_DIR "include")
@@ -122,6 +123,13 @@ if(COVERALLS)
   # set(COVERAGE_SRCS test/unit.cpp test/unit-renderer.cpp include/inja)
 
   coveralls_setup("${COVERAGE_SRCS}" OFF) # If we should upload.
+endif()
+
+
+if(INJA_ENABLE_CLANG_TIDY)
+  find_program(CLANG_TIDY_EXE NAMES "clang-tidy" REQUIRED)
+  set(CLANG_TIDY_COMMAND "${CLANG_TIDY_EXE}" "-config-file=${CMAKE_CURRENT_SOURCE_DIR}/.clang-tidy")
+  set_target_properties(inja PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY_COMMAND}")
 endif()
 
 

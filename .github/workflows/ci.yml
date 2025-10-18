@@ -19,6 +19,11 @@ jobs:
             os: ubuntu-22.04
             compiler: clang
 
+          - name: ubuntu-24.04-clang-tidy
+            os: ubuntu-24.04
+            compiler: clang
+            cmake_vars: "-DINJA_ENABLE_CLANG_TIDY=ON"
+
           - name: ubuntu-22.04-clang-15-no-exceptions
             os: ubuntu-22.04
             compiler: clang-15
