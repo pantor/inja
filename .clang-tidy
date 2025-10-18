@@ -1,19 +1,19 @@
 Checks: >
-  -*,
-  bugprone-*,
-  google-*,
-  misc-*,
-  modernize-*,
-  performance-*,
-  portability-*,
-  readability-*,
-  -google-readability-namespace-comments,
-  -google-runtime-int,
-  -google-runtime-references,
+  *,
+  -abseil-*,
+  -altera-*,
+  -cppcoreguidelines-avoid-goto,
+  -cppcoreguidelines-non-private-member-variables-in-classes,
+  -fuchsia-*,
+  -hicpp-*,
+  -llvm-*,
+  -llvmlibc-*,
   -misc-non-private-member-variables-in-classes,
-  -readability-named-parameter,
-  -readability-braces-around-statements,
-  -readability-magic-numbers
+  -modernize-*,
+  -readability-function-cognitive-complexity,
+  -readability-identifier-length
 
 # Turn all the warnings from the checks above into errors.
-WarningsAsErrors: ""
+HeaderFilterRegex: '.*/include/inja/.*\.hpp$'
+UseColor: true
+WarningsAsErrors: ''

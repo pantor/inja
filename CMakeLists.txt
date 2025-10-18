@@ -8,13 +8,14 @@ cmake_policy(SET CMP0077 NEW)
 project(inja LANGUAGES CXX VERSION 3.4.0)
 
 
-option(INJA_USE_EMBEDDED_JSON "Use the shipped json header if not available on the system" ON)
+option(BUILD_TESTING "Build unit tests" ON)
+option(COVERALLS "Generate coveralls data" OFF)
+option(INJA_BUILD_TESTS "Build unit tests when BUILD_TESTING is enabled." ON)
+option(INJA_ENABLE_CLANG_TIDY "Enable clang-tidy" OFF)
+option(INJA_EXPORT "Export the current build tree to the package registry" ON)
 option(INJA_INSTALL "Generate install targets for inja" ON)
 option(INJA_INSTALL_SINGLE_HEADER "Install the single header instead" OFF)
-option(INJA_EXPORT "Export the current build tree to the package registry" ON)
-option(BUILD_TESTING "Build unit tests" ON)
-option(INJA_BUILD_TESTS "Build unit tests when BUILD_TESTING is enabled." ON)
-option(COVERALLS "Generate coveralls data" OFF)
+option(INJA_USE_EMBEDDED_JSON "Use the shipped json header if not available on the system" ON)
 
 
 set(INJA_INSTALL_INCLUDE_DIR "include")
@@ -94,6 +95,12 @@ if(BUILD_TESTING AND INJA_BUILD_TESTS)
     target_compile_options(inja_test PRIVATE -Wall -Wextra -Werror)
   endif()
 
+  if(INJA_ENABLE_CLANG_TIDY)
+    find_program(CLANG_TIDY_EXE NAMES "clang-tidy" REQUIRED)
+    set(CLANG_TIDY_COMMAND "${CLANG_TIDY_EXE}" "-config-file=${CMAKE_CURRENT_SOURCE_DIR}/.clang-tidy")
+    set_target_properties(inja_test PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY_COMMAND}")
+  endif()
+
 
   add_library(single_inja INTERFACE)
   target_compile_features(single_inja INTERFACE cxx_std_17)
@@ -106,8 +113,7 @@ if(BUILD_TESTING AND INJA_BUILD_TESTS)
   add_test(single_inja_test ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/single_inja_test)
 
 
-  add_executable(inja_benchmark test/benchmark.cpp
-    test/test-common.hpp)
+  add_executable(inja_benchmark test/benchmark.cpp test/test-common.hpp)
   target_link_libraries(inja_benchmark PRIVATE inja)
   target_include_directories(inja_benchmark PRIVATE third_party/include)
 endif()
