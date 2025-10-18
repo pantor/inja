@@ -1,7 +1,7 @@
 Checks: >
   *,
   bugprone-*,
-  cppcoreguidelines-*
+  cppcoreguidelines-*,
   misc-*,
   modernize-*,
   performance-*,
@@ -9,6 +9,6 @@ Checks: >
   readability-*
 
 # Turn all the warnings from the checks above into errors.
-HeaderFilterRegex: 'include/inja/*.hpp'
+HeaderFilterRegex: '.*'
 UseColor: true
 WarningsAsErrors: ''

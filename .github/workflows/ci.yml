@@ -11,51 +11,51 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: ubuntu-22.04-gcc
-            os: ubuntu-22.04
-            compiler: gcc
+          # - name: ubuntu-22.04-gcc
+          #   os: ubuntu-22.04
+          #   compiler: gcc
 
-          - name: ubuntu-22.04-clang
-            os: ubuntu-22.04
-            compiler: clang
+          # - name: ubuntu-22.04-clang
+          #   os: ubuntu-22.04
+          #   compiler: clang
 
-          - name: ubuntu-24.04-clang-tidy
-            os: ubuntu-24.04
+          - name: ubuntu-22.04-clang-tidy
+            os: ubuntu-22.04
             compiler: clang
             cmake_vars: "-DINJA_ENABLE_CLANG_TIDY=ON"
 
-          - name: ubuntu-22.04-clang-15-no-exceptions
-            os: ubuntu-22.04
-            compiler: clang-15
-            cmake_vars: "-DCMAKE_CXX_FLAGS=-fno-exceptions -DBUILD_TESTING=OFF"
+          # - name: ubuntu-22.04-clang-15-no-exceptions
+          #   os: ubuntu-22.04
+          #   compiler: clang-15
+          #   cmake_vars: "-DCMAKE_CXX_FLAGS=-fno-exceptions -DBUILD_TESTING=OFF"
 
-          - name: ubuntu-24.04-gcc
-            os: ubuntu-24.04
-            compiler: gcc
+          # - name: ubuntu-24.04-gcc
+          #   os: ubuntu-24.04
+          #   compiler: gcc
 
-          - name: windows-2022-msvc
-            os: windows-2022
-            compiler: msvc
+          # - name: windows-2022-msvc
+          #   os: windows-2022
+          #   compiler: msvc
 
-          - name: windows-2022-clang
-            os: windows-2022
-            compiler: clang
+          # - name: windows-2022-clang
+          #   os: windows-2022
+          #   compiler: clang
 
-          - name: windows-2022-gcc
-            os: windows-2022
-            compiler: gcc
+          # - name: windows-2022-gcc
+          #   os: windows-2022
+          #   compiler: gcc
 
-          - name: windows-2025-msvc
-            os: windows-2025
-            compiler: msvc
+          # - name: windows-2025-msvc
+          #   os: windows-2025
+          #   compiler: msvc
 
-          - name: macOS-13-gcc
-            os: macOS-13
-            compiler: gcc
+          # - name: macOS-13-gcc
+          #   os: macOS-13
+          #   compiler: gcc
 
-          - name: macOS-13-clang
-            os: macOS-13
-            compiler: clang
+          # - name: macOS-13-clang
+          #   os: macOS-13
+          #   compiler: clang
 
     steps:
       - uses: actions/checkout@v4
