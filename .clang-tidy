@@ -1,14 +1,11 @@
 Checks: >
   *,
-  bugprone-*,
-  cppcoreguidelines-*,
-  misc-*,
-  modernize-*,
-  performance-*,
-  portability-*,
-  readability-*
+  -fuchsia*,
+  -llvm-*,
+  -llvmlibc-*,
+  -modernize-use-trailing-return-type
 
 # Turn all the warnings from the checks above into errors.
-HeaderFilterRegex: '.*'
+HeaderFilterRegex: '.*/include/inja/.*\.hpp$'
 UseColor: true
 WarningsAsErrors: ''
