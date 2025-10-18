@@ -1002,6 +1002,7 @@ struct Token {
     GreaterEqual,       // >=
     LessThan,           // <
     LessEqual,          // <=
+    Pipe,               // |
     Unknown,
     Eof,
   };
@@ -1138,6 +1139,8 @@ class Lexer {
       return make_token(Token::Kind::Comma);
     case ':':
       return make_token(Token::Kind::Colon);
+    case '|':
+      return make_token(Token::Kind::Pipe);
     case '(':
       return make_token(Token::Kind::LeftParen);
     case ')':
@@ -1796,6 +1799,47 @@ class Parser {
           throw_parser_error("empty expression in parentheses");
         }
         arguments.emplace_back(expr);
+      } break;
+
+      // parse function call pipe syntax
+      case Token::Kind::Pipe: {
+        // get function name
+        get_next_token();
+        if (tok.kind != Token::Kind::Id) {
+          throw_parser_error("expected function name, got '" + tok.describe() + "'");
+        }
+        auto func = std::make_shared<FunctionNode>(tok.text, tok.text.data() - tmpl.content.c_str());
+        // add first parameter as last value from arguments
+        func->number_args += 1;
+        func->arguments.emplace_back(arguments.back());
+        arguments.pop_back();
+        get_peek_token();
+        if (peek_tok.kind == Token::Kind::LeftParen) {
+          get_next_token();
+          // parse additional parameters
+          do {
+            get_next_token();
+            auto expr = parse_expression(tmpl);
+            if (!expr) {
+              break;
+            }
+            func->number_args += 1;
+            func->arguments.emplace_back(expr);
+          } while (tok.kind == Token::Kind::Comma);
+          if (tok.kind != Token::Kind::RightParen) {
+            throw_parser_error("expected right parenthesis, got '" + tok.describe() + "'");
+          }
+        }
+        // search store for defined function with such name and number of args
+        auto function_data = function_storage.find_function(func->name, func->number_args);
+        if (function_data.operation == FunctionStorage::Operation::None) {
+          throw_parser_error("unknown function " + func->name);
+        }
+        func->operation = function_data.operation;
+        if (function_data.operation == FunctionStorage::Operation::Callback) {
+          func->callback = function_data.callback;
+        }
+        arguments.emplace_back(func);
       } break;
       default:
         goto break_loop;

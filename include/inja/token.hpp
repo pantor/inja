@@ -44,6 +44,7 @@ struct Token {
     GreaterEqual,       // >=
     LessThan,           // <
     LessEqual,          // <=
+    Pipe,               // |
     Unknown,
     Eof,
   };

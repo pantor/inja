@@ -115,6 +115,8 @@ class Lexer {
       return make_token(Token::Kind::Comma);
     case ':':
       return make_token(Token::Kind::Colon);
+    case '|':
+      return make_token(Token::Kind::Pipe);
     case '(':
       return make_token(Token::Kind::LeftParen);
     case ')':
