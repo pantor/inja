@@ -1,9 +1,13 @@
 Checks: >
   *,
-  -fuchsia*,
+  -altera-*,
+  -cppcoreguidelines-non-private-member-variables-in-classes,
+  -fuchsia-*,
+  -hicpp-*,
   -llvm-*,
   -llvmlibc-*,
-  -modernize-use-trailing-return-type
+  -misc-non-private-member-variables-in-classes,
+  -modernize-*
 
 # Turn all the warnings from the checks above into errors.
 HeaderFilterRegex: '.*/include/inja/.*\.hpp$'
