@@ -196,7 +196,7 @@ class Renderer : public NodeVisitor {
     return result;
   }
 
-  void visit(const BlockNode& node) {
+  void visit(const BlockNode& node) override {
     for (const auto& n : node.nodes) {
       n->accept(*this);
 
@@ -206,17 +206,17 @@ class Renderer : public NodeVisitor {
     }
   }
 
-  void visit(const TextNode& node) {
+  void visit(const TextNode& node) override {
     output_stream->write(current_template->content.c_str() + node.pos, node.length);
   }
 
-  void visit(const ExpressionNode&) {}
+  void visit(const ExpressionNode&) override {}
 
-  void visit(const LiteralNode& node) {
+  void visit(const LiteralNode& node) override {
     data_eval_stack.push(&node.value);
   }
 
-  void visit(const DataNode& node) {
+  void visit(const DataNode& node) override {
     if (additional_data.contains(node.ptr)) {
       data_eval_stack.push(&(additional_data[node.ptr]));
     } else if (data_input->contains(node.ptr)) {
@@ -236,7 +236,7 @@ class Renderer : public NodeVisitor {
     }
   }
 
-  void visit(const FunctionNode& node) {
+  void visit(const FunctionNode& node) override {
     switch (node.operation) {
     case Op::Not: {
       const auto args = get_arguments<1>(node);
@@ -516,15 +516,15 @@ class Renderer : public NodeVisitor {
     }
   }
 
-  void visit(const ExpressionListNode& node) {
+  void visit(const ExpressionListNode& node) override {
     print_data(eval_expression_list(node));
   }
 
-  void visit(const StatementNode&) {}
+  void visit(const StatementNode&) override {}
 
-  void visit(const ForStatementNode&) {}
+  void visit(const ForStatementNode&) override {}
 
-  void visit(const ForArrayStatementNode& node) {
+  void visit(const ForArrayStatementNode& node) override {
     const auto result = eval_expression_list(node.condition);
     if (!result->is_array()) {
       throw_renderer_error("object must be an array", node);
@@ -563,7 +563,7 @@ class Renderer : public NodeVisitor {
     }
   }
 
-  void visit(const ForObjectStatementNode& node) {
+  void visit(const ForObjectStatementNode& node) override {
     const auto result = eval_expression_list(node.condition);
     if (!result->is_object()) {
       throw_renderer_error("object must be an object", node);
@@ -602,7 +602,7 @@ class Renderer : public NodeVisitor {
     }
   }
 
-  void visit(const IfStatementNode& node) {
+  void visit(const IfStatementNode& node) override {
     const auto result = eval_expression_list(node.condition);
     if (truthy(result.get())) {
       node.true_statement.accept(*this);
@@ -611,7 +611,7 @@ class Renderer : public NodeVisitor {
     }
   }
 
-  void visit(const IncludeStatementNode& node) {
+  void visit(const IncludeStatementNode& node) override {
     auto sub_renderer = Renderer(config, template_storage, function_storage);
     const auto included_template_it = template_storage.find(node.file);
     if (included_template_it != template_storage.end()) {
@@ -621,7 +621,7 @@ class Renderer : public NodeVisitor {
     }
   }
 
-  void visit(const ExtendsStatementNode& node) {
+  void visit(const ExtendsStatementNode& node) override {
     const auto included_template_it = template_storage.find(node.file);
     if (included_template_it != template_storage.end()) {
       const Template* parent_template = &included_template_it->second;
@@ -632,7 +632,7 @@ class Renderer : public NodeVisitor {
     }
   }
 
-  void visit(const BlockStatementNode& node) {
+  void visit(const BlockStatementNode& node) override {
     const size_t old_level = current_level;
     current_level = 0;
     current_template = template_stack.front();
@@ -646,7 +646,7 @@ class Renderer : public NodeVisitor {
     current_template = template_stack.back();
   }
 
-  void visit(const SetStatementNode& node) {
+  void visit(const SetStatementNode& node) override {
     std::string ptr = node.key;
     replace_substring(ptr, ".", "/");
     ptr = "/" + ptr;
@@ -654,7 +654,7 @@ class Renderer : public NodeVisitor {
   }
 
 public:
-  Renderer(const RenderConfig& config, const TemplateStorage& template_storage, const FunctionStorage& function_storage)
+  explicit Renderer(const RenderConfig& config, const TemplateStorage& template_storage, const FunctionStorage& function_storage)
       : config(config), template_storage(template_storage), function_storage(function_storage) {}
 
   void render_to(std::ostream& os, const Template& tmpl, const json& data, json* loop_data = nullptr) {

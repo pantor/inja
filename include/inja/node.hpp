@@ -63,7 +63,7 @@ public:
 
   size_t pos;
 
-  AstNode(size_t pos): pos(pos) {}
+  explicit AstNode(size_t pos): pos(pos) {}
   virtual ~AstNode() {}
 };
 
@@ -73,7 +73,7 @@ public:
 
   explicit BlockNode(): AstNode(0) {}
 
-  void accept(NodeVisitor& v) const {
+  void accept(NodeVisitor& v) const override {
     v.visit(*this);
   }
 };
@@ -84,7 +84,7 @@ public:
 
   explicit TextNode(size_t pos, size_t length): AstNode(pos), length(length) {}
 
-  void accept(NodeVisitor& v) const {
+  void accept(NodeVisitor& v) const override {
     v.visit(*this);
   }
 };
@@ -93,7 +93,7 @@ class ExpressionNode : public AstNode {
 public:
   explicit ExpressionNode(size_t pos): AstNode(pos) {}
 
-  void accept(NodeVisitor& v) const {
+  void accept(NodeVisitor& v) const override {
     v.visit(*this);
   }
 };
@@ -104,7 +104,7 @@ public:
 
   explicit LiteralNode(std::string_view data_text, size_t pos): ExpressionNode(pos), value(json::parse(data_text)) {}
 
-  void accept(NodeVisitor& v) const {
+  void accept(NodeVisitor& v) const override {
     v.visit(*this);
   }
 };
@@ -127,7 +127,7 @@ public:
 
   explicit DataNode(std::string_view ptr_name, size_t pos): ExpressionNode(pos), name(ptr_name), ptr(json::json_pointer(convert_dot_to_ptr(ptr_name))) {}
 
-  void accept(NodeVisitor& v) const {
+  void accept(NodeVisitor& v) const override {
     v.visit(*this);
   }
 };
@@ -247,7 +247,7 @@ public:
     }
   }
 
-  void accept(NodeVisitor& v) const {
+  void accept(NodeVisitor& v) const override {
     v.visit(*this);
   }
 };
@@ -259,14 +259,14 @@ public:
   explicit ExpressionListNode(): AstNode(0) {}
   explicit ExpressionListNode(size_t pos): AstNode(pos) {}
 
-  void accept(NodeVisitor& v) const {
+  void accept(NodeVisitor& v) const override {
     v.visit(*this);
   }
 };
 
 class StatementNode : public AstNode {
 public:
-  StatementNode(size_t pos): AstNode(pos) {}
+  explicit StatementNode(size_t pos): AstNode(pos) {}
 
   virtual void accept(NodeVisitor& v) const = 0;
 };
@@ -277,7 +277,7 @@ public:
   BlockNode body;
   BlockNode* const parent;
 
-  ForStatementNode(BlockNode* const parent, size_t pos): StatementNode(pos), parent(parent) {}
+  explicit ForStatementNode(BlockNode* const parent, size_t pos): StatementNode(pos), parent(parent) {}
 
   virtual void accept(NodeVisitor& v) const = 0;
 };
@@ -288,7 +288,7 @@ public:
 
   explicit ForArrayStatementNode(const std::string& value, BlockNode* const parent, size_t pos): ForStatementNode(parent, pos), value(value) {}
 
-  void accept(NodeVisitor& v) const {
+  void accept(NodeVisitor& v) const override {
     v.visit(*this);
   }
 };
@@ -301,7 +301,7 @@ public:
   explicit ForObjectStatementNode(const std::string& key, const std::string& value, BlockNode* const parent, size_t pos)
       : ForStatementNode(parent, pos), key(key), value(value) {}
 
-  void accept(NodeVisitor& v) const {
+  void accept(NodeVisitor& v) const override {
     v.visit(*this);
   }
 };
@@ -319,7 +319,7 @@ public:
   explicit IfStatementNode(BlockNode* const parent, size_t pos): StatementNode(pos), parent(parent), is_nested(false) {}
   explicit IfStatementNode(bool is_nested, BlockNode* const parent, size_t pos): StatementNode(pos), parent(parent), is_nested(is_nested) {}
 
-  void accept(NodeVisitor& v) const {
+  void accept(NodeVisitor& v) const override {
     v.visit(*this);
   }
 };
@@ -330,7 +330,7 @@ public:
 
   explicit IncludeStatementNode(const std::string& file, size_t pos): StatementNode(pos), file(file) {}
 
-  void accept(NodeVisitor& v) const {
+  void accept(NodeVisitor& v) const override {
     v.visit(*this);
   }
 };
@@ -341,7 +341,7 @@ public:
 
   explicit ExtendsStatementNode(const std::string& file, size_t pos): StatementNode(pos), file(file) {}
 
-  void accept(NodeVisitor& v) const {
+  void accept(NodeVisitor& v) const override {
     v.visit(*this);
   }
 };
@@ -354,7 +354,7 @@ public:
 
   explicit BlockStatementNode(BlockNode* const parent, const std::string& name, size_t pos): StatementNode(pos), name(name), parent(parent) {}
 
-  void accept(NodeVisitor& v) const {
+  void accept(NodeVisitor& v) const override {
     v.visit(*this);
   }
 };
@@ -366,7 +366,7 @@ public:
 
   explicit SetStatementNode(const std::string& key, size_t pos): StatementNode(pos), key(key) {}
 
-  void accept(NodeVisitor& v) const {
+  void accept(NodeVisitor& v) const override {
     v.visit(*this);
   }
 };

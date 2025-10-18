@@ -164,7 +164,7 @@ public:
   }
 
   std::string load_file(const std::string& filename) {
-    Parser parser(parser_config, lexer_config, template_storage, function_storage);
+    const Parser parser(parser_config, lexer_config, template_storage, function_storage);
     return Parser::load_file(input_path / filename);
   }
 
