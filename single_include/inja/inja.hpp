@@ -1967,7 +1967,7 @@ class Parser {
           throw_parser_error("expected id, got '" + tok.describe() + "'");
         }
 
-        const Token key_token = std::move(value_token);
+        const Token key_token = value_token;
         value_token = tok;
         get_next_token();
 
@@ -2183,7 +2183,7 @@ namespace inja {
 */
 inline std::string htmlescape(const std::string& data) {
   std::string buffer;
-  buffer.reserve((unsigned int)(1.1 * data.size()));
+  buffer.reserve(static_cast<size_t>(1.1 * data.size()));
   for (size_t pos = 0; pos != data.size(); ++pos) {
     switch (data[pos]) {
       case '&':  buffer.append("&amp;");       break;

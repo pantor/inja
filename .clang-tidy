@@ -3,6 +3,7 @@ Checks: >
   -abseil-*,
   -altera-*,
   -boost-*,
+  -cppcoreguidelines-avoid-const-or-ref-data-members,
   -cppcoreguidelines-avoid-goto,
   -cppcoreguidelines-non-private-member-variables-in-classes,
   -fuchsia-*,
