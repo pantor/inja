@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.5)
 # is included in another CMake project.
 cmake_policy(SET CMP0077 NEW)
 
-project(inja LANGUAGES CXX VERSION 3.4.0)
+project(inja LANGUAGES CXX VERSION 3.5.0)
 
 
 option(BUILD_TESTING "Build unit tests" ON)

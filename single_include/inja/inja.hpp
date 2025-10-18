@@ -1,9 +1,9 @@
 /*
-  ___        _          Version 3.4.0
+  ___        _          Version 3.5.0
  |_ _|_ __  (_) __ _    https://github.com/pantor/inja
   | || '_ \ | |/ _` |   Licensed under the MIT License <http://opensource.org/licenses/MIT>.
   | || | | || | (_| |
- |___|_| |_|/ |\__,_|   Copyright (c) 2018-2023 Lars Berscheid
+ |___|_| |_|/ |\__,_|   Copyright (c) 2018-2025 Lars Berscheid
           |__/
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
