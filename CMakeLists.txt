@@ -107,10 +107,16 @@ if(BUILD_TESTING AND INJA_BUILD_TESTS)
   add_test(single_inja_test ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/single_inja_test)
 
 
-  add_executable(inja_benchmark test/benchmark.cpp
-    test/test-common.hpp)
+  add_executable(inja_benchmark test/benchmark.cpp test/test-common.hpp)
   target_link_libraries(inja_benchmark PRIVATE inja)
   target_include_directories(inja_benchmark PRIVATE third_party/include)
+
+
+  if(INJA_ENABLE_CLANG_TIDY)
+    find_program(CLANG_TIDY_EXE NAMES "clang-tidy" REQUIRED)
+    set(CLANG_TIDY_COMMAND "${CLANG_TIDY_EXE}" "-config-file=${CMAKE_CURRENT_SOURCE_DIR}/.clang-tidy")
+    set_target_properties(single_inja_test PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY_COMMAND}")
+  endif()
 endif()
 
 
@@ -123,13 +129,6 @@ if(COVERALLS)
   # set(COVERAGE_SRCS test/unit.cpp test/unit-renderer.cpp include/inja)
 
   coveralls_setup("${COVERAGE_SRCS}" OFF) # If we should upload.
-endif()
-
-
-if(INJA_ENABLE_CLANG_TIDY)
-  find_program(CLANG_TIDY_EXE NAMES "clang-tidsy" REQUIRED)
-  set(CLANG_TIDY_COMMAND "${CLANG_TIDY_EXE}" "-config-file=${CMAKE_CURRENT_SOURCE_DIR}/.clang-tidy")
-  set_target_properties(inja PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY_COMMAND}")
 endif()
 
 
