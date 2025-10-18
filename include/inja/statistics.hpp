@@ -63,9 +63,9 @@ class StatisticsVisitor : public NodeVisitor {
   void visit(const SetStatementNode&) override {}
 
 public:
-  size_t variable_counter;
+  size_t variable_counter {0};
 
-  explicit StatisticsVisitor(): variable_counter(0) {}
+  explicit StatisticsVisitor() {}
 };
 
 } // namespace inja

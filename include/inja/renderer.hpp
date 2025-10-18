@@ -350,7 +350,7 @@ class Renderer : public NodeVisitor {
     } break;
     case Op::Default: {
       const auto test_arg = get_arguments<1, 0, false>(node)[0];
-      data_eval_stack.push(test_arg ? test_arg : get_arguments<1, 1>(node)[0]);
+      data_eval_stack.push((test_arg != nullptr) ? test_arg : get_arguments<1, 1>(node)[0]);
     } break;
     case Op::DivisibleBy: {
       const auto args = get_arguments<2>(node);
@@ -425,7 +425,7 @@ class Renderer : public NodeVisitor {
       const auto precision = args[1]->get<const json::number_integer_t>();
       const double result = std::round(args[0]->get<const json::number_float_t>() * std::pow(10.0, precision)) / std::pow(10.0, precision);
       if (precision == 0) {
-        make_result(int(result));
+        make_result(static_cast<int>(result));
       } else {
         make_result(result);
       }
@@ -557,7 +557,7 @@ class Renderer : public NodeVisitor {
     additional_data[static_cast<std::string>(node.value)].clear();
     if (!(*current_loop_data)["parent"].empty()) {
       const auto tmp = (*current_loop_data)["parent"];
-      *current_loop_data = std::move(tmp);
+      *current_loop_data = tmp;
     } else {
       current_loop_data = &additional_data["loop"];
     }
