@@ -1,0 +1,5 @@
+Name: inja
+Description: @PROJECT_DESCRIPTION@
+URL: https://github.com/pantor/inja
+Version: @PROJECT_VERSION@
+Requires: nlohmann_json
