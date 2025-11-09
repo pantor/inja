@@ -5,7 +5,10 @@ cmake_minimum_required(VERSION 3.5)
 # is included in another CMake project.
 cmake_policy(SET CMP0077 NEW)
 
-project(inja LANGUAGES CXX VERSION 3.5.0)
+project(inja
+        DESCRIPTION "Template engine for modern C++"
+        LANGUAGES CXX
+        VERSION 3.5.0)
 
 
 option(BUILD_TESTING "Build unit tests" ON)
@@ -17,8 +20,9 @@ option(INJA_INSTALL "Generate install targets for inja" ON)
 option(INJA_INSTALL_SINGLE_HEADER "Install the single header instead" OFF)
 option(INJA_USE_EMBEDDED_JSON "Use the shipped json header if not available on the system" ON)
 
+include(GNUInstallDirs)
 
-set(INJA_INSTALL_INCLUDE_DIR "include")
+set(INJA_INSTALL_INCLUDE_DIR ${CMAKE_INSTALL_INCLUDEDIR})
 set(INJA_PACKAGE_USE_EMBEDDED_JSON OFF)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
 
@@ -166,7 +170,7 @@ configure_file(
 
 
 if(INJA_INSTALL)
-  set(INJA_CONFIG_PATH "lib/cmake/inja")
+  set(INJA_CONFIG_PATH "${CMAKE_INSTALL_DATADIR}/cmake/inja")
 
   # install tree package config
   configure_package_config_file(
@@ -174,6 +178,11 @@ if(INJA_INSTALL)
     ${INJA_CONFIG_PATH}/injaConfig.cmake
     INSTALL_DESTINATION ${INJA_CONFIG_PATH}
     NO_CHECK_REQUIRED_COMPONENTS_MACRO
+  )
+
+  configure_file(${PROJECT_SOURCE_DIR}/cmake/config/inja.pc.in ${CMAKE_BINARY_DIR}/inja.pc @ONLY)
+  install(FILES ${CMAKE_BINARY_DIR}/inja.pc
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/pkgconfig
   )
 
   if(INJA_INSTALL_SINGLE_HEADER)
