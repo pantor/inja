@@ -97,6 +97,11 @@ public:
     render_config.html_autoescape = will_escape;
   }
 
+  /// Sets whether undefined variables evaluate to false in conditionals instead of throwing errors
+  void set_implicit_false_for_missing_vars(bool implicit_false) {
+    render_config.implicit_false_for_missing_vars = implicit_false;
+  }
+
   Template parse(std::string_view input) {
     Parser parser(parser_config, lexer_config, template_storage, function_storage);
     return parser.parse(input, input_path);

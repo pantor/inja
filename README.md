@@ -111,6 +111,7 @@ env.set_comment("{#", "#}"); // Comments
 env.set_statement("{%", "%}"); // Statements {% %} for many things, see below
 env.set_line_statement("##"); // Line statements ## (just an opener)
 env.set_html_autoescape(true); // Perform HTML escaping on all strings
+env.set_implicit_false_for_missing_vars(true); // Treat missing variables as false in conditionals (see IMPLICIT_FALSE_FEATURE.md)
 ```
 
 ### Variables

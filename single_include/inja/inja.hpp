@@ -914,6 +914,7 @@ struct ParserConfig {
 struct RenderConfig {
   bool throw_at_missing_includes {true};
   bool html_autoescape {false};
+  bool implicit_false_for_missing_vars {false};
 };
 
 } // namespace inja
@@ -2252,7 +2253,7 @@ class Renderer : public NodeVisitor {
     }
   }
 
-  const std::shared_ptr<json> eval_expression_list(const ExpressionListNode& expression_list) {
+  const std::shared_ptr<json> eval_expression_list(const ExpressionListNode& expression_list, bool allow_missing = false) {
     if (!expression_list.root) {
       throw_renderer_error("empty expression", expression_list);
     }
@@ -2276,6 +2277,10 @@ class Renderer : public NodeVisitor {
       const auto node = not_found_stack.top();
       not_found_stack.pop();
 
+      if (allow_missing && config.implicit_false_for_missing_vars) {
+        return std::make_shared<json>(false);
+      }
+
       throw_renderer_error("variable '" + static_cast<std::string>(node->name) + "' not found", *node);
     }
     return std::make_shared<json>(*result);
@@ -2290,6 +2295,16 @@ class Renderer : public NodeVisitor {
     auto result_ptr = std::make_shared<json>(result);
     data_tmp_stack.push_back(result_ptr);
     data_eval_stack.push(result_ptr.get());
+  }
+
+  const json* get_argument_with_null_check(const std::shared_ptr<ExpressionNode>& arg) {
+    arg->accept(*this);
+    const auto result = data_eval_stack.top();
+    data_eval_stack.pop();
+    if (!result) {
+      not_found_stack.pop();
+    }
+    return result;
   }
 
   template <size_t N, size_t N_start = 0, bool throw_not_found = true> std::array<const json*, N> get_arguments(const FunctionNode& node) {
@@ -2392,14 +2407,31 @@ class Renderer : public NodeVisitor {
   void visit(const FunctionNode& node) override {
     switch (node.operation) {
     case Op::Not: {
-      const auto args = get_arguments<1>(node);
-      make_result(!truthy(args[0]));
+      if (config.implicit_false_for_missing_vars) {
+        const auto args = get_arguments<1, 0, false>(node);
+        make_result(args[0] == nullptr ? true : !truthy(args[0]));
+      } else {
+        const auto args = get_arguments<1>(node);
+        make_result(!truthy(args[0]));
+      }
     } break;
     case Op::And: {
-      make_result(truthy(get_arguments<1, 0>(node)[0]) && truthy(get_arguments<1, 1>(node)[0]));
+      if (config.implicit_false_for_missing_vars) {
+        const auto arg0 = get_argument_with_null_check(node.arguments[0]);
+        const auto arg1 = get_argument_with_null_check(node.arguments[1]);
+        make_result((arg0 != nullptr && truthy(arg0)) && (arg1 != nullptr && truthy(arg1)));
+      } else {
+        make_result(truthy(get_arguments<1, 0>(node)[0]) && truthy(get_arguments<1, 1>(node)[0]));
+      }
     } break;
     case Op::Or: {
-      make_result(truthy(get_arguments<1, 0>(node)[0]) || truthy(get_arguments<1, 1>(node)[0]));
+      if (config.implicit_false_for_missing_vars) {
+        const auto arg0 = get_argument_with_null_check(node.arguments[0]);
+        const auto arg1 = get_argument_with_null_check(node.arguments[1]);
+        make_result((arg0 != nullptr && truthy(arg0)) || (arg1 != nullptr && truthy(arg1)));
+      } else {
+        make_result(truthy(get_arguments<1, 0>(node)[0]) || truthy(get_arguments<1, 1>(node)[0]));
+      }
     } break;
     case Op::In: {
       const auto args = get_arguments<2>(node);
@@ -2756,7 +2788,7 @@ class Renderer : public NodeVisitor {
   }
 
   void visit(const IfStatementNode& node) override {
-    const auto result = eval_expression_list(node.condition);
+    const auto result = eval_expression_list(node.condition, config.implicit_false_for_missing_vars);
     if (truthy(result.get())) {
       node.true_statement.accept(*this);
     } else if (node.has_false_statement) {
@@ -2914,6 +2946,11 @@ public:
   /// Sets whether we'll automatically perform HTML escape
   void set_html_autoescape(bool will_escape) {
     render_config.html_autoescape = will_escape;
+  }
+
+  /// Sets whether undefined variables evaluate to false in conditionals instead of throwing errors
+  void set_implicit_false_for_missing_vars(bool implicit_false) {
+    render_config.implicit_false_for_missing_vars = implicit_false;
   }
 
   Template parse(std::string_view input) {
