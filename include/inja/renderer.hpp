@@ -143,6 +143,18 @@ class Renderer : public NodeVisitor {
     data_eval_stack.push(result_ptr.get());
   }
 
+  std::shared_ptr<json> ensure_array(const std::shared_ptr<json>& value) {
+    if (value->is_array()) {
+      return value;
+    } else if (value->is_null()) {
+      // Null becomes empty array
+      return std::make_shared<json>(json::array());
+    } else {
+      // Wrap single value in array
+      return std::make_shared<json>(json::array({*value}));
+    }
+  }
+
   const json* get_argument_with_null_check(const std::shared_ptr<ExpressionNode>& arg) {
     arg->accept(*this);
     const auto result = data_eval_stack.top();
@@ -556,9 +568,15 @@ class Renderer : public NodeVisitor {
   void visit(const ForStatementNode&) override {}
 
   void visit(const ForArrayStatementNode& node) override {
-    const auto result = eval_expression_list(node.condition);
+    auto result = eval_expression_list(node.condition);
+
+    // Auto-wrap non-arrays if ensure_array_for_loops is enabled
     if (!result->is_array()) {
-      throw_renderer_error("object must be an array", node);
+      if (config.ensure_array_for_loops) {
+        result = ensure_array(result);
+      } else {
+        throw_renderer_error("object must be an array", node);
+      }
     }
 
     if (!current_loop_data->empty()) {

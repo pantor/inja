@@ -97,6 +97,11 @@ public:
     render_config.html_autoescape = will_escape;
   }
 
+  /// Sets whether non-array values in for loops are automatically wrapped in arrays
+  void set_ensure_array_for_loops(bool ensure_array) {
+    render_config.ensure_array_for_loops = ensure_array;
+  }
+
   /// Sets whether undefined variables evaluate to false in conditionals instead of throwing errors
   void set_implicit_false_for_missing_vars(bool implicit_false) {
     render_config.implicit_false_for_missing_vars = implicit_false;
