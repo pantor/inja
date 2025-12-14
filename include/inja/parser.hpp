@@ -655,7 +655,6 @@ class Parser {
         }
       } break;
       default: {
-        current_block = nullptr;
         throw_parser_error("unexpected token '" + tok.describe() + "'");
       } break;
       }
