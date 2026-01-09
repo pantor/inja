@@ -61,7 +61,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Setup Cpp
-        uses: aminya/setup-cpp@v0.46.1
+        uses: aminya/setup-cpp@v1.3.0
         with:
           compiler: ${{ matrix.compiler }}
 
