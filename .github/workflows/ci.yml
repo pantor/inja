@@ -49,16 +49,16 @@ jobs:
             os: windows-2025
             compiler: msvc
 
-          - name: macOS-13-gcc
-            os: macOS-13
+          - name: macOS-14-gcc
+            os: macOS-14
             compiler: gcc
 
-          - name: macOS-13-clang
-            os: macOS-13
+          - name: macOS-14-clang
+            os: macOS-14
             compiler: clang
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Cpp
         uses: aminya/setup-cpp@v0.46.1
@@ -83,7 +83,7 @@ jobs:
   check-single-include:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
     - name: Update single include
       run: |
