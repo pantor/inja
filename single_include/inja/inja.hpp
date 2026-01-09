@@ -2109,7 +2109,6 @@ class Parser {
       } break;
       }
     }
-    current_block = nullptr;
   }
 
 public:
