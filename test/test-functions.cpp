@@ -230,6 +230,8 @@ TEST_CASE("assignments") {
   CHECK(env.render("{% set v1 = \"a\" %}{% set v2 = \"b\" %}{% set var = v1 + v2 %}{{ var }}", data) == "ab");
 }
 
+void dummy_callback() {}
+
 TEST_CASE("callbacks") {
   inja::Environment env;
   inja::json data;
@@ -246,7 +248,8 @@ TEST_CASE("callbacks") {
   });
 
   std::string greet = "Hello";
-  env.add_callback("double-greetings", 0, [greet](inja::Arguments) { return greet + " " + greet + "!"; });
+  env.add_callback("double-greetings",
+                   [greet] { return greet + " " + greet + "!"; });
 
   env.add_callback("multiply", 2, [](inja::Arguments args) {
     double number1 = args.at(0)->get<double>();
@@ -254,27 +257,31 @@ TEST_CASE("callbacks") {
     return number1 * number2;
   });
 
-  env.add_callback("multiply", 3, [](inja::Arguments args) {
-    double number1 = args.at(0)->get<double>();
-    double number2 = args.at(1)->get<double>();
-    double number3 = args.at(2)->get<double>();
-    return number1 * number2 * number3;
-  });
+  env.add_callback("multiply",
+                   [](double number1, double number2, double number3) {
+                     return number1 * number2 * number3;
+                   });
 
-  env.add_callback("length", 1, [](inja::Arguments args) {
-    auto number1 = args.at(0)->get<std::string>();
-    return number1.length();
-  });
+  env.add_callback("length",
+                   [](const std::string &number1) { return number1.length(); });
+
+  env.add_callback("dummy", dummy_callback);
 
   env.add_void_callback("log", 1, [](inja::Arguments) {
 
   });
 
+  env.add_callback("get_arg_type",
+                   [](const inja::json &input) { return input.type_name(); });
+
   env.add_callback("multiply", 0, [](inja::Arguments) { return 1.0; });
+
+  env.add_callback("any_2_types", [](const inja::json &, inja::json) {});
 
   CHECK(env.render("{{ double(age) }}", data) == "56");
   CHECK(env.render("{{ half(age) }}", data) == "14");
   CHECK(env.render("{{ log(age) }}", data) == "");
+  CHECK(env.render("{{ dummy() }}", data) == "");
   CHECK(env.render("{{ double-greetings }}", data) == "Hello Hello!");
   CHECK(env.render("{{ double-greetings() }}", data) == "Hello Hello!");
   CHECK(env.render("{{ multiply(4, 5) }}", data) == "20.0");
@@ -284,6 +291,8 @@ TEST_CASE("callbacks") {
   CHECK(env.render("{{ multiply(5, length(\"t\")) }}", data) == "5.0");
   CHECK(env.render("{{ multiply(3, 4, 5) }}", data) == "60.0");
   CHECK(env.render("{{ multiply }}", data) == "1.0");
+  CHECK(env.render("{{ get_arg_type(4) }}", data) == "number");
+  CHECK(env.render("{{ get_arg_type(false) }}", data) == "boolean");
 
   SUBCASE("Variadic") {
     env.add_callback("argmax", [](inja::Arguments& args) {
