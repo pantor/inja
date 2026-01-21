@@ -139,6 +139,18 @@ class Renderer : public NodeVisitor {
     data_eval_stack.push(result_ptr.get());
   }
 
+  std::shared_ptr<json> ensure_array(const std::shared_ptr<json>& value) {
+    if (value->is_array()) {
+      return value;
+    } else if (value->is_null()) {
+      // Null becomes empty array
+      return std::make_shared<json>(json::array());
+    } else {
+      // Wrap single value in array
+      return std::make_shared<json>(json::array({*value}));
+    }
+  }
+
   template <size_t N, size_t N_start = 0, bool throw_not_found = true> std::array<const json*, N> get_arguments(const FunctionNode& node) {
     if (node.arguments.size() < N_start + N) {
       throw_renderer_error("function needs " + std::to_string(N_start + N) + " variables, but has only found " + std::to_string(node.arguments.size()), node);
@@ -525,9 +537,15 @@ class Renderer : public NodeVisitor {
   void visit(const ForStatementNode&) override {}
 
   void visit(const ForArrayStatementNode& node) override {
-    const auto result = eval_expression_list(node.condition);
+    auto result = eval_expression_list(node.condition);
+
+    // Auto-wrap non-arrays if ensure_array_for_loops is enabled
     if (!result->is_array()) {
-      throw_renderer_error("object must be an array", node);
+      if (config.ensure_array_for_loops) {
+        result = ensure_array(result);
+      } else {
+        throw_renderer_error("object must be an array", node);
+      }
     }
 
     if (!current_loop_data->empty()) {
