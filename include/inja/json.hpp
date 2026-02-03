@@ -3,7 +3,7 @@
 
 #include <string>
 
-#define INJA_JSONCONS
+//#define INJA_JSONCONS
 #ifdef INJA_JSONCONS
 #include <jsoncons/json.hpp>
 #include <jsoncons_ext/jsonpointer/jsonpointer.hpp>
