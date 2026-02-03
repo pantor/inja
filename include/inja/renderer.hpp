@@ -111,7 +111,7 @@ class Renderer : public NodeVisitor {
     } else if (json_::is_empty(val)) {
 #endif // def INJA_JSONCONS
     } else {
-      *output_stream << val;
+      *output_stream << json_::dump(val);
     }
   }
 
@@ -524,7 +524,7 @@ class Renderer : public NodeVisitor {
         if (value.is_string()) {
           os << json_::as<std::string_view>(value); // otherwise the value is surrounded with ""
         } else {
-          os << value;
+          os << json_::dump(value);
         }
         sep = separator;
       }

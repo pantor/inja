@@ -109,6 +109,11 @@ inline void set_value(json& j, const std::string_view& ptr, T&& val) {
     jsoncons::jsonpointer::replace(j, json_pointer(ptr), val, true);
 }
 
+std::string dump(const json& j)
+{
+	return j.to_string();
+}
+
 } // namespace json_
 #else
 using json = nlohmann::json;
@@ -165,7 +170,7 @@ inline bool contains(const json& j, const json_pointer& p) {
 	return j.contains(p);
 }
 inline bool contains(const json& j, const std::string_view& p) {
-	return j.contains(p);
+	return j.contains(json_pointer(std::string(p)));
 }
 
 inline bool has(const json& j, const std::string_view& name) {
@@ -208,6 +213,11 @@ inline void set_value(json& j, const std::string& ptr, T&& val) {
 template <typename T>
 inline void set_value(json& j, const std::string_view& ptr, T&& val) {
     j[json_pointer(std::string(ptr))] = val;
+}
+
+std::string dump(const json& j)
+{
+	return j.dump();
 }
 
 } // namespace json_
