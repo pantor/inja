@@ -397,7 +397,7 @@ class Renderer : public NodeVisitor {
       make_result(std::stoi(json_::as<std::string>(*get_arguments<1>(node)[0])));
     } break;
     case Op::Last: {
-      const auto& a0 = get_arguments<1>(node)[0];
+      const auto a0 = get_arguments<1>(node)[0];
       const auto result = &a0->at(a0->size() - 1);
       data_eval_stack.push(result);
     } break;
