@@ -49,17 +49,21 @@ run_command(
 
 
 if get_option('build_tests')
+  test_flags = ['-D__TEST_DIR__=' + meson.project_source_root() / 'test']
+
   inja_test = executable(
     'inja_test',
     'test/test.cpp',
-    dependencies: inja_dep
+    dependencies: inja_dep,
+    cpp_args: test_flags,
   )
 
   inja_single_test = executable(
     'inja_single_test',
     'test/test.cpp',
     'single_include/inja/inja.hpp',
-    dependencies: [inja_dep]
+    dependencies: [inja_dep],
+    cpp_args: test_flags,
   )
 
   test('Inja unit test', inja_test)
@@ -69,6 +73,7 @@ if get_option('build_tests')
   inja_benchmark = executable(
     'inja_benchmark',
     'test/benchmark.cpp',
-    dependencies: inja_dep
+    dependencies: inja_dep,
+    cpp_args: test_flags,
   )
 endif
