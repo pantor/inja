@@ -49,12 +49,12 @@ jobs:
             os: windows-2025
             compiler: msvc
 
-          - name: macOS-14-gcc
-            os: macOS-14
+          - name: macOS-15-gcc
+            os: macOS-15
             compiler: gcc
 
-          - name: macOS-14-clang
-            os: macOS-14
+          - name: macOS-15-clang
+            os: macOS-15
             compiler: clang
 
     steps:
