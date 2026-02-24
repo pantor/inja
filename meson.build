@@ -20,6 +20,7 @@ install_headers(
   'include/inja/function_storage.hpp',
   'include/inja/inja.hpp',
   'include/inja/json.hpp',
+  'include/inja/json_fwd.hpp',
   'include/inja/lexer.hpp',
   'include/inja/node.hpp',
   'include/inja/parser.hpp',
