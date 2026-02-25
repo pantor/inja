@@ -315,6 +315,23 @@ env.add_callback("double-greetings", 0, [greet](Arguments args) {
 });
 env.render("{{ double-greetings }}", data); // "Hello Hello!"
 ```
+
+Another way to use callbacks is to list the expected arguments in the callback definition.
+```.cpp
+env.add_callback("double", [](int number) {
+  return 2 * number;
+});
+```
+
+Note that you can not use `auto`/template arguments in such functions. For this cases just use
+`inja::json` and then get the json type
+```.cpp
+env.add_callback("get_arg_type", [](const inja::json& input) {
+  return input.type_name();
+});
+env.render("{{ get_arg_type(4) }}", data) == "number";
+```
+
 You can also add a void callback without return variable, e.g. for debugging:
 ```.cpp
 env.add_void_callback("log", 1, [greet](Arguments args) {
