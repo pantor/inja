@@ -94,7 +94,7 @@ jobs:
       working-directory: single_include
       run: diff inja/inja.hpp inja/inja_old.hpp >/dev/null
 
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v7
       with:
         name: single_include_inja
         path: single_include/inja/inja.hpp
