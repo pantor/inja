@@ -8,13 +8,14 @@
 #include <string>
 #include <string_view>
 
-#include "json.hpp"
 #include "config.hpp"
 #include "function_storage.hpp"
+#include "json.hpp"
 #include "parser.hpp"
 #include "renderer.hpp"
 #include "template.hpp"
 #include "throw.hpp"
+#include "utils.hpp"
 
 namespace inja {
 
@@ -24,6 +25,41 @@ namespace inja {
 class Environment {
   FunctionStorage function_storage;
   TemplateStorage template_storage;
+
+  template <class Arg>
+  static Arg get_callback_argument(const Arguments &args, size_t index) {
+    using BasicArg = std::remove_const_t<
+        std::remove_pointer_t<std::remove_reference_t<std::decay_t<Arg>>>>;
+
+    static constexpr bool check =
+        std::is_const_v<std::remove_reference_t<Arg>> ||
+        std::is_same_v<BasicArg, Arg>;
+    static_assert(check, "Arguments should be either const& or a value type");
+
+    if constexpr (std::is_same_v<BasicArg, json>) {
+      return *args[index];
+    } else if constexpr (std::is_lvalue_reference_v<Arg>) {
+      return args[index]->get_ref<Arg>();
+    } else {
+      return args[index]->get<Arg>();
+    }
+  }
+
+  template <class Ret, class Func, class... Args, size_t... Is>
+  void add_callback_closure(const std::string &name, Func func,
+                            function_signature::ArgsList<Args...> /*args*/,
+                            std::index_sequence<Is...> /*seq*/) {
+    add_callback(name, sizeof...(Args),
+                 [func = std::move(func)] //
+                 ([[maybe_unused]] const Arguments &args) -> json {
+                   if constexpr (std::is_same_v<Ret, void>) {
+                     func(get_callback_argument<Args>(args, Is)...);
+                     return {};
+                   } else {
+                     return func(get_callback_argument<Args>(args, Is)...);
+                   }
+                 });
+  }
 
 protected:
   LexerConfig lexer_config;
@@ -179,10 +215,42 @@ public:
   }
 
   /*!
-  @brief Adds a variadic callback
+  @brief Adds a callback
   */
-  void add_callback(const std::string& name, const CallbackFunction& callback) {
-    add_callback(name, -1, callback);
+  template <class Callback>
+  void add_callback(const std::string &name, Callback callback) {
+    static constexpr auto get_sig = [] {
+      if constexpr (std::is_class_v<Callback>) {
+        return function_signature::Get<decltype(&Callback::operator())> {};
+      } else {
+        return function_signature::Get<Callback>{};
+      }
+    };
+    using Sig = decltype(get_sig());
+    static constexpr size_t num_args =
+        std::tuple_size_v<typename Sig::ArgsTuple>;
+
+    static constexpr auto is_arguments_vector = [] {
+      if constexpr (num_args == 1) {
+        return std::is_same_v<
+            std::remove_cv_t<std::remove_reference_t<
+                std::tuple_element_t<0, typename Sig::ArgsTuple>>>,
+            Arguments>;
+      } else {
+        return false;
+      }
+    };
+
+    if constexpr (is_arguments_vector()) {
+      // If callback has the only argument of `Arguments` - fallback to adding a
+      // variadic callback
+      add_callback(name, -1, callback);
+    } else {
+      // If it has other arguments - use it in a closure
+      add_callback_closure<typename Sig::Ret>(
+          name, std::move(callback), typename Sig::ArgsList{},
+          std::make_index_sequence<num_args>{});
+    }
   }
 
   /*!
