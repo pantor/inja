@@ -1,0 +1,3 @@
+header
+{% block data %}some data{% endblock %}
+footer
