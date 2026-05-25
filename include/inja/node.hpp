@@ -268,7 +268,7 @@ class StatementNode : public AstNode {
 public:
   explicit StatementNode(size_t pos): AstNode(pos) {}
 
-  virtual void accept(NodeVisitor& v) const = 0;
+  void accept(NodeVisitor& v) const override = 0;
 };
 
 class ForStatementNode : public StatementNode {
@@ -279,7 +279,7 @@ public:
 
   explicit ForStatementNode(BlockNode* const parent, size_t pos): StatementNode(pos), parent(parent) {}
 
-  virtual void accept(NodeVisitor& v) const = 0;
+  void accept(NodeVisitor& v) const override = 0;
 };
 
 class ForArrayStatementNode : public ForStatementNode {
