@@ -153,10 +153,11 @@ In a loop, the special variables `loop.index (number)`, `loop.index1 (number)`, 
 
 #### Conditions
 
-Conditions support the typical if, else if and else statements. Following conditions are for example possible:
+Conditions support the typical if, else if and else statements. The Jinja2-style `elif` is accepted as a synonym for `else if`, and the two can be mixed in the same chain. Following conditions are for example possible:
 ```.cpp
 // Standard comparisons with a variable
 render("{% if time.hour >= 20 %}Serve{% else if time.hour >= 18 %}Make{% endif %} dinner.", data); // Serve dinner.
+render("{% if time.hour >= 20 %}Serve{% elif time.hour >= 18 %}Make{% endif %} dinner.", data); // Serve dinner. (same, Jinja2-style)
 
 // Variable in list
 render("{% if neighbour in guests %}Turn up the music!{% endif %}", data); // Turn up the music!

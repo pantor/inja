@@ -1904,6 +1904,26 @@ class Parser {
           return false;
         }
       }
+    } else if (tok.text == static_cast<decltype(tok.text)>("elif")) {
+      // Jinja2-style "elif", equivalent to a chained "else if"
+      if (if_statement_stack.empty()) {
+        throw_parser_error("elif without matching if");
+      }
+      auto& if_statement_data = if_statement_stack.top();
+      get_next_token();
+
+      if_statement_data->has_false_statement = true;
+      current_block = &if_statement_data->false_statement;
+
+      auto if_statement_node = std::make_shared<IfStatementNode>(true, current_block, tok.text.data() - tmpl.content.c_str());
+      current_block->nodes.emplace_back(if_statement_node);
+      if_statement_stack.emplace(if_statement_node.get());
+      current_block = &if_statement_node->true_statement;
+      current_expression_list = &if_statement_node->condition;
+
+      if (!parse_expression(tmpl, closing)) {
+        return false;
+      }
     } else if (tok.text == static_cast<decltype(tok.text)>("endif")) {
       if (if_statement_stack.empty()) {
         throw_parser_error("endif without matching if");
