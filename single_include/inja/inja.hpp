@@ -25,6 +25,12 @@ SOFTWARE.
 #ifndef INCLUDE_INJA_INJA_HPP_
 #define INCLUDE_INJA_INJA_HPP_
 
+// Semantic version macros for dependency scanners (#341)
+#define INJA_VERSION_MAJOR 3
+#define INJA_VERSION_MINOR 5
+#define INJA_VERSION_PATCH 0
+
+
 // #include "json.hpp"
 #ifndef INCLUDE_INJA_JSON_HPP_
 #define INCLUDE_INJA_JSON_HPP_
@@ -276,6 +282,7 @@ namespace inja {
 struct SourceLocation {
   size_t line;
   size_t column;
+  std::string filename; // optional; set when the error is inside an include/extends template
 };
 
 struct InjaError : public std::runtime_error {
@@ -288,8 +295,10 @@ struct InjaError : public std::runtime_error {
       : std::runtime_error("[inja.exception." + type + "] " + message), type(type), message(message), location({0, 0}) {}
 
   explicit InjaError(const std::string& type, const std::string& message, SourceLocation location)
-      : std::runtime_error("[inja.exception." + type + "] (at " + std::to_string(location.line) + ":" + std::to_string(location.column) + ") " + message),
-        type(type), message(message), location(location) {}
+      : std::runtime_error("[inja.exception." + type + "] (at " + std::to_string(location.line) + ":" +
+                           std::to_string(location.column) +
+                           (location.filename.empty() ? std::string() : " in " + location.filename) + ") " + message),
+        type(type), message(message), location(std::move(location)) {}
 };
 
 struct ParserError : public InjaError {
@@ -825,6 +834,7 @@ namespace inja {
 struct Template {
   BlockNode root;
   std::string content;
+  std::string name; // path/key used for include/extends; empty for anonymous string templates
   std::map<std::string, std::shared_ptr<BlockStatementNode>> block_storage;
 
   explicit Template() {}
@@ -1560,6 +1570,7 @@ class Parser {
           const std::string text((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 
           auto include_template = Template(text);
+          include_template.name = template_name;
           template_storage.emplace(template_name, include_template);
           parse_into_template(template_storage[template_name], template_name);
           return;
@@ -1572,6 +1583,7 @@ class Parser {
     // Try include callback
     if (config.include_callback) {
       auto include_template = config.include_callback(path, original_name);
+      include_template.name = template_name;
       template_storage.emplace(template_name, include_template);
     }
   }
@@ -2281,7 +2293,8 @@ class Renderer : public NodeVisitor {
   }
 
   void throw_renderer_error(const std::string& message, const AstNode& node) {
-    const SourceLocation loc = get_source_location(current_template->content, node.pos);
+    SourceLocation loc = get_source_location(current_template->content, node.pos);
+    loc.filename = current_template->name;
     INJA_THROW(RenderError(message, loc));
   }
 
@@ -2496,8 +2509,10 @@ class Renderer : public NodeVisitor {
     } break;
     case Op::Capitalize: {
       auto result = get_arguments<1>(node)[0]->get<json::string_t>();
-      result[0] = static_cast<char>(::toupper(result[0]));
-      std::transform(result.begin() + 1, result.end(), result.begin() + 1, [](char c) { return static_cast<char>(::tolower(c)); });
+      if (!result.empty()) {
+        result[0] = static_cast<char>(::toupper(result[0]));
+        std::transform(result.begin() + 1, result.end(), result.begin() + 1, [](char c) { return static_cast<char>(::tolower(c)); });
+      }
       make_result(std::move(result));
     } break;
     case Op::Default: {
@@ -2923,6 +2938,7 @@ public:
   Template parse_template(const std::filesystem::path& filename) {
     Parser parser(parser_config, lexer_config, template_storage, function_storage);
     auto result = Template(Parser::load_file(input_path / filename));
+    result.name = filename.string();
     parser.parse_into_template(result, (input_path / filename).string());
     return result;
   }
@@ -3033,6 +3049,7 @@ public:
    */
   void include_template(const std::string& name, const Template& tmpl) {
     template_storage[name] = tmpl;
+    template_storage[name].name = name;
   }
 
   /*!
