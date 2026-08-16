@@ -88,7 +88,13 @@ TEST_CASE("include-files") {
   SUBCASE("without local files") {
     env.set_search_included_templates_in_files(false);
     CHECK_THROWS_WITH(env.render_file_with_json_file("html/template.txt", "html/data.json"),
-                    "[inja.exception.render_error] (at 3:14) include 'header.txt' not found");
+                    "[inja.exception.render_error] (at 3:14 in html/template.txt) include 'header.txt' not found");
+  }
+
+  SUBCASE("error reports included template name") {
+    env.include_template("header.html", env.parse("Hello {{ name }}!"));
+    CHECK_THROWS_WITH(env.render("{% include \"header.html\" %}", inja::json::object()),
+                    "[inja.exception.render_error] (at 1:10 in header.html) variable 'name' not found");
   }
 }
 
