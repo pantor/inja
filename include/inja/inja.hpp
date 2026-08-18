@@ -25,6 +25,12 @@ SOFTWARE.
 #ifndef INCLUDE_INJA_INJA_HPP_
 #define INCLUDE_INJA_INJA_HPP_
 
+// Semantic version macros for dependency scanners (#341)
+#define INJA_VERSION_MAJOR 3
+#define INJA_VERSION_MINOR 5
+#define INJA_VERSION_PATCH 0
+
+
 #include "json.hpp"
 #include "throw.hpp"
 #include "environment.hpp"
