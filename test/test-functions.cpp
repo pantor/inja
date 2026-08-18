@@ -65,6 +65,7 @@ TEST_CASE("functions") {
   SUBCASE("capitalize") {
     CHECK(env.render("{{ capitalize(name) }}", data) == "Peter");
     CHECK(env.render("{{ capitalize(city) }}", data) == "New york");
+    CHECK(env.render("{{ capitalize(\"\") }}", data) == "");
   }
 
   SUBCASE("range") {

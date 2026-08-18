@@ -344,8 +344,10 @@ class Renderer : public NodeVisitor {
     } break;
     case Op::Capitalize: {
       auto result = get_arguments<1>(node)[0]->get<json::string_t>();
-      result[0] = static_cast<char>(::toupper(result[0]));
-      std::transform(result.begin() + 1, result.end(), result.begin() + 1, [](char c) { return static_cast<char>(::tolower(c)); });
+      if (!result.empty()) {
+        result[0] = static_cast<char>(::toupper(result[0]));
+        std::transform(result.begin() + 1, result.end(), result.begin() + 1, [](char c) { return static_cast<char>(::tolower(c)); });
+      }
       make_result(std::move(result));
     } break;
     case Op::Default: {
