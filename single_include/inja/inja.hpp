@@ -2943,7 +2943,7 @@ public:
     return render(parse(input), data);
   }
 
-  std::string render(const Template& tmpl, const json& data) {
+  std::string render(const Template& tmpl, const json& data) const {
     std::stringstream os;
     render_to(os, tmpl, data);
     return os.str();
@@ -2980,7 +2980,7 @@ public:
     write(temp, data, filename_out);
   }
 
-  std::ostream& render_to(std::ostream& os, const Template& tmpl, const json& data) {
+  std::ostream& render_to(std::ostream& os, const Template& tmpl, const json& data) const {
     Renderer(render_config, template_storage, function_storage).render_to(os, tmpl, data);
     return os;
   }
