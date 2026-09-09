@@ -36,11 +36,15 @@ TEST_CASE("functions") {
     CHECK(env.render("{{ 1 + 1 * 3 }}", data) == "4");
     CHECK(env.render("{{ (1 + 1) * 3 }}", data) == "6");
     CHECK(env.render("{{ 5 / 2 }}", data) == "2.5");
+    CHECK(env.render("{{ 5 % 2 }}", data) == "1");
+    CHECK(env.render("{{ 7 % -2 }}", data) == "1");
     CHECK(env.render("{{ 5^3 }}", data) == "125");
     CHECK(env.render("{{ 5 + 12 + 4 * (4 - (1 + 1))^2 - 75 * 1 }}", data) == "-42");
 
     CHECK_THROWS_WITH(env.render("{{ +1 }}", data), "[inja.exception.parser_error] (at 1:7) too few arguments");
     CHECK_THROWS_WITH(env.render("{{ 1 + }}", data), "[inja.exception.parser_error] (at 1:8) too few arguments");
+    CHECK_THROWS_WITH(env.render("{{ 5 % 0 }}", data), "[inja.exception.render_error] (at 1:6) modulo by zero");
+    CHECK_THROWS_WITH(env.render("{{ 5 % 0.5 }}", data), "[inja.exception.render_error] (at 1:6) modulo by zero");
   }
 
   SUBCASE("upper") {
