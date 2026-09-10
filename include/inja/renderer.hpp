@@ -321,7 +321,11 @@ class Renderer : public NodeVisitor {
     } break;
     case Op::Modulo: {
       const auto args = get_arguments<2>(node);
-      make_result(args[0]->get<const json::number_integer_t>() % args[1]->get<const json::number_integer_t>());
+      const auto divisor = args[1]->get<const json::number_integer_t>();
+      if (divisor == 0) {
+        throw_renderer_error("modulo by zero", node);
+      }
+      make_result(args[0]->get<const json::number_integer_t>() % divisor);
     } break;
     case Op::AtId: {
       const auto container = get_arguments<1, 0, false>(node)[0];
