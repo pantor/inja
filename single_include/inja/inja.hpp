@@ -2805,6 +2805,11 @@ class Renderer : public NodeVisitor {
       block_statement_stack.emplace_back(&node);
       block_it->second->block.accept(*this);
       block_statement_stack.pop_back();
+    } else {
+      current_template = template_stack.back();
+      block_statement_stack.emplace_back(&node);
+      node.block.accept(*this);
+      block_statement_stack.pop_back();
     }
     current_level = old_level;
     current_template = template_stack.back();
