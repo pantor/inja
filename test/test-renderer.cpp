@@ -160,6 +160,32 @@ Yeah!
     CHECK(env.render("{{ brother.name | upper | lower }}", data) == "chris");
     CHECK(env.render("{{ [\"C\", \"A\", \"B\"] | sort | join(\",\") }}", data) == "A,B,C");
   }
+
+  SUBCASE("filter statement") {
+    CHECK(env.render("{% filter upper %}hello{% endfilter %}", data) == "HELLO");
+    CHECK(env.render("{% filter upper %}{{ name }}{% endfilter %}", data) == "PETER");
+    CHECK(env.render("{% filter lower | upper %}Hello{% endfilter %}", data) == "HELLO");
+    CHECK(env.render("{% filter upper | lower %}Hello{% endfilter %}", data) == "hello");
+    CHECK(env.render("{% filter center(11) %}name{% endfilter %}", data) == "    name   ");
+    CHECK(env.render("{% filter indent(2, true) %}line{% endfilter %}", data) == "  line");
+
+    // Filter wrapping control flow in the body
+    CHECK(env.render("{% filter upper %}{% if is_happy %}yes{% endif %}{% endfilter %}", data) == "YES");
+    CHECK(env.render("{% filter upper %}{% for n in names %}{{ n }} {% endfor %}{% endfilter %}", data) == "JEFF SEB ");
+
+    // Nested filter blocks
+    CHECK(env.render("{% filter upper %}a{% filter lower %}B{% endfilter %}c{% endfilter %}", data) == "ABC");
+
+    // Any user callback taking a string works as a filter
+    env.add_callback("exclaim", 1, [](inja::Arguments& args) { return args.at(0)->get<std::string>() + "!"; });
+    CHECK(env.render("{% filter exclaim %}{{ name }}{% endfilter %}", data) == "Peter!");
+    CHECK(env.render("{% filter exclaim | upper %}{{ name }}{% endfilter %}", data) == "PETER!");
+    CHECK(env.render("{{ name | exclaim }}", data) == "Peter!");
+
+    CHECK_THROWS_AS(env.render("{% filter %}x{% endfilter %}", data), inja::ParserError);
+    CHECK_THROWS_AS(env.render("{% endfilter %}", data), inja::ParserError);
+    CHECK_THROWS_AS(env.render("{% filter upper %}x", data), inja::ParserError);
+  }
 }
 
 TEST_CASE("templates") {

@@ -47,6 +47,7 @@ class Parser {
   std::stack<IfStatementNode*> if_statement_stack;
   std::stack<ForStatementNode*> for_statement_stack;
   std::stack<BlockStatementNode*> block_statement_stack;
+  std::stack<FilterStatementNode*> filter_statement_stack;
 
   void throw_parser_error(const std::string& message) const {
     INJA_THROW(ParserError(message, lexer.current_position()));
@@ -498,6 +499,66 @@ class Parser {
 
       current_block = block_statement_data->parent;
       block_statement_stack.pop();
+    } else if (tok.text == static_cast<decltype(tok.text)>("filter")) {
+      auto filter_statement_node = std::make_shared<FilterStatementNode>(current_block, tok.text.data() - tmpl.content.c_str());
+      current_block->nodes.emplace_back(filter_statement_node);
+      filter_statement_stack.emplace(filter_statement_node.get());
+
+      // Build the filter chain. The implicit first argument of the first filter is the rendered
+      // block content, represented by a FilterContentNode placeholder.
+      get_next_token();
+      std::shared_ptr<ExpressionNode> current = std::make_shared<FilterContentNode>(tok.text.data() - tmpl.content.c_str());
+      for (;;) {
+        if (tok.kind != Token::Kind::Id) {
+          throw_parser_error("expected filter name, got '" + tok.describe() + "'");
+        }
+        auto func = std::make_shared<FunctionNode>(tok.text, tok.text.data() - tmpl.content.c_str());
+        func->number_args = 1;
+        func->arguments.emplace_back(current);
+        get_peek_token();
+        if (peek_tok.kind == Token::Kind::LeftParen) {
+          get_next_token();
+          do {
+            get_next_token();
+            auto expr = parse_expression(tmpl);
+            if (!expr) {
+              break;
+            }
+            func->number_args += 1;
+            func->arguments.emplace_back(expr);
+          } while (tok.kind == Token::Kind::Comma);
+          if (tok.kind != Token::Kind::RightParen) {
+            throw_parser_error("expected right parenthesis, got '" + tok.describe() + "'");
+          }
+        }
+        auto function_data = function_storage.find_function(func->name, func->number_args);
+        if (function_data.operation == FunctionStorage::Operation::None) {
+          throw_parser_error("unknown function " + func->name);
+        }
+        func->operation = function_data.operation;
+        if (function_data.operation == FunctionStorage::Operation::Callback) {
+          func->callback = function_data.callback;
+        }
+        current = func;
+
+        get_next_token();
+        if (tok.kind != Token::Kind::Pipe) {
+          break;
+        }
+        get_next_token();
+      }
+      filter_statement_node->filter_expression.root = current;
+      current_block = &filter_statement_node->body;
+    } else if (tok.text == static_cast<decltype(tok.text)>("endfilter")) {
+      if (filter_statement_stack.empty()) {
+        throw_parser_error("endfilter without matching filter");
+      }
+
+      auto& filter_statement_data = filter_statement_stack.top();
+      get_next_token();
+
+      current_block = filter_statement_data->parent;
+      filter_statement_stack.pop();
     } else if (tok.text == static_cast<decltype(tok.text)>("for")) {
       get_next_token();
 
@@ -612,6 +673,9 @@ class Parser {
         }
         if (!for_statement_stack.empty()) {
           throw_parser_error("unmatched for");
+        }
+        if (!filter_statement_stack.empty()) {
+          throw_parser_error("unmatched filter");
         }
       }
         current_block = nullptr;

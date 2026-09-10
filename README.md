@@ -215,6 +215,15 @@ render("Hello {{ capitalize(neighbour) }}!", data); // "Hello Peter!"
 // Replace characters in a string
 render("{{ replace(neighbour, \"e\", \"3\")}}", data); // "P3t3r"
 
+// Center a string in a field of the given width (default 80)
+render("{{ center(neighbour, 11) }}", data); // "   Peter   "
+
+// Indent every line but the first by a number of spaces, or by a string
+render("{{ indent(\"line1\\nline2\", 4) }}", data); // "line1\n    line2"
+render("{{ indent(\"line1\\nline2\", \"> \") }}", data); // "line1\n> line2"
+// indent(value, width=4, first=false, blank=false): pass first=true to also indent the
+// first line, and blank=true to also indent empty lines
+
 // Range function, useful for loops
 render("{% for i in range(4) %}{{ loop.index1 }}{% endfor %}", data); // "1234"
 render("{% for i in range(3) %}{{ at(guests, i) }} {% endfor %}", data); // "Jeff Tom Patrick "
@@ -278,6 +287,25 @@ render("Hello {{ neighbour | upper }}!", data); // "Hello PETER!"
 
 // Sort array and join with comma
 render("{{ [\"B\", \"A\", \"C\"] | sort | join(\",\") }}", data); // "A,B,C"
+```
+
+#### Filter blocks
+
+The `{% filter ... %} ... {% endfilter %}` statement renders the block of content between the tags
+and passes the result as the first argument to the given filter. Any function (built-in or your own
+[callback](#callbacks)) that takes a string as its first argument and returns a string can be used
+as a filter, and filters can be chained with the pipe `|` syntax and take extra arguments.
+
+```.cpp
+// Apply a single filter to the block content
+render("{% filter upper %}Hello {{ neighbour }}!{% endfilter %}", data); // "HELLO PETER!"
+
+// Chain filters with the pipe syntax
+render("{% filter replace(\"e\", \"3\") | upper %}{{ neighbour }}{% endfilter %}", data); // "P3T3R"
+
+// Filters with arguments
+render("{% filter center(11) %}name{% endfilter %}", data); // "    name   "
+render("{% filter indent(\"// \", true) %}line1\nline2{% endfilter %}", data); // "// line1\n// line2"
 ```
 
 ### Callbacks

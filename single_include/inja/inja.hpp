@@ -154,6 +154,7 @@ public:
     AtId,
     At,
     Capitalize,
+    Center,
     Default,
     DivisibleBy,
     Even,
@@ -161,6 +162,7 @@ public:
     ExistsInObject,
     First,
     Float,
+    Indent,
     Int,
     IsArray,
     IsBoolean,
@@ -198,6 +200,7 @@ private:
   std::map<std::pair<std::string, int>, FunctionData> function_storage = {
       {std::make_pair("at", 2), FunctionData {Operation::At}},
       {std::make_pair("capitalize", 1), FunctionData {Operation::Capitalize}},
+      {std::make_pair("center", VARIADIC), FunctionData {Operation::Center}},
       {std::make_pair("default", 2), FunctionData {Operation::Default}},
       {std::make_pair("divisibleBy", 2), FunctionData {Operation::DivisibleBy}},
       {std::make_pair("even", 1), FunctionData {Operation::Even}},
@@ -205,6 +208,7 @@ private:
       {std::make_pair("existsIn", 2), FunctionData {Operation::ExistsInObject}},
       {std::make_pair("first", 1), FunctionData {Operation::First}},
       {std::make_pair("float", 1), FunctionData {Operation::Float}},
+      {std::make_pair("indent", VARIADIC), FunctionData {Operation::Indent}},
       {std::make_pair("int", 1), FunctionData {Operation::Int}},
       {std::make_pair("isArray", 1), FunctionData {Operation::IsArray}},
       {std::make_pair("isBoolean", 1), FunctionData {Operation::IsBoolean}},
@@ -402,6 +406,8 @@ class IncludeStatementNode;
 class ExtendsStatementNode;
 class BlockStatementNode;
 class SetStatementNode;
+class FilterStatementNode;
+class FilterContentNode;
 
 class NodeVisitor {
 public:
@@ -423,6 +429,8 @@ public:
   virtual void visit(const ExtendsStatementNode& node) = 0;
   virtual void visit(const BlockStatementNode& node) = 0;
   virtual void visit(const SetStatementNode& node) = 0;
+  virtual void visit(const FilterStatementNode& node) = 0;
+  virtual void visit(const FilterContentNode& node) = 0;
 };
 
 /*!
@@ -497,6 +505,15 @@ public:
   }
 
   explicit DataNode(std::string_view ptr_name, size_t pos): ExpressionNode(pos), name(ptr_name), ptr(json::json_pointer(convert_dot_to_ptr(ptr_name))) {}
+
+  void accept(NodeVisitor& v) const override {
+    v.visit(*this);
+  }
+};
+
+class FilterContentNode : public ExpressionNode {
+public:
+  explicit FilterContentNode(size_t pos): ExpressionNode(pos) {}
 
   void accept(NodeVisitor& v) const override {
     v.visit(*this);
@@ -742,6 +759,21 @@ public:
   }
 };
 
+class FilterStatementNode : public StatementNode {
+public:
+  // cppcheck-suppress unusedStructMember
+  ExpressionListNode filter_expression;
+  // cppcheck-suppress unusedStructMember
+  BlockNode body;
+  BlockNode* const parent;
+
+  explicit FilterStatementNode(BlockNode* const parent, size_t pos): StatementNode(pos), parent(parent) {}
+
+  void accept(NodeVisitor& v) const override {
+    v.visit(*this);
+  }
+};
+
 } // namespace inja
 
 #endif // INCLUDE_INJA_NODE_HPP_
@@ -811,6 +843,13 @@ class StatisticsVisitor : public NodeVisitor {
   }
 
   void visit(const SetStatementNode&) override {}
+
+  void visit(const FilterStatementNode& node) override {
+    node.filter_expression.accept(*this);
+    node.body.accept(*this);
+  }
+
+  void visit(const FilterContentNode&) override {}
 
 public:
   size_t variable_counter {0};
@@ -1503,6 +1542,7 @@ class Parser {
   std::stack<IfStatementNode*> if_statement_stack;
   std::stack<ForStatementNode*> for_statement_stack;
   std::stack<BlockStatementNode*> block_statement_stack;
+  std::stack<FilterStatementNode*> filter_statement_stack;
 
   void throw_parser_error(const std::string& message) const {
     INJA_THROW(ParserError(message, lexer.current_position()));
@@ -1954,6 +1994,66 @@ class Parser {
 
       current_block = block_statement_data->parent;
       block_statement_stack.pop();
+    } else if (tok.text == static_cast<decltype(tok.text)>("filter")) {
+      auto filter_statement_node = std::make_shared<FilterStatementNode>(current_block, tok.text.data() - tmpl.content.c_str());
+      current_block->nodes.emplace_back(filter_statement_node);
+      filter_statement_stack.emplace(filter_statement_node.get());
+
+      // Build the filter chain. The implicit first argument of the first filter is the rendered
+      // block content, represented by a FilterContentNode placeholder.
+      get_next_token();
+      std::shared_ptr<ExpressionNode> current = std::make_shared<FilterContentNode>(tok.text.data() - tmpl.content.c_str());
+      for (;;) {
+        if (tok.kind != Token::Kind::Id) {
+          throw_parser_error("expected filter name, got '" + tok.describe() + "'");
+        }
+        auto func = std::make_shared<FunctionNode>(tok.text, tok.text.data() - tmpl.content.c_str());
+        func->number_args = 1;
+        func->arguments.emplace_back(current);
+        get_peek_token();
+        if (peek_tok.kind == Token::Kind::LeftParen) {
+          get_next_token();
+          do {
+            get_next_token();
+            auto expr = parse_expression(tmpl);
+            if (!expr) {
+              break;
+            }
+            func->number_args += 1;
+            func->arguments.emplace_back(expr);
+          } while (tok.kind == Token::Kind::Comma);
+          if (tok.kind != Token::Kind::RightParen) {
+            throw_parser_error("expected right parenthesis, got '" + tok.describe() + "'");
+          }
+        }
+        auto function_data = function_storage.find_function(func->name, func->number_args);
+        if (function_data.operation == FunctionStorage::Operation::None) {
+          throw_parser_error("unknown function " + func->name);
+        }
+        func->operation = function_data.operation;
+        if (function_data.operation == FunctionStorage::Operation::Callback) {
+          func->callback = function_data.callback;
+        }
+        current = func;
+
+        get_next_token();
+        if (tok.kind != Token::Kind::Pipe) {
+          break;
+        }
+        get_next_token();
+      }
+      filter_statement_node->filter_expression.root = current;
+      current_block = &filter_statement_node->body;
+    } else if (tok.text == static_cast<decltype(tok.text)>("endfilter")) {
+      if (filter_statement_stack.empty()) {
+        throw_parser_error("endfilter without matching filter");
+      }
+
+      auto& filter_statement_data = filter_statement_stack.top();
+      get_next_token();
+
+      current_block = filter_statement_data->parent;
+      filter_statement_stack.pop();
     } else if (tok.text == static_cast<decltype(tok.text)>("for")) {
       get_next_token();
 
@@ -2068,6 +2168,9 @@ class Parser {
         }
         if (!for_statement_stack.empty()) {
           throw_parser_error("unmatched for");
+        }
+        if (!filter_statement_stack.empty()) {
+          throw_parser_error("unmatched filter");
         }
       }
         current_block = nullptr;
@@ -2226,6 +2329,7 @@ class Renderer : public NodeVisitor {
   std::vector<std::shared_ptr<json>> data_tmp_stack;
   std::stack<const json*> data_eval_stack;
   std::stack<const DataNode*> not_found_stack;
+  std::stack<std::string> filter_content_stack;
 
   bool break_rendering {false};
 
@@ -2394,6 +2498,10 @@ class Renderer : public NodeVisitor {
     }
   }
 
+  void visit(const FilterContentNode&) override {
+    make_result(json(filter_content_stack.top()));
+  }
+
   void visit(const FunctionNode& node) override {
     switch (node.operation) {
     case Op::Not: {
@@ -2512,6 +2620,19 @@ class Renderer : public NodeVisitor {
       }
       make_result(std::move(result));
     } break;
+    case Op::Center: {
+      const auto args = get_argument_vector(node);
+      auto str = args[0]->get<json::string_t>();
+      const auto width = (args.size() >= 2) ? args[1]->get<json::number_integer_t>() : 80;
+      const auto len = static_cast<json::number_integer_t>(str.length());
+      if (len >= width) {
+        make_result(std::move(str));
+      } else {
+        const auto marg = width - len;
+        const auto left = marg / 2 + ((marg & width) & 1);
+        make_result(std::string(static_cast<size_t>(left), ' ') + str + std::string(static_cast<size_t>(marg - left), ' '));
+      }
+    } break;
     case Op::Default: {
       const auto test_arg = get_arguments<1, 0, false>(node)[0];
       data_eval_stack.push((test_arg != nullptr) ? test_arg : get_arguments<1, 1>(node)[0]);
@@ -2539,6 +2660,40 @@ class Renderer : public NodeVisitor {
     } break;
     case Op::Float: {
       make_result(std::stod(get_arguments<1>(node)[0]->get_ref<const json::string_t&>()));
+    } break;
+    case Op::Indent: {
+      const auto args = get_argument_vector(node);
+      const auto str = args[0]->get<json::string_t>();
+      const std::string indention = (args.size() >= 2 && args[1]->is_string())
+                                        ? args[1]->get<json::string_t>()
+                                        : std::string(static_cast<size_t>((args.size() >= 2) ? args[1]->get<json::number_integer_t>() : 4), ' ');
+      const bool first = (args.size() >= 3) && truthy(args[2]);
+      const bool blank = (args.size() >= 4) && truthy(args[3]);
+
+      std::string result;
+      size_t line_start = 0;
+      bool is_first_line = true;
+      while (true) {
+        const size_t newline_pos = str.find('\n', line_start);
+        const bool last = (newline_pos == std::string::npos);
+        const std::string line = str.substr(line_start, last ? std::string::npos : newline_pos - line_start);
+
+        if (!is_first_line) {
+          result += '\n';
+        }
+        const bool indent_line = is_first_line ? first : (blank || !line.empty());
+        if (indent_line) {
+          result += indention;
+        }
+        result += line;
+
+        is_first_line = false;
+        if (last) {
+          break;
+        }
+        line_start = newline_pos + 1;
+      }
+      make_result(std::move(result));
     } break;
     case Op::Int: {
       make_result(std::stoi(get_arguments<1>(node)[0]->get_ref<const json::string_t&>()));
@@ -2815,6 +2970,18 @@ class Renderer : public NodeVisitor {
     replace_substring(ptr, ".", "/");
     ptr = "/" + ptr;
     additional_data[json::json_pointer(ptr)] = *eval_expression_list(node.expression);
+  }
+
+  void visit(const FilterStatementNode& node) override {
+    std::ostringstream content_stream;
+    std::ostream* previous_output_stream = output_stream;
+    output_stream = &content_stream;
+    node.body.accept(*this);
+    output_stream = previous_output_stream;
+
+    filter_content_stack.push(content_stream.str());
+    print_data(eval_expression_list(node.filter_expression));
+    filter_content_stack.pop();
   }
 
 public:
