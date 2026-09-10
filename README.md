@@ -128,6 +128,9 @@ render("{{ guests.1 }}", data); // "Tom"
 
 // Objects
 render("{{ time.start }} to {{ time.end + 1 }}pm", data); // "16 to 23pm"
+
+// Array literals with arbitrary expressions as elements
+render("{{ [neighbour, \"Anna\"] }}", data); // "[\"Peter\",\"Anna\"]"
 ```
 If no variable is found, valid JSON is printed directly, otherwise an `inja::RenderError` is thrown.
 
@@ -148,6 +151,9 @@ render(R"(Guest List:
 	1: Jeff
 	2: Tom
 	3: Patrick */
+
+// Iterating over an inline array containing variables
+render("{% for guest in [neighbour, \"Anna\"] %}{{ guest }} {% endfor %}", data); // "Peter Anna "
 ```
 In a loop, the special variables `loop.index (number)`, `loop.index1 (number)`, `loop.is_first (boolean)` and `loop.is_last (boolean)` are defined. In nested loops, the parent loop variables are available e.g. via `loop.parent.index`. You can also iterate over objects like `{% for key, value in time %}`.
 

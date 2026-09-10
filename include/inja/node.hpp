@@ -19,6 +19,7 @@ class BlockNode;
 class TextNode;
 class ExpressionNode;
 class LiteralNode;
+class ArrayNode;
 class DataNode;
 class FunctionNode;
 class ExpressionListNode;
@@ -40,6 +41,7 @@ public:
   virtual void visit(const TextNode& node) = 0;
   virtual void visit(const ExpressionNode& node) = 0;
   virtual void visit(const LiteralNode& node) = 0;
+  virtual void visit(const ArrayNode& node) = 0;
   virtual void visit(const DataNode& node) = 0;
   virtual void visit(const FunctionNode& node) = 0;
   virtual void visit(const ExpressionListNode& node) = 0;
@@ -103,6 +105,18 @@ public:
   const json value;
 
   explicit LiteralNode(std::string_view data_text, size_t pos): ExpressionNode(pos), value(json::parse(data_text)) {}
+
+  void accept(NodeVisitor& v) const override {
+    v.visit(*this);
+  }
+};
+
+class ArrayNode : public ExpressionNode {
+public:
+  // cppcheck-suppress unusedStructMember
+  std::vector<std::shared_ptr<ExpressionNode>> elements;
+
+  explicit ArrayNode(size_t pos): ExpressionNode(pos) {}
 
   void accept(NodeVisitor& v) const override {
     v.visit(*this);

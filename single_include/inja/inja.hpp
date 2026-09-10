@@ -390,6 +390,7 @@ class BlockNode;
 class TextNode;
 class ExpressionNode;
 class LiteralNode;
+class ArrayNode;
 class DataNode;
 class FunctionNode;
 class ExpressionListNode;
@@ -411,6 +412,7 @@ public:
   virtual void visit(const TextNode& node) = 0;
   virtual void visit(const ExpressionNode& node) = 0;
   virtual void visit(const LiteralNode& node) = 0;
+  virtual void visit(const ArrayNode& node) = 0;
   virtual void visit(const DataNode& node) = 0;
   virtual void visit(const FunctionNode& node) = 0;
   virtual void visit(const ExpressionListNode& node) = 0;
@@ -474,6 +476,18 @@ public:
   const json value;
 
   explicit LiteralNode(std::string_view data_text, size_t pos): ExpressionNode(pos), value(json::parse(data_text)) {}
+
+  void accept(NodeVisitor& v) const override {
+    v.visit(*this);
+  }
+};
+
+class ArrayNode : public ExpressionNode {
+public:
+  // cppcheck-suppress unusedStructMember
+  std::vector<std::shared_ptr<ExpressionNode>> elements;
+
+  explicit ArrayNode(size_t pos): ExpressionNode(pos) {}
 
   void accept(NodeVisitor& v) const override {
     v.visit(*this);
@@ -768,6 +782,12 @@ class StatisticsVisitor : public NodeVisitor {
   void visit(const TextNode&) override {}
   void visit(const ExpressionNode&) override {}
   void visit(const LiteralNode&) override {}
+
+  void visit(const ArrayNode& node) override {
+    for (const auto& e : node.elements) {
+      e->accept(*this);
+    }
+  }
 
   void visit(const DataNode&) override {
     variable_counter += 1;
@@ -1623,9 +1643,28 @@ class Parser {
       } break;
       case Token::Kind::LeftBracket: {
         if (current_brace_level == 0 && current_bracket_level == 0) {
-          literal_start = tok.text;
+          auto array_node = std::make_shared<ArrayNode>(tok.text.data() - tmpl.content.c_str());
+          get_next_token();
+          if (tok.kind != Token::Kind::RightBracket) {
+            while (true) {
+              auto expr = parse_expression(tmpl);
+              if (!expr) {
+                break;
+              }
+              array_node->elements.emplace_back(expr);
+              if (tok.kind != Token::Kind::Comma) {
+                break;
+              }
+              get_next_token();
+            }
+          }
+          if (tok.kind != Token::Kind::RightBracket) {
+            throw_parser_error("expected ']', got '" + tok.describe() + "'");
+          }
+          arguments.emplace_back(array_node);
+        } else {
+          current_bracket_level += 1;
         }
-        current_bracket_level += 1;
       } break;
       case Token::Kind::LeftBrace: {
         if (current_brace_level == 0 && current_bracket_level == 0) {
@@ -1635,7 +1674,7 @@ class Parser {
       } break;
       case Token::Kind::RightBracket: {
         if (current_bracket_level == 0) {
-          throw_parser_error("unexpected ']'");
+          goto break_loop;
         }
 
         current_bracket_level -= 1;
@@ -2286,7 +2325,7 @@ class Renderer : public NodeVisitor {
     return std::make_shared<json>(*result);
   }
 
-  void throw_renderer_error(const std::string& message, const AstNode& node) {
+  [[noreturn]] void throw_renderer_error(const std::string& message, const AstNode& node) {
     const SourceLocation loc = get_source_location(current_template->content, node.pos);
     INJA_THROW(RenderError(message, loc));
   }
@@ -2372,6 +2411,30 @@ class Renderer : public NodeVisitor {
 
   void visit(const LiteralNode& node) override {
     data_eval_stack.push(&node.value);
+  }
+
+  void visit(const ArrayNode& node) override {
+    const size_t N = node.elements.size();
+    for (const auto& e : node.elements) {
+      e->accept(*this);
+    }
+    if (data_eval_stack.size() < N) {
+      throw_renderer_error("malformed array literal", node);
+    }
+    json result = json::array();
+    result.get_ref<json::array_t&>().resize(N);
+    for (size_t i = 0; i < N; ++i) {
+      const auto v = data_eval_stack.top();
+      data_eval_stack.pop();
+      if (!v) {
+        const auto data_node = not_found_stack.top();
+        not_found_stack.pop();
+        throw_renderer_error("variable '" + static_cast<std::string>(data_node->name) + "' not found", *data_node);
+      } else {
+        result[N - i - 1] = *v;
+      }
+    }
+    make_result(std::move(result));
   }
 
   void visit(const DataNode& node) override {
