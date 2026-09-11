@@ -31,6 +31,29 @@ inline bool starts_with(std::string_view view, std::string_view prefix) {
 }
 } // namespace string_view
 
+namespace function_signature {
+template <class... Args> struct ArgsList {};
+template <class Func> struct Get {};
+template <class R, class... A> //
+struct Get<R (*)(A...)> {
+  using Ret = R;
+  using ArgsList = ArgsList<A...>;
+  using ArgsTuple = std::tuple<A...>;
+};
+template <class R, class C, class... A> //
+struct Get<R (C::*)(A...)> {
+  using Ret = R;
+  using ArgsList = ArgsList<A...>;
+  using ArgsTuple = std::tuple<A...>;
+};
+template <class R, class C, class... A> //
+struct Get<R (C::*)(A...) const> {
+  using Ret = R;
+  using ArgsList = ArgsList<A...>;
+  using ArgsTuple = std::tuple<A...>;
+};
+} // namespace function_signature
+
 inline SourceLocation get_source_location(std::string_view content, size_t pos) {
   // Get line and offset position (starts at 1:1)
   auto sliced = string_view::slice(content, 0, pos);
