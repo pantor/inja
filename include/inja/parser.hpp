@@ -44,9 +44,19 @@ class Parser {
   BlockNode* current_block {nullptr};
   ExpressionListNode* current_expression_list {nullptr};
 
+  // Holds a copy of the current template's content for macros to reference.
+  // Created lazily on the first macro definition in the current parse.
+  std::shared_ptr<Template> current_macro_owner;
+
+  // Points to the most recently created TextNode, used to detect (without RTTI)
+  // whether a block ends with literal text so a trailing newline can be trimmed
+  // from a macro body.
+  const AstNode* last_text_node {nullptr};
+
   std::stack<IfStatementNode*> if_statement_stack;
   std::stack<ForStatementNode*> for_statement_stack;
   std::stack<BlockStatementNode*> block_statement_stack;
+  std::stack<MacroStatementNode*> macro_statement_stack;
 
   void throw_parser_error(const std::string& message) const {
     INJA_THROW(ParserError(message, lexer.current_position()));
@@ -214,7 +224,9 @@ class Parser {
 
           // Functions
         } else if (peek_tok.kind == Token::Kind::LeftParen) {
-          auto func = std::make_shared<FunctionNode>(tok.text, tok.text.data() - tmpl.content.c_str());
+          const std::string call_name = static_cast<std::string>(tok.text);
+          const size_t call_pos = tok.text.data() - tmpl.content.c_str();
+          auto func = std::make_shared<FunctionNode>(tok.text, call_pos);
           get_next_token();
           do {
             get_next_token();
@@ -231,6 +243,14 @@ class Parser {
 
           auto function_data = function_storage.find_function(func->name, func->number_args);
           if (function_data.operation == FunctionStorage::Operation::None) {
+            // Try macro lookup before failing
+            auto macro_it = tmpl.macro_storage.find(call_name);
+            if (macro_it != tmpl.macro_storage.end()) {
+              auto macro_call = std::make_shared<MacroCallNode>(call_name, macro_it->second, call_pos);
+              macro_call->arguments = std::move(func->arguments);
+              arguments.emplace_back(macro_call);
+              break;
+            }
             throw_parser_error("unknown function " + func->name);
           }
           func->operation = function_data.operation;
@@ -383,6 +403,13 @@ class Parser {
         // search store for defined function with such name and number of args
         auto function_data = function_storage.find_function(func->name, func->number_args);
         if (function_data.operation == FunctionStorage::Operation::None) {
+          auto macro_it = tmpl.macro_storage.find(func->name);
+          if (macro_it != tmpl.macro_storage.end()) {
+            auto macro_call = std::make_shared<MacroCallNode>(func->name, macro_it->second, func->pos);
+            macro_call->arguments = std::move(func->arguments);
+            arguments.emplace_back(macro_call);
+            break;
+          }
           throw_parser_error("unknown function " + func->name);
         }
         func->operation = function_data.operation;
@@ -559,6 +586,15 @@ class Parser {
       std::string template_name = parse_filename();
       add_to_template_storage(path, template_name);
 
+      // Hoist macros defined in the included template so they can be called
+      // in the including template after this statement.
+      const auto included_it = template_storage.find(template_name);
+      if (included_it != template_storage.end()) {
+        for (const auto& macro_pair : included_it->second.macro_storage) {
+          tmpl.macro_storage.emplace(macro_pair.first, macro_pair.second);
+        }
+      }
+
       current_block->nodes.emplace_back(std::make_shared<IncludeStatementNode>(template_name, tok.text.data() - tmpl.content.c_str()));
 
       get_next_token();
@@ -593,6 +629,99 @@ class Parser {
       if (!parse_expression(tmpl, closing)) {
         return false;
       }
+    } else if (tok.text == static_cast<decltype(tok.text)>("macro")) {
+      get_next_token();
+
+      if (tok.kind != Token::Kind::Id) {
+        throw_parser_error("expected macro name, got '" + tok.describe() + "'");
+      }
+      const std::string macro_name = static_cast<std::string>(tok.text);
+      const size_t macro_pos = tok.text.data() - tmpl.content.c_str();
+      get_next_token();
+
+      if (tok.kind != Token::Kind::LeftParen) {
+        throw_parser_error("expected '(' after macro name, got '" + tok.describe() + "'");
+      }
+      get_next_token();
+
+      auto macro_node = std::make_shared<MacroStatementNode>(current_block, macro_name, macro_pos);
+      if (!current_macro_owner) {
+        current_macro_owner = std::make_shared<Template>(tmpl.content);
+      }
+      macro_node->owner_template = current_macro_owner;
+
+      // Parse parameter list: name1, name2 = expr, name3 ...
+      bool seen_default = false;
+      while (tok.kind != Token::Kind::RightParen) {
+        if (tok.kind != Token::Kind::Id) {
+          throw_parser_error("expected parameter name, got '" + tok.describe() + "'");
+        }
+        MacroParameter param;
+        param.name = static_cast<std::string>(tok.text);
+        get_next_token();
+
+        if (tok.text == static_cast<decltype(tok.text)>("=")) {
+          get_next_token();
+          param.default_value = parse_expression(tmpl);
+          if (!param.default_value) {
+            throw_parser_error("expected expression for default value");
+          }
+          seen_default = true;
+        } else if (seen_default) {
+          throw_parser_error("parameter without default follows parameter with default");
+        }
+
+        macro_node->parameters.emplace_back(std::move(param));
+
+        if (tok.kind == Token::Kind::Comma) {
+          get_next_token();
+        } else if (tok.kind != Token::Kind::RightParen) {
+          throw_parser_error("expected ',' or ')' in parameter list, got '" + tok.describe() + "'");
+        }
+      }
+      get_next_token();
+
+      current_block->nodes.emplace_back(macro_node);
+      auto success = tmpl.macro_storage.emplace(macro_name, macro_node);
+      if (!success.second) {
+        throw_parser_error("macro with the name '" + macro_name + "' does already exist");
+      }
+      macro_statement_stack.emplace(macro_node.get());
+      current_block = &macro_node->body;
+    } else if (tok.text == static_cast<decltype(tok.text)>("endmacro")) {
+      if (macro_statement_stack.empty()) {
+        throw_parser_error("endmacro without matching macro");
+      }
+
+      auto& macro_statement_data = macro_statement_stack.top();
+      get_next_token();
+
+      // Trim a single trailing newline from the macro body so a definition such as
+      //   ## macro foo()
+      //   test
+      //   ## endmacro
+      // expands to "test" rather than "test\n" when called. The newline before
+      // 'endmacro' belongs to the source layout, not to the macro's value.
+      auto& body_nodes = macro_statement_data->body.nodes;
+      if (!body_nodes.empty() && body_nodes.back().get() == last_text_node) {
+        auto* const text_node = static_cast<TextNode*>(body_nodes.back().get());
+        const char* const data = tmpl.content.c_str() + text_node->pos;
+        size_t new_length = text_node->length;
+        if (new_length > 0 && data[new_length - 1] == '\n') {
+          new_length -= 1;
+          if (new_length > 0 && data[new_length - 1] == '\r') {
+            new_length -= 1;
+          }
+          if (new_length == 0) {
+            body_nodes.pop_back();
+          } else {
+            body_nodes.back() = std::make_shared<TextNode>(text_node->pos, new_length);
+          }
+        }
+      }
+
+      current_block = macro_statement_data->parent;
+      macro_statement_stack.pop();
     } else {
       return false;
     }
@@ -613,11 +742,15 @@ class Parser {
         if (!for_statement_stack.empty()) {
           throw_parser_error("unmatched for");
         }
+        if (!macro_statement_stack.empty()) {
+          throw_parser_error("unmatched macro");
+        }
       }
         current_block = nullptr;
         return;
       case Token::Kind::Text: {
         current_block->nodes.emplace_back(std::make_shared<TextNode>(tok.text.data() - tmpl.content.c_str(), tok.text.size()));
+        last_text_node = current_block->nodes.back().get();
       } break;
       case Token::Kind::StatementOpen: {
         get_next_token();

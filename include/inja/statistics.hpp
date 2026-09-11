@@ -62,6 +62,14 @@ class StatisticsVisitor : public NodeVisitor {
 
   void visit(const SetStatementNode&) override {}
 
+  void visit(const MacroStatementNode&) override {}
+
+  void visit(const MacroCallNode& node) override {
+    for (const auto& a : node.arguments) {
+      a->accept(*this);
+    }
+  }
+
 public:
   size_t variable_counter {0};
 

@@ -62,6 +62,10 @@ class Renderer : public NodeVisitor {
   const json* data_input;
   std::ostream* output_stream;
 
+  // Nesting depth of in-flight macro calls; guards against runaway recursion (missing base case,
+  // inverted condition, etc.) blowing the C++ call stack. See visit(const MacroCallNode&).
+  size_t macro_call_depth {0};
+
   json additional_data;
   json* current_loop_data = &additional_data["loop"];
 
@@ -657,6 +661,108 @@ class Renderer : public NodeVisitor {
     replace_substring(ptr, ".", "/");
     ptr = "/" + ptr;
     additional_data[json::json_pointer(ptr)] = *eval_expression_list(node.expression);
+  }
+
+  void visit(const MacroStatementNode&) override {
+    // Macro definitions are registered at parse time; no runtime effect here.
+  }
+
+  void visit(const MacroCallNode& node) override {
+    if (macro_call_depth >= config.max_macro_recursion_depth) {
+      throw_renderer_error("macro recursion depth exceeded " + std::to_string(config.max_macro_recursion_depth) + " while calling macro '" + node.name + "'", node);
+    }
+
+    const auto macro_ptr = node.macro.lock();
+    if (!macro_ptr) {
+      throw_renderer_error("macro '" + node.name + "' is no longer available", node);
+    }
+    const auto& macro = *macro_ptr;
+
+    // Counts for the whole body of this function, including argument/default-value evaluation
+    // below (which may itself contain nested macro calls), not just the macro.body.accept() call.
+    ++macro_call_depth;
+    struct DepthGuard {
+      size_t& depth;
+      ~DepthGuard() { --depth; }
+    } depth_guard {macro_call_depth};
+
+    // 1. Evaluate arguments in the caller's scope and copy values out so that
+    //    swapping additional_data below cannot invalidate pointers.
+    std::vector<json> arg_values;
+    arg_values.reserve(node.arguments.size());
+    for (const auto& arg : node.arguments) {
+      arg->accept(*this);
+      const json* p = data_eval_stack.top();
+      data_eval_stack.pop();
+      if (p) {
+        arg_values.emplace_back(*p);
+      } else {
+        const auto data_node = not_found_stack.top();
+        not_found_stack.pop();
+        throw_renderer_error("variable '" + data_node->name + "' not found", *data_node);
+      }
+    }
+
+    if (arg_values.size() > macro.parameters.size()) {
+      throw_renderer_error("too many arguments for macro '" + macro.name + "'", node);
+    }
+
+    // 2. Save caller context.
+    json saved_additional = std::move(additional_data);
+    json* saved_loop = current_loop_data;
+    auto* saved_template = current_template;
+    auto* saved_stream = output_stream;
+
+    // 3. Create fresh local scope (parameters + input data only).
+    additional_data = json::object();
+    current_loop_data = &additional_data["loop"];
+
+    // 4. Bind parameters: positional args first, defaults for the rest.
+    for (size_t i = 0; i < macro.parameters.size(); ++i) {
+      const auto& param = macro.parameters[i];
+      if (i < arg_values.size()) {
+        additional_data[param.name] = std::move(arg_values[i]);
+      } else if (param.default_value) {
+        param.default_value->accept(*this);
+        const json* p = data_eval_stack.top();
+        data_eval_stack.pop();
+        if (p) {
+          additional_data[param.name] = *p;
+        } else {
+          const auto data_node = not_found_stack.top();
+          not_found_stack.pop();
+          throw_renderer_error("variable '" + data_node->name + "' not found", *data_node);
+        }
+      } else {
+        // Restore before throwing so caller sees a clean state.
+        additional_data = std::move(saved_additional);
+        current_loop_data = saved_loop;
+        throw_renderer_error("missing required argument '" + param.name + "' for macro '" + macro.name + "'", node);
+      }
+    }
+
+    // 5. Switch current_template so TextNode and error locations resolve
+    //    against the source content the macro body references (matters when
+    //    the macro was hoisted from an included template or registered via
+    //    include_template, where the originally parsed Template may be gone).
+    current_template = macro.owner_template.get();
+    template_stack.emplace_back(current_template);
+
+    // 6. Capture body output into a temporary stream.
+    std::ostringstream captured;
+    output_stream = &captured;
+
+    macro.body.accept(*this);
+
+    // 7. Restore.
+    output_stream = saved_stream;
+    template_stack.pop_back();
+    current_template = saved_template;
+    additional_data = std::move(saved_additional);
+    current_loop_data = saved_loop;
+
+    // 8. Push captured output as the call result.
+    make_result(json(captured.str()));
   }
 
 public:
