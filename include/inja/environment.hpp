@@ -105,6 +105,7 @@ public:
   Template parse_template(const std::filesystem::path& filename) {
     Parser parser(parser_config, lexer_config, template_storage, function_storage);
     auto result = Template(Parser::load_file(input_path / filename));
+    result.name = filename.string();
     parser.parse_into_template(result, (input_path / filename).string());
     return result;
   }
@@ -215,6 +216,7 @@ public:
    */
   void include_template(const std::string& name, const Template& tmpl) {
     template_storage[name] = tmpl;
+    template_storage[name].name = name;
   }
 
   /*!

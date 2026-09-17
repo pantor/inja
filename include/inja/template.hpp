@@ -16,6 +16,7 @@ namespace inja {
 struct Template {
   BlockNode root;
   std::string content;
+  std::string name; // path/key used for include/extends; empty for anonymous string templates
   std::map<std::string, std::shared_ptr<BlockStatementNode>> block_storage;
 
   explicit Template() {}
