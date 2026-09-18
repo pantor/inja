@@ -46,7 +46,7 @@ using namespace inja;
 
 If you are using the [Meson Build System](http://mesonbuild.com), then you can wrap this repository as a subproject.
 
-If you are using [Conan](https://conan.io) to manage your dependencies, have a look at [this repository](https://github.com/DEGoodmanWilson/conan-inja). Please file issues [here](https://github.com/DEGoodmanWilson/conan-inja/issues) if you experience problems with the packages.
+If you are using [Conan](https://conan.io) to manage your dependencies, have a look at [Conan Center](https://conan.io/center/recipes/inja). Please file issues [here](https://github.com/conan-io/conan-center-index/issues) if you experience problems with the packages.
 
 You can also integrate inja in your project using [Hunter](https://github.com/cpp-pm/hunter), a package manager for C++.
 
