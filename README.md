@@ -19,6 +19,9 @@
   <a href="https://raw.githubusercontent.com/pantor/inja/master/LICENSE">
     <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="GitHub License">
   </a>
+  <a href="https://conan.io/center/inja">
+    <img alt="Conan Center" src="https://img.shields.io/conan/v/inja">
+  </a>
 </p>
 
 Inja is a template engine for modern C++, loosely inspired by [jinja](http://jinja.pocoo.org) for python. It has an easy and yet powerful template syntax with all variables, loops, conditions, includes, callbacks, and comments you need, nested and combined as you like. Of course, everything is tested in CI on all relevant compilers. Here is what it looks like:
