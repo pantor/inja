@@ -19,6 +19,9 @@
   <a href="https://raw.githubusercontent.com/pantor/inja/master/LICENSE">
     <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="GitHub License">
   </a>
+  <a href="https://conan.io/center/inja">
+    <img alt="Conan Center" src="https://img.shields.io/conan/v/inja">
+  </a>
 </p>
 
 Inja is a template engine for modern C++, loosely inspired by [jinja](http://jinja.pocoo.org) for python. It has an easy and yet powerful template syntax with all variables, loops, conditions, includes, callbacks, and comments you need, nested and combined as you like. Of course, everything is tested in CI on all relevant compilers. Here is what it looks like:
@@ -43,7 +46,7 @@ using namespace inja;
 
 If you are using the [Meson Build System](http://mesonbuild.com), then you can wrap this repository as a subproject.
 
-If you are using [Conan](https://conan.io) to manage your dependencies, have a look at [this repository](https://github.com/DEGoodmanWilson/conan-inja). Please file issues [here](https://github.com/DEGoodmanWilson/conan-inja/issues) if you experience problems with the packages.
+If you are using [Conan](https://conan.io) to manage your dependencies, have a look at [Conan Center](https://conan.io/center/recipes/inja). Please file issues [here](https://github.com/conan-io/conan-center-index/issues) if you experience problems with the packages.
 
 You can also integrate inja in your project using [Hunter](https://github.com/cpp-pm/hunter), a package manager for C++.
 
