@@ -360,6 +360,9 @@ class Parser {
         }
         auto func = std::make_shared<FunctionNode>(tok.text, tok.text.data() - tmpl.content.c_str());
         // add first parameter as last value from arguments
+        if (arguments.empty()) {
+          throw_parser_error("too few arguments");
+        }
         func->number_args += 1;
         func->arguments.emplace_back(arguments.back());
         arguments.pop_back();
