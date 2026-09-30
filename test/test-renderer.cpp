@@ -159,6 +159,9 @@ Yeah!
     CHECK(env.render("{{ brother.name | upper }}", data) == "CHRIS");
     CHECK(env.render("{{ brother.name | upper | lower }}", data) == "chris");
     CHECK(env.render("{{ [\"C\", \"A\", \"B\"] | sort | join(\",\") }}", data) == "A,B,C");
+
+    CHECK_THROWS_WITH(env.render("{{ | upper }}", data), "[inja.exception.parser_error] (at 1:6) too few arguments");
+    CHECK_THROWS_WITH(env.render("{{ upper(| lower) }}", data), "[inja.exception.parser_error] (at 1:12) too few arguments");
   }
 }
 
