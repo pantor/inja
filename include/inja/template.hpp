@@ -17,6 +17,8 @@ struct Template {
   BlockNode root;
   std::string content;
   std::map<std::string, std::shared_ptr<BlockStatementNode>> block_storage;
+  // cppcheck-suppress unusedStructMember
+  std::map<std::string, std::shared_ptr<MacroStatementNode>> macro_storage;
 
   explicit Template() {}
   explicit Template(std::string content): content(std::move(content)) {}
