@@ -41,6 +41,12 @@ Inja is a headers only library, which can be downloaded from the [releases](http
 using namespace inja;
 ```
 
+If built with [CMake](https://cmake.org/) and on C++20 or later, you can additionally enable module support by enabling `INJA_BUILD_MODULE`. Note that this requires a [C++-supporting toolchain](https://arewemodulesyet.org/tools/), such as CMake 3.28+ with Ninja.
+
+```cpp
+import inja;
+```
+
 If you are using the [Meson Build System](http://mesonbuild.com), then you can wrap this repository as a subproject.
 
 If you are using [Conan](https://conan.io) to manage your dependencies, have a look at [this repository](https://github.com/DEGoodmanWilson/conan-inja). Please file issues [here](https://github.com/DEGoodmanWilson/conan-inja/issues) if you experience problems with the packages.
