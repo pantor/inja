@@ -68,6 +68,7 @@ class Renderer : public NodeVisitor {
   std::vector<std::shared_ptr<json>> data_tmp_stack;
   std::stack<const json*> data_eval_stack;
   std::stack<const DataNode*> not_found_stack;
+  std::stack<std::string> filter_content_stack;
 
   bool break_rendering {false};
 
@@ -236,6 +237,10 @@ class Renderer : public NodeVisitor {
     }
   }
 
+  void visit(const FilterContentNode&) override {
+    make_result(json(filter_content_stack.top()));
+  }
+
   void visit(const FunctionNode& node) override {
     switch (node.operation) {
     case Op::Not: {
@@ -354,6 +359,19 @@ class Renderer : public NodeVisitor {
       }
       make_result(std::move(result));
     } break;
+    case Op::Center: {
+      const auto args = get_argument_vector(node);
+      auto str = args[0]->get<json::string_t>();
+      const auto width = (args.size() >= 2) ? args[1]->get<json::number_integer_t>() : 80;
+      const auto len = static_cast<json::number_integer_t>(str.length());
+      if (len >= width) {
+        make_result(std::move(str));
+      } else {
+        const auto marg = width - len;
+        const auto left = marg / 2 + ((marg & width) & 1);
+        make_result(std::string(static_cast<size_t>(left), ' ') + str + std::string(static_cast<size_t>(marg - left), ' '));
+      }
+    } break;
     case Op::Default: {
       const auto test_arg = get_arguments<1, 0, false>(node)[0];
       data_eval_stack.push((test_arg != nullptr) ? test_arg : get_arguments<1, 1>(node)[0]);
@@ -381,6 +399,40 @@ class Renderer : public NodeVisitor {
     } break;
     case Op::Float: {
       make_result(std::stod(get_arguments<1>(node)[0]->get_ref<const json::string_t&>()));
+    } break;
+    case Op::Indent: {
+      const auto args = get_argument_vector(node);
+      const auto str = args[0]->get<json::string_t>();
+      const std::string indention = (args.size() >= 2 && args[1]->is_string())
+                                        ? args[1]->get<json::string_t>()
+                                        : std::string(static_cast<size_t>((args.size() >= 2) ? args[1]->get<json::number_integer_t>() : 4), ' ');
+      const bool first = (args.size() >= 3) && truthy(args[2]);
+      const bool blank = (args.size() >= 4) && truthy(args[3]);
+
+      std::string result;
+      size_t line_start = 0;
+      bool is_first_line = true;
+      while (true) {
+        const size_t newline_pos = str.find('\n', line_start);
+        const bool last = (newline_pos == std::string::npos);
+        const std::string line = str.substr(line_start, last ? std::string::npos : newline_pos - line_start);
+
+        if (!is_first_line) {
+          result += '\n';
+        }
+        const bool indent_line = is_first_line ? first : (blank || !line.empty());
+        if (indent_line) {
+          result += indention;
+        }
+        result += line;
+
+        is_first_line = false;
+        if (last) {
+          break;
+        }
+        line_start = newline_pos + 1;
+      }
+      make_result(std::move(result));
     } break;
     case Op::Int: {
       make_result(std::stoi(get_arguments<1>(node)[0]->get_ref<const json::string_t&>()));
@@ -657,6 +709,18 @@ class Renderer : public NodeVisitor {
     replace_substring(ptr, ".", "/");
     ptr = "/" + ptr;
     additional_data[json::json_pointer(ptr)] = *eval_expression_list(node.expression);
+  }
+
+  void visit(const FilterStatementNode& node) override {
+    std::ostringstream content_stream;
+    std::ostream* previous_output_stream = output_stream;
+    output_stream = &content_stream;
+    node.body.accept(*this);
+    output_stream = previous_output_stream;
+
+    filter_content_stack.push(content_stream.str());
+    print_data(eval_expression_list(node.filter_expression));
+    filter_content_stack.pop();
   }
 
 public:

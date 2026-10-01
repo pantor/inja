@@ -72,6 +72,22 @@ TEST_CASE("functions") {
     CHECK(env.render("{{ capitalize(\"\") }}", data) == "");
   }
 
+  SUBCASE("center") {
+    CHECK(env.render("{{ center(\"a\", 11) }}", data) == "     a     ");
+    CHECK(env.render("{{ center(name, 11) }}", data) == "   Peter   ");
+    CHECK(env.render("{{ center(name, 3) }}", data) == "Peter");
+    CHECK(env.render("{{ \"a\" | center(11) }}", data) == "     a     ");
+  }
+
+  SUBCASE("indent") {
+    CHECK(env.render("{{ indent(\"line1\\nline2\", 4) }}", data) == "line1\n    line2");
+    CHECK(env.render("{{ indent(\"line1\\nline2\", 4, true) }}", data) == "    line1\n    line2");
+    CHECK(env.render("{{ indent(\"a\\n\\nb\", 2) }}", data) == "a\n\n  b");
+    CHECK(env.render("{{ indent(\"a\\n\\nb\", 2, false, true) }}", data) == "a\n  \n  b");
+    CHECK(env.render("{{ indent(\"a\\nb\", \"> \") }}", data) == "a\n> b");
+    CHECK(env.render("{{ \"a\\nb\" | indent(2) }}", data) == "a\n  b");
+  }
+
   SUBCASE("range") {
     CHECK(env.render("{{ range(2) }}", data) == "[0,1]");
     CHECK(env.render("{{ range(4) }}", data) == "[0,1,2,3]");
