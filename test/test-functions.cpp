@@ -299,6 +299,13 @@ TEST_CASE("callbacks") {
     CHECK(env.render("{{ argmax(4, 2, 6) }}", data) == "2");
     CHECK(env.render("{{ argmax(0, 2, 6, 8, 3) }}", data) == "3");
   }
+
+  SUBCASE("Override") {
+    env.add_callback("custom", 1, [](inja::Arguments& args) { return args.at(0)->get<int>() * 2; });
+    CHECK(env.render("{{ custom(5) }}", data) == "10");
+    env.add_callback("custom", 1, [](inja::Arguments& args) { return args.at(0)->get<int>() * 3; });
+    CHECK(env.render("{{ custom(5) }}", data) == "15");
+  }
 }
 
 TEST_CASE("combinations") {
