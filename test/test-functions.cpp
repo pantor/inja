@@ -39,6 +39,22 @@ TEST_CASE("functions") {
     CHECK(env.render("{{ 5 % 2 }}", data) == "1");
     CHECK(env.render("{{ 7 % -2 }}", data) == "1");
     CHECK(env.render("{{ 5^3 }}", data) == "125");
+    CHECK(env.render("{{ 9 ^ 0.5 }}", data) == "3.0");
+    CHECK(env.render("{{ 9.0 ^ 0.5 }}", data) == "3.0");
+    CHECK(env.render("{{ 4 ^ 1.5 }}", data) == "8.0");
+    CHECK(env.render("{{ 4.0 ^ 1.5 }}", data) == "8.0");
+    CHECK(env.render("{{ 4 ^ -0.5 }}", data) == "0.5");
+    CHECK(env.render("{{ 4.0 ^ -0.5 }}", data) == "0.5");
+    CHECK(env.render("{{ 4 ^ -1 }}", data) == "0.25");
+    CHECK(env.render("{{ 4.0 ^ 2 }}", data) == "16.0");
+    CHECK(env.render("{{ 4 ^ 2.0 }}", data) == "16.0");
+    CHECK(env.render("{{ 4 ^ 0 }}", data) == "1");
+    CHECK(env.render("{{ 4 ^ 0.0 }}", data) == "1.0");
+    CHECK(env.render("{{ -2 ^ 3 }}", data) == "-8");
+    data["base"] = 16;
+    data["exponent"] = 0.5;
+    CHECK(env.render("{{ base ^ exponent }}", data) == "4.0");
+    CHECK(env.render("{{ (base ^ exponent) + 2 }}", data) == "6.0");
     CHECK(env.render("{{ 5 + 12 + 4 * (4 - (1 + 1))^2 - 75 * 1 }}", data) == "-42");
 
     CHECK_THROWS_WITH(env.render("{{ +1 }}", data), "[inja.exception.parser_error] (at 1:7) too few arguments");
