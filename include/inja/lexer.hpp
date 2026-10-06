@@ -239,7 +239,8 @@ class Lexer {
     }
   }
 
-  void skip_whitespaces_and_first_newline() {
+  void skip_whitespaces_and_first_newline(bool force_rstrip = false) {
+    const size_t whitespace_start = pos;
     if (pos < m_in.size()) {
       while (pos < m_in.size() && (m_in[pos] == ' ' || m_in[pos] == '\t')) {
         pos += 1;
@@ -250,12 +251,19 @@ class Lexer {
       const char ch = m_in[pos];
       if (ch == '\n') {
         pos += 1;
-      } else if (ch == '\r') {
+        return;
+      }
+      if (ch == '\r') {
         pos += 1;
         if (pos < m_in.size() && m_in[pos] == '\n') {
           pos += 1;
         }
+        return;
       }
+    }
+
+    if (!force_rstrip) {
+      pos = whitespace_start;
     }
   }
 
@@ -422,7 +430,7 @@ public:
       Token tok = make_token(Token::Kind::CommentClose);
 
       if (must_rstrip || config.trim_blocks) {
-        skip_whitespaces_and_first_newline();
+        skip_whitespaces_and_first_newline(must_rstrip);
       }
       return tok;
     }
