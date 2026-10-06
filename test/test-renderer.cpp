@@ -268,6 +268,18 @@ TEST_CASE("templates") {
     CHECK(env.render("{% if is_happy %}{{ name }}{% endif %}   \n.", data) == "Peter.");
     CHECK(env.render("{%- if is_happy %}{{ name }}{% endif -%}   \n.", data) == "Peter.");
     CHECK(env.render("   {# comment #}   \n.", data) == ".");
+
+    // Inline whitespace is not a line to trim.
+    CHECK(env.render("Hello {% if is_happy %} {{ name }}{% endif %} {%+ if is_happy %} {{ city }}{% endif %}", data) == "Hello  Peter  Brunswick");
+    CHECK(env.render("{% if is_happy %}\t {{ name }}{% endif %} \t!", data) == "\t Peter \t!");
+    CHECK(env.render("{{ name }}{% if is_happy %}{% endif %} \t", data) == "Peter \t");
+    CHECK(env.render("{{ name }}{# comment #} \t!", data) == "Peter \t!");
+    CHECK(env.render("{{ name }}{# comment #} \t", data) == "Peter \t");
+
+    CHECK(env.render("{{ name }}{% if is_happy %}{% endif %} \t\r\n\n!", data) == "Peter\n!");
+    CHECK(env.render("{{ name }}{# comment #} \t\r!", data) == "Peter!");
+    CHECK(env.render("{{ name }}{% if is_happy %}{% endif -%} \t!", data) == "Peter!");
+    CHECK(env.render("{{ name }}{# comment -#} \t!", data) == "Peter!");
   }
 }
 
