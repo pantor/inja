@@ -97,6 +97,11 @@ public:
     render_config.html_autoescape = will_escape;
   }
 
+  /// Sets whether non-array values in for loops are automatically wrapped in arrays
+  void set_ensure_array_for_loops(bool ensure_array) {
+    render_config.ensure_array_for_loops = ensure_array;
+  }
+
   Template parse(std::string_view input) {
     Parser parser(parser_config, lexer_config, template_storage, function_storage);
     return parser.parse(input, input_path);
