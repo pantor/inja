@@ -2486,7 +2486,8 @@ class Renderer : public NodeVisitor {
       if (divisor == 0) {
         throw_renderer_error("modulo by zero", node);
       }
-      make_result(args[0]->get<const json::number_integer_t>() % divisor);
+      // every integer is a multiple of -1, but INT64_MIN % -1 overflows and traps
+      make_result(divisor == -1 ? 0 : args[0]->get<const json::number_integer_t>() % divisor);
     } break;
     case Op::AtId: {
       const auto container = get_arguments<1, 0, false>(node)[0];
@@ -2522,7 +2523,7 @@ class Renderer : public NodeVisitor {
     case Op::DivisibleBy: {
       const auto args = get_arguments<2>(node);
       const auto divisor = args[1]->get<const json::number_integer_t>();
-      make_result((divisor != 0) && (args[0]->get<const json::number_integer_t>() % divisor == 0));
+      make_result((divisor != 0) && (divisor == -1 || args[0]->get<const json::number_integer_t>() % divisor == 0));
     } break;
     case Op::Even: {
       make_result(get_arguments<1>(node)[0]->get<const json::number_integer_t>() % 2 == 0);

@@ -4,6 +4,8 @@
 
 #include "test-common.hpp"
 
+#include <limits>
+
 TEST_CASE("functions") {
   inja::Environment env;
 
@@ -20,6 +22,7 @@ TEST_CASE("functions") {
   data["is_happy"] = true;
   data["is_sad"] = false;
   data["vars"] = {2, 3, 4, 0, -1, -2, -3};
+  data["int_min"] = std::numeric_limits<inja::json::number_integer_t>::min();
 
   SUBCASE("math") {
     CHECK(env.render("{{ 1e3 }}", data) == "1000.0");
@@ -61,6 +64,9 @@ TEST_CASE("functions") {
     CHECK_THROWS_WITH(env.render("{{ 1 + }}", data), "[inja.exception.parser_error] (at 1:8) too few arguments");
     CHECK_THROWS_WITH(env.render("{{ 5 % 0 }}", data), "[inja.exception.render_error] (at 1:6) modulo by zero");
     CHECK_THROWS_WITH(env.render("{{ 5 % 0.5 }}", data), "[inja.exception.render_error] (at 1:6) modulo by zero");
+    CHECK(env.render("{{ 7 % -1 }}", data) == "0");
+    CHECK(env.render("{{ int_min % -1 }}", data) == "0");
+    CHECK(env.render("{{ int_min % 3 }}", data) == "-2");
   }
 
   SUBCASE("upper") {
@@ -145,6 +151,9 @@ TEST_CASE("functions") {
     CHECK(env.render("{{ divisibleBy(50, 5) }}", data) == "true");
     CHECK(env.render("{{ divisibleBy(12, 3) }}", data) == "true");
     CHECK(env.render("{{ divisibleBy(11, 3) }}", data) == "false");
+    CHECK(env.render("{{ divisibleBy(7, -1) }}", data) == "true");
+    CHECK(env.render("{{ divisibleBy(int_min, -1) }}", data) == "true");
+    CHECK(env.render("{{ divisibleBy(int_min, 3) }}", data) == "false");
     // CHECK_THROWS_WITH( env.render("{{ divisibleBy(name, 2) }}", data), "[inja.exception.json_error]
     // [json.exception.type_error.302] type must be number, but is string" );
   }
