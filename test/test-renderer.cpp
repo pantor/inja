@@ -163,6 +163,18 @@ Yeah!
     CHECK_THROWS_WITH(env.render("{{ | upper }}", data), "[inja.exception.parser_error] (at 1:6) too few arguments");
     CHECK_THROWS_WITH(env.render("{{ upper(| lower) }}", data), "[inja.exception.parser_error] (at 1:12) too few arguments");
   }
+
+  SUBCASE("array expressions") {
+    CHECK(env.render("{% set v=10 %}{% set l=[v] %}{{ l }}", data) == "[10]");
+    CHECK(env.render("{% set v=10 %}{{ [v, 20, \"x\"] }}", data) == "[10,20,\"x\"]");
+    CHECK(env.render("{{ [1, 2, 3] }}", data) == "[1,2,3]");
+    CHECK(env.render("{{ [[1,2],[3,4]] }}", data) == "[[1,2],[3,4]]");
+    CHECK(env.render("{{ [] }}", data) == "[]");
+    CHECK(env.render("{% set v=2 %}{% for i in [1, v, 3] %}{{ i }};{% endfor %}", data) == "1;2;3;");
+    CHECK(env.render("{{ at([10, 20, 30], 1) }}", data) == "20");
+    CHECK_THROWS_WITH(env.render("{{ [undefined_var] }}", data),
+                      "[inja.exception.render_error] (at 1:5) variable 'undefined_var' not found");
+  }
 }
 
 TEST_CASE("templates") {
