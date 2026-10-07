@@ -153,7 +153,7 @@ In a loop, the special variables `loop.index (number)`, `loop.index1 (number)`, 
 
 #### Conditions
 
-Conditions support the typical if, else if and else statements. Following conditions are for example possible:
+Conditions support the typical if, else if (or elif) and else statements. Following conditions are for example possible:
 ```.cpp
 // Standard comparisons with a variable
 render("{% if time.hour >= 20 %}Serve{% else if time.hour >= 18 %}Make{% endif %} dinner.", data); // Serve dinner.

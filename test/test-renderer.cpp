@@ -115,6 +115,14 @@ TEST_CASE("types") {
     CHECK(env.render("{% if age == 28 %}28{% else if age == 29 %}29{% endif %}", data) == "29");
     CHECK(env.render("{% if age == 26 %}26{% else if age == 27 %}27{% else if age == 28 %}28{% else %}29{% endif %}", data) == "29");
     CHECK(env.render("{% if age == 25 %}+{% endif %}{% if age == 29 %}+{% else %}-{% endif %}", data) == "+");
+    // Jinja2-style "elif", equivalent to "else if"
+    CHECK(env.render("{% if age == 28 %}28{% elif age == 29 %}29{% endif %}", data) == "29");
+    CHECK(env.render("{% if age == 26 %}26{% elif age == 27 %}27{% elif age == 28 %}28{% else %}29{% endif %}", data) == "29");
+    CHECK(env.render("{% if age == 29 %}29{% elif age == 28 %}28{% endif %}", data) == "29");
+    CHECK(env.render("{% if age == 27 %}27{% elif age == 28 %}28{% else %}other{% endif %}", data) == "other");
+    // "else if" and "elif" can be mixed in the same chain
+    CHECK(env.render("{% if age == 26 %}26{% else if age == 27 %}27{% elif age == 29 %}29{% endif %}", data) == "29");
+    CHECK_THROWS_WITH(env.render("{% elif age == 29 %}29{% endif %}", data), "[inja.exception.parser_error] (at 1:4) elif without matching if");
 
     CHECK_THROWS_WITH(env.render("{% if is_happy %}{% if is_happy %}{% endif %}", data), "[inja.exception.parser_error] (at 1:46) unmatched if");
     CHECK_THROWS_WITH(env.render("{% if is_happy %}{% else if is_happy %}{% end if %}", data),
