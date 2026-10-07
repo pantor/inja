@@ -10,6 +10,7 @@ namespace inja {
 struct SourceLocation {
   size_t line;
   size_t column;
+  std::string filename; // optional; set when the error is inside an include/extends template
 };
 
 struct InjaError : public std::runtime_error {
@@ -22,8 +23,10 @@ struct InjaError : public std::runtime_error {
       : std::runtime_error("[inja.exception." + type + "] " + message), type(type), message(message), location({0, 0}) {}
 
   explicit InjaError(const std::string& type, const std::string& message, SourceLocation location)
-      : std::runtime_error("[inja.exception." + type + "] (at " + std::to_string(location.line) + ":" + std::to_string(location.column) + ") " + message),
-        type(type), message(message), location(location) {}
+      : std::runtime_error("[inja.exception." + type + "] (at " + std::to_string(location.line) + ":" +
+                           std::to_string(location.column) +
+                           (location.filename.empty() ? std::string() : " in " + location.filename) + ") " + message),
+        type(type), message(message), location(std::move(location)) {}
 };
 
 struct ParserError : public InjaError {
