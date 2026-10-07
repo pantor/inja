@@ -1,0 +1,2 @@
+{% extends "skeleton.txt" %}
+{% block data %}overridden data{% endblock %}
