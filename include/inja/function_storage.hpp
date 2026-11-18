@@ -118,11 +118,15 @@ private:
 
 public:
   void add_builtin(std::string_view name, int num_args, Operation op) {
-    function_storage.emplace(std::make_pair(static_cast<std::string>(name), num_args), FunctionData {op});
+    auto key = std::make_pair(static_cast<std::string>(name), num_args);
+    function_storage.erase(key);
+    function_storage.emplace(std::move(key), FunctionData {op});
   }
 
   void add_callback(std::string_view name, int num_args, const CallbackFunction& callback) {
-    function_storage.emplace(std::make_pair(static_cast<std::string>(name), num_args), FunctionData {Operation::Callback, callback});
+    auto key = std::make_pair(static_cast<std::string>(name), num_args);
+    function_storage.erase(key);
+    function_storage.emplace(std::move(key), FunctionData {Operation::Callback, callback});
   }
 
   FunctionData find_function(std::string_view name, int num_args) const {
