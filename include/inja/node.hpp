@@ -31,6 +31,8 @@ class IncludeStatementNode;
 class ExtendsStatementNode;
 class BlockStatementNode;
 class SetStatementNode;
+class FilterStatementNode;
+class FilterContentNode;
 
 class NodeVisitor {
 public:
@@ -52,6 +54,8 @@ public:
   virtual void visit(const ExtendsStatementNode& node) = 0;
   virtual void visit(const BlockStatementNode& node) = 0;
   virtual void visit(const SetStatementNode& node) = 0;
+  virtual void visit(const FilterStatementNode& node) = 0;
+  virtual void visit(const FilterContentNode& node) = 0;
 };
 
 /*!
@@ -126,6 +130,15 @@ public:
   }
 
   explicit DataNode(std::string_view ptr_name, size_t pos): ExpressionNode(pos), name(ptr_name), ptr(json::json_pointer(convert_dot_to_ptr(ptr_name))) {}
+
+  void accept(NodeVisitor& v) const override {
+    v.visit(*this);
+  }
+};
+
+class FilterContentNode : public ExpressionNode {
+public:
+  explicit FilterContentNode(size_t pos): ExpressionNode(pos) {}
 
   void accept(NodeVisitor& v) const override {
     v.visit(*this);
@@ -365,6 +378,21 @@ public:
   ExpressionListNode expression;
 
   explicit SetStatementNode(const std::string& key, size_t pos): StatementNode(pos), key(key) {}
+
+  void accept(NodeVisitor& v) const override {
+    v.visit(*this);
+  }
+};
+
+class FilterStatementNode : public StatementNode {
+public:
+  // cppcheck-suppress unusedStructMember
+  ExpressionListNode filter_expression;
+  // cppcheck-suppress unusedStructMember
+  BlockNode body;
+  BlockNode* const parent;
+
+  explicit FilterStatementNode(BlockNode* const parent, size_t pos): StatementNode(pos), parent(parent) {}
 
   void accept(NodeVisitor& v) const override {
     v.visit(*this);
