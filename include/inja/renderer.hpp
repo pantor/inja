@@ -128,7 +128,7 @@ class Renderer : public NodeVisitor {
     return std::make_shared<json>(*result);
   }
 
-  void throw_renderer_error(const std::string& message, const AstNode& node) {
+  [[noreturn]] void throw_renderer_error(const std::string& message, const AstNode& node) {
     const SourceLocation loc = get_source_location(current_template->content, node.pos);
     INJA_THROW(RenderError(message, loc));
   }
@@ -214,6 +214,30 @@ class Renderer : public NodeVisitor {
 
   void visit(const LiteralNode& node) override {
     data_eval_stack.push(&node.value);
+  }
+
+  void visit(const ArrayNode& node) override {
+    const size_t N = node.elements.size();
+    for (const auto& e : node.elements) {
+      e->accept(*this);
+    }
+    if (data_eval_stack.size() < N) {
+      throw_renderer_error("malformed array literal", node);
+    }
+    json result = json::array();
+    result.get_ref<json::array_t&>().resize(N);
+    for (size_t i = 0; i < N; ++i) {
+      const auto v = data_eval_stack.top();
+      data_eval_stack.pop();
+      if (!v) {
+        const auto data_node = not_found_stack.top();
+        not_found_stack.pop();
+        throw_renderer_error("variable '" + static_cast<std::string>(data_node->name) + "' not found", *data_node);
+      } else {
+        result[N - i - 1] = *v;
+      }
+    }
+    make_result(std::move(result));
   }
 
   void visit(const DataNode& node) override {

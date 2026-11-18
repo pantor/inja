@@ -167,9 +167,28 @@ class Parser {
       } break;
       case Token::Kind::LeftBracket: {
         if (current_brace_level == 0 && current_bracket_level == 0) {
-          literal_start = tok.text;
+          auto array_node = std::make_shared<ArrayNode>(tok.text.data() - tmpl.content.c_str());
+          get_next_token();
+          if (tok.kind != Token::Kind::RightBracket) {
+            while (true) {
+              auto expr = parse_expression(tmpl);
+              if (!expr) {
+                break;
+              }
+              array_node->elements.emplace_back(expr);
+              if (tok.kind != Token::Kind::Comma) {
+                break;
+              }
+              get_next_token();
+            }
+          }
+          if (tok.kind != Token::Kind::RightBracket) {
+            throw_parser_error("expected ']', got '" + tok.describe() + "'");
+          }
+          arguments.emplace_back(array_node);
+        } else {
+          current_bracket_level += 1;
         }
-        current_bracket_level += 1;
       } break;
       case Token::Kind::LeftBrace: {
         if (current_brace_level == 0 && current_bracket_level == 0) {
@@ -179,7 +198,7 @@ class Parser {
       } break;
       case Token::Kind::RightBracket: {
         if (current_bracket_level == 0) {
-          throw_parser_error("unexpected ']'");
+          goto break_loop;
         }
 
         current_bracket_level -= 1;

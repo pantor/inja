@@ -19,6 +19,12 @@ class StatisticsVisitor : public NodeVisitor {
   void visit(const ExpressionNode&) override {}
   void visit(const LiteralNode&) override {}
 
+  void visit(const ArrayNode& node) override {
+    for (const auto& e : node.elements) {
+      e->accept(*this);
+    }
+  }
+
   void visit(const DataNode&) override {
     variable_counter += 1;
   }
