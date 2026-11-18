@@ -261,6 +261,8 @@ TEST_CASE("templates") {
     CHECK(env.render("\n   {%+ if is_happy %}{{ name }}{% endif -%}   ", data) == "\n   Peter");
     CHECK(env.render("{% if is_happy %}{{ name }}{% endif %}\n", data) == "Peter\n");
     CHECK(env.render("   {# comment #}", data) == "");
+    CHECK(env.render("{{ name }}  {% if is_happy %}!{% endif %}", data) == "Peter  !");
+    CHECK(env.render("{{ name }} {# comment #}!", data) == "Peter !");
 
     env.set_trim_blocks(true);
     CHECK(env.render("{% if is_happy %}{{ name }}{% endif %}", data) == "Peter");
@@ -268,6 +270,8 @@ TEST_CASE("templates") {
     CHECK(env.render("{% if is_happy %}{{ name }}{% endif %}   \n.", data) == "Peter.");
     CHECK(env.render("{%- if is_happy %}{{ name }}{% endif -%}   \n.", data) == "Peter.");
     CHECK(env.render("   {# comment #}   \n.", data) == ".");
+    CHECK(env.render("{% if is_happy %}{{ name }}{% endif %} is happy", data) == "Peter is happy");
+    CHECK(env.render("{# comment #} {{ name }}", data) == " Peter");
   }
 }
 

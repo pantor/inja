@@ -71,7 +71,7 @@ class Lexer {
       pos = tok_start + close.size();
       const Token tok = make_token(closeKind);
       if (trim) {
-        skip_whitespaces_and_first_newline();
+        skip_trailing_whitespaces_and_newline();
       }
       return tok;
     }
@@ -259,6 +259,21 @@ class Lexer {
     }
   }
 
+  // trim_blocks only removes the end of a line, so spaces followed by more text are kept.
+  void skip_trailing_whitespaces_and_newline() {
+    const size_t start = pos;
+    skip_whitespaces_and_first_newline();
+    if (pos > start && m_in[pos - 1] != '\n' && m_in[pos - 1] != '\r') {
+      pos = start;
+    }
+  }
+
+  // lstrip_blocks only applies when nothing but whitespace comes before the block on its line.
+  bool is_first_on_line() const {
+    const size_t newline = m_in.find_last_of("\r\n", pos);
+    return newline == std::string_view::npos ? tok_start == 0 : newline + 1 >= tok_start;
+  }
+
   static std::string_view clear_final_line_if_whitespace(std::string_view text) {
     std::string_view result = text;
     while (!result.empty()) {
@@ -332,7 +347,7 @@ public:
           must_lstrip = true;
         } else {
           state = State::StatementStart;
-          must_lstrip = config.lstrip_blocks;
+          must_lstrip = config.lstrip_blocks && is_first_on_line();
         }
       } else if (inja::string_view::starts_with(open_str, config.comment_open)) {
         if (inja::string_view::starts_with(open_str, config.comment_open_force_lstrip)) {
@@ -340,7 +355,7 @@ public:
           must_lstrip = true;
         } else {
           state = State::CommentStart;
-          must_lstrip = config.lstrip_blocks;
+          must_lstrip = config.lstrip_blocks && is_first_on_line();
         }
       } else if ((pos == 0 || m_in[pos - 1] == '\n') && inja::string_view::starts_with(open_str, config.line_statement)) {
         state = State::LineStart;
@@ -421,8 +436,10 @@ public:
       pos += end + config.comment_close.size();
       Token tok = make_token(Token::Kind::CommentClose);
 
-      if (must_rstrip || config.trim_blocks) {
+      if (must_rstrip) {
         skip_whitespaces_and_first_newline();
+      } else if (config.trim_blocks) {
+        skip_trailing_whitespaces_and_newline();
       }
       return tok;
     }
