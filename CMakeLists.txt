@@ -13,6 +13,7 @@ option(INJA_ENABLE_CLANG_TIDY "Enable clang-tidy" OFF)
 option(INJA_EXPORT "Export the current build tree to the package registry" ON)
 option(INJA_INSTALL "Generate install targets for inja" ON)
 option(INJA_INSTALL_SINGLE_HEADER "Install the single header instead" OFF)
+option(INJA_BUILD_MODULE "Build the inja module" OFF)
 option(INJA_USE_EMBEDDED_JSON "Use the shipped json header if not available on the system" ON)
 
 include(GNUInstallDirs)
@@ -115,6 +116,11 @@ if(BUILD_TESTING AND INJA_BUILD_TESTS)
   add_executable(inja_benchmark test/benchmark.cpp test/test-common.hpp)
   target_link_libraries(inja_benchmark PRIVATE inja)
   target_include_directories(inja_benchmark PRIVATE third_party/include)
+endif()
+
+
+if(INJA_BUILD_MODULE)
+  add_subdirectory(src)
 endif()
 
 
