@@ -97,6 +97,11 @@ public:
     render_config.html_autoescape = will_escape;
   }
 
+  /// Sets the maximum nesting depth of macro calls before an inja::RenderError is thrown
+  void set_max_macro_recursion_depth(size_t max_depth) {
+    render_config.max_macro_recursion_depth = max_depth;
+  }
+
   Template parse(std::string_view input) {
     Parser parser(parser_config, lexer_config, template_storage, function_storage);
     return parser.parse(input, input_path);

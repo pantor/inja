@@ -76,6 +76,10 @@ struct ParserConfig {
 struct RenderConfig {
   bool throw_at_missing_includes {true};
   bool html_autoescape {false};
+  // Maximum nesting depth of macro calls (a macro calling itself, mutually recursive macros, or
+  // a macro invoked as a default-parameter/argument expression of another macro call all count).
+  // Exceeding it throws inja::RenderError instead of exhausting the C++ call stack.
+  size_t max_macro_recursion_depth {200};
 };
 
 } // namespace inja
