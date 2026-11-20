@@ -129,7 +129,8 @@ class Renderer : public NodeVisitor {
   }
 
   void throw_renderer_error(const std::string& message, const AstNode& node) {
-    const SourceLocation loc = get_source_location(current_template->content, node.pos);
+    SourceLocation loc = get_source_location(current_template->content, node.pos);
+    loc.filename = current_template->name;
     INJA_THROW(RenderError(message, loc));
   }
 
